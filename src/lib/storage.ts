@@ -8,6 +8,8 @@ import type {
   FeedbackInput,
   GeneratedContentUpdateInput,
   ProfileInput,
+  ProductFeedbackAnalysis,
+  ProductFeedbackInput,
 } from "@/lib/schemas";
 import type {
   AppDatabase,
@@ -16,6 +18,7 @@ import type {
   DashboardData,
   GeneratedContent,
   PoliticianProfile,
+  ProductFeedback,
 } from "@/lib/types";
 
 const DATABASE_PATH = path.join(process.cwd(), "data", "mandato-digital.json");
@@ -25,6 +28,7 @@ const EMPTY_DATABASE: AppDatabase = {
   contentRequests: [],
   generatedContents: [],
   feedback: [],
+  productFeedbacks: [],
 };
 
 type GeneratedContentSeed = Pick<
@@ -48,10 +52,23 @@ type Repository = {
     generatedContentId: string,
     input: FeedbackInput,
   ): Promise<ContentFeedback>;
+  createProductFeedback(
+    input: ProductFeedbackInput,
+    analysis: ProductFeedbackAnalysis,
+  ): Promise<ProductFeedback>;
 };
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function isMissingTableError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "PGRST205",
+  );
 }
 
 async function ensureLocalDatabase() {
@@ -167,6 +184,23 @@ function mapFeedbackRow(row: Record<string, unknown>): ContentFeedback {
   };
 }
 
+function mapProductFeedbackRow(row: Record<string, unknown>): ProductFeedback {
+  return {
+    id: String(row.id),
+    screen: String(row.screen ?? ""),
+    workedWell: String(row.worked_well ?? ""),
+    issueObserved: String(row.issue_observed),
+    classification: row.classification as ProductFeedback["classification"],
+    criticality: row.criticality as ProductFeedback["criticality"],
+    rationale: String(row.rationale),
+    scopeAssessment: String(row.scope_assessment),
+    suggestedAction: String(row.suggested_action),
+    implementationPrompt: String(row.implementation_prompt ?? ""),
+    provider: String(row.provider),
+    createdAt: String(row.created_at),
+  };
+}
+
 const localRepository: Repository = {
   async getDashboard() {
     return readLocalDatabase();
@@ -258,6 +292,29 @@ const localRepository: Repository = {
 
     return feedback;
   },
+
+  async createProductFeedback(input, analysis) {
+    const database = await readLocalDatabase();
+    const feedback: ProductFeedback = {
+      id: crypto.randomUUID(),
+      screen: input.screen,
+      workedWell: input.workedWell,
+      issueObserved: input.issueObserved,
+      classification: analysis.classification,
+      criticality: analysis.criticality,
+      rationale: analysis.rationale,
+      scopeAssessment: analysis.scopeAssessment,
+      suggestedAction: analysis.suggestedAction,
+      implementationPrompt: analysis.implementationPrompt,
+      provider: analysis.provider,
+      createdAt: nowIso(),
+    };
+
+    database.productFeedbacks.unshift(feedback);
+    await writeLocalDatabase(database);
+
+    return feedback;
+  },
 };
 
 const supabaseRepository: Repository = {
@@ -276,17 +333,31 @@ const supabaseRepository: Repository = {
         .order("created_at", { ascending: false }),
       client.from("content_feedback").select("*").order("created_at", { ascending: false }),
     ]);
+    const productFeedbackRes = await client
+      .from("product_feedback")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (profileRes.error) throw profileRes.error;
     if (requestRes.error) throw requestRes.error;
     if (generatedRes.error) throw generatedRes.error;
     if (feedbackRes.error) throw feedbackRes.error;
+    if (productFeedbackRes.error && !isMissingTableError(productFeedbackRes.error)) {
+      throw productFeedbackRes.error;
+    }
+
+    const localDatabase = productFeedbackRes.error
+      ? await readLocalDatabase()
+      : null;
 
     return {
       profile: profileRes.data[0] ? mapProfileRow(profileRes.data[0]) : null,
       contentRequests: requestRes.data.map(mapRequestRow),
       generatedContents: generatedRes.data.map(mapGeneratedContentRow),
       feedback: feedbackRes.data.map(mapFeedbackRow),
+      productFeedbacks: productFeedbackRes.error
+        ? localDatabase?.productFeedbacks ?? []
+        : productFeedbackRes.data.map(mapProductFeedbackRow),
     };
   },
 
@@ -420,6 +491,40 @@ const supabaseRepository: Repository = {
 
     if (error) throw error;
     return mapFeedbackRow(data);
+  },
+
+  async createProductFeedback(input, analysis) {
+    const client = getSupabaseClient();
+    const payload = {
+      id: crypto.randomUUID(),
+      screen: input.screen,
+      worked_well: input.workedWell,
+      issue_observed: input.issueObserved,
+      classification: analysis.classification,
+      criticality: analysis.criticality,
+      rationale: analysis.rationale,
+      scope_assessment: analysis.scopeAssessment,
+      suggested_action: analysis.suggestedAction,
+      implementation_prompt: analysis.implementationPrompt,
+      provider: analysis.provider,
+      created_at: nowIso(),
+    };
+
+    const { data, error } = await client
+      .from("product_feedback")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        return localRepository.createProductFeedback(input, analysis);
+      }
+
+      throw error;
+    }
+
+    return mapProductFeedbackRow(data);
   },
 };
 

@@ -1,6 +1,22 @@
 export const contentStatuses = ["rascunho", "revisado", "aprovado"] as const;
 export type ContentStatus = (typeof contentStatuses)[number];
 
+export const productFeedbackClassifications = [
+  "bug",
+  "melhoria",
+  "fora_do_escopo_atual",
+] as const;
+export type ProductFeedbackClassification =
+  (typeof productFeedbackClassifications)[number];
+
+export const productFeedbackCriticalities = [
+  "alta",
+  "media",
+  "baixa",
+] as const;
+export type ProductFeedbackCriticality =
+  (typeof productFeedbackCriticalities)[number];
+
 export const contentFormats = [
   "Post Instagram",
   "Legenda Instagram",
@@ -65,11 +81,27 @@ export type ContentFeedback = {
   createdAt: string;
 };
 
+export type ProductFeedback = {
+  id: string;
+  screen: string;
+  workedWell: string;
+  issueObserved: string;
+  classification: ProductFeedbackClassification;
+  criticality: ProductFeedbackCriticality;
+  rationale: string;
+  scopeAssessment: string;
+  suggestedAction: string;
+  implementationPrompt: string;
+  provider: string;
+  createdAt: string;
+};
+
 export type AppDatabase = {
   profile: PoliticianProfile | null;
   contentRequests: ContentRequest[];
   generatedContents: GeneratedContent[];
   feedback: ContentFeedback[];
+  productFeedbacks: ProductFeedback[];
 };
 
 export type DashboardData = AppDatabase;

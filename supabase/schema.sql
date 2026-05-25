@@ -50,8 +50,32 @@ create table if not exists content_feedback (
   created_at timestamptz not null default now()
 );
 
+create table if not exists product_feedback (
+  id uuid primary key default gen_random_uuid(),
+  screen text not null default '',
+  worked_well text not null default '',
+  issue_observed text not null,
+  classification text not null,
+  criticality text not null default 'media',
+  rationale text not null,
+  scope_assessment text not null,
+  suggested_action text not null,
+  implementation_prompt text not null default '',
+  provider text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table if exists product_feedback
+  add column if not exists criticality text not null default 'media';
+
+alter table if exists product_feedback
+  add column if not exists implementation_prompt text not null default '';
+
 create index if not exists generated_contents_request_id_idx
   on generated_contents(content_request_id);
 
 create index if not exists content_feedback_generated_content_id_idx
   on content_feedback(generated_content_id);
+
+create index if not exists product_feedback_created_at_idx
+  on product_feedback(created_at desc);

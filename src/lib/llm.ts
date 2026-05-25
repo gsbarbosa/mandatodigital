@@ -12,6 +12,11 @@ type GeneratedVariant = {
   provider: string;
 };
 
+type JsonPromptResult = {
+  rawText: string | null;
+  provider: string | null;
+};
+
 type ParsedResponse = {
   versions: Array<{
     title?: string;
@@ -59,7 +64,11 @@ function normalizeResponse(
   return versions.length ? versions.slice(0, 3) : null;
 }
 
-async function callOpenAI(system: string, user: string) {
+async function callOpenAI(
+  system: string,
+  user: string,
+  options?: { temperature?: number; maxTokens?: number },
+) {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -74,7 +83,8 @@ async function callOpenAI(system: string, user: string) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
-      temperature: 0.8,
+      temperature: options?.temperature ?? 0.8,
+      max_tokens: options?.maxTokens,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -98,7 +108,11 @@ async function callOpenAI(system: string, user: string) {
   return json.choices?.[0]?.message?.content ?? null;
 }
 
-async function callAnthropic(system: string, user: string) {
+async function callAnthropic(
+  system: string,
+  user: string,
+  options?: { temperature?: number; maxTokens?: number },
+) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
@@ -114,7 +128,8 @@ async function callAnthropic(system: string, user: string) {
     },
     body: JSON.stringify({
       model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
-      max_tokens: 1400,
+      max_tokens: options?.maxTokens ?? 1400,
+      temperature: options?.temperature ?? 0.4,
       system,
       messages: [{ role: "user", content: user }],
     }),
@@ -134,6 +149,33 @@ async function callAnthropic(system: string, user: string) {
   return json.content?.find((item) => item.type === "text")?.text ?? null;
 }
 
+export function parseJsonResponse<T>(text: string): T | null {
+  return parseMaybeJson(text) as T | null;
+}
+
+export async function requestStructuredJson(
+  system: string,
+  user: string,
+  options?: { temperature?: number; maxTokens?: number },
+): Promise<JsonPromptResult> {
+  const provider = process.env.OPENAI_API_KEY
+    ? "openai"
+    : process.env.ANTHROPIC_API_KEY
+      ? "anthropic"
+      : null;
+
+  if (!provider) {
+    return { rawText: null, provider: null };
+  }
+
+  const rawText =
+    provider === "openai"
+      ? await callOpenAI(system, user, options)
+      : await callAnthropic(system, user, options);
+
+  return { rawText, provider };
+}
+
 export async function generateContentVariants(
   profile: PoliticianProfile,
   request: ContentRequestInput,
@@ -141,12 +183,14 @@ export async function generateContentVariants(
   const prompt = buildGenerationPrompt(profile, request);
 
   try {
-    const provider = process.env.OPENAI_API_KEY ? "openai" : process.env.ANTHROPIC_API_KEY ? "anthropic" : null;
-    const rawText = process.env.OPENAI_API_KEY
-      ? await callOpenAI(prompt.system, prompt.user)
-      : process.env.ANTHROPIC_API_KEY
-        ? await callAnthropic(prompt.system, prompt.user)
-        : null;
+    const { rawText, provider } = await requestStructuredJson(
+      prompt.system,
+      prompt.user,
+      {
+        temperature: 0.8,
+        maxTokens: 1800,
+      },
+    );
 
     if (!rawText || !provider) {
       return buildFallbackVariants(profile, request, prompt.preview);

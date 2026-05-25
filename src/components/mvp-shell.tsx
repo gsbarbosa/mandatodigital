@@ -10,7 +10,11 @@ import {
   spectrumOptions,
   voiceToneOptions,
 } from "@/lib/constants";
-import { contentRequestInputSchema, profileInputSchema } from "@/lib/schemas";
+import {
+  contentRequestInputSchema,
+  productFeedbackInputSchema,
+  profileInputSchema,
+} from "@/lib/schemas";
 import type { DashboardData } from "@/lib/types";
 import type {
   ContentFormat,
@@ -18,6 +22,7 @@ import type {
   ContentStatus,
   GeneratedContent,
   IntensityLevel,
+  ProductFeedback,
 } from "@/lib/types";
 
 type ProfileFormState = {
@@ -45,6 +50,12 @@ type RequestFormState = {
   context: string;
   keyFacts: string;
   desiredCallToAction: string;
+};
+
+type ProductFeedbackFormState = {
+  screen: string;
+  workedWell: string;
+  issueObserved: string;
 };
 
 function toTextarea(items: string[]) {
@@ -91,6 +102,14 @@ function buildRequestState(): RequestFormState {
   };
 }
 
+function buildProductFeedbackState(): ProductFeedbackFormState {
+  return {
+    screen: "",
+    workedWell: "",
+    issueObserved: "",
+  };
+}
+
 const fieldLabels: Record<string, string> = {
   fullName: "Nome publico",
   role: "Cargo / posicao",
@@ -112,6 +131,24 @@ const fieldLabels: Record<string, string> = {
   context: "Contexto adicional",
   keyFacts: "Fatos confirmados",
   desiredCallToAction: "CTA desejado",
+  screen: "Tela / fluxo",
+  workedWell: "O que funcionou bem",
+  issueObserved: "O que nao funcionou / observacao",
+};
+
+const productFeedbackLabelMap: Record<ProductFeedback["classification"], string> = {
+  bug: "Bug",
+  melhoria: "Melhoria",
+  fora_do_escopo_atual: "Fora do escopo atual",
+};
+
+const productFeedbackCriticalityLabelMap: Record<
+  ProductFeedback["criticality"],
+  string
+> = {
+  alta: "Alta",
+  media: "Media",
+  baixa: "Baixa",
 };
 
 type ApiErrorPayload = {
@@ -165,6 +202,30 @@ function StatusPill({ status }: { status: ContentStatus }) {
   return <span className={`status-pill status-${status}`}>{status}</span>;
 }
 
+function ProductFeedbackPill({
+  classification,
+}: {
+  classification: ProductFeedback["classification"];
+}) {
+  return (
+    <span className={`analysis-pill analysis-${classification}`}>
+      {productFeedbackLabelMap[classification]}
+    </span>
+  );
+}
+
+function ProductFeedbackCriticalityPill({
+  criticality,
+}: {
+  criticality: ProductFeedback["criticality"];
+}) {
+  return (
+    <span className={`criticality-pill criticality-${criticality}`}>
+      Criticidade {productFeedbackCriticalityLabelMap[criticality]}
+    </span>
+  );
+}
+
 export function MvpShell({ initialData }: { initialData: DashboardData }) {
   const [profile, setProfile] = useState(initialData.profile);
   const [profileForm, setProfileForm] = useState(() =>
@@ -177,9 +238,14 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
     initialData.generatedContents,
   );
   const [feedback, setFeedback] = useState(initialData.feedback);
+  const [productFeedbacks, setProductFeedbacks] = useState<ProductFeedback[]>(
+    initialData.productFeedbacks ?? [],
+  );
   const [requestForm, setRequestForm] = useState<RequestFormState>(
     buildRequestState(),
   );
+  const [productFeedbackForm, setProductFeedbackForm] =
+    useState<ProductFeedbackFormState>(buildProductFeedbackState());
   const [feedbackNote, setFeedbackNote] = useState("");
   const [selectedContentId, setSelectedContentId] = useState<string | null>(
     initialData.generatedContents[0]?.id ?? null,
@@ -187,6 +253,9 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingContent, setIsSavingContent] = useState(false);
+  const [isFeedbackWidgetOpen, setIsFeedbackWidgetOpen] = useState(false);
+  const [isSubmittingProductFeedback, setIsSubmittingProductFeedback] =
+    useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -395,6 +464,55 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
       setErrorMessage(
         error instanceof Error ? error.message : "Nao foi possivel registrar o feedback.",
       );
+    }
+  }
+
+  async function submitProductFeedback() {
+    setIsSubmittingProductFeedback(true);
+    setStatusMessage(null);
+
+    try {
+      const payload = {
+        screen: productFeedbackForm.screen,
+        workedWell: productFeedbackForm.workedWell,
+        issueObserved: productFeedbackForm.issueObserved,
+      };
+
+      const parsedPayload = productFeedbackInputSchema.safeParse(payload);
+
+      if (!parsedPayload.success) {
+        throw new Error(
+          formatApiError({
+            issues: parsedPayload.error.flatten(),
+          }),
+        );
+      }
+
+      const result = await handleApi<{ feedback: ProductFeedback }>(
+        "/api/product-feedback",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      setProductFeedbacks((current) => [result.feedback, ...current]);
+      setProductFeedbackForm(buildProductFeedbackState());
+      setIsFeedbackWidgetOpen(true);
+      setStatusMessage(
+        "Feedback analisado. A IA classificou a observacao e registrou o proximo passo sugerido.",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel analisar o feedback de produto.",
+      );
+    } finally {
+      setIsSubmittingProductFeedback(false);
     }
   }
 
@@ -979,6 +1097,156 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
           </SectionCard>
         </aside>
       </div>
+
+      <button
+        type="button"
+        className="feedback-fab"
+        onClick={() => setIsFeedbackWidgetOpen((current) => !current)}
+      >
+        {isFeedbackWidgetOpen ? "Fechar feedback" : "Feedback do produto"}
+      </button>
+
+      {isFeedbackWidgetOpen && (
+        <button
+          type="button"
+          className="feedback-overlay"
+          aria-label="Fechar painel de feedback"
+          onClick={() => setIsFeedbackWidgetOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`feedback-drawer ${isFeedbackWidgetOpen ? "open" : ""}`}
+        aria-hidden={!isFeedbackWidgetOpen}
+      >
+        <div className="feedback-drawer-header">
+          <div>
+            <p className="eyebrow">Canal do produto</p>
+            <h2>O que funcionou e o que nao funcionou</h2>
+          </div>
+          <button
+            type="button"
+            className="feedback-close"
+            onClick={() => setIsFeedbackWidgetOpen(false)}
+          >
+            Fechar
+          </button>
+        </div>
+
+        <p className="feedback-helper">
+          Seu parceiro de produto pode descrever a experiencia aqui. A IA analisa
+          automaticamente se o relato indica bug, melhoria ou algo fora do escopo
+          atual da entrega.
+        </p>
+
+        <label className="field">
+          <span>Tela / fluxo</span>
+          <input
+            value={productFeedbackForm.screen}
+            onChange={(event) =>
+              setProductFeedbackForm((current) => ({
+                ...current,
+                screen: event.target.value,
+              }))
+            }
+            placeholder="Ex.: onboarding, geracao de pauta, revisao final"
+          />
+        </label>
+
+        <label className="field">
+          <span>O que funcionou bem</span>
+          <textarea
+            value={productFeedbackForm.workedWell}
+            onChange={(event) =>
+              setProductFeedbackForm((current) => ({
+                ...current,
+                workedWell: event.target.value,
+              }))
+            }
+            placeholder="Ex.: a geracao saiu rapida e as 3 versoes vieram com boa variacao"
+          />
+        </label>
+
+        <label className="field">
+          <span>O que nao funcionou / observacao</span>
+          <textarea
+            value={productFeedbackForm.issueObserved}
+            onChange={(event) =>
+              setProductFeedbackForm((current) => ({
+                ...current,
+                issueObserved: event.target.value,
+              }))
+            }
+            placeholder="Ex.: ao salvar o onboarding parece que faltam pistas visuais; ou entao o botao nao salvou nada"
+          />
+        </label>
+
+        <button
+          type="button"
+          className="primary-button"
+          onClick={submitProductFeedback}
+          disabled={isSubmittingProductFeedback}
+        >
+          {isSubmittingProductFeedback ? "Analisando feedback..." : "Analisar feedback"}
+        </button>
+
+        <div className="product-feedback-history">
+          <div className="feedback-drawer-header compact">
+            <div>
+              <p className="eyebrow">Ultimas analises</p>
+              <h3>Historico de feedback do produto</h3>
+            </div>
+          </div>
+
+          {productFeedbacks.length ? (
+            <div className="feedback-stack">
+              {productFeedbacks.map((item) => (
+                <article key={item.id} className="feedback-analysis-card">
+                  <div className="feedback-analysis-top">
+                    <div className="feedback-analysis-badges">
+                      <ProductFeedbackPill classification={item.classification} />
+                      <ProductFeedbackCriticalityPill criticality={item.criticality} />
+                    </div>
+                    <strong>{new Date(item.createdAt).toLocaleString("pt-BR")}</strong>
+                  </div>
+
+                  {item.screen && (
+                    <p className="feedback-line">
+                      <span>Tela:</span> {item.screen}
+                    </p>
+                  )}
+
+                  {item.workedWell && (
+                    <p className="feedback-line">
+                      <span>Funcionou bem:</span> {item.workedWell}
+                    </p>
+                  )}
+
+                  <p className="feedback-line">
+                    <span>Observacao:</span> {item.issueObserved}
+                  </p>
+                  <p className="feedback-line">
+                    <span>Leitura da IA:</span> {item.rationale}
+                  </p>
+                  <p className="feedback-line">
+                    <span>Escopo atual:</span> {item.scopeAssessment}
+                  </p>
+                  <p className="feedback-line">
+                    <span>Proximo passo:</span> {item.suggestedAction}
+                  </p>
+                  <p className="feedback-line">
+                    <span>Implementar agora:</span> {item.implementationPrompt}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="empty-state">
+              As analises de produto aparecem aqui assim que o primeiro feedback for enviado.
+            </p>
+          )}
+        </div>
+      </aside>
     </main>
   );
 }
