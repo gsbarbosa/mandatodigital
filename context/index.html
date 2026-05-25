@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mandato Digital — Diagnóstico Estratégico e Gerador de Posicionamento</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: #020617;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #f8fafc;
+            line-height: 1.6;
+            padding-bottom: 120px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px; right: -200px;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+        }
+
+        h1, h2, h3, h4 { font-weight: 700; color: #f8fafc; }
+        .slide-title { font-size: 32px; margin-bottom: 24px; display: flex; align-items: center; gap: 15px; }
+        .section-header { font-size: 16px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin: 30px 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;}
+        .section-header:first-of-type { margin-top: 0; }
+
+        .tag-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 20px;
+            font-size: 14px; font-weight: 700;
+            margin-bottom: 16px; letter-spacing: 1px; text-transform: uppercase;
+        }
+
+        .theme-identificacao { --brand-color: #3b82f6; --brand-bg: rgba(59, 130, 246, 0.1); }
+        .theme-ideologia { --brand-color: #a855f7; --brand-bg: rgba(168, 85, 247, 0.1); }
+        .theme-voz { --brand-color: #f59e0b; --brand-bg: rgba(245, 158, 11, 0.1); }
+        .theme-diagnostico { --brand-color: #10b981; --brand-bg: rgba(16, 185, 129, 0.1); }
+        .theme-gerador { --brand-color: #ef4444; --brand-bg: rgba(239, 68, 68, 0.1); }
+
+        .agent-section .tag-pill {
+            background: var(--brand-bg); color: var(--brand-color);
+            border: 1px solid rgba(var(--brand-color), 0.3);
+        }
+        .agent-section .slide-title span { color: var(--brand-color); }
+
+        .form-panel {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .form-panel::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: var(--brand-color);
+        }
+
+        .form-group { margin-bottom: 30px; }
+        .form-label {
+            display: block; color: #cbd5e1; font-size: 15px; font-weight: 600; margin-bottom: 12px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            line-height: 1.3;
+        }
+        .toggle-btn:hover { background: rgba(255, 255, 255, 0.08); }
+        .toggle-btn i.fa-circle-check { display: none; }
+        .toggle-btn.active { background: var(--brand-bg); border-color: var(--brand-color); color: #f8fafc; }
+        .toggle-btn.active i.fa-circle-check { display: inline-block; color: var(--brand-color); }
+        .toggle-btn.active i.fa-icon-default { display: none; }
+
+        .input-group {
+            display: flex;
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            transition: border-color 0.3s;
+        }
+        .input-group:focus-within { border-color: var(--brand-color); }
+        .input-group-prepend {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+        }
+        .input-control {
+            flex: 1; background: transparent; border: none; padding: 14px 16px; color: #f8fafc; font-size: 15px; font-family: inherit; outline: none;
+        }
+        textarea.input-control { min-height: 80px; resize: vertical; }
+
+        select.input-control {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394a3b8'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 40px;
+        }
+        select.input-control option { background: #0f172a; color: #f8fafc; }
+
+        .segmented-control {
+            display: flex; background: rgba(2, 6, 23, 0.8); border-radius: 10px; padding: 4px; border: 1px solid rgba(255, 255, 255, 0.1); flex-wrap: wrap; gap: 4px;
+        }
+        .segment {
+            flex: 1; text-align: center; padding: 12px; color: #94a3b8; font-weight: 600; font-size: 13px; border-radius: 6px; cursor: pointer; transition: 0.2s; min-width: 110px; display: flex; align-items: center; justify-content: center; line-height: 1.2;
+        }
+        .segment:hover { color: #f8fafc; background: rgba(255, 255, 255, 0.05); }
+        .segment.active { background: rgba(255, 255, 255, 0.1); color: #f8fafc; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
+
+        .didactic-box {
+            background: rgba(2, 6, 23, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; gap: 20px; align-items: flex-start;
+        }
+        .didactic-box i { font-size: 24px; color: var(--brand-color); margin-top: 2px; }
+        .didactic-box p { color: #cbd5e1; font-size: 15px; margin: 0; line-height: 1.5; }
+        .didactic-box strong { color: #f8fafc; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+        .three-column { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: start; }
+        @media(max-width: 900px) {
+            .two-column, .three-column { grid-template-columns: 1fr; gap: 20px; }
+        }
+
+        .btn-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; padding: 0 16px; cursor: pointer; transition: 0.2s; outline: none; }
+        .btn-icon:hover { background: rgba(239, 68, 68, 0.2); }
+        .btn-add-item { background: transparent; color: var(--brand-color); border: 1px dashed rgba(255,255,255,0.3); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; transition: 0.2s; font-size: 13px; font-family: inherit; margin-top: 4px; }
+        .btn-add-item:hover { background: var(--brand-bg); border-color: var(--brand-color); }
+
+        .btn-primary {
+            display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 16px 32px; background: var(--brand-color); color: #020617;
+            border-radius: 10px; font-size: 15px; font-weight: 800; text-decoration: none;
+            border: none; cursor: pointer; transition: 0.3s;
+            text-transform: uppercase; letter-spacing: 1px;
+            font-family: inherit;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(0,0,0,0.4); filter: brightness(1.1); }
+
+        .btn-submit {
+            display: block; width: 100%; max-width: 460px; margin: 30px auto 0; padding: 22px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #020617; text-align: center; border-radius: 14px;
+            font-size: 20px; font-weight: 800; text-decoration: none;
+            border: none; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);
+            font-family: inherit;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(16, 185, 129, 0.4); }
+
+        .header-box {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(59, 130, 246, 0.3);
+            padding: 50px; border-radius: 20px; flex-wrap: wrap; gap: 30px;
+            position: relative; overflow: hidden;
+        }
+        .header-box::before {
+            content: ''; position: absolute; top: -50%; left: -10%;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+        }
+        .header-content { flex: 1; min-width: 300px; position: relative; z-index: 1; }
+        .header-content h1 { font-size: 52px; line-height: 1.05; margin-bottom: 20px; letter-spacing: -1px; }
+        .header-stats { display: flex; gap: 30px; margin-top: 24px; flex-wrap: wrap; }
+        .stat-item { display: flex; align-items: center; gap: 10px; color: #cbd5e1; font-size: 14px; font-weight: 600; }
+        .stat-item i { color: #10b981; font-size: 18px; }
+
+        /* QUESTION CARDS */
+        .question-card {
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 16px;
+            transition: 0.2s;
+        }
+        .question-card.answered { border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.04); }
+        .question-number {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px;
+            background: rgba(168, 85, 247, 0.15); color: #a855f7;
+            border-radius: 8px; font-weight: 800; font-size: 14px;
+            margin-right: 12px;
+        }
+        .question-statement {
+            font-size: 16px; font-weight: 600; color: #f8fafc;
+            margin-bottom: 18px; display: flex; align-items: center;
+        }
+        .question-category {
+            display: inline-block; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1px;
+            color: #94a3b8; margin-bottom: 12px;
+            padding: 4px 10px; background: rgba(255,255,255,0.04);
+            border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);
+        }
+        .likert-scale {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+        }
+        .likert-option {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            padding: 14px 8px;
+            border-radius: 10px;
+            font-size: 12px; font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+            line-height: 1.3;
+            user-select: none;
+        }
+        .likert-option:hover { background: rgba(255, 255, 255, 0.07); color: #f8fafc; }
+        .likert-option.active {
+            background: rgba(168, 85, 247, 0.2);
+            border-color: #a855f7;
+            color: #f8fafc;
+            box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+        }
+        @media(max-width: 700px) {
+            .likert-scale { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+            .likert-option { padding: 12px 4px; font-size: 11px; }
+        }
+
+        /* DIAGNOSTIC RESULT */
+        .compass-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1;
+            max-width: 480px;
+            margin: 0 auto;
+            background: rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .compass-grid {
+            position: absolute; inset: 0;
+            background:
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0/10% 10%,
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px) 0 0/10% 10%;
+        }
+        .compass-quadrant { position: absolute; width: 50%; height: 50%; opacity: 0.08; }
+        .compass-quadrant.q1 { top: 0; left: 0; background: #ef4444; }
+        .compass-quadrant.q2 { top: 0; right: 0; background: #f59e0b; }
+        .compass-quadrant.q3 { bottom: 0; left: 0; background: #3b82f6; }
+        .compass-quadrant.q4 { bottom: 0; right: 0; background: #10b981; }
+        .compass-axis-x, .compass-axis-y {
+            position: absolute;
+            background: rgba(255,255,255,0.2);
+        }
+        .compass-axis-x { left: 0; right: 0; top: 50%; height: 1px; }
+        .compass-axis-y { top: 0; bottom: 0; left: 50%; width: 1px; }
+        .compass-label {
+            position: absolute; font-size: 11px; font-weight: 700;
+            color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .compass-label.top { top: 12px; left: 50%; transform: translateX(-50%); }
+        .compass-label.bottom { bottom: 12px; left: 50%; transform: translateX(-50%); }
+        .compass-label.left { left: 12px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: left center; }
+        .compass-label.right { right: 12px; top: 50%; transform: translateY(-50%) rotate(90deg); transform-origin: right center; }
+        .compass-dot {
+            position: absolute;
+            width: 24px; height: 24px;
+            background: #10b981;
+            border: 3px solid #f8fafc;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 30px rgba(16, 185, 129, 0.8), 0 0 60px rgba(16, 185, 129, 0.4);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 2;
+        }
+        .compass-dot::after {
+            content: '';
+            position: absolute; inset: -8px;
+            border-radius: 50%;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            animation: pulse 2s ease infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 14px;
+            padding: 28px;
+            margin-bottom: 20px;
+        }
+        .result-label {
+            font-size: 13px; font-weight: 700; color: #10b981;
+            text-transform: uppercase; letter-spacing: 1.5px;
+            margin-bottom: 10px;
+        }
+        .result-value {
+            font-size: 32px; font-weight: 800; color: #f8fafc;
+            line-height: 1.1; margin-bottom: 10px;
+        }
+        .result-detail {
+            font-size: 15px; color: #cbd5e1; line-height: 1.5;
+        }
+
+        .causes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .cause-chip {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+            color: #f8fafc;
+            font-size: 13px; font-weight: 600;
+            transition: 0.2s;
+        }
+        .cause-chip i { color: #10b981; }
+        .cause-chip .cause-strength {
+            margin-left: auto; font-size: 11px; color: #10b981; font-weight: 700;
+        }
+
+        /* SCRIPT OUTPUT */
+        .output-area {
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 14px;
+            padding: 28px;
+            margin-top: 24px;
+            min-height: 200px;
+            position: relative;
+        }
+        .output-empty {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 200px;
+            color: #475569; font-size: 14px; font-style: italic;
+            text-align: center;
+        }
+        .output-meta {
+            display: flex; gap: 16px; align-items: center;
+            padding-bottom: 16px; margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-size: 12px; color: #94a3b8; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .output-meta i { color: #ef4444; }
+        .output-body {
+            font-size: 16px; line-height: 1.7; color: #e2e8f0;
+            white-space: pre-wrap;
+        }
+        .output-cta {
+            display: flex; gap: 10px; margin-top: 20px; padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.08); flex-wrap: wrap;
+        }
+        .output-cta button {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 8px 16px; border-radius: 8px;
+            font-size: 12px; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: 0.2s;
+            display: flex; align-items: center; gap: 8px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .output-cta button:hover { background: rgba(239, 68, 68, 0.2); }
+
+        .skeleton-loading {
+            display: none;
+        }
+        .skeleton-loading.active { display: block; }
+        .skeleton-line {
+            height: 14px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 100%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s ease infinite;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .step-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 36px; height: 36px;
+            background: var(--brand-color);
+            color: #020617;
+            border-radius: 8px;
+            font-size: 14px; font-weight: 800;
+        }
+
+        .info-banner {
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin: 0 0 24px;
+            display: flex; gap: 14px; align-items: center;
+            font-size: 14px; color: #cbd5e1;
+        }
+        .info-banner i { color: #10b981; font-size: 18px; }
+        .info-banner strong { color: #f8fafc; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER / HERO -->
+    <header class="header-box">
+        <div class="header-content">
+            <div class="tag-pill" style="background: rgba(168, 85, 247, 0.1); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3);">
+                <i class="fa-solid fa-compass"></i> Diagnóstico Estratégico
+            </div>
+            <h1>Sua convicção.<br><span style="color: #a855f7;">Sua voz pública.</span></h1>
+            <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 0;">
+                Mapeie seu espectro político, identifique as pautas que você efetivamente defende e gere conteúdo alinhado à sua identidade — pronto para Instagram, X, TikTok e WhatsApp.
+            </p>
+            <div class="header-stats">
+                <div class="stat-item"><i class="fa-solid fa-check-circle"></i> 10 perguntas guiadas</div>
+                <div class="stat-item"><i class="fa-solid fa-check-circle"></i> Diagnóstico em ~4 minutos</div>
+                <div class="stat-item"><i class="fa-solid fa-check-circle"></i> Texto pronto para publicar</div>
+            </div>
+        </div>
+        <div style="flex: 0 0 auto; opacity: 0.8; padding-right: 20px;">
+            <i class="fa-solid fa-podium" style="font-size: 140px; color: rgba(168, 85, 247, 0.25);"></i>
+        </div>
+    </header>
+
+    <!-- STEP 1: IDENTIFICAÇÃO -->
+    <section class="agent-section theme-identificacao">
+        <div class="tag-pill"><span class="step-badge">01</span> Identificação do Candidato</div>
+        <h2 class="slide-title">Quem é <span>você?</span></h2>
+
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-id-card"></i>
+                <p>Estas informações ancoram o conteúdo gerado na sua realidade — região, eleitorado e nível de mandato disputado. <strong>Nenhum dado é enviado para fora deste navegador neste protótipo.</strong></p>
+            </div>
+
+            <div class="two-column">
+                <div>
+                    <label class="form-label">Nome do Candidato</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><i class="fa-solid fa-user"></i></div>
+                        <input type="text" class="input-control" id="campo-nome" placeholder="Ex: Carlos Mendes">
+                    </div>
+
+                    <label class="form-label">Estado / UF</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><i class="fa-solid fa-location-dot"></i></div>
+                        <select class="input-control" id="campo-uf">
+                            <option value="">Selecione...</option>
+                            <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+                            <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+                            <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+                            <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+                            <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+                            <option>SE</option><option>TO</option>
+                        </select>
+                    </div>
+
+                    <label class="form-label">Cidade / Município</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><i class="fa-solid fa-city"></i></div>
+                        <input type="text" class="input-control" id="campo-cidade" placeholder="Ex: Campinas">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label">Cargo Pretendido</label>
+                    <div class="segmented-control js-segmented" id="campo-cargo">
+                        <div class="segment">Vereador</div>
+                        <div class="segment">Prefeito</div>
+                        <div class="segment active">Dep. Estadual</div>
+                        <div class="segment">Dep. Federal</div>
+                        <div class="segment">Senador</div>
+                        <div class="segment">Governador</div>
+                    </div>
+
+                    <label class="form-label" style="margin-top: 24px;">Experiência Política</label>
+                    <div class="segmented-control js-segmented" id="campo-experiencia">
+                        <div class="segment active">Estreante</div>
+                        <div class="segment">1-4 anos</div>
+                        <div class="segment">5-10 anos</div>
+                        <div class="segment">10+ anos</div>
+                    </div>
+
+                    <label class="form-label" style="margin-top: 24px;">Partido (opcional)</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><i class="fa-solid fa-flag"></i></div>
+                        <input type="text" class="input-control" id="campo-partido" placeholder="Ex: PP, PSD, PT, NOVO...">
+                    </div>
+                </div>
+            </div>
+
+            <label class="form-label" style="margin-top: 10px;">Base eleitoral atual ou desejada (opcional)</label>
+            <div class="input-group">
+                <textarea class="input-control" id="campo-base" placeholder="Ex: pequeno comércio do centro, evangélicos da periferia leste, agro do interior..."></textarea>
+            </div>
+        </div>
+    </section>
+
+    <!-- STEP 2: DIAGNÓSTICO IDEOLÓGICO -->
+    <section class="agent-section theme-ideologia">
+        <div class="tag-pill"><span class="step-badge">02</span> Diagnóstico Ideológico</div>
+        <h2 class="slide-title">Onde você <span>se posiciona?</span></h2>
+
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <p>Responda com sinceridade — não há resposta certa. Cada pergunta é mapeada em <strong>dois eixos</strong>: econômico (esquerda ↔ direita) e cultural/social (progressista ↔ conservador). O resultado define um <strong>ponto único</strong> no espectro político.</p>
+            </div>
+
+            <div id="questoes-container">
+                <!-- Questions injected via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- STEP 3: VOZ E PERSONA -->
+    <section class="agent-section theme-voz">
+        <div class="tag-pill"><span class="step-badge">03</span> Voz, Persona e Tom</div>
+        <h2 class="slide-title">Como você <span>fala?</span></h2>
+
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-microphone-lines"></i>
+                <p>O <strong>espectro</strong> define o que você diz. A <strong>persona e o tom</strong> definem <em>como</em> você diz. A combinação é o que dá ao conteúdo a sua cara — e não a cara genérica de "candidato típico".</p>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Arquétipo dominante <span style="color:#64748b; font-weight: 400; text-transform: none; letter-spacing: 0;">(escolha 1)</span></h4>
+                <div class="toggle-grid js-single-toggle">
+                    <div class="toggle-btn"><i class="fa-solid fa-user-tie fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Estadista <span style="color:#64748b">(Sério, longo prazo)</span></div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-users fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Homem do Povo <span style="color:#64748b">(Empatia)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-gavel fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Xerife/Justiceiro <span style="color:#64748b">(Ordem)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-hands-praying fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Missionário <span style="color:#64748b">(Costumes)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-chart-line fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Gestor/CEO <span style="color:#64748b">(Eficiência)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-bullhorn fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Militante <span style="color:#64748b">(Mobilização)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-book fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Professor <span style="color:#64748b">(Didático)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-handshake fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Conciliador <span style="color:#64748b">(Pontes)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-tractor fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Regionalista <span style="color:#64748b">(Interior)</span></div>
+                    <div class="toggle-btn"><i class="fa-solid fa-rocket fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Inovador <span style="color:#64748b">(Tech)</span></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Tons de voz <span style="color:#64748b; font-weight: 400; text-transform: none; letter-spacing: 0;">(até 3)</span></h4>
+                <div class="toggle-grid" id="tons-container" style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));">
+                    <div class="toggle-btn active"><i class="fa-solid fa-check"></i> Popular</div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-check"></i> Indignado</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Conciliador</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Sarcástico</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Motivacional</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Institucional</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Técnico</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Didático</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Patriótico</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Denuncista</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Otimista</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Paternal</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Bordões e expressões pessoais <span style="color:#64748b; font-weight: 400; text-transform: none;">(opcional)</span></label>
+                <div class="input-group">
+                    <textarea class="input-control" id="campo-bordao" placeholder="Ex: 'Nossa gente trabalhadora', 'Não vou me calar', 'O Brasil que dá certo'..."></textarea>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- BIG CTA: GERAR DIAGNÓSTICO -->
+    <button class="btn-submit" onclick="gerarDiagnostico()">
+        <i class="fa-solid fa-compass"></i> Gerar Diagnóstico Estratégico
+    </button>
+
+    <!-- STEP 4: RESULTADO -->
+    <section class="agent-section theme-diagnostico" id="resultado-section" style="display: none;">
+        <div class="tag-pill"><span class="step-badge">04</span> Espectro Político e Pautas</div>
+        <h2 class="slide-title">Seu <span>diagnóstico</span></h2>
+
+        <div class="form-panel">
+            <div class="info-banner">
+                <i class="fa-solid fa-circle-check"></i>
+                <div><strong id="resultado-nome">Diagnóstico gerado.</strong> Você pode <strong>refinar</strong> as pautas detectadas — adicione ou remova antes de seguir para a geração de conteúdo.</div>
+            </div>
+
+            <div class="two-column" style="grid-template-columns: 1fr 1.2fr;">
+                <!-- LEFT: COMPASS -->
+                <div>
+                    <h4 class="section-header" style="margin-top: 0;">Posicionamento no Espectro</h4>
+                    <div class="compass-container">
+                        <div class="compass-grid"></div>
+                        <div class="compass-quadrant q1"></div>
+                        <div class="compass-quadrant q2"></div>
+                        <div class="compass-quadrant q3"></div>
+                        <div class="compass-quadrant q4"></div>
+                        <div class="compass-axis-x"></div>
+                        <div class="compass-axis-y"></div>
+                        <div class="compass-label top">Conservador</div>
+                        <div class="compass-label bottom">Progressista</div>
+                        <div class="compass-label left">Estatista</div>
+                        <div class="compass-label right">Liberal</div>
+                        <div class="compass-dot" id="compass-dot" style="left: 50%; top: 50%;"></div>
+                    </div>
+                    <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 12px;">
+                        Eixo horizontal: economia (esquerda ↔ direita) · Eixo vertical: costumes (progressista ↔ conservador)
+                    </p>
+                </div>
+
+                <!-- RIGHT: SUMMARY + CAUSES -->
+                <div>
+                    <div class="result-card">
+                        <div class="result-label">Classificação</div>
+                        <div class="result-value" id="resultado-classificacao">—</div>
+                        <div class="result-detail" id="resultado-descricao">—</div>
+                    </div>
+
+                    <h4 class="section-header">Pautas Detectadas <span style="color:#64748b; font-weight: 400; text-transform: none;">(por força no perfil)</span></h4>
+                    <div class="causes-grid" id="pautas-container"></div>
+
+                    <h4 class="section-header">Adicionar pauta personalizada</h4>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><i class="fa-solid fa-plus"></i></div>
+                        <input type="text" class="input-control" id="campo-pauta-custom" placeholder="Ex: Reforma do transporte público" onkeydown="if(event.key==='Enter'){addPautaCustom();event.preventDefault();}">
+                        <button class="btn-icon" style="background: rgba(16,185,129,0.1); color: #10b981;" onclick="addPautaCustom()">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STEP 5: GERADOR DE POSICIONAMENTO -->
+    <section class="agent-section theme-gerador" id="gerador-section" style="display: none;">
+        <div class="tag-pill"><span class="step-badge">05</span> Gerador de Posicionamento</div>
+        <h2 class="slide-title">Sua <span>voz nas redes</span></h2>
+
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <p>Digite um <strong>tópico, evento ou notícia</strong>. O sistema gera um texto alinhado ao seu espectro, suas pautas, sua persona e seu tom — pronto para o formato escolhido.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Qual é o assunto?</label>
+                <div class="input-group">
+                    <textarea class="input-control" id="campo-topico" placeholder="Ex: 'STF decidiu sobre porte de armas hoje' ou 'Prefeitura anunciou aumento de IPTU em 12%' ou 'Manifestação em frente à Câmara contra reforma tributária'..."></textarea>
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div>
+                    <label class="form-label">Formato</label>
+                    <div class="segmented-control js-segmented" id="campo-formato">
+                        <div class="segment active">Post Instagram</div>
+                        <div class="segment">Tweet/X</div>
+                        <div class="segment">Roteiro Reels</div>
+                        <div class="segment">Áudio WhatsApp</div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Intensidade</label>
+                    <div class="segmented-control js-segmented" id="campo-intensidade">
+                        <div class="segment">Cautelosa</div>
+                        <div class="segment active">Firme</div>
+                        <div class="segment">Confrontadora</div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary" style="margin-top: 20px;" onclick="gerarPosicionamento()">
+                <i class="fa-solid fa-bolt"></i> Gerar Posicionamento
+            </button>
+
+            <div class="output-area" id="output-area">
+                <div class="output-empty" id="output-empty">
+                    <div>
+                        <i class="fa-solid fa-comment-dots" style="font-size: 32px; color: #475569; display: block; margin-bottom: 12px;"></i>
+                        O texto gerado aparecerá aqui.
+                    </div>
+                </div>
+
+                <div class="skeleton-loading" id="output-loading">
+                    <div class="skeleton-line" style="width: 30%;"></div>
+                    <div class="skeleton-line" style="width: 95%;"></div>
+                    <div class="skeleton-line" style="width: 85%;"></div>
+                    <div class="skeleton-line" style="width: 92%;"></div>
+                    <div class="skeleton-line" style="width: 60%;"></div>
+                </div>
+
+                <div id="output-content" style="display: none;">
+                    <div class="output-meta">
+                        <span><i class="fa-solid fa-bullseye"></i> <span id="output-formato">Post Instagram</span></span>
+                        <span><i class="fa-solid fa-volume-high"></i> <span id="output-tom">Popular · Indignado</span></span>
+                        <span><i class="fa-solid fa-compass"></i> <span id="output-espectro">Centro-Direita</span></span>
+                    </div>
+                    <div class="output-body" id="output-body"></div>
+                    <div class="output-cta">
+                        <button onclick="copiarTexto()"><i class="fa-solid fa-copy"></i> Copiar</button>
+                        <button onclick="gerarPosicionamento()"><i class="fa-solid fa-rotate"></i> Gerar outra versão</button>
+                        <button><i class="fa-solid fa-share-nodes"></i> Enviar para revisão</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    /* ─────────────────────────────────────────────
+       QUESTIONÁRIO: definições e scoring
+       ───────────────────────────────────────────── */
+
+    // Cada questão tem:
+    //  - texto da afirmação
+    //  - categoria (apenas didática)
+    //  - axis: 'economic' ou 'social'
+    //  - sign: +1 ou -1 (concordar move o eixo nessa direção)
+    //     Convenção:
+    //     economic: +1 = liberal/direita, -1 = estatista/esquerda
+    //     social:   +1 = conservador,     -1 = progressista
+    //  - causes: lista de pautas associadas se a pessoa concorda
+    const QUESTOES = [
+        {
+            cat: 'Economia',
+            texto: 'O Estado deve intervir na economia para reduzir desigualdades sociais.',
+            axis: 'economic', sign: -1,
+            causesPro: ['Programas Sociais', 'Saúde Pública (SUS)'],
+            causesContra: ['Reforma Tributária', 'Privatizações']
+        },
+        {
+            cat: 'Economia',
+            texto: 'Privatizar estatais aumenta a eficiência e reduz o custo para o cidadão.',
+            axis: 'economic', sign: +1,
+            causesPro: ['Privatizações', 'Liberdade Econômica'],
+            causesContra: ['Soberania Estatal', 'Empresas Públicas Estratégicas']
+        },
+        {
+            cat: 'Segurança',
+            texto: 'A segurança pública demanda endurecimento de penas e mais autonomia para a polícia.',
+            axis: 'social', sign: +1,
+            causesPro: ['Segurança Pública', 'Endurecimento de Penas'],
+            causesContra: ['Direitos Humanos', 'Ressocialização']
+        },
+        {
+            cat: 'Liberdades',
+            texto: 'A liberdade de expressão deve prevalecer mesmo diante de discursos polêmicos.',
+            axis: 'social', sign: -1,
+            causesPro: ['Liberdade de Expressão'],
+            causesContra: ['Combate a Fake News', 'Regulamentação de Redes']
+        },
+        {
+            cat: 'Costumes',
+            texto: 'A família tradicional precisa de proteção institucional contra mudanças de costumes.',
+            axis: 'social', sign: +1,
+            causesPro: ['Valores Tradicionais', 'Proteção da Família'],
+            causesContra: ['Direitos LGBTQIA+', 'Direitos das Minorias']
+        },
+        {
+            cat: 'Direitos',
+            texto: 'Direitos LGBTQIA+ devem ser ampliados por legislação federal.',
+            axis: 'social', sign: -1,
+            causesPro: ['Direitos LGBTQIA+', 'Direitos das Minorias'],
+            causesContra: ['Valores Tradicionais', 'Liberdade Religiosa']
+        },
+        {
+            cat: 'Agro',
+            texto: 'O agronegócio é estratégico e deve receber incentivos do Estado.',
+            axis: 'economic', sign: +1,
+            causesPro: ['Apoio ao Agronegócio', 'Liberdade Econômica'],
+            causesContra: ['Agricultura Familiar', 'Proteção de Biomas']
+        },
+        {
+            cat: 'Social',
+            texto: 'Programas sociais como Bolsa Família são essenciais para combater a pobreza.',
+            axis: 'economic', sign: -1,
+            causesPro: ['Programas Sociais', 'Combate à Fome'],
+            causesContra: ['Reforma Tributária', 'Privatizações']
+        },
+        {
+            cat: 'Costumes',
+            texto: 'A política deve preservar valores morais e religiosos na vida pública.',
+            axis: 'social', sign: +1,
+            causesPro: ['Liberdade Religiosa', 'Valores Tradicionais'],
+            causesContra: ['Estado Laico', 'Direitos das Minorias']
+        },
+        {
+            cat: 'Justiça',
+            texto: 'Ações afirmativas (cotas raciais e sociais) são instrumentos legítimos de justiça.',
+            axis: 'social', sign: -1,
+            causesPro: ['Direitos das Minorias', 'Educação Superior'],
+            causesContra: ['Meritocracia', 'Valores Tradicionais']
+        }
+    ];
+
+    const LIKERT = [
+        { label: 'Discordo<br>totalmente', value: -2 },
+        { label: 'Discordo', value: -1 },
+        { label: 'Neutro', value: 0 },
+        { label: 'Concordo', value: 1 },
+        { label: 'Concordo<br>totalmente', value: 2 }
+    ];
+
+    function montarQuestoes() {
+        const c = document.getElementById('questoes-container');
+        QUESTOES.forEach((q, i) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.dataset.questao = i;
+            card.innerHTML = `
+                <div class="question-category">${q.cat}</div>
+                <div class="question-statement">
+                    <span class="question-number">${(i+1).toString().padStart(2,'0')}</span>
+                    ${q.texto}
+                </div>
+                <div class="likert-scale">
+                    ${LIKERT.map((l, idx) => `
+                        <div class="likert-option" data-value="${l.value}" onclick="responderQuestao(${i}, ${l.value}, this)">${l.label}</div>
+                    `).join('')}
+                </div>
+            `;
+            c.appendChild(card);
+        });
+    }
+
+    const respostas = {}; // index → value
+
+    function responderQuestao(idx, value, el) {
+        respostas[idx] = value;
+        const card = el.closest('.question-card');
+        card.querySelectorAll('.likert-option').forEach(o => o.classList.remove('active'));
+        el.classList.add('active');
+        card.classList.add('answered');
+    }
+
+    /* ─────────────────────────────────────────────
+       DIAGNÓSTICO
+       ───────────────────────────────────────────── */
+
+    let pautasDetectadas = []; // array de { nome, forca }
+    let espectroAtual = '';
+    let coordCompass = { x: 0, y: 0 };
+
+    function gerarDiagnostico() {
+        const respondidas = Object.keys(respostas).length;
+        if (respondidas < QUESTOES.length) {
+            alert(`Responda todas as ${QUESTOES.length} perguntas para gerar o diagnóstico. Faltam ${QUESTOES.length - respondidas}.`);
+            const proxima = QUESTOES.findIndex((_, i) => respostas[i] === undefined);
+            if (proxima >= 0) {
+                document.querySelector(`[data-questao="${proxima}"]`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        // Compute axes
+        let eSum = 0, eCount = 0;
+        let sSum = 0, sCount = 0;
+        QUESTOES.forEach((q, i) => {
+            const v = respostas[i];
+            if (q.axis === 'economic') { eSum += v * q.sign; eCount++; }
+            else { sSum += v * q.sign; sCount++; }
+        });
+        const eScore = eCount ? eSum / (eCount * 2) : 0; // -1..+1
+        const sScore = sCount ? sSum / (sCount * 2) : 0;
+
+        coordCompass.x = eScore;
+        coordCompass.y = sScore;
+
+        // Render compass dot — convert to %, where 50% is center
+        const dot = document.getElementById('compass-dot');
+        dot.style.left = (50 + eScore * 45) + '%';
+        dot.style.top = (50 - sScore * 45) + '%'; // y inverted: positive (conservative) = up
+
+        // Classify
+        espectroAtual = classificarEspectro(eScore, sScore);
+        document.getElementById('resultado-classificacao').textContent = espectroAtual.nome;
+        document.getElementById('resultado-descricao').textContent = espectroAtual.descricao;
+
+        // Detect causes
+        pautasDetectadas = detectarPautas();
+        renderPautas();
+
+        // Greeting
+        const nome = (document.getElementById('campo-nome').value || '').trim();
+        const nomeMsg = nome ? `Diagnóstico de ${nome.split(' ')[0]} gerado.` : 'Diagnóstico gerado.';
+        document.getElementById('resultado-nome').textContent = nomeMsg;
+
+        // Show sections
+        document.getElementById('resultado-section').style.display = 'block';
+        document.getElementById('gerador-section').style.display = 'block';
+
+        // Scroll to result
+        setTimeout(() => {
+            document.getElementById('resultado-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+    }
+
+    function classificarEspectro(e, s) {
+        // e: economic (-1 esquerda .. +1 liberal/direita)
+        // s: social   (-1 progressista .. +1 conservador)
+        const intensidadeE = Math.abs(e);
+        const intensidadeS = Math.abs(s);
+
+        if (intensidadeE < 0.15 && intensidadeS < 0.15) {
+            return { nome: 'Centro Pragmático', descricao: 'Posicionamento equilibrado entre eixos. Risco: parecer "sem identidade". Oportunidade: ponte entre extremos.' };
+        }
+
+        let economicLabel = '';
+        if (e > 0.5) economicLabel = 'Direita Liberal';
+        else if (e > 0.15) economicLabel = 'Centro-Direita';
+        else if (e < -0.5) economicLabel = 'Esquerda';
+        else if (e < -0.15) economicLabel = 'Centro-Esquerda';
+        else economicLabel = 'Centro Econômico';
+
+        let socialLabel = '';
+        if (s > 0.5) socialLabel = 'Conservador';
+        else if (s > 0.15) socialLabel = 'levemente conservador';
+        else if (s < -0.5) socialLabel = 'Progressista';
+        else if (s < -0.15) socialLabel = 'levemente progressista';
+        else socialLabel = 'moderado nos costumes';
+
+        let nome = `${economicLabel}, ${socialLabel}`;
+        let descricao = '';
+
+        if (e > 0.3 && s > 0.3) descricao = 'Perfil clássico de direita: liberalismo econômico + conservadorismo de costumes. Eleitorado típico: empreendedor, evangélico, agro, classe média tradicional.';
+        else if (e > 0.3 && s < -0.3) descricao = 'Liberal-libertário: defende liberdade econômica e liberdade individual. Eleitorado típico: jovem urbano, tech, empreendedor liberal.';
+        else if (e < -0.3 && s > 0.3) descricao = 'Esquerda tradicional/social-conservadora: redistribuição econômica + valores tradicionais. Eleitorado típico: trabalhador urbano de fé, periferia organizada.';
+        else if (e < -0.3 && s < -0.3) descricao = 'Esquerda progressista: redistribuição + agenda de costumes. Eleitorado típico: jovem urbano, movimentos sociais, academia.';
+        else descricao = 'Perfil de centro com leve inclinação. Funciona bem em municípios médios e em campanhas de "moderação razoável".';
+
+        return { nome, descricao };
+    }
+
+    function detectarPautas() {
+        const counter = {};
+        QUESTOES.forEach((q, i) => {
+            const v = respostas[i];
+            if (v > 0) {
+                q.causesPro.forEach(c => counter[c] = (counter[c]||0) + Math.abs(v));
+            } else if (v < 0) {
+                q.causesContra.forEach(c => counter[c] = (counter[c]||0) + Math.abs(v));
+            }
+        });
+        const entries = Object.entries(counter)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 8);
+        // Sempre adicionar "Combate à Corrupção" e "Transparência" como universais
+        const top = entries.map(([nome, score]) => ({ nome, forca: score, removivel: true }));
+        if (!top.find(p => p.nome === 'Combate à Corrupção')) top.push({ nome: 'Combate à Corrupção', forca: 3, removivel: true });
+        return top.slice(0, 8);
+    }
+
+    function renderPautas() {
+        const c = document.getElementById('pautas-container');
+        c.innerHTML = '';
+        pautasDetectadas.forEach((p, i) => {
+            const chip = document.createElement('div');
+            chip.className = 'cause-chip';
+            const barras = '▰'.repeat(Math.min(4, Math.ceil(p.forca))) + '▱'.repeat(Math.max(0, 4 - Math.ceil(p.forca)));
+            chip.innerHTML = `
+                <i class="fa-solid fa-flag"></i>
+                <span>${p.nome}</span>
+                <span class="cause-strength">${barras}</span>
+                ${p.removivel !== false ? `<i class="fa-solid fa-xmark" style="cursor:pointer; margin-left:6px; color:#ef4444;" onclick="removerPauta(${i})"></i>` : ''}
+            `;
+            c.appendChild(chip);
+        });
+    }
+
+    function removerPauta(i) {
+        pautasDetectadas.splice(i, 1);
+        renderPautas();
+    }
+
+    function addPautaCustom() {
+        const input = document.getElementById('campo-pauta-custom');
+        const valor = input.value.trim();
+        if (!valor) return;
+        pautasDetectadas.push({ nome: valor, forca: 4, removivel: true });
+        renderPautas();
+        input.value = '';
+    }
+
+    /* ─────────────────────────────────────────────
+       GERADOR DE POSICIONAMENTO
+       ───────────────────────────────────────────── */
+
+    function getSelectedFromGroup(groupId, single = true) {
+        const group = document.getElementById(groupId);
+        if (!group) return single ? '' : [];
+        const actives = group.querySelectorAll('.segment.active, .toggle-btn.active');
+        const labels = Array.from(actives).map(a => a.textContent.trim().split('\n')[0].split('(')[0].trim());
+        return single ? (labels[0] || '') : labels;
+    }
+
+    function getArquetipo() {
+        const panel = document.querySelector('.theme-voz .js-single-toggle');
+        if (!panel) return '';
+        const active = panel.querySelector('.toggle-btn.active');
+        if (!active) return '';
+        // Pega só o título antes de qualquer descrição entre <span>
+        return active.textContent.trim().split('(')[0].trim();
+    }
+
+    function getTons() {
+        const c = document.getElementById('tons-container');
+        const actives = c.querySelectorAll('.toggle-btn.active');
+        return Array.from(actives).map(a => a.textContent.trim());
+    }
+
+    function gerarPosicionamento() {
+        const topico = document.getElementById('campo-topico').value.trim();
+        if (!topico) {
+            alert('Digite o assunto, evento ou notícia que você quer responder.');
+            document.getElementById('campo-topico').focus();
+            return;
+        }
+
+        const formato = getSelectedFromGroup('campo-formato');
+        const intensidade = getSelectedFromGroup('campo-intensidade');
+        const arquetipo = getArquetipo();
+        const tons = getTons();
+        const nome = document.getElementById('campo-nome').value.trim() || 'Candidato';
+        const cidade = document.getElementById('campo-cidade').value.trim() || 'nossa cidade';
+        const uf = document.getElementById('campo-uf').value.trim() || '';
+        const cargo = getSelectedFromGroup('campo-cargo') || 'Candidato';
+        const bordao = document.getElementById('campo-bordao').value.trim();
+        const pautas = pautasDetectadas.map(p => p.nome);
+
+        // Loading state
+        document.getElementById('output-empty').style.display = 'none';
+        document.getElementById('output-content').style.display = 'none';
+        document.getElementById('output-loading').classList.add('active');
+
+        setTimeout(() => {
+            const texto = montarTexto({
+                topico, formato, intensidade, arquetipo, tons,
+                nome, cidade, uf, cargo, bordao, pautas,
+                espectro: espectroAtual.nome
+            });
+            document.getElementById('output-loading').classList.remove('active');
+            document.getElementById('output-content').style.display = 'block';
+            document.getElementById('output-formato').textContent = formato;
+            document.getElementById('output-tom').textContent = tons.length ? tons.join(' · ') : 'Padrão';
+            document.getElementById('output-espectro').textContent = espectroAtual.nome;
+            document.getElementById('output-body').textContent = texto;
+        }, 1100);
+    }
+
+    function montarTexto(ctx) {
+        const { topico, formato, intensidade, arquetipo, tons, nome, cidade, uf, cargo, bordao, pautas, espectro } = ctx;
+        const pautaPrincipal = pautas[0] || 'aquilo em que acredito';
+        const pautaSecundaria = pautas[1] || 'as causas do dia a dia';
+        const aberturas = {
+            'Cautelosa': [
+                `Acompanho com atenção a notícia sobre ${topico}.`,
+                `Recebi com cuidado a informação de que ${topico}.`,
+                `Quero ouvir mais antes de me posicionar de forma definitiva sobre ${topico}.`
+            ],
+            'Firme': [
+                `Não dá para ficar em cima do muro: ${topico}.`,
+                `Vamos ser claros sobre ${topico}.`,
+                `Quem me conhece sabe onde eu fico nessa: ${topico}.`
+            ],
+            'Confrontadora': [
+                `Mais uma vez, a velha política mostrou a cara — ${topico}.`,
+                `Eu não vou me calar: ${topico}.`,
+                `É inaceitável o que estamos vendo: ${topico}.`
+            ]
+        };
+
+        const desenvolvimentos = {
+            'Cautelosa': `Antes de qualquer julgamento, é fundamental olhar os fatos. ${pautaPrincipal} é uma bandeira que eu carrego desde sempre, e ela me orienta também aqui. Em ${cidade}${uf?'/'+uf:''}, a gente sabe que ninguém vence sozinho — vamos conversar.`,
+            'Firme': `Eu defendo ${pautaPrincipal.toLowerCase()} sem rodeios. E quando olho para ${cidade}${uf?'/'+uf:''}, vejo que essa pauta tem nome, sobrenome e endereço. É por isso que estou disputando ${cargo} — para que ${pautaSecundaria.toLowerCase()} não fique só na boca de quem sobe em palanque.`,
+            'Confrontadora': `Enquanto uns querem nos calar, eu vou repetir: ${pautaPrincipal.toLowerCase()} não é capricho, é direito do povo de ${cidade}${uf?'/'+uf:''}. Não vou aceitar que quem vive longe da nossa realidade decida sobre ela. Estou aqui pra brigar.`
+        };
+
+        const ctas = {
+            'Cautelosa': `Compartilhe se você também acredita que esse assunto merece debate sério.`,
+            'Firme': `Se você concorda, dá um like, comenta e compartilha. Junto a gente é mais forte.`,
+            'Confrontadora': `Marca aqui um amigo que precisa ver isso. E manda pro grupo da família. Não dá pra deixar passar.`
+        };
+
+        const aberturaArr = aberturas[intensidade] || aberturas['Firme'];
+        const abertura = aberturaArr[Math.floor(Math.random() * aberturaArr.length)];
+        const desenvolvimento = desenvolvimentos[intensidade] || desenvolvimentos['Firme'];
+        const cta = ctas[intensidade] || ctas['Firme'];
+        const bordaoLinha = bordao ? `\n\n"${bordao.split(',')[0].replace(/['"]/g, '').trim()}"` : '';
+        const assinatura = `\n\n— ${nome}\n${cargo}${uf ? ' · ' + cidade + '/' + uf : ''}`;
+
+        if (formato === 'Tweet/X') {
+            const curto = `${abertura}\n\n${pautaPrincipal} é inegociável.\n\n${cta.split('.')[0]}.`;
+            return curto.length > 280 ? curto.slice(0, 277) + '...' : curto;
+        }
+
+        if (formato === 'Roteiro Reels') {
+            return `[0-3s · GANCHO]\n${abertura}\n\n[4-15s · DESENVOLVIMENTO]\n${desenvolvimento}\n\n[16-25s · POSIÇÃO]\nO meu compromisso é com ${pautaPrincipal.toLowerCase()} e ${pautaSecundaria.toLowerCase()}. Sem meio termo.${bordaoLinha}\n\n[26-30s · CTA]\n${cta}\n\n[OVERLAY DE LEGENDA]\n"${arquetipo || 'Sua voz'} de ${cidade}${uf?'/'+uf:''}"\n\n[HASHTAGS]\n#${pautaPrincipal.replace(/\s+/g,'')} #${cidade.replace(/\s+/g,'')}${uf?'#'+uf:''} #${cargo.replace(/\s+/g,'')}2026`;
+        }
+
+        if (formato === 'Áudio WhatsApp') {
+            return `Oi, gente. Aqui é o ${nome.split(' ')[0]}. Tô gravando esse áudio rapidinho porque ${topico.toLowerCase()} — e eu não posso deixar passar.\n\n${desenvolvimento}\n\nGente, ${pautaPrincipal.toLowerCase()} é o que move minha pré-candidatura. ${pautaSecundaria} também. ${bordao ? '"' + bordao.split(',')[0].replace(/['"]/g, '').trim() + '". ' : ''}${cta}\n\nUm abraço, fica com Deus.`;
+        }
+
+        // Post Instagram padrão
+        return `${abertura}\n\n${desenvolvimento}${bordaoLinha}\n\n${cta}${assinatura}\n\n#${pautaPrincipal.replace(/\s+/g,'')} #${cidade.replace(/\s+/g,'')}${uf?' #'+uf:''}`;
+    }
+
+    function copiarTexto() {
+        const texto = document.getElementById('output-body').textContent;
+        navigator.clipboard.writeText(texto).then(() => {
+            const btn = event.target.closest('button');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+            setTimeout(() => btn.innerHTML = original, 1800);
+        });
+    }
+
+    /* ─────────────────────────────────────────────
+       INTERATIVIDADE BÁSICA (toggles, segments)
+       ───────────────────────────────────────────── */
+
+    document.addEventListener('DOMContentLoaded', () => {
+        montarQuestoes();
+
+        // Toggle buttons (multi-select)
+        document.querySelectorAll('.toggle-grid:not(.js-single-toggle) .toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        // Single-select toggle grids (arquétipo)
+        document.querySelectorAll('.js-single-toggle .toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const group = this.closest('.js-single-toggle');
+                group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Segmented controls
+        document.querySelectorAll('.js-segmented').forEach(group => {
+            group.querySelectorAll('.segment').forEach(segment => {
+                segment.addEventListener('click', function() {
+                    group.querySelectorAll('.segment').forEach(s => s.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        });
+
+        // Tons max 3
+        document.getElementById('tons-container').addEventListener('click', function(e) {
+            const btn = e.target.closest('.toggle-btn');
+            if (!btn) return;
+            const actives = this.querySelectorAll('.toggle-btn.active');
+            if (!btn.classList.contains('active') && actives.length >= 3) {
+                btn.classList.remove('active');
+                actives[0].classList.remove('active');
+                btn.classList.add('active');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

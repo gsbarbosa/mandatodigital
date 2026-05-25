@@ -1,0 +1,75 @@
+export const contentStatuses = ["rascunho", "revisado", "aprovado"] as const;
+export type ContentStatus = (typeof contentStatuses)[number];
+
+export const contentFormats = [
+  "Post Instagram",
+  "Legenda Instagram",
+  "Roteiro Reels",
+  "Tweet/X",
+  "Resposta Rapida",
+  "Audio WhatsApp",
+  "Discurso Curto",
+] as const;
+export type ContentFormat = (typeof contentFormats)[number];
+
+export const intensityLevels = ["Cautelosa", "Firme", "Confrontadora"] as const;
+export type IntensityLevel = (typeof intensityLevels)[number];
+
+export type PoliticianProfile = {
+  id: string;
+  fullName: string;
+  role: string;
+  city: string;
+  state: string;
+  audience: string;
+  spectrum: string;
+  archetype: string;
+  voiceTones: string[];
+  keyIssues: string[];
+  slogans: string[];
+  redLines: string[];
+  referenceExamples: string[];
+  bio: string;
+  updatedAt: string;
+};
+
+export type ContentRequest = {
+  id: string;
+  topic: string;
+  objective: string;
+  format: ContentFormat;
+  intensity: IntensityLevel;
+  context: string;
+  keyFacts: string[];
+  desiredCallToAction: string;
+  createdAt: string;
+};
+
+export type GeneratedContent = {
+  id: string;
+  contentRequestId: string;
+  title: string;
+  angle: string;
+  body: string;
+  status: ContentStatus;
+  promptPreview: string;
+  provider: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContentFeedback = {
+  id: string;
+  generatedContentId: string;
+  note: string;
+  createdAt: string;
+};
+
+export type AppDatabase = {
+  profile: PoliticianProfile | null;
+  contentRequests: ContentRequest[];
+  generatedContents: GeneratedContent[];
+  feedback: ContentFeedback[];
+};
+
+export type DashboardData = AppDatabase;

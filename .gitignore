@@ -1,0 +1,10 @@
+.next
+node_modules
+.vercel
+coverage
+dist
+*.log
+.env
+.env.local
+.env.*.local
+data/mandato-digital.json
