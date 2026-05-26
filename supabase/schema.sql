@@ -71,6 +71,7 @@ create table if not exists product_feedback (
 
 create table if not exists mandate_workflow_configs (
   profile_id uuid primary key references politician_profiles(id) on delete cascade,
+  persona_archetypes text[] not null default '{}',
   sentinel_themes text[] not null default '{}',
   opposition_themes text[] not null default '{}',
   custom_radar_themes text[] not null default '{}',
@@ -80,6 +81,10 @@ create table if not exists mandate_workflow_configs (
   opposition_sites text[] not null default '{}',
   glossary_terms text[] not null default '{}',
   training_reference_links text[] not null default '{}',
+  youtube_video_url text not null default '',
+  avatar_type text not null default '',
+  avatar_video_topic text not null default '',
+  notification_email text not null default '',
   avatar_emotions text[] not null default '{}',
   voice_pace text not null default 'Manter velocidade original',
   editing_styles text[] not null default '{}',
@@ -90,6 +95,21 @@ create table if not exists mandate_workflow_configs (
   auto_publish boolean not null default false,
   updated_at timestamptz not null default now()
 );
+
+alter table if exists mandate_workflow_configs
+  add column if not exists persona_archetypes text[] not null default '{}';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists youtube_video_url text not null default '';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists avatar_type text not null default '';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists avatar_video_topic text not null default '';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists notification_email text not null default '';
 
 alter table if exists product_feedback
   add column if not exists criticality text not null default 'media';

@@ -112,6 +112,7 @@ export type PoliticianProfile = {
   redLines: string[];
   referenceExamples: string[];
   bio: string;
+  personaArchetypes: string[];
   sentinelThemes: string[];
   oppositionThemes: string[];
   customRadarThemes: string[];
@@ -121,6 +122,10 @@ export type PoliticianProfile = {
   oppositionSites: string[];
   glossaryTerms: string[];
   trainingReferenceLinks: string[];
+  youtubeVideoUrl: string;
+  avatarType: string;
+  avatarVideoTopic: string;
+  notificationEmail: string;
   avatarEmotions: string[];
   voicePace: string;
   editingStyles: string[];

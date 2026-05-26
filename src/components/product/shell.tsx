@@ -23,6 +23,7 @@ function isMenuItemActive(pathname: string, href: string) {
 export function ProductShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isCuradorFocusMode = pathname === "/curador";
   const openFeedbackParam = searchParams.get("e2e");
   const isFeedbackForcedOpen = openFeedbackParam === "open-feedback";
   const {
@@ -53,57 +54,87 @@ export function ProductShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <main className="app-shell">
-      <section className="hero">
-        <div>
-          <p className="eyebrow">MVP interno em operacao</p>
-          <h1>Mandato Digital</h1>
-          <p className="hero-copy">
-            Do onboarding politico a revisao final, esta versao agora organiza o
-            processo em fases reais do sistema, com entrada e saida claras por rota.
-          </p>
-        </div>
-
-        <div className="hero-metrics">
-          <div className="metric-card">
-            <strong>{profile ? "1" : "0"}</strong>
-            <span>perfil ativo</span>
+    <main className={isCuradorFocusMode ? "app-shell app-shell-persona" : "app-shell"}>
+      {isCuradorFocusMode ? (
+        <section className="brand-bar">
+          <div>
+            <p className="eyebrow">Mandato Digital</p>
+            <h1>Mandato Digital</h1>
+            <p className="brand-copy">
+              Calibragem de persona em modo focado, usando o HTML de referencia como
+              base da experiencia.
+            </p>
           </div>
-          <div className="metric-card">
-            <strong>{requests.length}</strong>
-            <span>pautas registradas</span>
-          </div>
-          <div className="metric-card">
-            <strong>{contents.length}</strong>
-            <span>pecas no historico</span>
-          </div>
-        </div>
-      </section>
 
-      <section className="menu-panel">
-        <div>
-          <p className="eyebrow">Menu do sistema</p>
-          <h2>Pipeline por fase e area admin</h2>
-          <p className="menu-copy">
-            Cada rota deixa claro onde o processo comeca, o que ja sai do MVP e
-            quais etapas ainda estao planejadas.
-          </p>
-        </div>
+          <div className="menu-button-row">
+            {dashboardMenuItems.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={
+                  isMenuItemActive(pathname, item.href) ? "menu-button active" : "menu-button"
+                }
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <>
+          <section className="hero">
+            <div>
+              <p className="eyebrow">MVP interno em operacao</p>
+              <h1>Mandato Digital</h1>
+              <p className="hero-copy">
+                Do onboarding politico a revisao final, esta versao agora organiza o
+                processo em fases reais do sistema, com entrada e saida claras por
+                rota.
+              </p>
+            </div>
 
-        <div className="menu-button-row">
-          {dashboardMenuItems.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={
-                isMenuItemActive(pathname, item.href) ? "menu-button active" : "menu-button"
-              }
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </section>
+            <div className="hero-metrics">
+              <div className="metric-card">
+                <strong>{profile ? "1" : "0"}</strong>
+                <span>perfil ativo</span>
+              </div>
+              <div className="metric-card">
+                <strong>{requests.length}</strong>
+                <span>pautas registradas</span>
+              </div>
+              <div className="metric-card">
+                <strong>{contents.length}</strong>
+                <span>pecas no historico</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="menu-panel">
+            <div>
+              <p className="eyebrow">Menu do sistema</p>
+              <h2>Pipeline por fase e area admin</h2>
+              <p className="menu-copy">
+                Cada rota deixa claro onde o processo comeca, o que ja sai do MVP e
+                quais etapas ainda estao planejadas.
+              </p>
+            </div>
+
+            <div className="menu-button-row">
+              {dashboardMenuItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={
+                    isMenuItemActive(pathname, item.href) ? "menu-button active" : "menu-button"
+                  }
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       {(statusMessage || errorMessage) && (
         <div className={`message-banner ${errorMessage ? "error" : "success"}`}>

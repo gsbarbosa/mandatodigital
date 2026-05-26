@@ -139,6 +139,7 @@ function mapSocialHandles(input: unknown): SocialHandle[] {
 
 function buildDefaultWorkflowProfileConfig() {
   return {
+    personaArchetypes: [],
     sentinelThemes: [],
     oppositionThemes: [],
     customRadarThemes: [],
@@ -148,6 +149,10 @@ function buildDefaultWorkflowProfileConfig() {
     oppositionSites: [],
     glossaryTerms: [],
     trainingReferenceLinks: [],
+    youtubeVideoUrl: "",
+    avatarType: "",
+    avatarVideoTopic: "",
+    notificationEmail: "",
     avatarEmotions: [],
     voicePace: "Manter velocidade original",
     editingStyles: [],
@@ -169,6 +174,7 @@ function pickWorkflowProfileConfig(
   }
 
   return {
+    personaArchetypes: profile.personaArchetypes ?? defaults.personaArchetypes,
     sentinelThemes: profile.sentinelThemes ?? defaults.sentinelThemes,
     oppositionThemes: profile.oppositionThemes ?? defaults.oppositionThemes,
     customRadarThemes: profile.customRadarThemes ?? defaults.customRadarThemes,
@@ -179,6 +185,10 @@ function pickWorkflowProfileConfig(
     glossaryTerms: profile.glossaryTerms ?? defaults.glossaryTerms,
     trainingReferenceLinks:
       profile.trainingReferenceLinks ?? defaults.trainingReferenceLinks,
+    youtubeVideoUrl: profile.youtubeVideoUrl ?? defaults.youtubeVideoUrl,
+    avatarType: profile.avatarType ?? defaults.avatarType,
+    avatarVideoTopic: profile.avatarVideoTopic ?? defaults.avatarVideoTopic,
+    notificationEmail: profile.notificationEmail ?? defaults.notificationEmail,
     avatarEmotions: profile.avatarEmotions ?? defaults.avatarEmotions,
     voicePace: profile.voicePace ?? defaults.voicePace,
     editingStyles: profile.editingStyles ?? defaults.editingStyles,
@@ -200,6 +210,9 @@ function mapWorkflowProfileConfigRow(row: Record<string, unknown> | null | undef
   }
 
   return {
+    personaArchetypes: Array.isArray(row.persona_archetypes)
+      ? row.persona_archetypes.map(String)
+      : defaults.personaArchetypes,
     sentinelThemes: Array.isArray(row.sentinel_themes)
       ? row.sentinel_themes.map(String)
       : defaults.sentinelThemes,
@@ -223,6 +236,10 @@ function mapWorkflowProfileConfigRow(row: Record<string, unknown> | null | undef
     trainingReferenceLinks: Array.isArray(row.training_reference_links)
       ? row.training_reference_links.map(String)
       : defaults.trainingReferenceLinks,
+    youtubeVideoUrl: String(row.youtube_video_url ?? defaults.youtubeVideoUrl),
+    avatarType: String(row.avatar_type ?? defaults.avatarType),
+    avatarVideoTopic: String(row.avatar_video_topic ?? defaults.avatarVideoTopic),
+    notificationEmail: String(row.notification_email ?? defaults.notificationEmail),
     avatarEmotions: Array.isArray(row.avatar_emotions)
       ? row.avatar_emotions.map(String)
       : defaults.avatarEmotions,
@@ -934,6 +951,7 @@ const supabaseRepository: Repository = {
     const baseProfile = mapProfileRow(data);
     const workflowPayload = {
       profile_id: baseProfile.id,
+      persona_archetypes: input.personaArchetypes,
       sentinel_themes: input.sentinelThemes,
       opposition_themes: input.oppositionThemes,
       custom_radar_themes: input.customRadarThemes,
@@ -943,6 +961,10 @@ const supabaseRepository: Repository = {
       opposition_sites: input.oppositionSites,
       glossary_terms: input.glossaryTerms,
       training_reference_links: input.trainingReferenceLinks,
+      youtube_video_url: input.youtubeVideoUrl,
+      avatar_type: input.avatarType,
+      avatar_video_topic: input.avatarVideoTopic,
+      notification_email: input.notificationEmail,
       avatar_emotions: input.avatarEmotions,
       voice_pace: input.voicePace,
       editing_styles: input.editingStyles,

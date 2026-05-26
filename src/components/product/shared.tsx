@@ -34,6 +34,7 @@ export type ProfileFormState = {
   redLines: string;
   referenceExamples: string;
   bio: string;
+  personaArchetypes: string[];
   sentinelThemes: string[];
   oppositionThemes: string[];
   customRadarThemes: string[];
@@ -43,6 +44,10 @@ export type ProfileFormState = {
   oppositionSites: string[];
   glossaryTerms: string;
   trainingReferenceLinks: string[];
+  youtubeVideoUrl: string;
+  avatarType: string;
+  avatarVideoTopic: string;
+  notificationEmail: string;
   avatarEmotions: string[];
   voicePace: string;
   editingStyles: string[];
@@ -129,6 +134,12 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     bio:
       data?.bio ??
       "Mandato focado em entregas concretas, linguagem clara e defesa consistente das pautas prioritarias.",
+    personaArchetypes:
+      data?.personaArchetypes?.length
+        ? data.personaArchetypes
+        : data?.archetype
+          ? [data.archetype]
+          : [],
     sentinelThemes: data?.sentinelThemes ?? [],
     oppositionThemes: data?.oppositionThemes ?? [],
     customRadarThemes: data?.customRadarThemes ?? [],
@@ -138,6 +149,10 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     oppositionSites: data?.oppositionSites ?? [],
     glossaryTerms: toTextarea(data?.glossaryTerms ?? []),
     trainingReferenceLinks: data?.trainingReferenceLinks ?? [],
+    youtubeVideoUrl: data?.youtubeVideoUrl ?? "",
+    avatarType: data?.avatarType ?? "",
+    avatarVideoTopic: data?.avatarVideoTopic ?? "",
+    notificationEmail: data?.notificationEmail ?? "",
     avatarEmotions: data?.avatarEmotions ?? ["Manter o estilo do video original"],
     voicePace: data?.voicePace ?? avatarVoicePaceOptions[0],
     editingStyles: data?.editingStyles ?? ["Manter o formato original (Apenas legendas)"],
@@ -313,6 +328,11 @@ const fieldLabels: Record<string, string> = {
   slogans: "Bordoes / assinaturas",
     glossaryTerms: "Glossario pessoal",
     trainingReferenceLinks: "Base de treino",
+    youtubeVideoUrl: "URL do YouTube",
+    avatarType: "Tipo de avatar",
+    avatarVideoTopic: "Tema do video",
+    notificationEmail: "Seu e-mail",
+    personaArchetypes: "Arquetipos de persona",
     avatarEmotions: "Emocao do avatar",
     voicePace: "Velocidade da voz",
     editingStyles: "Estilos de edicao",

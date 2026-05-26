@@ -8,20 +8,19 @@ export const spectrumOptions = [
   "Centro-Direita",
   "Direita",
   "Extrema-Direita",
-  "Libertario (Ancap)",
 ];
 
 export const archetypeOptions = [
-  "O Estadista",
-  "O Homem do Povo",
-  "O Xerife/Justiceiro",
-  "O Missionario",
-  "O Gestor/CEO",
-  "O Militante",
-  "O Professor",
-  "O Conciliador",
-  "O Agro/Regionalista",
-  "O Inovador/Digital",
+  "O Estadista (Serio, Longo prazo)",
+  "Homem do Povo (Empatia)",
+  "O Xerife/Justiceiro (Ordem)",
+  "O Missionario (Moral/Costumes)",
+  "O Gestor/CEO (Eficiencia)",
+  "O Militante (Mobilizador)",
+  "O Professor (Didatico)",
+  "O Conciliador (Uniao/Pontes)",
+  "Agro/Regionalista (Interior)",
+  "O Inovador/Digital (Tech)",
 ];
 
 export const voiceToneOptions = [
@@ -29,19 +28,24 @@ export const voiceToneOptions = [
   "Popular",
   "Indignado",
   "Conciliador",
-  "Sarcastico/ironico",
-  "Motivacional",
   "Institucional",
-  "Tecnico/exato",
+  "Tecnico/Exito",
   "Didatico",
   "Patriotico",
-  "Denuncista",
-  "Humoristico",
   "Agressivo",
   "Sofisticado",
   "Otimista",
-  "Paternal/maternal",
+  "Paternal/Maternal",
+  "Sarcastico/Ironico",
+  "Motivacional",
+  "Denuncista",
+  "Humoristico",
 ];
+
+export const avatarTypeOptions = [
+  "Meu Gemeo Digital",
+  "Minha Caricatura",
+] as const;
 
 export const defaultFormats: ContentFormat[] = [
   "Roteiro Reels",
