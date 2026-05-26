@@ -71,6 +71,54 @@ alter table if exists product_feedback
 alter table if exists product_feedback
   add column if not exists implementation_prompt text not null default '';
 
+create table if not exists evaluation_runs (
+  id uuid primary key default gen_random_uuid(),
+  content_request_id uuid references content_requests(id) on delete set null,
+  profile_id uuid references politician_profiles(id) on delete set null,
+  mode text not null default 'shadow',
+  status text not null default 'pending',
+  primary_provider text not null default '',
+  primary_model text not null default '',
+  judge_provider text not null default '',
+  judge_model text not null default '',
+  winner_candidate_id uuid null,
+  winner_recommendation text not null default '',
+  judge_summary text not null default '',
+  error_message text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists evaluation_candidates (
+  id uuid primary key default gen_random_uuid(),
+  evaluation_run_id uuid not null references evaluation_runs(id) on delete cascade,
+  content_request_id uuid references content_requests(id) on delete set null,
+  generated_content_ids uuid[] not null default '{}',
+  role text not null,
+  provider text not null,
+  model text not null default '',
+  prompt_version text not null,
+  template_id text not null,
+  latency_ms integer not null default 0,
+  prompt_preview text not null,
+  raw_response text not null default '',
+  token_usage jsonb null,
+  output_variants jsonb not null default '[]'::jsonb,
+  status text not null default 'completed',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists evaluation_scores (
+  id uuid primary key default gen_random_uuid(),
+  evaluation_run_id uuid not null references evaluation_runs(id) on delete cascade,
+  candidate_id uuid not null references evaluation_candidates(id) on delete cascade,
+  criterion text not null,
+  score numeric(4, 2) not null,
+  rationale text not null,
+  verdict text not null default '',
+  created_at timestamptz not null default now()
+);
+
 create index if not exists generated_contents_request_id_idx
   on generated_contents(content_request_id);
 
@@ -79,3 +127,15 @@ create index if not exists content_feedback_generated_content_id_idx
 
 create index if not exists product_feedback_created_at_idx
   on product_feedback(created_at desc);
+
+create index if not exists evaluation_runs_created_at_idx
+  on evaluation_runs(created_at desc);
+
+create index if not exists evaluation_candidates_run_id_idx
+  on evaluation_candidates(evaluation_run_id);
+
+create index if not exists evaluation_scores_run_id_idx
+  on evaluation_scores(evaluation_run_id);
+
+create unique index if not exists evaluation_scores_unique_idx
+  on evaluation_scores(evaluation_run_id, candidate_id, criterion);

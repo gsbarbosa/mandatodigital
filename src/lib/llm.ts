@@ -1,20 +1,43 @@
-import type { ContentRequestInput } from "@/lib/schemas";
-import type { PoliticianProfile } from "@/lib/types";
+import type {
+  ContentRequestInput,
+  LlmExecutionOptionsInput,
+} from "@/lib/schemas";
+import type {
+  GeneratedContentVariant,
+  LlmExecutionResult,
+  LlmProvider,
+  PoliticianProfile,
+  PromptTemplateMetadata,
+  TokenUsage,
+} from "@/lib/types";
 
 import { buildFallbackVariants } from "@/lib/fallback-generator";
 import { buildGenerationPrompt } from "@/lib/prompt-builder";
 
-type GeneratedVariant = {
-  title: string;
-  angle: string;
-  body: string;
+export type GeneratedVariant = GeneratedContentVariant & {
   promptPreview: string;
   provider: string;
+  model: string;
+  templateId: string;
+  promptVersion: string;
+  rawResponse: string;
+  latencyMs: number;
+  tokenUsage: TokenUsage | null;
 };
 
-type JsonPromptResult = {
+export type ContentGenerationResult = {
+  prompt: PromptTemplateMetadata & {
+    system: string;
+    user: string;
+    fingerprint: string;
+  };
+  variants: GeneratedVariant[];
   rawText: string | null;
-  provider: string | null;
+  provider: string;
+  model: string;
+  latencyMs: number;
+  tokenUsage: TokenUsage | null;
+  usedFallback: boolean;
 };
 
 type ParsedResponse = {
@@ -23,6 +46,12 @@ type ParsedResponse = {
     angle?: string;
     body?: string;
   }>;
+};
+
+type ProviderRequestOptions = {
+  model: string;
+  temperature?: number;
+  maxTokens?: number;
 };
 
 function parseMaybeJson(text: string): ParsedResponse | null {
@@ -44,9 +73,9 @@ function parseMaybeJson(text: string): ParsedResponse | null {
 
 function normalizeResponse(
   payload: ParsedResponse | null,
-  promptPreview: string,
-  provider: string,
-) {
+  prompt: PromptTemplateMetadata,
+  execution: LlmExecutionResult,
+): GeneratedVariant[] | null {
   if (!payload?.versions?.length) {
     return null;
   }
@@ -56,24 +85,77 @@ function normalizeResponse(
       title: item.title?.trim() || `Versao ${index + 1}`,
       angle: item.angle?.trim() || `Abordagem ${index + 1}`,
       body: item.body?.trim() || "",
-      promptPreview,
-      provider,
+      promptPreview: prompt.preview,
+      provider: execution.provider || "desconhecido",
+      model: execution.model || "desconhecido",
+      templateId: prompt.templateId,
+      promptVersion: prompt.promptVersion,
+      rawResponse: execution.rawText || "",
+      latencyMs: execution.latencyMs ?? 0,
+      tokenUsage: execution.tokenUsage,
     }))
     .filter((item) => item.body.length >= 20);
 
   return versions.length ? versions.slice(0, 3) : null;
 }
 
+function normalizeTokenUsage(inputTokens = 0, outputTokens = 0): TokenUsage {
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens: inputTokens + outputTokens,
+  };
+}
+
+function getConfiguredProvider(provider: Exclude<LlmProvider, "fallback-local">) {
+  if (provider === "openai") {
+    return {
+      apiKey: process.env.OPENAI_API_KEY,
+      defaultModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+    };
+  }
+
+  return {
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    defaultModel: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
+  };
+}
+
+function resolveExecutionProvider(
+  requestedProvider?: Exclude<LlmProvider, "fallback-local">,
+) {
+  if (requestedProvider) {
+    const configured = getConfiguredProvider(requestedProvider);
+    if (!configured.apiKey) {
+      return null;
+    }
+
+    return requestedProvider;
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    return "openai" as const;
+  }
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    return "anthropic" as const;
+  }
+
+  return null;
+}
+
 async function callOpenAI(
   system: string,
   user: string,
-  options?: { temperature?: number; maxTokens?: number },
-) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  options: ProviderRequestOptions,
+): Promise<LlmExecutionResult> {
+  const { apiKey } = getConfiguredProvider("openai");
 
   if (!apiKey) {
-    return null;
+    throw new Error("OPENAI_API_KEY nao configurada.");
   }
+
+  const startedAt = Date.now();
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -82,7 +164,7 @@ async function callOpenAI(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4.1-mini",
+      model: options.model,
       temperature: options?.temperature ?? 0.8,
       max_tokens: options?.maxTokens,
       messages: [
@@ -103,21 +185,46 @@ async function callOpenAI(
         content?: string;
       };
     }>;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
   };
 
-  return json.choices?.[0]?.message?.content ?? null;
+  const tokenUsage = json.usage
+    ? normalizeTokenUsage(
+        json.usage.prompt_tokens ?? 0,
+        json.usage.completion_tokens ?? 0,
+      )
+    : null;
+
+  return {
+    rawText: json.choices?.[0]?.message?.content ?? null,
+    provider: "openai",
+    model: options.model,
+    latencyMs: Date.now() - startedAt,
+    tokenUsage: tokenUsage
+      ? {
+          ...tokenUsage,
+          totalTokens: json.usage?.total_tokens ?? tokenUsage.totalTokens,
+        }
+      : null,
+  };
 }
 
 async function callAnthropic(
   system: string,
   user: string,
-  options?: { temperature?: number; maxTokens?: number },
-) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  options: ProviderRequestOptions,
+): Promise<LlmExecutionResult> {
+  const { apiKey } = getConfiguredProvider("anthropic");
 
   if (!apiKey) {
-    return null;
+    throw new Error("ANTHROPIC_API_KEY nao configurada.");
   }
+
+  const startedAt = Date.now();
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -127,7 +234,7 @@ async function callAnthropic(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
+      model: options.model,
       max_tokens: options?.maxTokens ?? 1400,
       temperature: options?.temperature ?? 0.4,
       system,
@@ -144,9 +251,24 @@ async function callAnthropic(
       type?: string;
       text?: string;
     }>;
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+    };
   };
 
-  return json.content?.find((item) => item.type === "text")?.text ?? null;
+  return {
+    rawText: json.content?.find((item) => item.type === "text")?.text ?? null,
+    provider: "anthropic",
+    model: options.model,
+    latencyMs: Date.now() - startedAt,
+    tokenUsage: json.usage
+      ? normalizeTokenUsage(
+          json.usage.input_tokens ?? 0,
+          json.usage.output_tokens ?? 0,
+        )
+      : null,
+  };
 }
 
 export function parseJsonResponse<T>(text: string): T | null {
@@ -156,58 +278,128 @@ export function parseJsonResponse<T>(text: string): T | null {
 export async function requestStructuredJson(
   system: string,
   user: string,
-  options?: { temperature?: number; maxTokens?: number },
-): Promise<JsonPromptResult> {
-  const provider = process.env.OPENAI_API_KEY
-    ? "openai"
-    : process.env.ANTHROPIC_API_KEY
-      ? "anthropic"
-      : null;
+  options?: LlmExecutionOptionsInput,
+): Promise<LlmExecutionResult> {
+  const provider = resolveExecutionProvider(options?.provider);
 
   if (!provider) {
-    return { rawText: null, provider: null };
+    if (options?.strict) {
+      throw new Error("Nenhum provider de LLM configurado para esta execucao.");
+    }
+
+    return {
+      rawText: null,
+      provider: null,
+      model: null,
+      latencyMs: null,
+      tokenUsage: null,
+    };
   }
 
-  const rawText =
-    provider === "openai"
-      ? await callOpenAI(system, user, options)
-      : await callAnthropic(system, user, options);
+  const { defaultModel } = getConfiguredProvider(provider);
+  const requestOptions = {
+    model: options?.model?.trim() || defaultModel,
+    temperature: options?.temperature,
+    maxTokens: options?.maxTokens,
+  };
 
-  return { rawText, provider };
+  return provider === "openai"
+    ? callOpenAI(system, user, requestOptions)
+    : callAnthropic(system, user, requestOptions);
+}
+
+function buildFallbackGenerationResult(
+  profile: PoliticianProfile,
+  request: ContentRequestInput,
+  prompt: ContentGenerationResult["prompt"],
+): ContentGenerationResult {
+  const variants = buildFallbackVariants(profile, request, prompt.preview).map(
+    (item) => ({
+      ...item,
+      model: "fallback-local",
+      templateId: prompt.templateId,
+      promptVersion: prompt.promptVersion,
+      rawResponse: "",
+      latencyMs: 0,
+      tokenUsage: null,
+    }),
+  );
+
+  return {
+    prompt,
+    variants,
+    rawText: null,
+    provider: "fallback-local",
+    model: "fallback-local",
+    latencyMs: 0,
+    tokenUsage: null,
+    usedFallback: true,
+  };
 }
 
 export async function generateContentVariants(
   profile: PoliticianProfile,
   request: ContentRequestInput,
-): Promise<GeneratedVariant[]> {
-  const prompt = buildGenerationPrompt(profile, request);
+  options?: {
+    prompt?: {
+      templateId?: string;
+      promptVersion?: string;
+      systemAddendum?: string;
+      userAddendum?: string;
+    };
+    execution?: LlmExecutionOptionsInput;
+    allowFallback?: boolean;
+  },
+): Promise<ContentGenerationResult> {
+  const prompt = buildGenerationPrompt(profile, request, options?.prompt);
+  const allowFallback = options?.allowFallback ?? true;
 
   try {
-    const { rawText, provider } = await requestStructuredJson(
+    const execution = await requestStructuredJson(
       prompt.system,
       prompt.user,
       {
-        temperature: 0.8,
-        maxTokens: 1800,
+        temperature: options?.execution?.temperature ?? 0.8,
+        maxTokens: options?.execution?.maxTokens ?? 1800,
+        provider: options?.execution?.provider,
+        model: options?.execution?.model,
+        strict: options?.execution?.strict,
       },
     );
 
-    if (!rawText || !provider) {
-      return buildFallbackVariants(profile, request, prompt.preview);
+    if (!execution.rawText || !execution.provider || !execution.model) {
+      if (!allowFallback) {
+        throw new Error("A execucao da LLM nao retornou resposta utilizavel.");
+      }
+
+      return buildFallbackGenerationResult(profile, request, prompt);
     }
 
-    const normalized = normalizeResponse(
-      parseMaybeJson(rawText),
-      prompt.preview,
-      provider,
-    );
+    const normalized = normalizeResponse(parseMaybeJson(execution.rawText), prompt, execution);
 
     if (!normalized) {
-      return buildFallbackVariants(profile, request, prompt.preview);
+      if (!allowFallback) {
+        throw new Error("A resposta da LLM nao respeitou o contrato esperado.");
+      }
+
+      return buildFallbackGenerationResult(profile, request, prompt);
     }
 
-    return normalized;
-  } catch {
-    return buildFallbackVariants(profile, request, prompt.preview);
+    return {
+      prompt,
+      variants: normalized,
+      rawText: execution.rawText,
+      provider: execution.provider,
+      model: execution.model,
+      latencyMs: execution.latencyMs ?? 0,
+      tokenUsage: execution.tokenUsage,
+      usedFallback: false,
+    };
+  } catch (error) {
+    if (!allowFallback) {
+      throw error;
+    }
+
+    return buildFallbackGenerationResult(profile, request, prompt);
   }
 }

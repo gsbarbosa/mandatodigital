@@ -423,6 +423,85 @@ input:focus {
   line-height: 1.6;
 }
 
+.eval-history-list {
+  margin-bottom: 18px;
+}
+
+.eval-status-pill {
+  font-size: 0.72rem;
+}
+
+.eval-pending {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+.eval-completed {
+  background: rgba(16, 185, 129, 0.18);
+  color: #86efac;
+}
+
+.eval-failed {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.evaluation-report-card {
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.evaluation-candidate-card {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.evaluation-score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.evaluation-score-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.evaluation-score-row strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.evaluation-score-row p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.evaluation-score-value {
+  min-width: 54px;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.16);
+  color: #86efac;
+  font-weight: 800;
+}
+
 .feedback-fab {
   position: fixed;
   right: 18px;

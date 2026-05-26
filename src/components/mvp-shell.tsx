@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   archetypeOptions,
@@ -20,6 +20,8 @@ import type {
   ContentFormat,
   ContentRequest,
   ContentStatus,
+  EvaluationCriterion,
+  EvaluationReport,
   GeneratedContent,
   IntensityLevel,
   ProductFeedback,
@@ -110,6 +112,42 @@ function buildProductFeedbackState(): ProductFeedbackFormState {
   };
 }
 
+function buildEvaluationReportsFromDashboard(
+  data: DashboardData,
+): EvaluationReport[] {
+  return data.evaluationRuns.map((run) => {
+    const candidates = data.evaluationCandidates
+      .filter((candidate) => candidate.evaluationRunId === run.id)
+      .map((candidate) => {
+        const scores = data.evaluationScores.filter(
+          (score) => score.candidateId === candidate.id,
+        );
+        const overall =
+          scores.find((score) => score.criterion === "overall")?.score ??
+          (scores.length
+            ? scores.reduce((sum, score) => sum + score.score, 0) / scores.length
+            : 0);
+
+        return {
+          ...candidate,
+          scores,
+          totalScore: Number(overall.toFixed(2)),
+        };
+      });
+
+    const winner =
+      candidates.find((candidate) => candidate.id === run.winnerCandidateId) ??
+      [...candidates].sort((left, right) => right.totalScore - left.totalScore)[0] ??
+      null;
+
+    return {
+      run,
+      candidates,
+      winner,
+    };
+  });
+}
+
 const fieldLabels: Record<string, string> = {
   fullName: "Nome publico",
   role: "Cargo / posicao",
@@ -149,6 +187,29 @@ const productFeedbackCriticalityLabelMap: Record<
   alta: "Alta",
   media: "Media",
   baixa: "Baixa",
+};
+
+const evaluationCriterionLabelMap: Record<EvaluationCriterion, string> = {
+  aderencia_perfil_politico: "Aderencia ao perfil politico",
+  adequacao_cargo_cidade_base: "Cargo, cidade e base",
+  respeito_redlines: "Respeito as redLines",
+  aderencia_objetivo_cta: "Objetivo e CTA",
+  uso_keyfacts: "Uso de keyFacts",
+  adequacao_formato_intensidade: "Formato e intensidade",
+  clareza_utilidade_politica: "Clareza e utilidade politica",
+  overall: "Nota final",
+};
+
+const evaluationModeLabelMap: Record<EvaluationReport["run"]["mode"], string> = {
+  judge: "Juiz",
+  shadow: "Shadow",
+  manual: "Manual",
+};
+
+const evaluationStatusLabelMap: Record<EvaluationReport["run"]["status"], string> = {
+  pending: "Em andamento",
+  completed: "Concluido",
+  failed: "Falhou",
 };
 
 type ApiErrorPayload = {
@@ -226,7 +287,26 @@ function ProductFeedbackCriticalityPill({
   );
 }
 
-export function MvpShell({ initialData }: { initialData: DashboardData }) {
+function EvaluationStatusPill({
+  status,
+}: {
+  status: EvaluationReport["run"]["status"];
+}) {
+  return (
+    <span className={`status-pill eval-status-pill eval-${status}`}>
+      {evaluationStatusLabelMap[status]}
+    </span>
+  );
+}
+
+export function MvpShell({
+  initialData,
+  initialOpenFeedback = false,
+}: {
+  initialData: DashboardData;
+  initialOpenFeedback?: boolean;
+}) {
+  const initialEvaluationReports = buildEvaluationReportsFromDashboard(initialData);
   const [profile, setProfile] = useState(initialData.profile);
   const [profileForm, setProfileForm] = useState(() =>
     buildProfileState(initialData.profile),
@@ -241,6 +321,9 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
   const [productFeedbacks, setProductFeedbacks] = useState<ProductFeedback[]>(
     initialData.productFeedbacks ?? [],
   );
+  const [evaluationReports, setEvaluationReports] = useState<EvaluationReport[]>(
+    initialEvaluationReports,
+  );
   const [requestForm, setRequestForm] = useState<RequestFormState>(
     buildRequestState(),
   );
@@ -253,9 +336,16 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingContent, setIsSavingContent] = useState(false);
-  const [isFeedbackWidgetOpen, setIsFeedbackWidgetOpen] = useState(false);
+  const [isFeedbackWidgetOpen, setIsFeedbackWidgetOpen] =
+    useState(initialOpenFeedback);
   const [isSubmittingProductFeedback, setIsSubmittingProductFeedback] =
     useState(false);
+  const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
+  const [isEvaluatingSelectedRequest, setIsEvaluatingSelectedRequest] =
+    useState(false);
+  const [selectedEvaluationRunId, setSelectedEvaluationRunId] = useState<
+    string | null
+  >(initialEvaluationReports[0]?.run.id ?? null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -279,6 +369,56 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
         : [],
     [feedback, selectedContent],
   );
+
+  const selectedEvaluationReport = useMemo(
+    () =>
+      evaluationReports.find((item) => item.run.id === selectedEvaluationRunId) ??
+      evaluationReports[0] ??
+      null,
+    [evaluationReports, selectedEvaluationRunId],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadInitialReports() {
+      setIsLoadingEvaluations(true);
+
+      try {
+        const result = await fetch("/api/evals/runs?limit=20");
+        const payload = (await result.json()) as {
+          reports?: EvaluationReport[];
+          message?: string;
+        };
+
+        if (!result.ok) {
+          throw new Error(payload.message || "Nao foi possivel carregar as avaliacoes.");
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        const reports = payload.reports ?? [];
+        setEvaluationReports(reports);
+        setSelectedEvaluationRunId((current) => current ?? reports[0]?.run.id ?? null);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingEvaluations(false);
+        }
+      }
+    }
+
+    void loadInitialReports();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function handleApi<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
     setErrorMessage(null);
@@ -516,6 +656,63 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
     }
   }
 
+  async function reloadEvaluationReports(options?: { selectedRunId?: string | null }) {
+    setIsLoadingEvaluations(true);
+
+    try {
+      const result = await handleApi<{ reports: EvaluationReport[] }>(
+        "/api/evals/runs?limit=20",
+      );
+      setEvaluationReports(result.reports);
+      setSelectedEvaluationRunId(
+        options?.selectedRunId ?? result.reports[0]?.run.id ?? null,
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel carregar as avaliacoes do core.",
+      );
+    } finally {
+      setIsLoadingEvaluations(false);
+    }
+  }
+
+  async function evaluateSelectedRequest() {
+    if (!selectedRequest) {
+      setErrorMessage("Selecione um conteudo do historico para avaliar a geracao.");
+      return;
+    }
+
+    setIsEvaluatingSelectedRequest(true);
+    setStatusMessage(null);
+
+    try {
+      const result = await handleApi<{ report: EvaluationReport }>("/api/evals/judge", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contentRequestId: selectedRequest.id,
+        }),
+      });
+
+      await reloadEvaluationReports({ selectedRunId: result.report.run.id });
+      setStatusMessage(
+        "Avaliacao concluida. O juiz da LLM atribuiu nota e registrou o racional da execucao.",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel avaliar a geracao selecionada.",
+      );
+    } finally {
+      setIsEvaluatingSelectedRequest(false);
+    }
+  }
+
   function toggleVoiceTone(tone: string) {
     setProfileForm((current) => {
       const hasTone = current.voiceTones.includes(tone);
@@ -603,6 +800,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder="Ex.: Maria Souza"
+                  data-testid="profile-full-name"
                 />
               </label>
 
@@ -617,6 +815,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder="Ex.: Vereadora"
+                  data-testid="profile-role"
                 />
               </label>
 
@@ -631,6 +830,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder="Ex.: Recife"
+                  data-testid="profile-city"
                 />
               </label>
 
@@ -646,6 +846,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder="PE"
+                  data-testid="profile-state"
                 />
               </label>
             </div>
@@ -661,6 +862,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                   }))
                 }
                 placeholder="Ex.: familias de bairro, empreendedores e servidores"
+                data-testid="profile-audience"
               />
             </label>
 
@@ -736,6 +938,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder={"Uma pauta por linha\nSaude publica\nSeguranca"}
+                  data-testid="profile-key-issues"
                 />
               </label>
 
@@ -750,6 +953,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder={"Uma referencia por linha\nGente em primeiro lugar"}
+                  data-testid="profile-slogans"
                 />
               </label>
 
@@ -764,6 +968,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder={"Ex.: nao atacar servidor publico\nnao prometer dado sem fonte"}
+                  data-testid="profile-red-lines"
                 />
               </label>
 
@@ -778,6 +983,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder={"Cole frases, trechos ou orientacoes internas"}
+                  data-testid="profile-reference-examples"
                 />
               </label>
             </div>
@@ -793,6 +999,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                   }))
                 }
                 placeholder="Como esse nome deve soar, o que defende e como costuma argumentar."
+                data-testid="profile-bio"
               />
             </label>
 
@@ -801,6 +1008,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
               className="primary-button"
               onClick={saveProfile}
               disabled={isSavingProfile}
+              data-testid="save-profile-button"
             >
               {isSavingProfile ? "Salvando..." : "Salvar onboarding"}
             </button>
@@ -821,6 +1029,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                   }))
                 }
                 placeholder="Ex.: aumento no tempo de espera para consultas especializadas"
+                data-testid="request-topic"
               />
             </label>
 
@@ -836,6 +1045,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder="Ex.: cobrar a prefeitura com autoridade"
+                  data-testid="request-objective"
                 />
               </label>
 
@@ -850,6 +1060,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                     }))
                   }
                   placeholder="Ex.: compartilhe e relate seu bairro"
+                  data-testid="request-cta"
                 />
               </label>
             </div>
@@ -905,6 +1116,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                   }))
                 }
                 placeholder="O que a equipe ja sabe, qual a leitura politica e o enquadramento desejado."
+                data-testid="request-context"
               />
             </label>
 
@@ -919,6 +1131,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                   }))
                 }
                 placeholder={"Uma informacao por linha\nFila dobrou em 30 dias\nBairro X ficou sem medico"}
+                data-testid="request-key-facts"
               />
             </label>
 
@@ -927,6 +1140,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
               className="primary-button"
               onClick={generateContent}
               disabled={isGenerating || !profile}
+              data-testid="generate-content-button"
             >
               {isGenerating ? "Gerando 3 versoes..." : "Gerar conteudo"}
             </button>
@@ -969,6 +1183,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
                       )
                     }
                     className="editor"
+                    data-testid="generated-content-editor"
                   />
                 </label>
 
@@ -1095,6 +1310,170 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
               </p>
             )}
           </SectionCard>
+
+          <SectionCard title="Avaliacao do core" subtitle="Admin da LLM">
+            <div className="button-row">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={evaluateSelectedRequest}
+                disabled={!selectedRequest || isEvaluatingSelectedRequest}
+                data-testid="evaluate-selected-request"
+              >
+                {isEvaluatingSelectedRequest
+                  ? "Avaliando geracao..."
+                  : "Avaliar pauta selecionada"}
+              </button>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => void reloadEvaluationReports()}
+                disabled={isLoadingEvaluations}
+              >
+                {isLoadingEvaluations ? "Atualizando..." : "Atualizar relatorios"}
+              </button>
+            </div>
+
+            {selectedRequest && (
+              <div className="linked-card">
+                <strong>Pauta selecionada para avaliacao</strong>
+                <span>{selectedRequest.topic}</span>
+              </div>
+            )}
+
+            {evaluationReports.length ? (
+              <>
+                <div className="history-list eval-history-list">
+                  {evaluationReports.map((report) => {
+                    const linkedRequest = requests.find(
+                      (item) => item.id === report.run.contentRequestId,
+                    );
+
+                    return (
+                      <button
+                        key={report.run.id}
+                        type="button"
+                        className={
+                          report.run.id === selectedEvaluationReport?.run.id
+                            ? "history-item active"
+                            : "history-item"
+                        }
+                        onClick={() => setSelectedEvaluationRunId(report.run.id)}
+                        data-testid="evaluation-report-item"
+                      >
+                        <div className="history-top">
+                          <strong>
+                            {linkedRequest?.topic ?? "Execucao sem pauta vinculada"}
+                          </strong>
+                          <EvaluationStatusPill status={report.run.status} />
+                        </div>
+                        <span>
+                          {evaluationModeLabelMap[report.run.mode]} · nota{" "}
+                          {report.winner?.totalScore.toFixed(1) ?? "--"}
+                        </span>
+                        <small>
+                          {new Date(report.run.createdAt).toLocaleString("pt-BR")}
+                        </small>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedEvaluationReport && (
+                  <div
+                    className="evaluation-report-card"
+                    data-testid="evaluation-report-card"
+                  >
+                    <div className="feedback-drawer-header compact">
+                      <div>
+                        <p className="eyebrow">Relatorio selecionado</p>
+                        <h3>Leitura do juiz da LLM</h3>
+                      </div>
+                    </div>
+
+                    <div className="feedback-analysis-badges">
+                      <EvaluationStatusPill
+                        status={selectedEvaluationReport.run.status}
+                      />
+                      <span className="analysis-pill analysis-melhoria">
+                        {evaluationModeLabelMap[selectedEvaluationReport.run.mode]}
+                      </span>
+                    </div>
+
+                    <p className="feedback-line">
+                      <span>Modelo gerado:</span>{" "}
+                      {selectedEvaluationReport.run.primaryProvider} /{" "}
+                      {selectedEvaluationReport.run.primaryModel || "nao informado"}
+                    </p>
+                    <p className="feedback-line">
+                      <span>Juiz:</span>{" "}
+                      {selectedEvaluationReport.run.judgeProvider || "nao informado"} /{" "}
+                      {selectedEvaluationReport.run.judgeModel || "nao informado"}
+                    </p>
+                    <p className="feedback-line">
+                      <span>Recomendacao:</span>{" "}
+                      {selectedEvaluationReport.run.winnerRecommendation ||
+                        "Sem recomendacao registrada."}
+                    </p>
+                    <p className="feedback-line">
+                      <span>Racional:</span>{" "}
+                      {selectedEvaluationReport.run.judgeSummary ||
+                        selectedEvaluationReport.run.errorMessage ||
+                        "Sem resumo registrado."}
+                    </p>
+
+                    {selectedEvaluationReport.candidates.map((candidate) => (
+                      <article
+                        key={candidate.id}
+                        className="evaluation-candidate-card"
+                        data-testid="evaluation-candidate-card"
+                      >
+                        <div className="feedback-analysis-top">
+                          <div>
+                            <strong>
+                              {candidate.role === "primary"
+                                ? "Candidato principal"
+                                : "Candidato sombra"}
+                            </strong>
+                            <p className="feedback-line">
+                              <span>Nota final:</span> {candidate.totalScore.toFixed(1)}
+                            </p>
+                          </div>
+                          <div className="feedback-analysis-badges">
+                            <span className="analysis-pill analysis-melhoria">
+                              {candidate.provider}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="evaluation-score-list">
+                          {candidate.scores.map((score) => (
+                            <div key={score.id} className="evaluation-score-row">
+                              <div>
+                                <strong>
+                                  {evaluationCriterionLabelMap[score.criterion]}
+                                </strong>
+                                <p>{score.rationale}</p>
+                              </div>
+                              <span className="evaluation-score-value">
+                                {score.score.toFixed(1)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="empty-state">
+                {isLoadingEvaluations
+                  ? "Carregando relatorios de avaliacao..."
+                  : "As avaliacoes do core aparecem aqui assim que a primeira execucao for julgada."}
+              </p>
+            )}
+          </SectionCard>
         </aside>
       </div>
 
@@ -1102,6 +1481,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
         type="button"
         className="feedback-fab"
         onClick={() => setIsFeedbackWidgetOpen((current) => !current)}
+        data-testid="feedback-fab"
       >
         {isFeedbackWidgetOpen ? "Fechar feedback" : "Feedback do produto"}
       </button>
@@ -1118,11 +1498,15 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
       <aside
         className={`feedback-drawer ${isFeedbackWidgetOpen ? "open" : ""}`}
         aria-hidden={!isFeedbackWidgetOpen}
+        data-testid="feedback-drawer"
+        data-state={isFeedbackWidgetOpen ? "open" : "closed"}
       >
         <div className="feedback-drawer-header">
           <div>
             <p className="eyebrow">Canal do produto</p>
-            <h2>O que funcionou e o que nao funcionou</h2>
+            <h2 data-testid="feedback-drawer-heading">
+              O que funcionou e o que nao funcionou
+            </h2>
           </div>
           <button
             type="button"
@@ -1150,6 +1534,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
               }))
             }
             placeholder="Ex.: onboarding, geracao de pauta, revisao final"
+            data-testid="product-feedback-screen"
           />
         </label>
 
@@ -1164,6 +1549,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
               }))
             }
             placeholder="Ex.: a geracao saiu rapida e as 3 versoes vieram com boa variacao"
+            data-testid="product-feedback-worked-well"
           />
         </label>
 
@@ -1178,6 +1564,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
               }))
             }
             placeholder="Ex.: ao salvar o onboarding parece que faltam pistas visuais; ou entao o botao nao salvou nada"
+            data-testid="product-feedback-issue"
           />
         </label>
 
@@ -1186,6 +1573,7 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
           className="primary-button"
           onClick={submitProductFeedback}
           disabled={isSubmittingProductFeedback}
+          data-testid="submit-product-feedback"
         >
           {isSubmittingProductFeedback ? "Analisando feedback..." : "Analisar feedback"}
         </button>
@@ -1201,7 +1589,11 @@ export function MvpShell({ initialData }: { initialData: DashboardData }) {
           {productFeedbacks.length ? (
             <div className="feedback-stack">
               {productFeedbacks.map((item) => (
-                <article key={item.id} className="feedback-analysis-card">
+                <article
+                  key={item.id}
+                  className="feedback-analysis-card"
+                  data-testid="product-feedback-card"
+                >
                   <div className="feedback-analysis-top">
                     <div className="feedback-analysis-badges">
                       <ProductFeedbackPill classification={item.classification} />

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { buildFallbackVariants } from "@/lib/fallback-generator";
-import { buildGenerationPrompt } from "@/lib/prompt-builder";
+import {
+  GENERATION_PROMPT_TEMPLATE_ID,
+  GENERATION_PROMPT_VERSION,
+  buildGenerationPrompt,
+} from "@/lib/prompt-builder";
 import type { ContentRequestInput } from "@/lib/schemas";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -41,6 +45,9 @@ describe("buildGenerationPrompt", () => {
     expect(prompt.preview).toContain("alagamentos recorrentes");
     expect(prompt.user).toContain("Pautas prioritarias");
     expect(prompt.system).toContain("Gere exatamente 3 versoes");
+    expect(prompt.templateId).toBe(GENERATION_PROMPT_TEMPLATE_ID);
+    expect(prompt.promptVersion).toBe(GENERATION_PROMPT_VERSION);
+    expect(prompt.fingerprint.length).toBe(64);
   });
 });
 

@@ -5,6 +5,10 @@ import { createClient } from "@supabase/supabase-js";
 
 import type {
   ContentRequestInput,
+  EvaluationCandidateCreateInput,
+  EvaluationRunCreateInput,
+  EvaluationRunUpdateInput,
+  EvaluationScoreInput,
   FeedbackInput,
   GeneratedContentUpdateInput,
   ProfileInput,
@@ -16,6 +20,10 @@ import type {
   ContentFeedback,
   ContentRequest,
   DashboardData,
+  EvaluationCandidate,
+  EvaluationReport,
+  EvaluationRun,
+  EvaluationScore,
   GeneratedContent,
   PoliticianProfile,
   ProductFeedback,
@@ -29,6 +37,9 @@ const EMPTY_DATABASE: AppDatabase = {
   generatedContents: [],
   feedback: [],
   productFeedbacks: [],
+  evaluationRuns: [],
+  evaluationCandidates: [],
+  evaluationScores: [],
 };
 
 type GeneratedContentSeed = Pick<
@@ -36,8 +47,10 @@ type GeneratedContentSeed = Pick<
   "title" | "angle" | "body" | "promptPreview" | "provider"
 >;
 
-type Repository = {
+export type Repository = {
   getDashboard(): Promise<DashboardData>;
+  getContentRequestById(id: string): Promise<ContentRequest | null>;
+  getGeneratedContentsByRequestId(contentRequestId: string): Promise<GeneratedContent[]>;
   saveProfile(input: ProfileInput): Promise<PoliticianProfile>;
   createContentRequest(input: ContentRequestInput): Promise<ContentRequest>;
   createGeneratedContents(
@@ -56,6 +69,21 @@ type Repository = {
     input: ProductFeedbackInput,
     analysis: ProductFeedbackAnalysis,
   ): Promise<ProductFeedback>;
+  createEvaluationRun(input: EvaluationRunCreateInput): Promise<EvaluationRun>;
+  updateEvaluationRun(
+    id: string,
+    input: EvaluationRunUpdateInput,
+  ): Promise<EvaluationRun>;
+  createEvaluationCandidates(
+    items: EvaluationCandidateCreateInput[],
+  ): Promise<EvaluationCandidate[]>;
+  createEvaluationScores(
+    evaluationRunId: string,
+    candidateId: string,
+    scores: EvaluationScoreInput[],
+  ): Promise<EvaluationScore[]>;
+  getEvaluationReport(runId: string): Promise<EvaluationReport | null>;
+  listEvaluationReports(limit?: number): Promise<EvaluationReport[]>;
 };
 
 function nowIso() {
@@ -120,6 +148,41 @@ function getSupabaseClient() {
       persistSession: false,
     },
   });
+}
+
+function buildEvaluationReport(
+  run: EvaluationRun,
+  candidates: EvaluationCandidate[],
+  scores: EvaluationScore[],
+): EvaluationReport {
+  const candidateReports = candidates.map((candidate) => {
+    const candidateScores = scores.filter(
+      (score) => score.candidateId === candidate.id,
+    );
+    const overall =
+      candidateScores.find((score) => score.criterion === "overall")?.score ??
+      (candidateScores.length
+        ? candidateScores.reduce((sum, score) => sum + score.score, 0) /
+          candidateScores.length
+        : 0);
+
+    return {
+      ...candidate,
+      scores: candidateScores,
+      totalScore: Number(overall.toFixed(2)),
+    };
+  });
+
+  const winner =
+    candidateReports.find((candidate) => candidate.id === run.winnerCandidateId) ??
+    candidateReports.sort((left, right) => right.totalScore - left.totalScore)[0] ??
+    null;
+
+  return {
+    run,
+    candidates: candidateReports,
+    winner,
+  };
 }
 
 function mapProfileRow(row: Record<string, unknown>): PoliticianProfile {
@@ -201,9 +264,101 @@ function mapProductFeedbackRow(row: Record<string, unknown>): ProductFeedback {
   };
 }
 
+function mapEvaluationRunRow(row: Record<string, unknown>): EvaluationRun {
+  return {
+    id: String(row.id),
+    contentRequestId:
+      row.content_request_id === null ? null : String(row.content_request_id),
+    profileId: row.profile_id === null ? null : String(row.profile_id),
+    mode: String(row.mode) as EvaluationRun["mode"],
+    status: String(row.status) as EvaluationRun["status"],
+    primaryProvider: String(row.primary_provider ?? ""),
+    primaryModel: String(row.primary_model ?? ""),
+    judgeProvider: String(row.judge_provider ?? ""),
+    judgeModel: String(row.judge_model ?? ""),
+    winnerCandidateId:
+      row.winner_candidate_id === null ? null : String(row.winner_candidate_id),
+    winnerRecommendation: String(row.winner_recommendation ?? ""),
+    judgeSummary: String(row.judge_summary ?? ""),
+    errorMessage: String(row.error_message ?? ""),
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+  };
+}
+
+function mapEvaluationCandidateRow(
+  row: Record<string, unknown>,
+): EvaluationCandidate {
+  return {
+    id: String(row.id),
+    evaluationRunId: String(row.evaluation_run_id),
+    contentRequestId:
+      row.content_request_id === null ? null : String(row.content_request_id),
+    generatedContentIds: Array.isArray(row.generated_content_ids)
+      ? row.generated_content_ids.map(String)
+      : [],
+    role: String(row.role) as EvaluationCandidate["role"],
+    provider: String(row.provider),
+    model: String(row.model ?? ""),
+    promptVersion: String(row.prompt_version),
+    templateId: String(row.template_id),
+    latencyMs: Number(row.latency_ms ?? 0),
+    promptPreview: String(row.prompt_preview),
+    rawResponse: String(row.raw_response ?? ""),
+    tokenUsage:
+      row.token_usage && typeof row.token_usage === "object"
+        ? {
+            inputTokens: Number(
+              (row.token_usage as Record<string, unknown>).inputTokens ?? 0,
+            ),
+            outputTokens: Number(
+              (row.token_usage as Record<string, unknown>).outputTokens ?? 0,
+            ),
+            totalTokens: Number(
+              (row.token_usage as Record<string, unknown>).totalTokens ?? 0,
+            ),
+          }
+        : null,
+    outputVariants: Array.isArray(row.output_variants)
+      ? row.output_variants.map((item) => ({
+          title: String((item as Record<string, unknown>).title ?? ""),
+          angle: String((item as Record<string, unknown>).angle ?? ""),
+          body: String((item as Record<string, unknown>).body ?? ""),
+        }))
+      : [],
+    status: String(row.status) as EvaluationCandidate["status"],
+    createdAt: String(row.created_at),
+  };
+}
+
+function mapEvaluationScoreRow(row: Record<string, unknown>): EvaluationScore {
+  return {
+    id: String(row.id),
+    evaluationRunId: String(row.evaluation_run_id),
+    candidateId: String(row.candidate_id),
+    criterion: String(row.criterion) as EvaluationScore["criterion"],
+    score: Number(row.score),
+    rationale: String(row.rationale),
+    verdict: String(row.verdict ?? ""),
+    createdAt: String(row.created_at),
+  };
+}
+
 const localRepository: Repository = {
   async getDashboard() {
     return readLocalDatabase();
+  },
+
+  async getContentRequestById(id) {
+    const database = await readLocalDatabase();
+    return database.contentRequests.find((item) => item.id === id) ?? null;
+  },
+
+  async getGeneratedContentsByRequestId(contentRequestId) {
+    const database = await readLocalDatabase();
+    return database.generatedContents.filter(
+      (item) => item.contentRequestId === contentRequestId,
+    );
   },
 
   async saveProfile(input) {
@@ -315,12 +470,158 @@ const localRepository: Repository = {
 
     return feedback;
   },
+
+  async createEvaluationRun(input) {
+    const database = await readLocalDatabase();
+    const timestamp = nowIso();
+    const run: EvaluationRun = {
+      id: crypto.randomUUID(),
+      contentRequestId: input.contentRequestId ?? null,
+      profileId: input.profileId ?? null,
+      mode: input.mode,
+      status: input.status,
+      primaryProvider: input.primaryProvider,
+      primaryModel: input.primaryModel,
+      judgeProvider: input.judgeProvider,
+      judgeModel: input.judgeModel,
+      winnerCandidateId: input.winnerCandidateId ?? null,
+      winnerRecommendation: input.winnerRecommendation,
+      judgeSummary: input.judgeSummary,
+      errorMessage: input.errorMessage,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    database.evaluationRuns.unshift(run);
+    await writeLocalDatabase(database);
+
+    return run;
+  },
+
+  async updateEvaluationRun(id, input) {
+    const database = await readLocalDatabase();
+    const index = database.evaluationRuns.findIndex((item) => item.id === id);
+
+    if (index === -1) {
+      throw new Error("Run de avaliacao nao encontrado.");
+    }
+
+    const current = database.evaluationRuns[index];
+    const updated: EvaluationRun = {
+      ...current,
+      status: input.status,
+      winnerCandidateId: input.winnerCandidateId ?? current.winnerCandidateId,
+      winnerRecommendation:
+        input.winnerRecommendation ?? current.winnerRecommendation,
+      judgeSummary: input.judgeSummary ?? current.judgeSummary,
+      errorMessage: input.errorMessage ?? current.errorMessage,
+      judgeProvider: input.judgeProvider ?? current.judgeProvider,
+      judgeModel: input.judgeModel ?? current.judgeModel,
+      updatedAt: nowIso(),
+    };
+
+    database.evaluationRuns[index] = updated;
+    await writeLocalDatabase(database);
+
+    return updated;
+  },
+
+  async createEvaluationCandidates(items) {
+    const database = await readLocalDatabase();
+    const timestamp = nowIso();
+    const candidates = items.map<EvaluationCandidate>((item) => ({
+      id: crypto.randomUUID(),
+      evaluationRunId: item.evaluationRunId,
+      contentRequestId: item.contentRequestId ?? null,
+      generatedContentIds: item.generatedContentIds,
+      role: item.role,
+      provider: item.provider,
+      model: item.model,
+      promptVersion: item.promptVersion,
+      templateId: item.templateId,
+      latencyMs: item.latencyMs,
+      promptPreview: item.promptPreview,
+      rawResponse: item.rawResponse,
+      tokenUsage: item.tokenUsage,
+      outputVariants: item.outputVariants,
+      status: item.status,
+      createdAt: timestamp,
+    }));
+
+    database.evaluationCandidates = [...candidates, ...database.evaluationCandidates];
+    await writeLocalDatabase(database);
+
+    return candidates;
+  },
+
+  async createEvaluationScores(evaluationRunId, candidateId, scores) {
+    const database = await readLocalDatabase();
+    const timestamp = nowIso();
+    const created = scores.map<EvaluationScore>((score) => ({
+      id: crypto.randomUUID(),
+      evaluationRunId,
+      candidateId,
+      criterion: score.criterion,
+      score: score.score,
+      rationale: score.rationale,
+      verdict: score.verdict,
+      createdAt: timestamp,
+    }));
+
+    database.evaluationScores = [...created, ...database.evaluationScores];
+    await writeLocalDatabase(database);
+
+    return created;
+  },
+
+  async getEvaluationReport(runId) {
+    const database = await readLocalDatabase();
+    const run = database.evaluationRuns.find((item) => item.id === runId);
+
+    if (!run) {
+      return null;
+    }
+
+    return buildEvaluationReport(
+      run,
+      database.evaluationCandidates.filter(
+        (candidate) => candidate.evaluationRunId === runId,
+      ),
+      database.evaluationScores.filter((score) => score.evaluationRunId === runId),
+    );
+  },
+
+  async listEvaluationReports(limit = 20) {
+    const database = await readLocalDatabase();
+    return database.evaluationRuns
+      .slice(0, limit)
+      .map((run) =>
+        buildEvaluationReport(
+          run,
+          database.evaluationCandidates.filter(
+            (candidate) => candidate.evaluationRunId === run.id,
+          ),
+          database.evaluationScores.filter(
+            (score) => score.evaluationRunId === run.id,
+          ),
+        ),
+      );
+  },
 };
 
 const supabaseRepository: Repository = {
   async getDashboard() {
     const client = getSupabaseClient();
-    const [profileRes, requestRes, generatedRes, feedbackRes] = await Promise.all([
+    const [
+      profileRes,
+      requestRes,
+      generatedRes,
+      feedbackRes,
+      productFeedbackRes,
+      evaluationRunsRes,
+      evaluationCandidatesRes,
+      evaluationScoresRes,
+    ] = await Promise.all([
       client
         .from("politician_profiles")
         .select("*")
@@ -332,11 +633,14 @@ const supabaseRepository: Repository = {
         .select("*")
         .order("created_at", { ascending: false }),
       client.from("content_feedback").select("*").order("created_at", { ascending: false }),
+      client.from("product_feedback").select("*").order("created_at", { ascending: false }),
+      client.from("evaluation_runs").select("*").order("created_at", { ascending: false }),
+      client
+        .from("evaluation_candidates")
+        .select("*")
+        .order("created_at", { ascending: true }),
+      client.from("evaluation_scores").select("*").order("created_at", { ascending: true }),
     ]);
-    const productFeedbackRes = await client
-      .from("product_feedback")
-      .select("*")
-      .order("created_at", { ascending: false });
 
     if (profileRes.error) throw profileRes.error;
     if (requestRes.error) throw requestRes.error;
@@ -345,10 +649,26 @@ const supabaseRepository: Repository = {
     if (productFeedbackRes.error && !isMissingTableError(productFeedbackRes.error)) {
       throw productFeedbackRes.error;
     }
+    if (evaluationRunsRes.error && !isMissingTableError(evaluationRunsRes.error)) {
+      throw evaluationRunsRes.error;
+    }
+    if (
+      evaluationCandidatesRes.error &&
+      !isMissingTableError(evaluationCandidatesRes.error)
+    ) {
+      throw evaluationCandidatesRes.error;
+    }
+    if (evaluationScoresRes.error && !isMissingTableError(evaluationScoresRes.error)) {
+      throw evaluationScoresRes.error;
+    }
 
-    const localDatabase = productFeedbackRes.error
-      ? await readLocalDatabase()
-      : null;
+    const localDatabase =
+      productFeedbackRes.error ||
+      evaluationRunsRes.error ||
+      evaluationCandidatesRes.error ||
+      evaluationScoresRes.error
+        ? await readLocalDatabase()
+        : null;
 
     return {
       profile: profileRes.data[0] ? mapProfileRow(profileRes.data[0]) : null,
@@ -358,7 +678,40 @@ const supabaseRepository: Repository = {
       productFeedbacks: productFeedbackRes.error
         ? localDatabase?.productFeedbacks ?? []
         : productFeedbackRes.data.map(mapProductFeedbackRow),
+      evaluationRuns: evaluationRunsRes.error
+        ? localDatabase?.evaluationRuns ?? []
+        : evaluationRunsRes.data.map(mapEvaluationRunRow),
+      evaluationCandidates: evaluationCandidatesRes.error
+        ? localDatabase?.evaluationCandidates ?? []
+        : evaluationCandidatesRes.data.map(mapEvaluationCandidateRow),
+      evaluationScores: evaluationScoresRes.error
+        ? localDatabase?.evaluationScores ?? []
+        : evaluationScoresRes.data.map(mapEvaluationScoreRow),
     };
+  },
+
+  async getContentRequestById(id) {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from("content_requests")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? mapRequestRow(data) : null;
+  },
+
+  async getGeneratedContentsByRequestId(contentRequestId) {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from("generated_contents")
+      .select("*")
+      .eq("content_request_id", contentRequestId)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+    return data.map(mapGeneratedContentRow);
   },
 
   async saveProfile(input) {
@@ -525,6 +878,278 @@ const supabaseRepository: Repository = {
     }
 
     return mapProductFeedbackRow(data);
+  },
+
+  async createEvaluationRun(input) {
+    const client = getSupabaseClient();
+    const timestamp = nowIso();
+    const payload = {
+      id: crypto.randomUUID(),
+      content_request_id: input.contentRequestId ?? null,
+      profile_id: input.profileId ?? null,
+      mode: input.mode,
+      status: input.status,
+      primary_provider: input.primaryProvider,
+      primary_model: input.primaryModel,
+      judge_provider: input.judgeProvider,
+      judge_model: input.judgeModel,
+      winner_candidate_id: input.winnerCandidateId ?? null,
+      winner_recommendation: input.winnerRecommendation,
+      judge_summary: input.judgeSummary,
+      error_message: input.errorMessage,
+      created_at: timestamp,
+      updated_at: timestamp,
+    };
+
+    const { data, error } = await client
+      .from("evaluation_runs")
+      .insert(payload)
+      .select("*")
+      .single();
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        return localRepository.createEvaluationRun(input);
+      }
+
+      throw error;
+    }
+
+    return mapEvaluationRunRow(data);
+  },
+
+  async updateEvaluationRun(id, input) {
+    const client = getSupabaseClient();
+    const payload: Record<string, string | null> = {
+      status: input.status,
+      updated_at: nowIso(),
+    };
+
+    if ("winnerCandidateId" in input) {
+      payload.winner_candidate_id = input.winnerCandidateId ?? null;
+    }
+
+    if (input.winnerRecommendation !== undefined) {
+      payload.winner_recommendation = input.winnerRecommendation;
+    }
+
+    if (input.judgeSummary !== undefined) {
+      payload.judge_summary = input.judgeSummary;
+    }
+
+    if (input.errorMessage !== undefined) {
+      payload.error_message = input.errorMessage;
+    }
+
+    if (input.judgeProvider !== undefined) {
+      payload.judge_provider = input.judgeProvider;
+    }
+
+    if (input.judgeModel !== undefined) {
+      payload.judge_model = input.judgeModel;
+    }
+
+    const { data, error } = await client
+      .from("evaluation_runs")
+      .update(payload)
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        return localRepository.updateEvaluationRun(id, input);
+      }
+
+      throw error;
+    }
+
+    return mapEvaluationRunRow(data);
+  },
+
+  async createEvaluationCandidates(items) {
+    const client = getSupabaseClient();
+    const timestamp = nowIso();
+    const payload = items.map((item) => ({
+      id: crypto.randomUUID(),
+      evaluation_run_id: item.evaluationRunId,
+      content_request_id: item.contentRequestId ?? null,
+      generated_content_ids: item.generatedContentIds,
+      role: item.role,
+      provider: item.provider,
+      model: item.model,
+      prompt_version: item.promptVersion,
+      template_id: item.templateId,
+      latency_ms: item.latencyMs,
+      prompt_preview: item.promptPreview,
+      raw_response: item.rawResponse,
+      token_usage: item.tokenUsage,
+      output_variants: item.outputVariants,
+      status: item.status,
+      created_at: timestamp,
+    }));
+
+    const { data, error } = await client
+      .from("evaluation_candidates")
+      .insert(payload)
+      .select("*");
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        return localRepository.createEvaluationCandidates(items);
+      }
+
+      throw error;
+    }
+
+    return data.map(mapEvaluationCandidateRow);
+  },
+
+  async createEvaluationScores(evaluationRunId, candidateId, scores) {
+    const client = getSupabaseClient();
+    const timestamp = nowIso();
+    const payload = scores.map((score) => ({
+      id: crypto.randomUUID(),
+      evaluation_run_id: evaluationRunId,
+      candidate_id: candidateId,
+      criterion: score.criterion,
+      score: score.score,
+      rationale: score.rationale,
+      verdict: score.verdict,
+      created_at: timestamp,
+    }));
+
+    const { data, error } = await client
+      .from("evaluation_scores")
+      .insert(payload)
+      .select("*");
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        return localRepository.createEvaluationScores(
+          evaluationRunId,
+          candidateId,
+          scores,
+        );
+      }
+
+      throw error;
+    }
+
+    return data.map(mapEvaluationScoreRow);
+  },
+
+  async getEvaluationReport(runId) {
+    const client = getSupabaseClient();
+    const [runRes, candidateRes, scoreRes] = await Promise.all([
+      client.from("evaluation_runs").select("*").eq("id", runId).maybeSingle(),
+      client
+        .from("evaluation_candidates")
+        .select("*")
+        .eq("evaluation_run_id", runId)
+        .order("created_at", { ascending: true }),
+      client
+        .from("evaluation_scores")
+        .select("*")
+        .eq("evaluation_run_id", runId)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (runRes.error) {
+      if (isMissingTableError(runRes.error)) {
+        return localRepository.getEvaluationReport(runId);
+      }
+
+      throw runRes.error;
+    }
+
+    if (candidateRes.error) {
+      if (isMissingTableError(candidateRes.error)) {
+        return localRepository.getEvaluationReport(runId);
+      }
+
+      throw candidateRes.error;
+    }
+
+    if (scoreRes.error) {
+      if (isMissingTableError(scoreRes.error)) {
+        return localRepository.getEvaluationReport(runId);
+      }
+
+      throw scoreRes.error;
+    }
+
+    if (!runRes.data) {
+      return null;
+    }
+
+    return buildEvaluationReport(
+      mapEvaluationRunRow(runRes.data),
+      candidateRes.data.map(mapEvaluationCandidateRow),
+      scoreRes.data.map(mapEvaluationScoreRow),
+    );
+  },
+
+  async listEvaluationReports(limit = 20) {
+    const client = getSupabaseClient();
+    const runsRes = await client
+      .from("evaluation_runs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (runsRes.error) {
+      if (isMissingTableError(runsRes.error)) {
+        return localRepository.listEvaluationReports(limit);
+      }
+
+      throw runsRes.error;
+    }
+
+    if (!runsRes.data.length) {
+      return [];
+    }
+
+    const runIds = runsRes.data.map((run) => String(run.id));
+    const [candidateRes, scoreRes] = await Promise.all([
+      client
+        .from("evaluation_candidates")
+        .select("*")
+        .in("evaluation_run_id", runIds)
+        .order("created_at", { ascending: true }),
+      client
+        .from("evaluation_scores")
+        .select("*")
+        .in("evaluation_run_id", runIds)
+        .order("created_at", { ascending: true }),
+    ]);
+
+    if (candidateRes.error) {
+      if (isMissingTableError(candidateRes.error)) {
+        return localRepository.listEvaluationReports(limit);
+      }
+
+      throw candidateRes.error;
+    }
+
+    if (scoreRes.error) {
+      if (isMissingTableError(scoreRes.error)) {
+        return localRepository.listEvaluationReports(limit);
+      }
+
+      throw scoreRes.error;
+    }
+
+    const candidates = candidateRes.data.map(mapEvaluationCandidateRow);
+    const scores = scoreRes.data.map(mapEvaluationScoreRow);
+
+    return runsRes.data.map((run) =>
+      buildEvaluationReport(
+        mapEvaluationRunRow(run),
+        candidates.filter((candidate) => candidate.evaluationRunId === String(run.id)),
+        scores.filter((score) => score.evaluationRunId === String(run.id)),
+      ),
+    );
   },
 };
 

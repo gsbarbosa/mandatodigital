@@ -1,10 +1,22 @@
-import type { ContentRequestInput, ProfileInput } from "@/lib/schemas";
-import type { PoliticianProfile } from "@/lib/types";
+import { createHash } from "node:crypto";
 
-type PromptBundle = {
+import type { ContentRequestInput, ProfileInput } from "@/lib/schemas";
+import type { PoliticianProfile, PromptTemplateMetadata } from "@/lib/types";
+
+export const GENERATION_PROMPT_TEMPLATE_ID = "core-politico";
+export const GENERATION_PROMPT_VERSION = "2026-05-26.1";
+
+type PromptBundle = PromptTemplateMetadata & {
   system: string;
   user: string;
-  preview: string;
+  fingerprint: string;
+};
+
+type BuildGenerationPromptOptions = {
+  templateId?: string;
+  promptVersion?: string;
+  systemAddendum?: string;
+  userAddendum?: string;
 };
 
 function joinList(items: string[]) {
@@ -14,6 +26,7 @@ function joinList(items: string[]) {
 export function buildGenerationPrompt(
   profile: PoliticianProfile | ProfileInput,
   request: ContentRequestInput,
+  options?: BuildGenerationPromptOptions,
 ): PromptBundle {
   const system = [
     "Voce e o motor editorial do Mandato Digital.",
@@ -22,7 +35,10 @@ export function buildGenerationPrompt(
     "Responda em JSON valido com a chave versions.",
     "Cada item de versions deve conter title, angle e body.",
     "Gere exatamente 3 versoes distintas, ja prontas para uso com revisao humana leve.",
-  ].join(" ");
+    options?.systemAddendum?.trim() || "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const user = [
     "Perfil do parlamentar:",
@@ -56,7 +72,10 @@ export function buildGenerationPrompt(
     "5. Se o formato for Roteiro Reels, entregue o texto em blocos curtos com gancho, desenvolvimento e fechamento.",
     "6. Se o formato for Audio WhatsApp, escreva em tom oral.",
     "7. Cite temas a confirmar quando faltar evidenca concreta.",
-  ].join("\n");
+    options?.userAddendum?.trim() || "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const preview = [
     `${profile.fullName} | ${profile.role} | ${profile.city}/${profile.state}`,
@@ -65,5 +84,19 @@ export function buildGenerationPrompt(
     `Pedido: ${request.format} sobre "${request.topic}" com objetivo "${request.objective}"`,
   ].join("\n");
 
-  return { system, user, preview };
+  const templateId = options?.templateId?.trim() || GENERATION_PROMPT_TEMPLATE_ID;
+  const promptVersion =
+    options?.promptVersion?.trim() || GENERATION_PROMPT_VERSION;
+  const fingerprint = createHash("sha256")
+    .update(`${templateId}\n${promptVersion}\n${system}\n${user}`)
+    .digest("hex");
+
+  return {
+    system,
+    user,
+    preview,
+    templateId,
+    promptVersion,
+    fingerprint,
+  };
 }

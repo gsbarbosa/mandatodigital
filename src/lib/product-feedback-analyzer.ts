@@ -150,7 +150,7 @@ export async function analyzeProductFeedback(
   const prompt = buildPrompt(input);
 
   try {
-    const { rawText, provider } = await requestStructuredJson(
+    const execution = await requestStructuredJson(
       prompt.system,
       prompt.user,
       {
@@ -159,14 +159,14 @@ export async function analyzeProductFeedback(
       },
     );
 
-    if (!rawText || !provider) {
+    if (!execution.rawText || !execution.provider) {
       return classifyHeuristically(input);
     }
 
-    const parsed = parseJsonResponse<ProductFeedbackAnalysis>(rawText);
+    const parsed = parseJsonResponse<ProductFeedbackAnalysis>(execution.rawText);
     const normalized = productFeedbackAnalysisSchema.safeParse({
       ...parsed,
-      provider,
+      provider: execution.provider,
     });
 
     if (!normalized.success) {
