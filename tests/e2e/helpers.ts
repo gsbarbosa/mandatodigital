@@ -9,13 +9,36 @@ export function createAutotestToken(prefix: string) {
   return `[AUTOTEST] ${prefix} ${Date.now()}`;
 }
 
+async function gotoPath(
+  page: Page,
+  path: string,
+  options?: { openFeedback?: boolean },
+) {
+  const targetUrl = options?.openFeedback ? `${path}?e2e=open-feedback` : path;
+  await page.goto(targetUrl);
+  await expect(page.getByRole("heading", { name: "Mandato Digital" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+}
+
 export async function gotoHome(
   page: Page,
   options?: { openFeedback?: boolean },
 ) {
-  const targetUrl = options?.openFeedback ? "/?e2e=open-feedback" : "/";
-  await page.goto(targetUrl);
-  await expect(page.getByRole("heading", { name: "Mandato Digital" })).toBeVisible();
+  await gotoPath(page, "/", options);
+}
+
+export async function gotoCurador(
+  page: Page,
+  options?: { openFeedback?: boolean },
+) {
+  await gotoPath(page, "/curador", options);
+}
+
+export async function gotoCriativo(
+  page: Page,
+  options?: { openFeedback?: boolean },
+) {
+  await gotoPath(page, "/criativo", options);
 }
 
 export async function saveAutotestProfile(request: APIRequestContext) {
@@ -45,6 +68,7 @@ export async function saveAutotestProfile(request: APIRequestContext) {
 
 export async function generateAutotestContent(page: Page) {
   const topic = createAutotestToken("tema consultas especializadas");
+  await gotoCriativo(page);
 
   await page.getByTestId("request-topic").fill(
     `${topic}: aumento no tempo de espera para consultas especializadas`,
@@ -76,12 +100,17 @@ export async function generateAutotestContent(page: Page) {
   return topic;
 }
 
-export async function openFeedbackDrawer(page: Page) {
-  await gotoHome(page, { openFeedback: true });
+export async function openFeedbackDrawer(
+  page: Page,
+  options?: { path?: "/" | "/curador" | "/criativo" | "/auditor" | "/admin" },
+) {
+  await gotoPath(page, options?.path ?? "/", { openFeedback: true });
+
   await expect(page.getByTestId("feedback-drawer")).toHaveAttribute(
-    "data-state",
-    "open",
+    "aria-hidden",
+    "false",
   );
+
   await expect(page.getByTestId("feedback-drawer-heading")).toBeVisible();
   await expect(page.getByTestId("product-feedback-screen")).toBeVisible();
 }
