@@ -42,7 +42,11 @@ function buildBody(
   const intro = pickByIndex(introByIntensity[request.intensity], variantIndex);
   const mainIssue = profile.keyIssues[0] ?? "resultado concreto";
   const secondaryIssue = profile.keyIssues[1] ?? "respeito com quem mora aqui";
-  const signature = profile.slogans[0] ? `\n\n"${profile.slogans[0]}"` : "";
+  const signature = profile.slogans[0] ? `${profile.slogans[0]}.` : "";
+  const glossaryLead = profile.glossaryTerms[0] ? `${profile.glossaryTerms[0]}, ` : "";
+  const mandatoryTerms = request.mandatoryTerms.length
+    ? `Termos-chave: ${request.mandatoryTerms.join(", ")}.`
+    : "";
   const cta = request.desiredCallToAction
     ? request.desiredCallToAction
     : "Se esse tema tambem importa para voce, me diga como isso afeta o seu bairro.";
@@ -54,20 +58,18 @@ function buildBody(
 
   if (request.format === "Roteiro Reels") {
     return [
-      "[GANCHO]",
-      `${intro} ${request.topic}.`,
-      "",
-      "[DESENVOLVIMENTO]",
-      `Quem mora em ${profile.city} sabe que esse assunto se conecta diretamente com ${mainIssue.toLowerCase()} e ${secondaryIssue.toLowerCase()}.`,
-      request.context ? `Contexto: ${request.context}` : "Contexto: precisamos separar fato, impacto local e responsabilidade publica.",
-      "",
-      "[FECHAMENTO]",
-      `Como ${profile.role}, eu defendo uma resposta ${angle.toLowerCase()} que preserve nossa identidade politica e produza resultado concreto.`,
+      `${glossaryLead}${intro} ${request.topic}.`,
+      `Quem mora em ${profile.city} sabe que isso bate direto em ${mainIssue.toLowerCase()} e ${secondaryIssue.toLowerCase()}.`,
+      request.context
+        ? request.context
+        : "A dor real da cidade precisa virar posicionamento claro, nao comentario generico.",
+      mandatoryTerms,
+      `Como ${profile.role}, eu sustento uma resposta ${angle.toLowerCase()}, coerente com ${profile.spectrum.toLowerCase()} e com a identidade do nosso mandato.`,
       signature,
-      "",
-      "[CTA]",
       cta,
-    ].join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
   if (request.format === "Audio WhatsApp") {

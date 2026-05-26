@@ -2,11 +2,26 @@
 
 import Link from "next/link";
 
+import {
+  factCheckingSourceOptions,
+  hardDataSourceOptions,
+} from "@/lib/constants";
+
+import { ToggleGridField, updateToggleValues } from "./config-controls";
 import { useProductApp } from "./provider";
 import { PhaseSectionIntro, SectionCard, StatusPill, workflowStageById } from "./shared";
 
 export function AuditorPage() {
-  const { contents, latestApprovedContent, getRequestForContentId } = useProductApp();
+  const {
+    contents,
+    latestApprovedContent,
+    getRequestForContentId,
+    profile,
+    profileForm,
+    setProfileForm,
+    saveProfile,
+    isSavingProfile,
+  } = useProductApp();
 
   return (
     <section className="phase-section">
@@ -14,6 +29,46 @@ export function AuditorPage() {
 
       <div className="grid-main">
         <div className="column-main">
+          <SectionCard title="Fontes de fact-checking" subtitle="Matriz de confianca">
+            <ToggleGridField
+              label="Agencias de checagem parceiras"
+              values={profileForm.factCheckingSources}
+              options={factCheckingSourceOptions}
+              onToggle={(value) =>
+                setProfileForm((current) => ({
+                  ...current,
+                  factCheckingSources: updateToggleValues(
+                    current.factCheckingSources,
+                    value,
+                  ),
+                }))
+              }
+            />
+
+            <ToggleGridField
+              label="Bases governamentais"
+              values={profileForm.hardDataSources}
+              options={hardDataSourceOptions}
+              onToggle={(value) =>
+                setProfileForm((current) => ({
+                  ...current,
+                  hardDataSources: updateToggleValues(current.hardDataSources, value),
+                }))
+              }
+            />
+
+            <div className="button-row">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void saveProfile()}
+                disabled={isSavingProfile}
+              >
+                {isSavingProfile ? "Salvando matriz..." : "Salvar configuracao do Auditor"}
+              </button>
+            </div>
+          </SectionCard>
+
           <SectionCard title="Historico reutilizavel" subtitle="Memoria editorial">
             {contents.length ? (
               <div className="history-list">
@@ -45,6 +100,15 @@ export function AuditorPage() {
 
         <aside className="column-side">
           <SectionCard title="Saida do auditor" subtitle="Qualidade editorial">
+            <div className="linked-card">
+              <strong>Matriz de confianca</strong>
+              <span>
+                {(profile?.factCheckingSources.length ?? 0) +
+                  (profile?.hardDataSources.length ?? 0)}{" "}
+                fontes configuradas para apoiar a checagem humana.
+              </span>
+            </div>
+
             {latestApprovedContent ? (
               <>
                 <div className="linked-card">

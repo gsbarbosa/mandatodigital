@@ -3,8 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { defaultFormats, defaultIntensities } from "@/lib/constants";
+import {
+  avatarEmotionOptions,
+  avatarVoicePaceOptions,
+  defaultFormats,
+  defaultIntensities,
+  editingStyleOptions,
+} from "@/lib/constants";
 
+import { ToggleGridField, updateToggleValues } from "./config-controls";
 import { useProductApp } from "./provider";
 import { PhaseSectionIntro, SectionCard, StatusPill, workflowStageById } from "./shared";
 
@@ -12,6 +19,10 @@ export function CriativoPage() {
   const router = useRouter();
   const {
     profile,
+    profileForm,
+    setProfileForm,
+    saveProfile,
+    isSavingProfile,
     requestForm,
     setRequestForm,
     generateContent,
@@ -34,6 +45,61 @@ export function CriativoPage() {
 
       <div className="grid-main">
         <div className="column-main">
+          <SectionCard title="Avatar digital e edicao" subtitle="Preferencias criativas do mandato">
+            <ToggleGridField
+              label="Emocao e expressao"
+              values={profileForm.avatarEmotions}
+              options={avatarEmotionOptions}
+              onToggle={(value) =>
+                setProfileForm((current) => ({
+                  ...current,
+                  avatarEmotions: updateToggleValues(current.avatarEmotions, value),
+                }))
+              }
+            />
+
+            <div className="control-group">
+              <span className="control-label">Velocidade da sintese de voz</span>
+              <div className="option-grid">
+                {avatarVoicePaceOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    className={profileForm.voicePace === option ? "option active" : "option"}
+                    onClick={() =>
+                      setProfileForm((current) => ({ ...current, voicePace: option }))
+                    }
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <ToggleGridField
+              label="Estilos de edicao"
+              values={profileForm.editingStyles}
+              options={editingStyleOptions}
+              onToggle={(value) =>
+                setProfileForm((current) => ({
+                  ...current,
+                  editingStyles: updateToggleValues(current.editingStyles, value),
+                }))
+              }
+            />
+
+            <div className="button-row">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => void saveProfile()}
+                disabled={isSavingProfile}
+              >
+                {isSavingProfile ? "Salvando preferencias..." : "Salvar preferencias criativas"}
+              </button>
+            </div>
+          </SectionCard>
+
           <SectionCard title="Nova pauta" subtitle="Geracao com revisao humana">
             <label className="field">
               <span>Tema do dia</span>
@@ -148,6 +214,20 @@ export function CriativoPage() {
               />
             </label>
 
+            <label className="field">
+              <span>Palavras obrigatorias</span>
+              <textarea
+                value={requestForm.mandatoryTerms}
+                onChange={(event) =>
+                  setRequestForm((current) => ({
+                    ...current,
+                    mandatoryTerms: event.target.value,
+                  }))
+                }
+                placeholder={"Uma expressao por linha\npovo trabalhador\nrespeito com a cidade"}
+              />
+            </label>
+
             <button
               type="button"
               className="primary-button"
@@ -162,6 +242,11 @@ export function CriativoPage() {
 
         <aside className="column-side">
           <SectionCard title="Saida criativa" subtitle="Rascunhos disponiveis">
+            <div className="linked-card">
+              <strong>Modo principal do MVP</strong>
+              <span>Roteiro curto de video com revisao humana antes da publicacao.</span>
+            </div>
+
             {contents.length ? (
               <div className="history-list">
                 {contents.slice(0, 3).map((item) => {

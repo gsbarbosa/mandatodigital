@@ -3,6 +3,7 @@ import type { Route } from "next";
 
 import {
   archetypeOptions,
+  avatarVoicePaceOptions,
   defaultFormats,
   defaultIntensities,
   spectrumOptions,
@@ -15,6 +16,7 @@ import type {
   EvaluationReport,
   IntensityLevel,
   ProductFeedback,
+  SocialHandle,
 } from "@/lib/types";
 
 export type ProfileFormState = {
@@ -32,6 +34,23 @@ export type ProfileFormState = {
   redLines: string;
   referenceExamples: string;
   bio: string;
+  sentinelThemes: string[];
+  oppositionThemes: string[];
+  customRadarThemes: string[];
+  interestProfiles: SocialHandle[];
+  interestSites: string[];
+  oppositionProfiles: SocialHandle[];
+  oppositionSites: string[];
+  glossaryTerms: string;
+  trainingReferenceLinks: string[];
+  avatarEmotions: string[];
+  voicePace: string;
+  editingStyles: string[];
+  factCheckingSources: string[];
+  hardDataSources: string[];
+  distributionChannels: string[];
+  distributionWindows: string[];
+  autoPublish: boolean;
 };
 
 export type RequestFormState = {
@@ -42,6 +61,7 @@ export type RequestFormState = {
   context: string;
   keyFacts: string;
   desiredCallToAction: string;
+  mandatoryTerms: string;
 };
 
 export type ProductFeedbackFormState = {
@@ -109,6 +129,23 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     bio:
       data?.bio ??
       "Mandato focado em entregas concretas, linguagem clara e defesa consistente das pautas prioritarias.",
+    sentinelThemes: data?.sentinelThemes ?? [],
+    oppositionThemes: data?.oppositionThemes ?? [],
+    customRadarThemes: data?.customRadarThemes ?? [],
+    interestProfiles: data?.interestProfiles ?? [],
+    interestSites: data?.interestSites ?? [],
+    oppositionProfiles: data?.oppositionProfiles ?? [],
+    oppositionSites: data?.oppositionSites ?? [],
+    glossaryTerms: toTextarea(data?.glossaryTerms ?? []),
+    trainingReferenceLinks: data?.trainingReferenceLinks ?? [],
+    avatarEmotions: data?.avatarEmotions ?? ["Manter o estilo do video original"],
+    voicePace: data?.voicePace ?? avatarVoicePaceOptions[0],
+    editingStyles: data?.editingStyles ?? ["Manter o formato original (Apenas legendas)"],
+    factCheckingSources: data?.factCheckingSources ?? [],
+    hardDataSources: data?.hardDataSources ?? [],
+    distributionChannels: data?.distributionChannels ?? [],
+    distributionWindows: data?.distributionWindows ?? [],
+    autoPublish: data?.autoPublish ?? false,
   };
 }
 
@@ -121,6 +158,7 @@ export function buildRequestState(): RequestFormState {
     context: "",
     keyFacts: "",
     desiredCallToAction: "",
+    mandatoryTerms: "",
   };
 }
 
@@ -189,10 +227,10 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Sentinela",
     subtitle: "Radar e sinais",
     description:
-      "Camada de captura de temas, alertas e oportunidades. No MVP atual, essa etapa ainda e manual e alimenta o fluxo por briefing humano.",
-    inputLabel: "Sinais de rua, noticias, demandas internas e observacoes do time.",
-    outputLabel: "Fila priorizada de temas que merecem curadoria editorial.",
-    status: "planejado",
+      "Camada de captura de temas, oposicao, perfis e portais monitorados. No MVP ela opera de forma manual/semiassistida, mas ja estrutura o radar do mandato.",
+    inputLabel: "Temas de interesse, oposicao, perfis sociais, portais e sinais do time.",
+    outputLabel: "Radar priorizado que alimenta Curador e Criativo.",
+    status: "parcial",
   },
   {
     id: "curador",
@@ -211,9 +249,9 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Criativo",
     subtitle: "Geracao de pecas",
     description:
-      "O motor criativo gera variacoes de conteudo com base na pauta priorizada, formato e intensidade escolhidos pela equipe.",
-    inputLabel: "Briefing editorial estruturado e CTA esperado.",
-    outputLabel: "Rascunhos candidatos para revisao humana.",
+      "O motor criativo gera roteiros curtos e organiza preferencias de avatar digital e edicao para a saida audiovisual do mandato.",
+    inputLabel: "Briefing editorial, tema do dia, CTA e preferencias criativas.",
+    outputLabel: "Rascunhos de roteiro candidatos para revisao humana.",
     status: "ativo",
   },
   {
@@ -222,9 +260,9 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Auditor",
     subtitle: "Revisao e qualidade",
     description:
-      "Fase de lapidacao humana, registro de feedback editorial e checagem da qualidade do material antes de seguir adiante.",
-    inputLabel: "Pecas geradas, prompt usado e observacoes do time.",
-    outputLabel: "Texto aprovado, feedback acumulado e trilha de revisao.",
+      "Fase de lapidacao humana, registro de feedback editorial e conferencias de fonte antes de seguir adiante.",
+    inputLabel: "Roteiros gerados, prompt usado, fontes e observacoes do time.",
+    outputLabel: "Conteudo aprovado com gate editorial e trilha de revisao.",
     status: "ativo",
   },
   {
@@ -233,10 +271,10 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Distribuidor",
     subtitle: "Entrega e publicacao",
     description:
-      "Camada futura para empacotar o conteudo aprovado para canais, agenda e operacao de distribuicao.",
-    inputLabel: "Conteudo aprovado e contexto de canal/publico.",
-    outputLabel: "Plano de distribuicao, publicacao e acompanhamento de entrega.",
-    status: "planejado",
+      "Camada operacional para definir canais, janelas e handoff de publicacao. No MVP a distribuicao ainda e manual, mas ja fica configurada e pronta para operacao.",
+    inputLabel: "Conteudo aprovado, canais habilitados e janelas autorizadas.",
+    outputLabel: "Pacote manual de distribuicao pronto para publicar.",
+    status: "parcial",
   },
   {
     id: "admin",
@@ -265,7 +303,24 @@ const fieldLabels: Record<string, string> = {
   archetype: "Arquetipo dominante",
   voiceTones: "Tons de voz",
   keyIssues: "Pautas prioritarias",
+    sentinelThemes: "Temas de interesse",
+    oppositionThemes: "Temas da oposicao",
+    customRadarThemes: "Temas personalizados",
+    interestProfiles: "Perfis de interesse",
+    interestSites: "Portais monitorados",
+    oppositionProfiles: "Perfis da oposicao",
+    oppositionSites: "Portais da oposicao",
   slogans: "Bordoes / assinaturas",
+    glossaryTerms: "Glossario pessoal",
+    trainingReferenceLinks: "Base de treino",
+    avatarEmotions: "Emocao do avatar",
+    voicePace: "Velocidade da voz",
+    editingStyles: "Estilos de edicao",
+    factCheckingSources: "Agencias de checagem",
+    hardDataSources: "Bases governamentais",
+    distributionChannels: "Canais de distribuicao",
+    distributionWindows: "Janelas de disparo",
+    autoPublish: "Aprovacao automatica",
   redLines: "Linhas vermelhas",
   referenceExamples: "Exemplos de fala / referencia",
   bio: "Resumo da identidade",
@@ -276,6 +331,7 @@ const fieldLabels: Record<string, string> = {
   context: "Contexto adicional",
   keyFacts: "Fatos confirmados",
   desiredCallToAction: "CTA desejado",
+    mandatoryTerms: "Palavras obrigatorias",
   screen: "Tela / fluxo",
   workedWell: "O que funcionou bem",
   issueObserved: "O que nao funcionou / observacao",

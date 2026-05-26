@@ -8,6 +8,7 @@ import {
   voiceToneOptions,
 } from "@/lib/constants";
 
+import { DynamicStringListField } from "./config-controls";
 import { useProductApp } from "./provider";
 import { PhaseSectionIntro, SectionCard, workflowStageById } from "./shared";
 
@@ -47,7 +48,7 @@ export function CuradorPage() {
 
       <div className="grid-main">
         <div className="column-main">
-          <SectionCard title="Onboarding do parlamentar" subtitle="Identidade, pautas e voz">
+          <SectionCard title="Onboarding do parlamentar" subtitle="Persona, ideologia e voz">
             <div className="field-grid">
               <label className="field">
                 <span>Nome publico</span>
@@ -127,7 +128,7 @@ export function CuradorPage() {
             </label>
 
             <div className="control-group">
-              <span className="control-label">Espectro politico</span>
+              <span className="control-label">Posicionamento ideologico</span>
               <div className="option-grid">
                 {spectrumOptions.map((option) => (
                   <button
@@ -145,7 +146,7 @@ export function CuradorPage() {
             </div>
 
             <div className="control-group">
-              <span className="control-label">Arquetipo dominante</span>
+              <span className="control-label">Arquetipo principal</span>
               <div className="option-grid">
                 {archetypeOptions.map((option) => (
                   <button
@@ -163,7 +164,7 @@ export function CuradorPage() {
             </div>
 
             <div className="control-group">
-              <span className="control-label">Tons de voz ativos (ate 3)</span>
+              <span className="control-label">Modificadores de tom</span>
               <div className="option-grid compact">
                 {voiceToneOptions.map((tone) => (
                   <button
@@ -257,6 +258,30 @@ export function CuradorPage() {
               />
             </label>
 
+            <label className="field">
+              <span>Glossario pessoal</span>
+              <textarea
+                value={profileForm.glossaryTerms}
+                onChange={(event) =>
+                  setProfileForm((current) => ({
+                    ...current,
+                    glossaryTerms: event.target.value,
+                  }))
+                }
+                placeholder={"Uma expressao por linha\nNossa gente\nTrabalhador"}
+              />
+            </label>
+
+            <DynamicStringListField
+              label="Base de treino e links de referencia"
+              fieldKey="trainingReferenceLinks"
+              values={profileForm.trainingReferenceLinks}
+              placeholder="https://youtube.com/..."
+              addLabel="Adicionar link de video"
+              setProfileForm={setProfileForm}
+              maxItems={5}
+            />
+
             <button
               type="button"
               className="primary-button"
@@ -276,12 +301,12 @@ export function CuradorPage() {
                 <div className="linked-card">
                   <strong>{profile.fullName}</strong>
                   <span>
-                    {profile.role} · {profile.city}/{profile.state}
+                    {profile.role} · {profile.city}/{profile.state} · {profile.spectrum}
                   </span>
                 </div>
                 <p className="empty-state">
                   O Curador deixa a base editorial pronta para a etapa criativa: voz,
-                  pautas, linhas vermelhas e posicionamento.
+                  pautas, linhas vermelhas, glossario e posicionamento.
                 </p>
                 <div className="button-row">
                   <Link href="/criativo" className="secondary-button">

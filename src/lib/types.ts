@@ -72,6 +72,11 @@ export type PromptTemplateMetadata = {
   preview: string;
 };
 
+export type SocialHandle = {
+  network: string;
+  handle: string;
+};
+
 export type GeneratedContentVariant = {
   title: string;
   angle: string;
@@ -107,6 +112,23 @@ export type PoliticianProfile = {
   redLines: string[];
   referenceExamples: string[];
   bio: string;
+  sentinelThemes: string[];
+  oppositionThemes: string[];
+  customRadarThemes: string[];
+  interestProfiles: SocialHandle[];
+  interestSites: string[];
+  oppositionProfiles: SocialHandle[];
+  oppositionSites: string[];
+  glossaryTerms: string[];
+  trainingReferenceLinks: string[];
+  avatarEmotions: string[];
+  voicePace: string;
+  editingStyles: string[];
+  factCheckingSources: string[];
+  hardDataSources: string[];
+  distributionChannels: string[];
+  distributionWindows: string[];
+  autoPublish: boolean;
   updatedAt: string;
 };
 
@@ -119,6 +141,7 @@ export type ContentRequest = {
   context: string;
   keyFacts: string[];
   desiredCallToAction: string;
+  mandatoryTerms: string[];
   createdAt: string;
 };
 

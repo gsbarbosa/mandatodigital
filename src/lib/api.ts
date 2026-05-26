@@ -13,7 +13,14 @@ export function handleRouteError(error: unknown) {
   }
 
   const message =
-    error instanceof Error ? error.message : "Erro interno inesperado.";
+    error instanceof Error
+      ? error.message
+      : error &&
+          typeof error === "object" &&
+          "message" in error &&
+          typeof error.message === "string"
+        ? error.message
+        : "Erro interno inesperado.";
 
   return NextResponse.json({ message }, { status: 500 });
 }

@@ -4,7 +4,7 @@ import type { ContentRequestInput, ProfileInput } from "@/lib/schemas";
 import type { PoliticianProfile, PromptTemplateMetadata } from "@/lib/types";
 
 export const GENERATION_PROMPT_TEMPLATE_ID = "core-politico";
-export const GENERATION_PROMPT_VERSION = "2026-05-26.1";
+export const GENERATION_PROMPT_VERSION = "2026-05-26.2";
 
 type PromptBundle = PromptTemplateMetadata & {
   system: string;
@@ -29,9 +29,12 @@ export function buildGenerationPrompt(
   options?: BuildGenerationPromptOptions,
 ): PromptBundle {
   const system = [
-    "Voce e o motor editorial do Mandato Digital.",
-    "Escreva como um estrategista de comunicacao politica com foco em clareza, velocidade e aderencia a persona.",
+    "Voce e o estrategista chefe e redator principal de um mandato politico.",
+    "Sua missao e criar roteiros curtos com alto potencial de retencao, concordancia imediata e compartilhamento organico.",
+    "A base inegociavel e a identidade politica do candidato: ideologia, red lines, pautas, glossario e contexto local.",
+    "Arquétipo e tom sao ferramentas taticas: use apenas quando deixarem a mensagem mais magnetica, sem trair a identidade principal.",
     "Nunca invente fatos. Se uma informacao nao estiver no contexto, trate como ponto a confirmar.",
+    "Escreva apenas o que pode ser falado em frente a camera, com oralidade natural, sem emojis e sem marcacoes tecnicas na resposta final.",
     "Responda em JSON valido com a chave versions.",
     "Cada item de versions deve conter title, angle e body.",
     "Gere exatamente 3 versoes distintas, ja prontas para uso com revisao humana leve.",
@@ -46,14 +49,20 @@ export function buildGenerationPrompt(
     `Cargo: ${profile.role}`,
     `Base geografica: ${profile.city}/${profile.state}`,
     `Publico principal: ${profile.audience}`,
-    `Espectro: ${profile.spectrum}`,
-    `Arquetipo: ${profile.archetype}`,
+    `Posicionamento ideologico: ${profile.spectrum}`,
+    `Arquetipo principal: ${profile.archetype}`,
     `Tons de voz: ${joinList(profile.voiceTones)}`,
     `Pautas prioritarias: ${joinList(profile.keyIssues)}`,
     `Bordoes e assinaturas: ${joinList(profile.slogans)}`,
+    `Glossario pessoal: ${joinList(profile.glossaryTerms)}`,
     `Linhas vermelhas: ${joinList(profile.redLines)}`,
     `Exemplos de fala: ${joinList(profile.referenceExamples)}`,
     `Resumo de identidade: ${profile.bio}`,
+    `Radar de temas priorizados: ${joinList(profile.sentinelThemes)}`,
+    `Radar de oposicao: ${joinList(profile.oppositionThemes)}`,
+    `Emocao do avatar: ${joinList(profile.avatarEmotions)}`,
+    `Velocidade de voz: ${profile.voicePace}`,
+    `Estilos de edicao preferidos: ${joinList(profile.editingStyles)}`,
     "",
     "Pedido editorial:",
     `Topico: ${request.topic}`,
@@ -63,15 +72,18 @@ export function buildGenerationPrompt(
     `Contexto adicional: ${request.context || "nao informado"}`,
     `Fatos que podem ser usados: ${joinList(request.keyFacts)}`,
     `CTA desejado: ${request.desiredCallToAction || "nao informado"}`,
+    `Palavras obrigatorias: ${joinList(request.mandatoryTerms)}`,
     "",
     "Regras de saida:",
     "1. A versao 1 deve ser a mais segura e institucional.",
-    "2. A versao 2 deve ser a mais mobilizadora e popular.",
+    "2. A versao 2 deve ser a mais popular, emocional e compartilhavel.",
     "3. A versao 3 deve ser a mais incisiva, sem ultrapassar as linhas vermelhas.",
-    "4. Se o formato for Tweet/X, respeite 280 caracteres.",
-    "5. Se o formato for Roteiro Reels, entregue o texto em blocos curtos com gancho, desenvolvimento e fechamento.",
-    "6. Se o formato for Audio WhatsApp, escreva em tom oral.",
-    "7. Cite temas a confirmar quando faltar evidenca concreta.",
+    "4. Toda versao deve conter gancho inicial, validacao da dor, frase de efeito e CTA rapido.",
+    "5. Se o formato for Tweet/X, respeite 280 caracteres.",
+    "6. Se o formato for Roteiro Reels, entregue um roteiro de video curto com oralidade natural e ate cerca de 140 palavras.",
+    "7. Se o formato for Audio WhatsApp, escreva em tom oral.",
+    "8. Incorpore glossario e palavras obrigatorias de forma fluida quando fizer sentido.",
+    "9. Cite temas a confirmar quando faltar evidenca concreta.",
     options?.userAddendum?.trim() || "",
   ]
     .filter(Boolean)

@@ -37,7 +37,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -46,7 +47,8 @@ button {
 }
 
 textarea,
-input {
+input,
+select {
   width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 14px;
@@ -66,7 +68,8 @@ textarea.editor {
 }
 
 textarea:focus,
-input:focus {
+input:focus,
+select:focus {
   outline: none;
   border-color: rgba(16, 185, 129, 0.7);
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
@@ -319,6 +322,27 @@ input:focus {
   font-weight: 600;
 }
 
+.stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inline-list-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.inline-list-row.social-row {
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) auto;
+}
+
+.icon-only-button {
+  min-width: 96px;
+}
+
 .control-group {
   margin-bottom: 18px;
 }
@@ -501,6 +525,36 @@ input:focus {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.52);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.switch-row strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.switch-row p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.switch-row input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  accent-color: #10b981;
+  box-shadow: none;
 }
 
 .linked-card span {

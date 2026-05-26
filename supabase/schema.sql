@@ -27,8 +27,12 @@ create table if not exists content_requests (
   context text not null default '',
   key_facts text[] not null default '{}',
   desired_call_to_action text not null default '',
+  mandatory_terms text[] not null default '{}',
   created_at timestamptz not null default now()
 );
+
+alter table if exists content_requests
+  add column if not exists mandatory_terms text[] not null default '{}';
 
 create table if not exists generated_contents (
   id uuid primary key default gen_random_uuid(),
@@ -63,6 +67,28 @@ create table if not exists product_feedback (
   implementation_prompt text not null default '',
   provider text not null,
   created_at timestamptz not null default now()
+);
+
+create table if not exists mandate_workflow_configs (
+  profile_id uuid primary key references politician_profiles(id) on delete cascade,
+  sentinel_themes text[] not null default '{}',
+  opposition_themes text[] not null default '{}',
+  custom_radar_themes text[] not null default '{}',
+  interest_profiles jsonb not null default '[]'::jsonb,
+  interest_sites text[] not null default '{}',
+  opposition_profiles jsonb not null default '[]'::jsonb,
+  opposition_sites text[] not null default '{}',
+  glossary_terms text[] not null default '{}',
+  training_reference_links text[] not null default '{}',
+  avatar_emotions text[] not null default '{}',
+  voice_pace text not null default 'Manter velocidade original',
+  editing_styles text[] not null default '{}',
+  fact_checking_sources text[] not null default '{}',
+  hard_data_sources text[] not null default '{}',
+  distribution_channels text[] not null default '{}',
+  distribution_windows text[] not null default '{}',
+  auto_publish boolean not null default false,
+  updated_at timestamptz not null default now()
 );
 
 alter table if exists product_feedback
@@ -127,6 +153,9 @@ create index if not exists content_feedback_generated_content_id_idx
 
 create index if not exists product_feedback_created_at_idx
   on product_feedback(created_at desc);
+
+create index if not exists mandate_workflow_configs_updated_at_idx
+  on mandate_workflow_configs(updated_at desc);
 
 create index if not exists evaluation_runs_created_at_idx
   on evaluation_runs(created_at desc);

@@ -27,6 +27,7 @@ import type {
   GeneratedContent,
   PoliticianProfile,
   ProductFeedback,
+  SocialHandle,
 } from "@/lib/types";
 
 const DATABASE_PATH = path.join(process.cwd(), "data", "mandato-digital.json");
@@ -97,6 +98,166 @@ function isMissingTableError(error: unknown) {
       "code" in error &&
       error.code === "PGRST205",
   );
+}
+
+function isMissingSchemaFieldError(error: unknown) {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error.code === "PGRST204" || error.code === "42703" || error.code === "42P01"),
+  );
+}
+
+function isSchemaCompatibilityError(error: unknown) {
+  return isMissingTableError(error) || isMissingSchemaFieldError(error);
+}
+
+function mapSocialHandles(input: unknown): SocialHandle[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const record = item as Record<string, unknown>;
+      const network = String(record.network ?? "").trim();
+      const handle = String(record.handle ?? "").trim();
+
+      if (!network || !handle) {
+        return null;
+      }
+
+      return { network, handle };
+    })
+    .filter((item): item is SocialHandle => Boolean(item));
+}
+
+function buildDefaultWorkflowProfileConfig() {
+  return {
+    sentinelThemes: [],
+    oppositionThemes: [],
+    customRadarThemes: [],
+    interestProfiles: [],
+    interestSites: [],
+    oppositionProfiles: [],
+    oppositionSites: [],
+    glossaryTerms: [],
+    trainingReferenceLinks: [],
+    avatarEmotions: [],
+    voicePace: "Manter velocidade original",
+    editingStyles: [],
+    factCheckingSources: [],
+    hardDataSources: [],
+    distributionChannels: [],
+    distributionWindows: [],
+    autoPublish: false,
+  };
+}
+
+function pickWorkflowProfileConfig(
+  profile: Partial<PoliticianProfile> | null | undefined,
+) {
+  const defaults = buildDefaultWorkflowProfileConfig();
+
+  if (!profile) {
+    return defaults;
+  }
+
+  return {
+    sentinelThemes: profile.sentinelThemes ?? defaults.sentinelThemes,
+    oppositionThemes: profile.oppositionThemes ?? defaults.oppositionThemes,
+    customRadarThemes: profile.customRadarThemes ?? defaults.customRadarThemes,
+    interestProfiles: profile.interestProfiles ?? defaults.interestProfiles,
+    interestSites: profile.interestSites ?? defaults.interestSites,
+    oppositionProfiles: profile.oppositionProfiles ?? defaults.oppositionProfiles,
+    oppositionSites: profile.oppositionSites ?? defaults.oppositionSites,
+    glossaryTerms: profile.glossaryTerms ?? defaults.glossaryTerms,
+    trainingReferenceLinks:
+      profile.trainingReferenceLinks ?? defaults.trainingReferenceLinks,
+    avatarEmotions: profile.avatarEmotions ?? defaults.avatarEmotions,
+    voicePace: profile.voicePace ?? defaults.voicePace,
+    editingStyles: profile.editingStyles ?? defaults.editingStyles,
+    factCheckingSources: profile.factCheckingSources ?? defaults.factCheckingSources,
+    hardDataSources: profile.hardDataSources ?? defaults.hardDataSources,
+    distributionChannels:
+      profile.distributionChannels ?? defaults.distributionChannels,
+    distributionWindows:
+      profile.distributionWindows ?? defaults.distributionWindows,
+    autoPublish: profile.autoPublish ?? defaults.autoPublish,
+  };
+}
+
+function mapWorkflowProfileConfigRow(row: Record<string, unknown> | null | undefined) {
+  const defaults = buildDefaultWorkflowProfileConfig();
+
+  if (!row) {
+    return defaults;
+  }
+
+  return {
+    sentinelThemes: Array.isArray(row.sentinel_themes)
+      ? row.sentinel_themes.map(String)
+      : defaults.sentinelThemes,
+    oppositionThemes: Array.isArray(row.opposition_themes)
+      ? row.opposition_themes.map(String)
+      : defaults.oppositionThemes,
+    customRadarThemes: Array.isArray(row.custom_radar_themes)
+      ? row.custom_radar_themes.map(String)
+      : defaults.customRadarThemes,
+    interestProfiles: mapSocialHandles(row.interest_profiles),
+    interestSites: Array.isArray(row.interest_sites)
+      ? row.interest_sites.map(String)
+      : defaults.interestSites,
+    oppositionProfiles: mapSocialHandles(row.opposition_profiles),
+    oppositionSites: Array.isArray(row.opposition_sites)
+      ? row.opposition_sites.map(String)
+      : defaults.oppositionSites,
+    glossaryTerms: Array.isArray(row.glossary_terms)
+      ? row.glossary_terms.map(String)
+      : defaults.glossaryTerms,
+    trainingReferenceLinks: Array.isArray(row.training_reference_links)
+      ? row.training_reference_links.map(String)
+      : defaults.trainingReferenceLinks,
+    avatarEmotions: Array.isArray(row.avatar_emotions)
+      ? row.avatar_emotions.map(String)
+      : defaults.avatarEmotions,
+    voicePace: String(row.voice_pace ?? defaults.voicePace),
+    editingStyles: Array.isArray(row.editing_styles)
+      ? row.editing_styles.map(String)
+      : defaults.editingStyles,
+    factCheckingSources: Array.isArray(row.fact_checking_sources)
+      ? row.fact_checking_sources.map(String)
+      : defaults.factCheckingSources,
+    hardDataSources: Array.isArray(row.hard_data_sources)
+      ? row.hard_data_sources.map(String)
+      : defaults.hardDataSources,
+    distributionChannels: Array.isArray(row.distribution_channels)
+      ? row.distribution_channels.map(String)
+      : defaults.distributionChannels,
+    distributionWindows: Array.isArray(row.distribution_windows)
+      ? row.distribution_windows.map(String)
+      : defaults.distributionWindows,
+    autoPublish: Boolean(row.auto_publish ?? defaults.autoPublish),
+  };
+}
+
+function mergeWorkflowProfileConfig(
+  profile: PoliticianProfile | null,
+  config?: Partial<PoliticianProfile> | null,
+): PoliticianProfile | null {
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    ...profile,
+    ...pickWorkflowProfileConfig(config),
+  };
 }
 
 async function ensureLocalDatabase() {
@@ -188,13 +349,13 @@ function buildEvaluationReport(
 function mapProfileRow(row: Record<string, unknown>): PoliticianProfile {
   return {
     id: String(row.id),
-    fullName: String(row.full_name),
-    role: String(row.role),
-    city: String(row.city),
-    state: String(row.state),
-    audience: String(row.audience),
-    spectrum: String(row.spectrum),
-    archetype: String(row.archetype),
+    fullName: String(row.full_name ?? ""),
+    role: String(row.role ?? ""),
+    city: String(row.city ?? ""),
+    state: String(row.state ?? ""),
+    audience: String(row.audience ?? ""),
+    spectrum: String(row.spectrum ?? ""),
+    archetype: String(row.archetype ?? ""),
     voiceTones: Array.isArray(row.voice_tones)
       ? row.voice_tones.map(String)
       : [],
@@ -204,8 +365,9 @@ function mapProfileRow(row: Record<string, unknown>): PoliticianProfile {
     referenceExamples: Array.isArray(row.reference_examples)
       ? row.reference_examples.map(String)
       : [],
-    bio: String(row.bio),
-    updatedAt: String(row.updated_at),
+    bio: String(row.bio ?? ""),
+    ...buildDefaultWorkflowProfileConfig(),
+    updatedAt: String(row.updated_at ?? nowIso()),
   };
 }
 
@@ -219,6 +381,9 @@ function mapRequestRow(row: Record<string, unknown>): ContentRequest {
     context: String(row.context ?? ""),
     keyFacts: Array.isArray(row.key_facts) ? row.key_facts.map(String) : [],
     desiredCallToAction: String(row.desired_call_to_action ?? ""),
+    mandatoryTerms: Array.isArray(row.mandatory_terms)
+      ? row.mandatory_terms.map(String)
+      : [],
     createdAt: String(row.created_at),
   };
 }
@@ -365,6 +530,7 @@ const localRepository: Repository = {
     const database = await readLocalDatabase();
     const profile: PoliticianProfile = {
       id: input.id ?? database.profile?.id ?? crypto.randomUUID(),
+      ...buildDefaultWorkflowProfileConfig(),
       ...input,
       updatedAt: nowIso(),
     };
@@ -614,6 +780,7 @@ const supabaseRepository: Repository = {
     const client = getSupabaseClient();
     const [
       profileRes,
+      workflowConfigRes,
       requestRes,
       generatedRes,
       feedbackRes,
@@ -624,6 +791,11 @@ const supabaseRepository: Repository = {
     ] = await Promise.all([
       client
         .from("politician_profiles")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(1),
+      client
+        .from("mandate_workflow_configs")
         .select("*")
         .order("updated_at", { ascending: false })
         .limit(1),
@@ -643,26 +815,30 @@ const supabaseRepository: Repository = {
     ]);
 
     if (profileRes.error) throw profileRes.error;
+    if (workflowConfigRes.error && !isSchemaCompatibilityError(workflowConfigRes.error)) {
+      throw workflowConfigRes.error;
+    }
     if (requestRes.error) throw requestRes.error;
     if (generatedRes.error) throw generatedRes.error;
     if (feedbackRes.error) throw feedbackRes.error;
-    if (productFeedbackRes.error && !isMissingTableError(productFeedbackRes.error)) {
+    if (productFeedbackRes.error && !isSchemaCompatibilityError(productFeedbackRes.error)) {
       throw productFeedbackRes.error;
     }
-    if (evaluationRunsRes.error && !isMissingTableError(evaluationRunsRes.error)) {
+    if (evaluationRunsRes.error && !isSchemaCompatibilityError(evaluationRunsRes.error)) {
       throw evaluationRunsRes.error;
     }
     if (
       evaluationCandidatesRes.error &&
-      !isMissingTableError(evaluationCandidatesRes.error)
+      !isSchemaCompatibilityError(evaluationCandidatesRes.error)
     ) {
       throw evaluationCandidatesRes.error;
     }
-    if (evaluationScoresRes.error && !isMissingTableError(evaluationScoresRes.error)) {
+    if (evaluationScoresRes.error && !isSchemaCompatibilityError(evaluationScoresRes.error)) {
       throw evaluationScoresRes.error;
     }
 
     const localDatabase =
+      workflowConfigRes.error ||
       productFeedbackRes.error ||
       evaluationRunsRes.error ||
       evaluationCandidatesRes.error ||
@@ -671,7 +847,12 @@ const supabaseRepository: Repository = {
         : null;
 
     return {
-      profile: profileRes.data[0] ? mapProfileRow(profileRes.data[0]) : null,
+      profile: mergeWorkflowProfileConfig(
+        profileRes.data[0] ? mapProfileRow(profileRes.data[0]) : null,
+        workflowConfigRes.error
+          ? pickWorkflowProfileConfig(localDatabase?.profile ?? null)
+          : mapWorkflowProfileConfigRow(workflowConfigRes.data[0]),
+      ),
       contentRequests: requestRes.data.map(mapRequestRow),
       generatedContents: generatedRes.data.map(mapGeneratedContentRow),
       feedback: feedbackRes.data.map(mapFeedbackRow),
@@ -750,7 +931,49 @@ const supabaseRepository: Repository = {
       .single();
 
     if (error) throw error;
-    return mapProfileRow(data);
+    const baseProfile = mapProfileRow(data);
+    const workflowPayload = {
+      profile_id: baseProfile.id,
+      sentinel_themes: input.sentinelThemes,
+      opposition_themes: input.oppositionThemes,
+      custom_radar_themes: input.customRadarThemes,
+      interest_profiles: input.interestProfiles,
+      interest_sites: input.interestSites,
+      opposition_profiles: input.oppositionProfiles,
+      opposition_sites: input.oppositionSites,
+      glossary_terms: input.glossaryTerms,
+      training_reference_links: input.trainingReferenceLinks,
+      avatar_emotions: input.avatarEmotions,
+      voice_pace: input.voicePace,
+      editing_styles: input.editingStyles,
+      fact_checking_sources: input.factCheckingSources,
+      hard_data_sources: input.hardDataSources,
+      distribution_channels: input.distributionChannels,
+      distribution_windows: input.distributionWindows,
+      auto_publish: input.autoPublish,
+      updated_at: payload.updated_at,
+    };
+    const workflowResult = await client
+      .from("mandate_workflow_configs")
+      .upsert(workflowPayload)
+      .select("*")
+      .single();
+
+    if (workflowResult.error) {
+      if (
+        isSchemaCompatibilityError(workflowResult.error)
+      ) {
+        await localRepository.saveProfile(input);
+        return mergeWorkflowProfileConfig(baseProfile, input) as PoliticianProfile;
+      }
+
+      throw workflowResult.error;
+    }
+
+    return mergeWorkflowProfileConfig(
+      baseProfile,
+      mapWorkflowProfileConfigRow(workflowResult.data),
+    ) as PoliticianProfile;
   },
 
   async createContentRequest(input) {
@@ -764,6 +987,7 @@ const supabaseRepository: Repository = {
       context: input.context,
       key_facts: input.keyFacts,
       desired_call_to_action: input.desiredCallToAction,
+      mandatory_terms: input.mandatoryTerms,
       created_at: nowIso(),
     };
 
@@ -773,7 +997,36 @@ const supabaseRepository: Repository = {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (isMissingSchemaFieldError(error)) {
+        const fallbackPayload = {
+          id: payload.id,
+          topic: payload.topic,
+          objective: payload.objective,
+          format: payload.format,
+          intensity: payload.intensity,
+          context: payload.context,
+          key_facts: payload.key_facts,
+          desired_call_to_action: payload.desired_call_to_action,
+          created_at: payload.created_at,
+        };
+        const fallbackInsert = await client
+          .from("content_requests")
+          .insert(fallbackPayload)
+          .select("*")
+          .single();
+
+        if (fallbackInsert.error) throw fallbackInsert.error;
+
+        return {
+          ...mapRequestRow(fallbackInsert.data),
+          mandatoryTerms: input.mandatoryTerms,
+        };
+      }
+
+      throw error;
+    }
+
     return mapRequestRow(data);
   },
 
@@ -870,7 +1123,7 @@ const supabaseRepository: Repository = {
       .single();
 
     if (error) {
-      if (isMissingTableError(error)) {
+      if (isSchemaCompatibilityError(error)) {
         return localRepository.createProductFeedback(input, analysis);
       }
 
@@ -908,7 +1161,7 @@ const supabaseRepository: Repository = {
       .single();
 
     if (error) {
-      if (isMissingTableError(error)) {
+      if (isSchemaCompatibilityError(error)) {
         return localRepository.createEvaluationRun(input);
       }
 
@@ -957,7 +1210,7 @@ const supabaseRepository: Repository = {
       .single();
 
     if (error) {
-      if (isMissingTableError(error)) {
+      if (isSchemaCompatibilityError(error)) {
         return localRepository.updateEvaluationRun(id, input);
       }
 
@@ -995,7 +1248,7 @@ const supabaseRepository: Repository = {
       .select("*");
 
     if (error) {
-      if (isMissingTableError(error)) {
+      if (isSchemaCompatibilityError(error)) {
         return localRepository.createEvaluationCandidates(items);
       }
 
@@ -1025,7 +1278,7 @@ const supabaseRepository: Repository = {
       .select("*");
 
     if (error) {
-      if (isMissingTableError(error)) {
+      if (isSchemaCompatibilityError(error)) {
         return localRepository.createEvaluationScores(
           evaluationRunId,
           candidateId,
@@ -1056,7 +1309,7 @@ const supabaseRepository: Repository = {
     ]);
 
     if (runRes.error) {
-      if (isMissingTableError(runRes.error)) {
+      if (isSchemaCompatibilityError(runRes.error)) {
         return localRepository.getEvaluationReport(runId);
       }
 
@@ -1064,7 +1317,7 @@ const supabaseRepository: Repository = {
     }
 
     if (candidateRes.error) {
-      if (isMissingTableError(candidateRes.error)) {
+      if (isSchemaCompatibilityError(candidateRes.error)) {
         return localRepository.getEvaluationReport(runId);
       }
 
@@ -1072,7 +1325,7 @@ const supabaseRepository: Repository = {
     }
 
     if (scoreRes.error) {
-      if (isMissingTableError(scoreRes.error)) {
+      if (isSchemaCompatibilityError(scoreRes.error)) {
         return localRepository.getEvaluationReport(runId);
       }
 
@@ -1099,7 +1352,7 @@ const supabaseRepository: Repository = {
       .limit(limit);
 
     if (runsRes.error) {
-      if (isMissingTableError(runsRes.error)) {
+      if (isSchemaCompatibilityError(runsRes.error)) {
         return localRepository.listEvaluationReports(limit);
       }
 
@@ -1125,7 +1378,7 @@ const supabaseRepository: Repository = {
     ]);
 
     if (candidateRes.error) {
-      if (isMissingTableError(candidateRes.error)) {
+      if (isSchemaCompatibilityError(candidateRes.error)) {
         return localRepository.listEvaluationReports(limit);
       }
 
@@ -1133,7 +1386,7 @@ const supabaseRepository: Repository = {
     }
 
     if (scoreRes.error) {
-      if (isMissingTableError(scoreRes.error)) {
+      if (isSchemaCompatibilityError(scoreRes.error)) {
         return localRepository.listEvaluationReports(limit);
       }
 

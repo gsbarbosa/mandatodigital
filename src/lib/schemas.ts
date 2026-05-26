@@ -27,6 +27,12 @@ import {
 
 const requiredStringList = z.array(z.string().trim().min(1)).min(1);
 const optionalStringList = z.array(z.string().trim().min(1)).default([]);
+const limitedOptionalStringList = (maxItems: number) =>
+  z.array(z.string().trim().min(1)).max(maxItems).default([]);
+const socialHandleSchema = z.object({
+  network: z.string().trim().min(2),
+  handle: z.string().trim().min(2),
+});
 
 export const profileInputSchema = z.object({
   id: z.string().optional(),
@@ -43,6 +49,23 @@ export const profileInputSchema = z.object({
   redLines: optionalStringList,
   referenceExamples: optionalStringList,
   bio: z.string().trim().min(20),
+  sentinelThemes: optionalStringList,
+  oppositionThemes: optionalStringList,
+  customRadarThemes: z.array(z.string().trim().max(60)).max(3).default([]),
+  interestProfiles: z.array(socialHandleSchema).max(10).default([]),
+  interestSites: limitedOptionalStringList(10),
+  oppositionProfiles: z.array(socialHandleSchema).max(10).default([]),
+  oppositionSites: limitedOptionalStringList(10),
+  glossaryTerms: optionalStringList,
+  trainingReferenceLinks: limitedOptionalStringList(5),
+  avatarEmotions: optionalStringList,
+  voicePace: z.string().trim().default("Manter velocidade original"),
+  editingStyles: optionalStringList,
+  factCheckingSources: optionalStringList,
+  hardDataSources: optionalStringList,
+  distributionChannels: optionalStringList,
+  distributionWindows: optionalStringList,
+  autoPublish: z.boolean().default(false),
 });
 
 export const contentRequestInputSchema = z.object({
@@ -53,6 +76,7 @@ export const contentRequestInputSchema = z.object({
   context: z.string().trim().default(""),
   keyFacts: optionalStringList,
   desiredCallToAction: z.string().trim().default(""),
+  mandatoryTerms: optionalStringList,
 });
 
 export const generatedContentUpdateSchema = z.object({

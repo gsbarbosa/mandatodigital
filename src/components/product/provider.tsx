@@ -211,6 +211,27 @@ export function ProductAppProvider({
         redLines: parseTextarea(profileForm.redLines),
         referenceExamples: parseTextarea(profileForm.referenceExamples),
         bio: profileForm.bio,
+        sentinelThemes: profileForm.sentinelThemes,
+        oppositionThemes: profileForm.oppositionThemes,
+        customRadarThemes: profileForm.customRadarThemes.filter(Boolean),
+        interestProfiles: profileForm.interestProfiles.filter(
+          (item) => item.network.trim() && item.handle.trim(),
+        ),
+        interestSites: profileForm.interestSites.filter(Boolean),
+        oppositionProfiles: profileForm.oppositionProfiles.filter(
+          (item) => item.network.trim() && item.handle.trim(),
+        ),
+        oppositionSites: profileForm.oppositionSites.filter(Boolean),
+        glossaryTerms: parseTextarea(profileForm.glossaryTerms),
+        trainingReferenceLinks: profileForm.trainingReferenceLinks.filter(Boolean),
+        avatarEmotions: profileForm.avatarEmotions,
+        voicePace: profileForm.voicePace,
+        editingStyles: profileForm.editingStyles,
+        factCheckingSources: profileForm.factCheckingSources,
+        hardDataSources: profileForm.hardDataSources,
+        distributionChannels: profileForm.distributionChannels,
+        distributionWindows: profileForm.distributionWindows,
+        autoPublish: profileForm.autoPublish,
       };
 
       const parsedPayload = profileInputSchema.safeParse(payload);
@@ -233,7 +254,9 @@ export function ProductAppProvider({
 
       setProfile(result.profile);
       setProfileForm(buildProfileState(result.profile));
-      setStatusMessage("Perfil salvo. O onboarding ja esta persistido para a equipe.");
+      setStatusMessage(
+        "Configuracao salva. O onboarding profundo do mandato ja esta persistido para as proximas etapas.",
+      );
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Nao foi possivel salvar o perfil.",
@@ -261,6 +284,7 @@ export function ProductAppProvider({
         context: requestForm.context,
         keyFacts: parseTextarea(requestForm.keyFacts),
         desiredCallToAction: requestForm.desiredCallToAction,
+        mandatoryTerms: parseTextarea(requestForm.mandatoryTerms),
       };
 
       const parsedPayload = contentRequestInputSchema.safeParse(payload);

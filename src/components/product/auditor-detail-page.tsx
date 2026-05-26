@@ -10,6 +10,7 @@ import { PhaseSectionIntro, SectionCard, StatusPill, workflowStageById } from ".
 export function AuditorDetailPage({ contentId }: { contentId: string }) {
   const {
     contents,
+    profile,
     getContentById,
     getRequestForContentId,
     getFeedbackForContentId,
@@ -169,6 +170,32 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
         </div>
 
         <aside className="column-side">
+          <SectionCard title="Checklist de checagem" subtitle="Gate humano antes de aprovar">
+            <div className="feedback-stack">
+              <div className="linked-card">
+                <strong>Agencias configuradas</strong>
+                <span>
+                  {profile?.factCheckingSources.length
+                    ? profile.factCheckingSources.join(", ")
+                    : "Nenhuma agencia selecionada no setup do Auditor."}
+                </span>
+              </div>
+              <div className="linked-card">
+                <strong>Bases governamentais</strong>
+                <span>
+                  {profile?.hardDataSources.length
+                    ? profile.hardDataSources.join(", ")
+                    : "Nenhuma base hard data configurada no setup do Auditor."}
+                </span>
+              </div>
+            </div>
+
+            <p className="empty-state">
+              Antes de aprovar, valide fatos, contexto local, aderencia ideologica,
+              cumprimento das red lines e consistencia do CTA.
+            </p>
+          </SectionCard>
+
           <SectionCard title="Historico reutilizavel" subtitle="Memoria editorial">
             {contents.length ? (
               <div className="history-list">
