@@ -1,5 +1,5 @@
-import { DistribuidorPage } from "@/components/product/distribuidor-page";
+import { redirect } from "next/navigation";
 
 export default function DistribuidorRoute() {
-  return <DistribuidorPage />;
+  redirect("/curador");
 }

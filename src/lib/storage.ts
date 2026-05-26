@@ -14,6 +14,7 @@ import type {
   ProfileInput,
   ProductFeedbackAnalysis,
   ProductFeedbackInput,
+  TrainingAssetCreateInput,
 } from "@/lib/schemas";
 import type {
   AppDatabase,
@@ -26,14 +27,18 @@ import type {
   EvaluationScore,
   GeneratedContent,
   PoliticianProfile,
+  ProfileTrainingAsset,
   ProductFeedback,
   SocialHandle,
 } from "@/lib/types";
 
 const DATABASE_PATH = path.join(process.cwd(), "data", "mandato-digital.json");
+const LOCAL_TRAINING_ASSET_DIR = path.join(process.cwd(), "data", "training-assets");
+const DEFAULT_TRAINING_ASSET_BUCKET = "persona-training-videos";
 
 const EMPTY_DATABASE: AppDatabase = {
   profile: null,
+  trainingAssets: [],
   contentRequests: [],
   generatedContents: [],
   feedback: [],
@@ -48,11 +53,26 @@ type GeneratedContentSeed = Pick<
   "title" | "angle" | "body" | "promptPreview" | "provider"
 >;
 
+export type StoredTrainingAssetFile = {
+  storageProvider: ProfileTrainingAsset["storageProvider"];
+  storageBucket: string | null;
+  storagePath: string;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
 export type Repository = {
   getDashboard(): Promise<DashboardData>;
   getContentRequestById(id: string): Promise<ContentRequest | null>;
   getGeneratedContentsByRequestId(contentRequestId: string): Promise<GeneratedContent[]>;
   saveProfile(input: ProfileInput): Promise<PoliticianProfile>;
+  createTrainingAssets(items: TrainingAssetCreateInput[]): Promise<ProfileTrainingAsset[]>;
+  listTrainingAssetsByProfile(profileId: string): Promise<ProfileTrainingAsset[]>;
+  attachDraftTrainingAssets(
+    profileId: string,
+    draftProfileId: string,
+  ): Promise<ProfileTrainingAsset[]>;
   createContentRequest(input: ContentRequestInput): Promise<ContentRequest>;
   createGeneratedContents(
     contentRequestId: string,
@@ -162,6 +182,25 @@ function buildDefaultWorkflowProfileConfig() {
     distributionWindows: [],
     autoPublish: false,
   };
+}
+
+function getTrainingAssetBucketName() {
+  return process.env.SUPABASE_TRAINING_ASSETS_BUCKET || DEFAULT_TRAINING_ASSET_BUCKET;
+}
+
+function sanitizeFilename(filename: string) {
+  return filename
+    .normalize("NFKD")
+    .replace(/[^\x00-\x7F]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+}
+
+function buildTrainingAssetStoragePath(referenceId: string, filename: string) {
+  const safeFilename = sanitizeFilename(filename) || "arquivo.bin";
+  return `${referenceId}/${crypto.randomUUID()}-${safeFilename}`;
 }
 
 function pickWorkflowProfileConfig(
@@ -285,6 +324,10 @@ async function ensureLocalDatabase() {
   } catch {
     await fs.writeFile(DATABASE_PATH, JSON.stringify(EMPTY_DATABASE, null, 2));
   }
+}
+
+async function ensureLocalTrainingAssetDir() {
+  await fs.mkdir(LOCAL_TRAINING_ASSET_DIR, { recursive: true });
 }
 
 async function readLocalDatabase(): Promise<AppDatabase> {
@@ -446,6 +489,26 @@ function mapProductFeedbackRow(row: Record<string, unknown>): ProductFeedback {
   };
 }
 
+function mapTrainingAssetRow(row: Record<string, unknown>): ProfileTrainingAsset {
+  return {
+    id: String(row.id),
+    profileId: row.profile_id === null ? null : String(row.profile_id),
+    draftProfileId:
+      row.draft_profile_id === null ? null : String(row.draft_profile_id),
+    sourceType: String(row.source_type ?? "upload") as ProfileTrainingAsset["sourceType"],
+    storageProvider: String(row.storage_provider ?? "local") as ProfileTrainingAsset["storageProvider"],
+    storageBucket: row.storage_bucket === null ? null : String(row.storage_bucket),
+    storagePath: String(row.storage_path ?? ""),
+    originalFilename: String(row.original_filename ?? ""),
+    mimeType: String(row.mime_type ?? "application/octet-stream"),
+    sizeBytes: Number(row.size_bytes ?? 0),
+    status: String(row.status ?? "uploaded") as ProfileTrainingAsset["status"],
+    errorMessage: String(row.error_message ?? ""),
+    createdAt: String(row.created_at ?? nowIso()),
+    updatedAt: String(row.updated_at ?? nowIso()),
+  };
+}
+
 function mapEvaluationRunRow(row: Record<string, unknown>): EvaluationRun {
   return {
     id: String(row.id),
@@ -553,9 +616,73 @@ const localRepository: Repository = {
     };
 
     database.profile = profile;
+    database.trainingAssets = database.trainingAssets.map((asset) =>
+      asset.draftProfileId === profile.id
+        ? {
+            ...asset,
+            profileId: profile.id,
+            draftProfileId: null,
+            updatedAt: nowIso(),
+          }
+        : asset,
+    );
     await writeLocalDatabase(database);
 
     return profile;
+  },
+
+  async createTrainingAssets(items) {
+    const database = await readLocalDatabase();
+    const timestamp = nowIso();
+    const assets = items.map<ProfileTrainingAsset>((item) => ({
+      id: crypto.randomUUID(),
+      profileId: item.profileId ?? null,
+      draftProfileId: item.draftProfileId ?? null,
+      sourceType: item.sourceType,
+      storageProvider: item.storageProvider,
+      storageBucket: item.storageBucket ?? null,
+      storagePath: item.storagePath,
+      originalFilename: item.originalFilename,
+      mimeType: item.mimeType,
+      sizeBytes: item.sizeBytes,
+      status: item.status,
+      errorMessage: item.errorMessage,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }));
+
+    database.trainingAssets = [...assets, ...database.trainingAssets];
+    await writeLocalDatabase(database);
+
+    return assets;
+  },
+
+  async listTrainingAssetsByProfile(profileId) {
+    const database = await readLocalDatabase();
+    return database.trainingAssets.filter((item) => item.profileId === profileId);
+  },
+
+  async attachDraftTrainingAssets(profileId, draftProfileId) {
+    const database = await readLocalDatabase();
+    const attached: ProfileTrainingAsset[] = [];
+
+    database.trainingAssets = database.trainingAssets.map((asset) => {
+      if (asset.draftProfileId !== draftProfileId) {
+        return asset;
+      }
+
+      const updated = {
+        ...asset,
+        profileId,
+        draftProfileId: null,
+        updatedAt: nowIso(),
+      };
+      attached.push(updated);
+      return updated;
+    });
+
+    await writeLocalDatabase(database);
+    return attached;
   },
 
   async createContentRequest(input) {
@@ -798,6 +925,7 @@ const supabaseRepository: Repository = {
     const [
       profileRes,
       workflowConfigRes,
+      trainingAssetsRes,
       requestRes,
       generatedRes,
       feedbackRes,
@@ -816,6 +944,10 @@ const supabaseRepository: Repository = {
         .select("*")
         .order("updated_at", { ascending: false })
         .limit(1),
+      client
+        .from("profile_training_assets")
+        .select("*")
+        .order("created_at", { ascending: false }),
       client.from("content_requests").select("*").order("created_at", { ascending: false }),
       client
         .from("generated_contents")
@@ -834,6 +966,9 @@ const supabaseRepository: Repository = {
     if (profileRes.error) throw profileRes.error;
     if (workflowConfigRes.error && !isSchemaCompatibilityError(workflowConfigRes.error)) {
       throw workflowConfigRes.error;
+    }
+    if (trainingAssetsRes.error && !isSchemaCompatibilityError(trainingAssetsRes.error)) {
+      throw trainingAssetsRes.error;
     }
     if (requestRes.error) throw requestRes.error;
     if (generatedRes.error) throw generatedRes.error;
@@ -856,6 +991,7 @@ const supabaseRepository: Repository = {
 
     const localDatabase =
       workflowConfigRes.error ||
+      trainingAssetsRes.error ||
       productFeedbackRes.error ||
       evaluationRunsRes.error ||
       evaluationCandidatesRes.error ||
@@ -863,13 +999,26 @@ const supabaseRepository: Repository = {
         ? await readLocalDatabase()
         : null;
 
+    const profile = mergeWorkflowProfileConfig(
+      profileRes.data[0] ? mapProfileRow(profileRes.data[0]) : null,
+      workflowConfigRes.error
+        ? pickWorkflowProfileConfig(localDatabase?.profile ?? null)
+        : mapWorkflowProfileConfigRow(workflowConfigRes.data[0]),
+    );
+    const trainingAssets = trainingAssetsRes.error
+      ? localDatabase?.trainingAssets ?? []
+      : trainingAssetsRes.data
+          .filter(
+            (asset) =>
+              !profile ||
+              asset.profile_id === profile.id ||
+              asset.draft_profile_id === profile.id,
+          )
+          .map(mapTrainingAssetRow);
+
     return {
-      profile: mergeWorkflowProfileConfig(
-        profileRes.data[0] ? mapProfileRow(profileRes.data[0]) : null,
-        workflowConfigRes.error
-          ? pickWorkflowProfileConfig(localDatabase?.profile ?? null)
-          : mapWorkflowProfileConfigRow(workflowConfigRes.data[0]),
-      ),
+      profile,
+      trainingAssets,
       contentRequests: requestRes.data.map(mapRequestRow),
       generatedContents: generatedRes.data.map(mapGeneratedContentRow),
       feedback: feedbackRes.data.map(mapFeedbackRow),
@@ -992,10 +1141,90 @@ const supabaseRepository: Repository = {
       throw workflowResult.error;
     }
 
+    await this.attachDraftTrainingAssets(baseProfile.id, baseProfile.id);
+
     return mergeWorkflowProfileConfig(
       baseProfile,
       mapWorkflowProfileConfigRow(workflowResult.data),
     ) as PoliticianProfile;
+  },
+
+  async createTrainingAssets(items) {
+    const client = getSupabaseClient();
+    const timestamp = nowIso();
+    const payload = items.map((item) => ({
+      id: crypto.randomUUID(),
+      profile_id: item.profileId ?? null,
+      draft_profile_id: item.draftProfileId ?? null,
+      source_type: item.sourceType,
+      storage_provider: item.storageProvider,
+      storage_bucket: item.storageBucket ?? null,
+      storage_path: item.storagePath,
+      original_filename: item.originalFilename,
+      mime_type: item.mimeType,
+      size_bytes: item.sizeBytes,
+      status: item.status,
+      error_message: item.errorMessage,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }));
+
+    const { data, error } = await client
+      .from("profile_training_assets")
+      .insert(payload)
+      .select("*");
+
+    if (error) {
+      if (isSchemaCompatibilityError(error)) {
+        return localRepository.createTrainingAssets(items);
+      }
+
+      throw error;
+    }
+
+    return data.map(mapTrainingAssetRow);
+  },
+
+  async listTrainingAssetsByProfile(profileId) {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from("profile_training_assets")
+      .select("*")
+      .eq("profile_id", profileId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      if (isSchemaCompatibilityError(error)) {
+        return localRepository.listTrainingAssetsByProfile(profileId);
+      }
+
+      throw error;
+    }
+
+    return data.map(mapTrainingAssetRow);
+  },
+
+  async attachDraftTrainingAssets(profileId, draftProfileId) {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from("profile_training_assets")
+      .update({
+        profile_id: profileId,
+        draft_profile_id: null,
+        updated_at: nowIso(),
+      })
+      .eq("draft_profile_id", draftProfileId)
+      .select("*");
+
+    if (error) {
+      if (isSchemaCompatibilityError(error)) {
+        return localRepository.attachDraftTrainingAssets(profileId, draftProfileId);
+      }
+
+      throw error;
+    }
+
+    return data.map(mapTrainingAssetRow);
   },
 
   async createContentRequest(input) {
@@ -1430,4 +1659,77 @@ const supabaseRepository: Repository = {
 
 export function getRepository(): Repository {
   return isSupabaseConfigured() ? supabaseRepository : localRepository;
+}
+
+export async function storeTrainingAssetFile(input: {
+  referenceId: string;
+  file: File;
+}): Promise<StoredTrainingAssetFile> {
+  const storagePath = buildTrainingAssetStoragePath(input.referenceId, input.file.name);
+  const mimeType = input.file.type || "application/octet-stream";
+  const arrayBuffer = await input.file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  if (isSupabaseConfigured()) {
+    const client = getSupabaseClient();
+    const bucketName = getTrainingAssetBucketName();
+    const uploadResult = await client.storage
+      .from(bucketName)
+      .upload(storagePath, buffer, {
+        contentType: mimeType,
+        upsert: false,
+      });
+
+    if (uploadResult.error) {
+      throw new Error(
+        `Nao foi possivel enviar o arquivo para o Supabase Storage: ${uploadResult.error.message}`,
+      );
+    }
+
+    return {
+      storageProvider: "supabase",
+      storageBucket: bucketName,
+      storagePath,
+      originalFilename: input.file.name,
+      mimeType,
+      sizeBytes: input.file.size,
+    };
+  }
+
+  await ensureLocalTrainingAssetDir();
+  const absolutePath = path.join(LOCAL_TRAINING_ASSET_DIR, storagePath);
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+  await fs.writeFile(absolutePath, buffer);
+
+  return {
+    storageProvider: "local",
+    storageBucket: null,
+    storagePath,
+    originalFilename: input.file.name,
+    mimeType,
+    sizeBytes: input.file.size,
+  };
+}
+
+export async function deleteTrainingAssetFile(input: {
+  storageProvider: StoredTrainingAssetFile["storageProvider"];
+  storageBucket: string | null;
+  storagePath: string;
+}) {
+  if (input.storageProvider === "supabase") {
+    const bucketName = input.storageBucket ?? getTrainingAssetBucketName();
+    const client = getSupabaseClient();
+    const removeResult = await client.storage.from(bucketName).remove([input.storagePath]);
+
+    if (removeResult.error) {
+      throw new Error(
+        `Nao foi possivel remover o arquivo do Supabase Storage: ${removeResult.error.message}`,
+      );
+    }
+
+    return;
+  }
+
+  const absolutePath = path.join(LOCAL_TRAINING_ASSET_DIR, input.storagePath);
+  await fs.rm(absolutePath, { force: true });
 }

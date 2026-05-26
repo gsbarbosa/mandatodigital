@@ -1,5 +1,5 @@
-import { AdminPage } from "@/components/product/admin-page";
+import { redirect } from "next/navigation";
 
 export default function AdminRoute() {
-  return <AdminPage />;
+  redirect("/curador");
 }

@@ -226,13 +226,7 @@ export const dashboardMenuItems: Array<{
   label: string;
   href: Route;
 }> = [
-  { id: "overview", label: "Visao inicial", href: "/" },
-  { id: "sentinela", label: "Sentinela", href: "/sentinela" },
   { id: "curador", label: "Curador", href: "/curador" },
-  { id: "criativo", label: "Criativo", href: "/criativo" },
-  { id: "auditor", label: "Auditor", href: "/auditor" },
-  { id: "distribuidor", label: "Distribuidor", href: "/distribuidor" },
-  { id: "admin", label: "Admin", href: "/admin" },
 ];
 
 export const workflowStages: WorkflowStageDefinition[] = [

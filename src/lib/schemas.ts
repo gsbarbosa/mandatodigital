@@ -12,6 +12,9 @@ import {
   llmProviders,
   productFeedbackClassifications,
   productFeedbackCriticalities,
+  trainingAssetSourceTypes,
+  trainingAssetStatuses,
+  trainingStorageProviders,
   type ContentFormat,
   type ContentStatus,
   type EvaluationCandidateRole,
@@ -23,6 +26,9 @@ import {
   type LlmProvider,
   type ProductFeedbackClassification,
   type ProductFeedbackCriticality,
+  type TrainingAssetSourceType,
+  type TrainingAssetStatus,
+  type TrainingStorageProvider,
 } from "@/lib/types";
 
 const requiredStringList = z.array(z.string().trim().min(1)).min(1);
@@ -212,6 +218,20 @@ export const evaluationJudgeRequestSchema = z.object({
   judgeModel: z.string().trim().min(2).optional(),
 });
 
+export const trainingAssetCreateSchema = z.object({
+  profileId: z.string().trim().optional().nullable(),
+  draftProfileId: z.string().trim().optional().nullable(),
+  sourceType: z.enum(trainingAssetSourceTypes).default("upload"),
+  storageProvider: z.enum(trainingStorageProviders),
+  storageBucket: z.string().trim().optional().nullable(),
+  storagePath: z.string().trim().min(3),
+  originalFilename: z.string().trim().min(1),
+  mimeType: z.string().trim().default("application/octet-stream"),
+  sizeBytes: z.number().int().nonnegative().default(0),
+  status: z.enum(trainingAssetStatuses).default("uploaded"),
+  errorMessage: z.string().trim().default(""),
+});
+
 export type ProfileInput = z.infer<typeof profileInputSchema>;
 export type ContentRequestInput = z.infer<typeof contentRequestInputSchema>;
 export type GeneratedContentUpdateInput = z.infer<typeof generatedContentUpdateSchema>;
@@ -239,6 +259,7 @@ export type EvaluationShadowRequestInput = z.infer<
 export type EvaluationJudgeRequestInput = z.infer<
   typeof evaluationJudgeRequestSchema
 >;
+export type TrainingAssetCreateInput = z.infer<typeof trainingAssetCreateSchema>;
 
 export function isContentFormat(value: string): value is ContentFormat {
   return (contentFormats as readonly string[]).includes(value);
@@ -294,4 +315,20 @@ export function isEvaluationCriterion(
   value: string,
 ): value is EvaluationCriterion {
   return (evaluationCriteria as readonly string[]).includes(value);
+}
+
+export function isTrainingAssetStatus(value: string): value is TrainingAssetStatus {
+  return (trainingAssetStatuses as readonly string[]).includes(value);
+}
+
+export function isTrainingAssetSourceType(
+  value: string,
+): value is TrainingAssetSourceType {
+  return (trainingAssetSourceTypes as readonly string[]).includes(value);
+}
+
+export function isTrainingStorageProvider(
+  value: string,
+): value is TrainingStorageProvider {
+  return (trainingStorageProviders as readonly string[]).includes(value);
 }

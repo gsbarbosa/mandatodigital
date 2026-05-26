@@ -1,5 +1,5 @@
-import { AuditorPage } from "@/components/product/auditor-page";
+import { redirect } from "next/navigation";
 
 export default function AuditorRoute() {
-  return <AuditorPage />;
+  redirect("/curador");
 }

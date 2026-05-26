@@ -20,6 +20,20 @@ export const productFeedbackCriticalities = [
 export type ProductFeedbackCriticality =
   (typeof productFeedbackCriticalities)[number];
 
+export const trainingAssetStatuses = [
+  "uploaded",
+  "processing",
+  "trained",
+  "failed",
+] as const;
+export type TrainingAssetStatus = (typeof trainingAssetStatuses)[number];
+
+export const trainingAssetSourceTypes = ["upload", "youtube"] as const;
+export type TrainingAssetSourceType = (typeof trainingAssetSourceTypes)[number];
+
+export const trainingStorageProviders = ["supabase", "local"] as const;
+export type TrainingStorageProvider = (typeof trainingStorageProviders)[number];
+
 export const contentFormats = [
   "Post Instagram",
   "Legenda Instagram",
@@ -185,6 +199,23 @@ export type ProductFeedback = {
   createdAt: string;
 };
 
+export type ProfileTrainingAsset = {
+  id: string;
+  profileId: string | null;
+  draftProfileId: string | null;
+  sourceType: TrainingAssetSourceType;
+  storageProvider: TrainingStorageProvider;
+  storageBucket: string | null;
+  storagePath: string;
+  originalFilename: string;
+  mimeType: string;
+  sizeBytes: number;
+  status: TrainingAssetStatus;
+  errorMessage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type EvaluationRun = {
   id: string;
   contentRequestId: string | null;
@@ -251,6 +282,7 @@ export type EvaluationReport = {
 
 export type AppDatabase = {
   profile: PoliticianProfile | null;
+  trainingAssets: ProfileTrainingAsset[];
   contentRequests: ContentRequest[];
   generatedContents: GeneratedContent[];
   feedback: ContentFeedback[];

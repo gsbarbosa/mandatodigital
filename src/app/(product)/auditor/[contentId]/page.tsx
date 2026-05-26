@@ -1,11 +1,10 @@
-import { AuditorDetailPage } from "@/components/product/auditor-detail-page";
+import { redirect } from "next/navigation";
 
 export default async function AuditorDetailRoute({
   params,
 }: {
   params: Promise<{ contentId: string }>;
 }) {
-  const { contentId } = await params;
-
-  return <AuditorDetailPage contentId={contentId} />;
+  await params;
+  redirect("/curador");
 }

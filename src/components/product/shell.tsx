@@ -55,32 +55,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
 
   return (
     <main className={isCuradorFocusMode ? "app-shell app-shell-persona" : "app-shell"}>
-      {isCuradorFocusMode ? (
-        <section className="brand-bar">
-          <div>
-            <p className="eyebrow">Mandato Digital</p>
-            <h1>Mandato Digital</h1>
-            <p className="brand-copy">
-              Calibragem de persona em modo focado, usando o HTML de referencia como
-              base da experiencia.
-            </p>
-          </div>
-
-          <div className="menu-button-row">
-            {dashboardMenuItems.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={
-                  isMenuItemActive(pathname, item.href) ? "menu-button active" : "menu-button"
-                }
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : (
+      {isCuradorFocusMode ? null : (
         <>
           <section className="hero">
             <div>

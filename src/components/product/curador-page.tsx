@@ -1,8 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
-
-import Link from "next/link";
+import { useId, useMemo, useState } from "react";
 
 import {
   archetypeOptions,
@@ -41,10 +39,29 @@ function PersonaTag({
 
 export function CuradorPage() {
   const uploadInputId = useId();
-  const [selectedTrainingFiles, setSelectedTrainingFiles] = useState<string[]>([]);
   const [trainingRequested, setTrainingRequested] = useState(false);
-  const { profile, profileForm, setProfileForm, saveProfile, isSavingProfile } =
-    useProductApp();
+  const {
+    profile,
+    profileForm,
+    setProfileForm,
+    saveProfile,
+    isSavingProfile,
+    trainingAssets,
+    uploadTrainingAssets,
+    isUploadingTrainingAssets,
+  } = useProductApp();
+  const assetReferenceId = profile?.id ?? profileForm.id ?? null;
+  const visibleTrainingAssets = useMemo(
+    () =>
+      assetReferenceId
+        ? trainingAssets.filter(
+            (asset) =>
+              asset.profileId === assetReferenceId ||
+              asset.draftProfileId === assetReferenceId,
+          )
+        : [],
+    [assetReferenceId, trainingAssets],
+  );
 
   async function handleTrainIa() {
     setTrainingRequested(true);
@@ -53,6 +70,14 @@ export function CuradorPage() {
 
   async function handleGenerateAvatar() {
     await saveProfile();
+  }
+
+  async function handleTrainingFileChange(files: FileList | null) {
+    if (!files?.length) {
+      return;
+    }
+
+    await uploadTrainingAssets(Array.from(files));
   }
 
   return (
@@ -106,20 +131,21 @@ export function CuradorPage() {
                 accept="video/*"
                 multiple
                 hidden
-                onChange={(event) =>
-                  setSelectedTrainingFiles(
-                    Array.from(event.target.files ?? []).map((file) => file.name),
-                  )
-                }
+                onChange={(event) => {
+                  void handleTrainingFileChange(event.target.files);
+                  event.target.value = "";
+                }}
               />
-              <span className="persona-btn">Selecionar Arquivos</span>
+              <span className="persona-btn">
+                {isUploadingTrainingAssets ? "Enviando..." : "Selecionar Arquivos"}
+              </span>
             </label>
 
-            {selectedTrainingFiles.length > 0 && (
+            {visibleTrainingAssets.length > 0 && (
               <div className="persona-upload-files">
-                {selectedTrainingFiles.map((fileName) => (
-                  <span key={fileName} className="persona-file-chip">
-                    {fileName}
+                {visibleTrainingAssets.map((asset) => (
+                  <span key={asset.id} className="persona-file-chip">
+                    {asset.originalFilename} - {asset.status}
                   </span>
                 ))}
               </div>
@@ -166,8 +192,9 @@ export function CuradorPage() {
             </p>
             {trainingRequested && (
               <p className="persona-helper-text persona-helper-highlight">
-                No MVP atual, o clique registra a calibragem e prepara a etapa criativa;
-                o treino/render final ainda depende da camada externa.
+                No MVP atual, os videos enviados ja ficam persistidos e a calibragem
+                e salva no sistema; o treino/render final ainda depende da camada
+                externa.
               </p>
             )}
           </div>
@@ -479,10 +506,6 @@ export function CuradorPage() {
                   : "Salve a calibragem para registrar a configuracao do mandato."}
               </span>
             </div>
-
-            <Link href="/criativo" className="secondary-button persona-next-link">
-              Seguir para Criativo
-            </Link>
           </div>
         </div>
       </div>

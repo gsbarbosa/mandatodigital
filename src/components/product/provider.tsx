@@ -22,6 +22,7 @@ import type {
   ContentStatus,
   EvaluationReport,
   GeneratedContent,
+  ProfileTrainingAsset,
   ProductFeedback,
 } from "@/lib/types";
 
@@ -47,6 +48,7 @@ type ProductAppContextValue = {
   requests: ContentRequest[];
   contents: GeneratedContent[];
   feedback: DashboardData["feedback"];
+  trainingAssets: ProfileTrainingAsset[];
   productFeedbacks: ProductFeedback[];
   evaluationReports: EvaluationReport[];
   latestApprovedContent: GeneratedContent | null;
@@ -57,11 +59,13 @@ type ProductAppContextValue = {
   isGenerating: boolean;
   isSavingContent: boolean;
   isSubmittingProductFeedback: boolean;
+  isUploadingTrainingAssets: boolean;
   isLoadingEvaluations: boolean;
   isFeedbackWidgetOpen: boolean;
   isEvaluatingContentRequestId: string | null;
   setFeedbackWidgetOpen: Dispatch<SetStateAction<boolean>>;
   saveProfile: () => Promise<void>;
+  uploadTrainingAssets: (files: File[]) => Promise<ProfileTrainingAsset[]>;
   generateContent: () => Promise<GeneratedContent[]>;
   updateContent: (
     contentId: string,
@@ -110,6 +114,9 @@ export function ProductAppProvider({
     initialData.generatedContents,
   );
   const [feedback, setFeedback] = useState(initialData.feedback);
+  const [trainingAssets, setTrainingAssets] = useState<ProfileTrainingAsset[]>(
+    initialData.trainingAssets ?? [],
+  );
   const [productFeedbacks, setProductFeedbacks] = useState<ProductFeedback[]>(
     initialData.productFeedbacks ?? [],
   );
@@ -123,6 +130,7 @@ export function ProductAppProvider({
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [isSubmittingProductFeedback, setIsSubmittingProductFeedback] =
     useState(false);
+  const [isUploadingTrainingAssets, setIsUploadingTrainingAssets] = useState(false);
   const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
   const [isFeedbackWidgetOpen, setFeedbackWidgetOpen] = useState(false);
   const [isEvaluatingContentRequestId, setIsEvaluatingContentRequestId] = useState<
@@ -259,6 +267,17 @@ export function ProductAppProvider({
 
       setProfile(result.profile);
       setProfileForm(buildProfileState(result.profile));
+      setTrainingAssets((current) =>
+        current.map((asset) =>
+          asset.draftProfileId === result.profile?.id
+            ? {
+                ...asset,
+                profileId: result.profile?.id ?? asset.profileId,
+                draftProfileId: null,
+              }
+            : asset,
+        ),
+      );
       setStatusMessage(
         "Configuracao salva. O onboarding profundo do mandato ja esta persistido para as proximas etapas.",
       );
@@ -268,6 +287,51 @@ export function ProductAppProvider({
       );
     } finally {
       setIsSavingProfile(false);
+    }
+  }
+
+  async function uploadTrainingAssets(files: File[]) {
+    if (!files.length) {
+      return [];
+    }
+
+    setIsUploadingTrainingAssets(true);
+    setStatusMessage(null);
+
+    try {
+      const profileReferenceId = profile?.id ?? profileForm.id ?? crypto.randomUUID();
+
+      if (!profileForm.id) {
+        setProfileForm((current) => ({ ...current, id: profileReferenceId }));
+      }
+
+      const formData = new FormData();
+      formData.append(profile?.id ? "profileId" : "draftProfileId", profileReferenceId);
+      files.forEach((file) => formData.append("files", file));
+
+      const result = await handleApi<{ assets: ProfileTrainingAsset[] }>(
+        "/api/profile/training-assets",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      setTrainingAssets((current) => [...result.assets, ...current]);
+      setStatusMessage(
+        "Assets de treino enviados. O mandato ja tem base de video registrada para a proxima etapa.",
+      );
+
+      return result.assets;
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel enviar os assets de treino.",
+      );
+      return [];
+    } finally {
+      setIsUploadingTrainingAssets(false);
     }
   }
 
@@ -527,6 +591,7 @@ export function ProductAppProvider({
     requests,
     contents,
     feedback,
+    trainingAssets,
     productFeedbacks,
     evaluationReports,
     latestApprovedContent,
@@ -537,11 +602,13 @@ export function ProductAppProvider({
     isGenerating,
     isSavingContent,
     isSubmittingProductFeedback,
+    isUploadingTrainingAssets,
     isLoadingEvaluations,
     isFeedbackWidgetOpen,
     isEvaluatingContentRequestId,
     setFeedbackWidgetOpen,
     saveProfile,
+    uploadTrainingAssets,
     generateContent,
     updateContent,
     submitFeedback,

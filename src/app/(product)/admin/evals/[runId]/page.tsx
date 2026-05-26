@@ -1,11 +1,10 @@
-import { AdminEvalDetailPage } from "@/components/product/admin-eval-detail-page";
+import { redirect } from "next/navigation";
 
 export default async function AdminEvalDetailRoute({
   params,
 }: {
   params: Promise<{ runId: string }>;
 }) {
-  const { runId } = await params;
-
-  return <AdminEvalDetailPage runId={runId} />;
+  await params;
+  redirect("/curador");
 }

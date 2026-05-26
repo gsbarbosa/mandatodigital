@@ -96,6 +96,64 @@ create table if not exists mandate_workflow_configs (
   updated_at timestamptz not null default now()
 );
 
+insert into storage.buckets (id, name, public)
+values ('persona-training-videos', 'persona-training-videos', false)
+on conflict (id) do nothing;
+
+create table if not exists profile_training_assets (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid null references politician_profiles(id) on delete set null,
+  draft_profile_id uuid null,
+  source_type text not null default 'upload',
+  storage_provider text not null default 'local',
+  storage_bucket text null,
+  storage_path text not null,
+  original_filename text not null,
+  mime_type text not null default 'application/octet-stream',
+  size_bytes bigint not null default 0,
+  status text not null default 'uploaded',
+  error_message text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (profile_id is not null or draft_profile_id is not null)
+);
+
+alter table if exists profile_training_assets
+  add column if not exists draft_profile_id uuid null;
+
+alter table if exists profile_training_assets
+  add column if not exists source_type text not null default 'upload';
+
+alter table if exists profile_training_assets
+  add column if not exists storage_provider text not null default 'local';
+
+alter table if exists profile_training_assets
+  add column if not exists storage_bucket text null;
+
+alter table if exists profile_training_assets
+  add column if not exists storage_path text;
+
+alter table if exists profile_training_assets
+  add column if not exists original_filename text;
+
+alter table if exists profile_training_assets
+  add column if not exists mime_type text not null default 'application/octet-stream';
+
+alter table if exists profile_training_assets
+  add column if not exists size_bytes bigint not null default 0;
+
+alter table if exists profile_training_assets
+  add column if not exists status text not null default 'uploaded';
+
+alter table if exists profile_training_assets
+  add column if not exists error_message text not null default '';
+
+alter table if exists profile_training_assets
+  add column if not exists created_at timestamptz not null default now();
+
+alter table if exists profile_training_assets
+  add column if not exists updated_at timestamptz not null default now();
+
 alter table if exists mandate_workflow_configs
   add column if not exists persona_archetypes text[] not null default '{}';
 
@@ -176,6 +234,15 @@ create index if not exists product_feedback_created_at_idx
 
 create index if not exists mandate_workflow_configs_updated_at_idx
   on mandate_workflow_configs(updated_at desc);
+
+create index if not exists profile_training_assets_profile_id_idx
+  on profile_training_assets(profile_id);
+
+create index if not exists profile_training_assets_draft_profile_id_idx
+  on profile_training_assets(draft_profile_id);
+
+create index if not exists profile_training_assets_created_at_idx
+  on profile_training_assets(created_at desc);
 
 create index if not exists evaluation_runs_created_at_idx
   on evaluation_runs(created_at desc);
