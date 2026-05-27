@@ -400,6 +400,25 @@ export function isArgilVideoTerminal(status: string) {
   return status === "DONE" || status === "FAILED";
 }
 
+/** Lip-sync so fica pronto com status DONE e videoUrl preenchido (preview e so imagem parada). */
+export function isArgilVideoReady(video: {
+  status?: string;
+  videoUrl?: string | null;
+}) {
+  return (
+    video.status === "DONE" &&
+    Boolean(String(video.videoUrl ?? "").trim())
+  );
+}
+
+export function isArgilVideoProcessing(status: string) {
+  return (
+    status === "IDLE" ||
+    status === "GENERATING_AUDIO" ||
+    status === "GENERATING_VIDEO"
+  );
+}
+
 export function isArgilAvatarTerminal(status: string) {
   return status === "IDLE" || status === "TRAINING_FAILED" || status === "REFUSED";
 }

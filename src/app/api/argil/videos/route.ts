@@ -6,9 +6,11 @@ import { handleRouteError } from "@/lib/api";
 import {
   argilCreateAndRenderVideo,
   getArgilConfig,
+  isArgilVideoReady,
   mapArgilVideoToGenerationUpdate,
 } from "@/lib/argil";
 import { getRepository } from "@/lib/storage";
+import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
 import type { AvatarVideoGenerationStatus } from "@/lib/types";
 
 function toGenerationStatus(status: string): AvatarVideoGenerationStatus {
@@ -60,12 +62,18 @@ export async function POST(request: Request) {
       status: "IDLE",
     });
 
+    const appBaseUrl = resolveAppBaseUrl(request);
+    const callbackUrl = appBaseUrl.startsWith("https://")
+      ? `${appBaseUrl}/api/argil/webhooks`
+      : undefined;
+
     const result = await argilCreateAndRenderVideo({
       topic,
       transcript,
       name: generation.name,
       avatarId: dashboard.profile?.argilAvatarId || undefined,
       voiceId: dashboard.profile?.argilVoiceId || undefined,
+      callbackUrl,
     });
 
     const videoUpdate = mapArgilVideoToGenerationUpdate(result.video);
@@ -75,12 +83,11 @@ export async function POST(request: Request) {
     });
 
     const finalGeneration =
-      result.dryRun && updated.status !== "DONE"
+      result.dryRun && !isArgilVideoReady(updated)
         ? await avatarVideoStorage.update(updated.id, {
             status: "DONE",
             previewUrl: result.video.previewUrl ?? updated.previewUrl,
-            videoUrl:
-              "https://example.com/argil-video-dry-run.mp4",
+            videoUrl: "https://example.com/argil-video-dry-run.mp4",
           })
         : updated;
 

@@ -4,7 +4,7 @@ import { avatarVideoStorage } from "@/lib/avatar-video-storage";
 import { handleRouteError } from "@/lib/api";
 import {
   argilGetVideo,
-  isArgilVideoTerminal,
+  isArgilVideoReady,
   mapArgilVideoToGenerationUpdate,
 } from "@/lib/argil";
 import type { AvatarVideoGenerationStatus } from "@/lib/types";
@@ -38,7 +38,8 @@ export async function GET(
     if (
       generation.dryRun ||
       !generation.argilVideoId ||
-      isArgilVideoTerminal(generation.status)
+      isArgilVideoReady(generation) ||
+      generation.status === "FAILED"
     ) {
       return NextResponse.json({ generation });
     }

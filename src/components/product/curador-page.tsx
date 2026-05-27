@@ -9,6 +9,7 @@ import {
   voiceToneOptions,
 } from "@/lib/constants";
 
+import { AvatarImageCropModal } from "./avatar-image-crop-modal";
 import { useProductApp } from "./provider";
 
 function toggleValue(values: string[], value: string) {
@@ -49,6 +50,7 @@ export function CuradorPage() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [avatarImageToCrop, setAvatarImageToCrop] = useState<File | null>(null);
   const {
     profile,
     profileForm,
@@ -229,8 +231,20 @@ export function CuradorPage() {
     }
   }
 
+  function isVideoReady(generation?: {
+    status?: string;
+    videoUrl?: string | null;
+  }) {
+    return (
+      generation?.status === "DONE" && Boolean(String(generation.videoUrl ?? "").trim())
+    );
+  }
+
   async function pollVideoGeneration(generationId: string) {
-    for (let attempt = 0; attempt < 12; attempt += 1) {
+    const pollIntervalMs = 5000;
+    const maxAttempts = 180;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const response = await fetch(`/api/argil/videos/${generationId}`);
       const payload = await parseJsonOrText<{
         generation?: {
@@ -249,16 +263,23 @@ export function CuradorPage() {
       const generation = payload.generation;
       setVideoStatus(generation?.status ?? null);
       setVideoPreviewUrl(generation?.previewUrl || null);
-      setVideoUrl(generation?.videoUrl || null);
+      setVideoUrl(generation?.videoUrl?.trim() || null);
 
-      if (generation?.status === "DONE" || generation?.status === "FAILED") {
+      if (generation?.status === "FAILED") {
+        throw new Error("A geracao do video falhou na Argil.");
+      }
+
+      if (isVideoReady(generation)) {
         return generation;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
 
-    return null;
+    throw new Error(
+      "O lip-sync ainda esta em processamento na Argil (pode levar 5 a 15 min). " +
+        "Atualize a pagina em alguns minutos ou confira o painel da Argil.",
+    );
   }
 
   async function handleGenerateAvatar() {
@@ -322,12 +343,12 @@ export function CuradorPage() {
     }
   }
 
-  async function handleAvatarImageFileChange(files: FileList | null) {
+  function handleAvatarImageFileChange(files: FileList | null) {
     if (!files?.length) {
       return;
     }
 
-    await uploadTrainingAssets([files[0]], "avatar_image");
+    setAvatarImageToCrop(files[0]);
   }
 
   async function handleVoiceAudioFileChange(files: FileList | null) {
@@ -341,6 +362,18 @@ export function CuradorPage() {
   const readyToTrain = avatarImageAssets.length >= 1 && voiceAudioAssets.length >= 1;
 
   return (
+    <>
+      {avatarImageToCrop && (
+        <AvatarImageCropModal
+          file={avatarImageToCrop}
+          onCancel={() => setAvatarImageToCrop(null)}
+          onConfirm={async (croppedFile) => {
+            setAvatarImageToCrop(null);
+            await uploadTrainingAssets([croppedFile], "avatar_image");
+          }}
+        />
+      )}
+
     <section className="persona-page">
       <div className="persona-container">
         <div className="persona-card">
@@ -412,9 +445,8 @@ export function CuradorPage() {
             >
               <h4>2) Enviar foto para clone (obrigatorio)</h4>
               <p>
-                Foto do rosto (PNG ou JPEG), bem iluminada. A Argil exige proporcao{" "}
-                <strong>9:16</strong> (retrato) ou <strong>16:9</strong> (paisagem); se a sua foto
-                for 3:4 ou outra, recortamos automaticamente ao enviar.
+                Foto do rosto (PNG ou JPEG), bem iluminada. Voce ajusta o recorte na tela (9:16 ou
+                16:9) para nao cortar o rosto.
               </p>
               <input
                 id={`${uploadInputId}-avatar-image`}
@@ -676,11 +708,16 @@ export function CuradorPage() {
               data-testid="generate-avatar-video-button"
             >
               {isGeneratingVideo
-                ? "Gerando video..."
+                ? "Gerando video (lip-sync)..."
                 : isSavingProfile
                   ? "Salvando..."
                   : "Gerar meu avatar"}
             </button>
+            <p className="persona-helper-text persona-top-gap">
+              A Argil primeiro mostra uma pre-visualizacao estatica; o video com lip-sync leva em
+              media <strong>5 a 15 minutos</strong>. Aguarde na tela ate aparecer o link do video
+              final.
+            </p>
           </div>
 
           {(videoStatus || videoError || videoPreviewUrl || videoUrl || videoGenerationId) && (
@@ -709,33 +746,40 @@ export function CuradorPage() {
                       Job: {videoGenerationId}
                     </p>
                   )}
-                  {videoPreviewUrl && (
-                    <p className="persona-helper-text">
-                      Preview:{" "}
+                  {videoPreviewUrl && !isVideoReady({ status: videoStatus ?? "", videoUrl }) && (
+                    <p className="persona-helper-text persona-helper-highlight">
+                      Pre-visualizacao (rosto parado, sem lip-sync ainda):{" "}
                       <a href={videoPreviewUrl} data-testid="argil-video-preview-link">
-                        abrir
+                        abrir preview
                       </a>
                     </p>
                   )}
-                  {videoUrl && (
-                    <p className="persona-helper-text">
-                      Video final:{" "}
-                      <a href={videoUrl} data-testid="argil-video-final-link">
-                        abrir
-                      </a>
-                    </p>
-                  )}
-                  {videoUrl && (
-                    <p className="persona-helper-text persona-top-gap">
-                      <a
-                        className="persona-btn"
-                        href={videoUrl}
-                        download={`avatar-${(profileForm.fullName || "politico").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(profileForm.avatarVideoTopic || "tema").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`}
-                        data-testid="argil-video-download-link"
-                      >
-                        Baixar video
-                      </a>
-                    </p>
+                  {isVideoReady({ status: videoStatus ?? "", videoUrl }) && videoUrl && (
+                    <>
+                      <p className="persona-helper-text">
+                        Video final com lip-sync:{" "}
+                        <a href={videoUrl} data-testid="argil-video-final-link">
+                          abrir
+                        </a>
+                      </p>
+                      <video
+                        className="persona-video-player"
+                        src={videoUrl}
+                        controls
+                        playsInline
+                        data-testid="argil-video-player"
+                      />
+                      <p className="persona-helper-text persona-top-gap">
+                        <a
+                          className="persona-btn"
+                          href={videoUrl}
+                          download={`avatar-${(profileForm.fullName || "politico").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(profileForm.avatarVideoTopic || "tema").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`}
+                          data-testid="argil-video-download-link"
+                        >
+                          Baixar video
+                        </a>
+                      </p>
+                    </>
                   )}
                 </>
               )}
@@ -755,5 +799,6 @@ export function CuradorPage() {
         </div>
       </div>
     </section>
+    </>
   );
 }

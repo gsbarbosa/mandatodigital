@@ -31,8 +31,16 @@ test.describe("fluxo essencial Argil no Curador", () => {
     await page.getByTestId("training-avatar-image-input").setInputFiles({
       name: "clone.jpg",
       mimeType: "image/jpeg",
-      buffer: Buffer.from("dummy-training-image"),
+      buffer: Buffer.from(
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA8A/9k=",
+        "base64",
+      ),
     });
+
+    await expect(page.getByTestId("avatar-image-crop-modal")).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.getByTestId("avatar-crop-confirm").click();
 
     const [upload1, upload2] = await trainingUploads;
     expect(upload1.status()).toBe(201);
