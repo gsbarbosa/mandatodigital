@@ -80,12 +80,24 @@ export function CuradorPage() {
     () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "consent"),
     [visibleTrainingAssets],
   );
+
+  async function parseJsonOrText<T>(response: Response): Promise<T> {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      return (await response.json()) as T;
+    }
+
+    const text = await response.text();
+    // Mantém compatibilidade com os usos existentes que esperam `payload.message`.
+    return ({ message: text } as unknown as T);
+  }
+
   async function pollAvatarTraining(trainingId: string) {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const response = await fetch(
         `/api/argil/avatars/train?trainingId=${encodeURIComponent(trainingId)}`,
       );
-      const payload = (await response.json()) as {
+      const payload = await parseJsonOrText<{
         training?: {
           status?: string;
           argilAvatarId?: string | null;
@@ -93,7 +105,7 @@ export function CuradorPage() {
           errorMessage?: string;
         };
         message?: string;
-      };
+      }>(response);
 
       if (!response.ok) {
         throw new Error(payload.message || "Nao foi possivel consultar o treinamento.");
@@ -146,10 +158,10 @@ export function CuradorPage() {
         }),
       });
 
-      const payload = (await response.json()) as {
+      const payload = await parseJsonOrText<{
         training?: { id?: string; status?: string };
         message?: string;
-      };
+      }>(response);
 
       if (!response.ok) {
         throw new Error(payload.message || "Nao foi possivel iniciar o treinamento.");
@@ -174,7 +186,7 @@ export function CuradorPage() {
   async function pollVideoGeneration(generationId: string) {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const response = await fetch(`/api/argil/videos/${generationId}`);
-      const payload = (await response.json()) as {
+      const payload = await parseJsonOrText<{
         generation?: {
           status?: string;
           previewUrl?: string;
@@ -182,7 +194,7 @@ export function CuradorPage() {
           dryRun?: boolean;
         };
         message?: string;
-      };
+      }>(response);
 
       if (!response.ok) {
         throw new Error(payload.message || "Nao foi possivel consultar o status do video.");
@@ -231,7 +243,7 @@ export function CuradorPage() {
         }),
       });
 
-      const payload = (await response.json()) as {
+      const payload = await parseJsonOrText<{
         dryRun?: boolean;
         generation?: {
           id: string;
@@ -240,7 +252,7 @@ export function CuradorPage() {
           videoUrl?: string;
         };
         message?: string;
-      };
+      }>(response);
 
       if (!response.ok) {
         throw new Error(payload.message || "Nao foi possivel gerar o video.");

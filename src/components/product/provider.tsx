@@ -193,13 +193,31 @@ export function ProductAppProvider({
   async function handleApi<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
     setErrorMessage(null);
     const response = await fetch(input, init);
-    const payload = (await response.json()) as T & ApiErrorPayload;
+    const contentType = response.headers.get("content-type") ?? "";
 
-    if (!response.ok) {
-      throw new Error(formatApiError(payload));
+    // Alguns erros (ex: Request Entity Too Large) podem vir como texto/HTML.
+    // Para não falhar com "Unexpected token ... is not valid JSON", tentamos JSON primeiro
+    // e caímos para texto quando necessário.
+    let payload: unknown;
+    try {
+      payload = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
+    } catch {
+      payload = null;
     }
 
-    return payload;
+    if (!response.ok) {
+      const apiErrorPayload =
+        typeof payload === "string"
+          ? ({ message: payload } satisfies ApiErrorPayload)
+          : (payload as ApiErrorPayload | null);
+      throw new Error(
+        formatApiError(apiErrorPayload ?? { message: "Falha na operacao." }),
+      );
+    }
+
+    return (payload ?? ({} as T)) as T;
   }
 
   async function saveProfile() {
