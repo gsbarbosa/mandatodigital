@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { avatarVideoStorage } from "@/lib/avatar-video-storage";
-import { handleRouteError } from "@/lib/api";
+import { apiRoute } from "@/lib/auth/api-route";
 import {
   argilGetVideo,
   isArgilVideoReady,
@@ -27,11 +27,20 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  try {
+  return apiRoute(async (repository) => {
     const { id } = await context.params;
     const generation = await avatarVideoStorage.getById(id);
 
     if (!generation) {
+      return NextResponse.json({ message: "Geracao nao encontrada." }, { status: 404 });
+    }
+
+    const dashboard = await repository.getDashboard();
+    if (
+      generation.profileId &&
+      dashboard.profile?.id &&
+      generation.profileId !== dashboard.profile.id
+    ) {
       return NextResponse.json({ message: "Geracao nao encontrada." }, { status: 404 });
     }
 
@@ -52,7 +61,5 @@ export async function GET(
     });
 
     return NextResponse.json({ generation: updated, video: remoteVideo });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }

@@ -17,6 +17,7 @@ import {
   profileInputSchema,
 } from "@/lib/schemas";
 import type { DashboardData } from "@/lib/types";
+import type { SessionUser } from "@/lib/auth/session";
 import type {
   ContentRequest,
   ContentStatus,
@@ -93,6 +94,8 @@ type ProductAppContextValue = {
   getRequestForContentId: (contentId: string) => ContentRequest | null;
   getFeedbackForContentId: (contentId: string) => DashboardData["feedback"];
   getEvaluationReportById: (runId: string) => EvaluationReport | null;
+  sessionUser: SessionUser | null;
+  signOut: () => Promise<void>;
 };
 
 const ProductAppContext = createContext<ProductAppContextValue | null>(null);
@@ -106,9 +109,11 @@ function sortReportsByDate(reports: EvaluationReport[]) {
 
 export function ProductAppProvider({
   initialData,
+  sessionUser = null,
   children,
 }: {
   initialData: DashboardData;
+  sessionUser?: SessionUser | null;
   children: ReactNode;
 }) {
   const initialEvaluationReports = buildEvaluationReportsFromDashboard(initialData);
@@ -696,6 +701,11 @@ export function ProductAppProvider({
     return evaluationReports.find((item) => item.run.id === runId) ?? null;
   }
 
+  async function signOut() {
+    await fetch("/api/auth/signout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
   const value: ProductAppContextValue = {
     profile,
     profileForm,
@@ -736,6 +746,8 @@ export function ProductAppProvider({
     getRequestForContentId,
     getFeedbackForContentId,
     getEvaluationReportById,
+    sessionUser,
+    signOut,
   };
 
   return <ProductAppContext.Provider value={value}>{children}</ProductAppContext.Provider>;

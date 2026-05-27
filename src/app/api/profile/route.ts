@@ -1,25 +1,20 @@
 import { NextResponse } from "next/server";
 
-import { handleRouteError } from "@/lib/api";
+import { apiRoute } from "@/lib/auth/api-route";
 import { profileInputSchema } from "@/lib/schemas";
-import { getRepository } from "@/lib/storage";
 
 export async function GET() {
-  try {
-    const dashboard = await getRepository().getDashboard();
+  return apiRoute(async (repository) => {
+    const dashboard = await repository.getDashboard();
     return NextResponse.json({ profile: dashboard.profile });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }
 
 export async function PUT(request: Request) {
-  try {
+  return apiRoute(async (repository) => {
     const payload = profileInputSchema.parse(await request.json());
-    const profile = await getRepository().saveProfile(payload);
+    const profile = await repository.saveProfile(payload);
 
     return NextResponse.json({ profile });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }

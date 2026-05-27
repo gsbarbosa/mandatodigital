@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 
 import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
 import { avatarVideoStorage } from "@/lib/avatar-video-storage";
-import { handleRouteError } from "@/lib/api";
+import { apiRoute } from "@/lib/auth/api-route";
 import {
   argilCreateAndRenderVideo,
   getArgilConfig,
   isArgilVideoReady,
   mapArgilVideoToGenerationUpdate,
 } from "@/lib/argil";
-import { getRepository } from "@/lib/storage";
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
 import type { AvatarVideoGenerationStatus } from "@/lib/types";
 
@@ -28,24 +27,23 @@ function toGenerationStatus(status: string): AvatarVideoGenerationStatus {
 }
 
 export async function POST(request: Request) {
-  try {
+  return apiRoute(async (repository) => {
     const body = (await request.json()) as {
       topic?: string;
       transcript?: string;
       name?: string;
-      profileId?: string;
     };
 
     const topic = String(body.topic ?? "").trim();
     const explicitTranscript = String(body.transcript ?? "").trim();
     const name = String(body.name ?? "").trim() || undefined;
-    const profileId = String(body.profileId ?? "").trim() || null;
 
     if (!topic) {
       return NextResponse.json({ message: "Informe o tema do video." }, { status: 400 });
     }
 
-    const dashboard = await getRepository().getDashboard();
+    const dashboard = await repository.getDashboard();
+    const profileId = dashboard.profile?.id ?? null;
     const transcript =
       explicitTranscript ||
       buildAvatarVideoTranscript({
@@ -100,7 +98,5 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }

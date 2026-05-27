@@ -37,6 +37,8 @@ export function ProductShell({ children }: { children: ReactNode }) {
     productFeedbacks,
     submitProductFeedback,
     isSubmittingProductFeedback,
+    sessionUser,
+    signOut,
   } = useProductApp();
   const [productFeedbackForm, setProductFeedbackForm] = useInitialProductFeedbackForm();
   const isDrawerOpen = isFeedbackForcedOpen || isFeedbackWidgetOpen;
@@ -55,6 +57,15 @@ export function ProductShell({ children }: { children: ReactNode }) {
 
   return (
     <main className={isCuradorFocusMode ? "app-shell app-shell-persona" : "app-shell"}>
+      {sessionUser && (
+        <div className="session-bar">
+          <span className="session-bar-email">{sessionUser.email}</span>
+          <button type="button" className="persona-btn" onClick={() => void signOut()}>
+            Sair
+          </button>
+        </div>
+      )}
+
       {isCuradorFocusMode ? null : (
         <>
           <section className="hero">

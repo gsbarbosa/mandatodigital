@@ -9,6 +9,7 @@ import {
   SUPABASE_REQUIRED_IN_PRODUCTION_MESSAGE,
   supabaseSchemaOutdatedMessage,
 } from "@/lib/server-runtime";
+import { getStorageOwnerUserId } from "@/lib/storage-context";
 
 import type {
   ContentRequestInput,
@@ -1004,12 +1005,78 @@ const localRepository: Repository = {
   },
 };
 
+async function fetchProfileForStorageContext(client: ReturnType<typeof getSupabaseClient>) {
+  const ownerUserId = getStorageOwnerUserId();
+
+  if (ownerUserId) {
+    const { data, error } = await client
+      .from("politician_profiles")
+      .select("*")
+      .eq("owner_user_id", ownerUserId)
+      .maybeSingle();
+
+    if (error && !isMissingSchemaFieldError(error)) {
+      throw error;
+    }
+
+    return data ? mapProfileRow(data) : null;
+  }
+
+  const { data, error } = await client
+    .from("politician_profiles")
+    .select("*")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? mapProfileRow(data) : null;
+}
+
 const supabaseRepository: Repository = {
   async getDashboard() {
     const client = getSupabaseClient();
+    const ownerUserId = getStorageOwnerUserId();
+    const profileRowPromise = ownerUserId
+      ? client
+          .from("politician_profiles")
+          .select("*")
+          .eq("owner_user_id", ownerUserId)
+          .maybeSingle()
+      : client
+          .from("politician_profiles")
+          .select("*")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+    const profileRes = await profileRowPromise;
+
+    if (profileRes.error) throw profileRes.error;
+
+    const baseProfile = profileRes.data ? mapProfileRow(profileRes.data) : null;
+    const workflowConfigRes = baseProfile
+      ? await client
+          .from("mandate_workflow_configs")
+          .select("*")
+          .eq("profile_id", baseProfile.id)
+          .maybeSingle()
+      : { data: null, error: null };
+
+    const requestQuery = client
+      .from("content_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    const scopedRequestQuery =
+      ownerUserId && baseProfile
+        ? requestQuery.eq("profile_id", baseProfile.id)
+        : requestQuery;
+
     const [
-      profileRes,
-      workflowConfigRes,
       trainingAssetsRes,
       requestRes,
       generatedRes,
@@ -1020,27 +1087,23 @@ const supabaseRepository: Repository = {
       evaluationScoresRes,
     ] = await Promise.all([
       client
-        .from("politician_profiles")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(1),
-      client
-        .from("mandate_workflow_configs")
-        .select("*")
-        .order("updated_at", { ascending: false })
-        .limit(1),
-      client
         .from("profile_training_assets")
         .select("*")
         .order("created_at", { ascending: false }),
-      client.from("content_requests").select("*").order("created_at", { ascending: false }),
+      scopedRequestQuery,
       client
         .from("generated_contents")
         .select("*")
         .order("created_at", { ascending: false }),
       client.from("content_feedback").select("*").order("created_at", { ascending: false }),
       client.from("product_feedback").select("*").order("created_at", { ascending: false }),
-      client.from("evaluation_runs").select("*").order("created_at", { ascending: false }),
+      baseProfile
+        ? client
+            .from("evaluation_runs")
+            .select("*")
+            .eq("profile_id", baseProfile.id)
+            .order("created_at", { ascending: false })
+        : client.from("evaluation_runs").select("*").order("created_at", { ascending: false }),
       client
         .from("evaluation_candidates")
         .select("*")
@@ -1048,7 +1111,6 @@ const supabaseRepository: Repository = {
       client.from("evaluation_scores").select("*").order("created_at", { ascending: true }),
     ]);
 
-    if (profileRes.error) throw profileRes.error;
     if (workflowConfigRes.error && !isSchemaCompatibilityError(workflowConfigRes.error)) {
       throw workflowConfigRes.error;
     }
@@ -1085,11 +1147,17 @@ const supabaseRepository: Repository = {
         : null;
 
     const profile = mergeWorkflowProfileConfig(
-      profileRes.data[0] ? mapProfileRow(profileRes.data[0]) : null,
+      baseProfile,
       workflowConfigRes.error
         ? pickWorkflowProfileConfig(localDatabase?.profile ?? null)
-        : mapWorkflowProfileConfigRow(workflowConfigRes.data[0]),
+        : workflowConfigRes.data
+          ? mapWorkflowProfileConfigRow(workflowConfigRes.data)
+          : null,
     );
+
+    const contentRequests = requestRes.data.map(mapRequestRow);
+    const requestIds = new Set(contentRequests.map((item) => item.id));
+
     const trainingAssets = trainingAssetsRes.error
       ? localDatabase?.trainingAssets ?? []
       : trainingAssetsRes.data
@@ -1101,24 +1169,45 @@ const supabaseRepository: Repository = {
           )
           .map(mapTrainingAssetRow);
 
+    const evaluationRuns = evaluationRunsRes.error
+      ? localDatabase?.evaluationRuns ?? []
+      : evaluationRunsRes.data.map(mapEvaluationRunRow);
+    const evaluationRunIds = new Set(evaluationRuns.map((item) => item.id));
+
     return {
       profile,
       trainingAssets,
-      contentRequests: requestRes.data.map(mapRequestRow),
-      generatedContents: generatedRes.data.map(mapGeneratedContentRow),
-      feedback: feedbackRes.data.map(mapFeedbackRow),
+      contentRequests,
+      generatedContents: generatedRes.data
+        .map(mapGeneratedContentRow)
+        .filter((item) => requestIds.has(item.contentRequestId)),
+      feedback: feedbackRes.data
+        .map(mapFeedbackRow)
+        .filter((item) => {
+          if (!ownerUserId) {
+            return true;
+          }
+
+          const content = generatedRes.data.find(
+            (row) => String(row.id) === item.generatedContentId,
+          );
+
+          return content ? requestIds.has(String(content.content_request_id)) : false;
+        }),
       productFeedbacks: productFeedbackRes.error
         ? localDatabase?.productFeedbacks ?? []
         : productFeedbackRes.data.map(mapProductFeedbackRow),
-      evaluationRuns: evaluationRunsRes.error
-        ? localDatabase?.evaluationRuns ?? []
-        : evaluationRunsRes.data.map(mapEvaluationRunRow),
+      evaluationRuns,
       evaluationCandidates: evaluationCandidatesRes.error
         ? localDatabase?.evaluationCandidates ?? []
-        : evaluationCandidatesRes.data.map(mapEvaluationCandidateRow),
+        : evaluationCandidatesRes.data
+            .map(mapEvaluationCandidateRow)
+            .filter((item) => evaluationRunIds.has(item.evaluationRunId)),
       evaluationScores: evaluationScoresRes.error
         ? localDatabase?.evaluationScores ?? []
-        : evaluationScoresRes.data.map(mapEvaluationScoreRow),
+        : evaluationScoresRes.data
+            .map(mapEvaluationScoreRow)
+            .filter((item) => evaluationRunIds.has(item.evaluationRunId)),
     };
   },
 
@@ -1148,17 +1237,29 @@ const supabaseRepository: Repository = {
 
   async saveProfile(input) {
     const client = getSupabaseClient();
-    const existing = await client
-      .from("politician_profiles")
-      .select("id")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const ownerUserId = getStorageOwnerUserId();
+    const existing = ownerUserId
+      ? await client
+          .from("politician_profiles")
+          .select("id")
+          .eq("owner_user_id", ownerUserId)
+          .maybeSingle()
+      : await client
+          .from("politician_profiles")
+          .select("id")
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
     if (existing.error) throw existing.error;
 
+    if (ownerUserId && input.id && existing.data?.id && input.id !== existing.data.id) {
+      throw new Error("Nao e permitido salvar o perfil de outro usuario.");
+    }
+
     const payload = {
       id: input.id ?? existing.data?.id ?? crypto.randomUUID(),
+      ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
       full_name: input.fullName,
       role: input.role,
       city: input.city,
@@ -1399,8 +1500,16 @@ const supabaseRepository: Repository = {
 
   async createContentRequest(input) {
     const client = getSupabaseClient();
+    const ownerUserId = getStorageOwnerUserId();
+    const profile = ownerUserId ? await fetchProfileForStorageContext(client) : null;
+
+    if (ownerUserId && !profile) {
+      throw new Error("Salve o perfil antes de criar pautas de conteudo.");
+    }
+
     const payload = {
       id: crypto.randomUUID(),
+      ...(profile ? { profile_id: profile.id } : {}),
       topic: input.topic,
       objective: input.objective,
       format: input.format,

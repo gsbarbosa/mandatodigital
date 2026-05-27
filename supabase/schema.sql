@@ -2,6 +2,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists politician_profiles (
   id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid unique,
   full_name text not null,
   role text not null,
   city text not null,
@@ -20,6 +21,7 @@ create table if not exists politician_profiles (
 
 create table if not exists content_requests (
   id uuid primary key default gen_random_uuid(),
+  profile_id uuid null references politician_profiles(id) on delete cascade,
   topic text not null,
   objective text not null,
   format text not null,
@@ -225,6 +227,18 @@ alter table if exists mandate_workflow_configs
 
 alter table if exists profile_avatar_trainings
   add column if not exists voice_audio_asset_id uuid null;
+
+alter table if exists politician_profiles
+  add column if not exists owner_user_id uuid unique;
+
+alter table if exists content_requests
+  add column if not exists profile_id uuid null references politician_profiles(id) on delete cascade;
+
+create index if not exists politician_profiles_owner_user_id_idx
+  on politician_profiles(owner_user_id);
+
+create index if not exists content_requests_profile_id_idx
+  on content_requests(profile_id);
 
 alter table if exists product_feedback
   add column if not exists criticality text not null default 'media';

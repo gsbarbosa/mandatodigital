@@ -1,17 +1,15 @@
 import { after, NextResponse } from "next/server";
 
-import { handleRouteError } from "@/lib/api";
+import { apiRoute } from "@/lib/auth/api-route";
 import { generateContentVariants } from "@/lib/llm";
 import { contentRequestInputSchema } from "@/lib/schemas";
 import {
   isJudgeEvaluationEnabled,
   runGeneratedContentEvaluation,
 } from "@/lib/generation-eval";
-import { getRepository } from "@/lib/storage";
 
 export async function POST(request: Request) {
-  try {
-    const repository = getRepository();
+  return apiRoute(async (repository) => {
     const dashboard = await repository.getDashboard();
 
     if (!dashboard.profile) {
@@ -51,7 +49,5 @@ export async function POST(request: Request) {
       request: contentRequest,
       generatedContents,
     });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }

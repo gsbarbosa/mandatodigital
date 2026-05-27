@@ -4,7 +4,8 @@ import {
   avatarTrainingStorage,
   isAvatarTrainingTerminal,
 } from "@/lib/avatar-training-storage";
-import { handleRouteError } from "@/lib/api";
+import { apiRoute } from "@/lib/auth/api-route";
+import type { Repository } from "@/lib/storage";
 import {
   argilCreateAvatarFromImage,
   argilCreateVoiceFromAudio,
@@ -34,18 +35,21 @@ function toTrainingStatus(status: string): AvatarTrainingStatus {
     : "TRAINING";
 }
 
-async function syncProfileTrainingState(input: {
+async function syncProfileTrainingState(
+  repository: Repository,
+  input: {
   profileId: string | null;
   draftProfileId: string | null;
   argilAvatarId: string;
   argilVoiceId: string;
   avatarTrainingStatus: AvatarTrainingStatus;
-}) {
+  },
+) {
   if (!input.profileId) {
     return;
   }
 
-  await getRepository().updateProfileArgilTraining(input.profileId, {
+  await repository.updateProfileArgilTraining(input.profileId, {
     argilAvatarId: input.argilAvatarId,
     argilVoiceId: input.argilVoiceId,
     avatarTrainingStatus: input.avatarTrainingStatus,
@@ -53,7 +57,7 @@ async function syncProfileTrainingState(input: {
 }
 
 export async function POST(request: Request) {
-  try {
+  return apiRoute(async (repository) => {
     const body = (await request.json()) as {
       profileId?: string;
       draftProfileId?: string;
@@ -72,7 +76,7 @@ export async function POST(request: Request) {
     }
 
     const config = getArgilConfig();
-    const assets = await getRepository().listTrainingAssetsForReference(referenceId);
+    const assets = await repository.listTrainingAssetsForReference(referenceId);
     const { avatarImageAsset, voiceAudioAsset } =
       pickAvatarImageAndVoiceAudioAssets(assets);
 
@@ -100,7 +104,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const dashboard = await getRepository().getDashboard();
+    const dashboard = await repository.getDashboard();
     const avatarName =
       String(body.avatarName ?? "").trim() ||
       dashboard.profile?.fullName?.trim() ||
@@ -157,7 +161,7 @@ export async function POST(request: Request) {
         errorMessage: "",
       });
 
-      await syncProfileTrainingState({
+      await syncProfileTrainingState(repository, {
         profileId,
         draftProfileId,
         argilAvatarId: updated.argilAvatarId ?? result.avatar.id,
@@ -165,7 +169,7 @@ export async function POST(request: Request) {
         avatarTrainingStatus: "IDLE",
       });
     } else if (profileId) {
-      await syncProfileTrainingState({
+      await syncProfileTrainingState(repository, {
         profileId,
         draftProfileId,
         argilAvatarId: result.avatar.id,
@@ -186,13 +190,11 @@ export async function POST(request: Request) {
       },
       { status: 201 },
     );
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }
 
 export async function GET(request: Request) {
-  try {
+  return apiRoute(async (repository) => {
     const trainingId = new URL(request.url).searchParams.get("trainingId")?.trim();
 
     if (!trainingId) {
@@ -227,7 +229,7 @@ export async function GET(request: Request) {
         });
 
         if (isArgilAvatarTerminal(nextStatus) && training.profileId) {
-          await syncProfileTrainingState({
+          await syncProfileTrainingState(repository, {
             profileId: training.profileId,
             draftProfileId: training.draftProfileId,
             argilAvatarId: updated.argilAvatarId ?? training.argilAvatarId,
@@ -241,7 +243,5 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ training });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }

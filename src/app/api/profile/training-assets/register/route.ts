@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { handleRouteError } from "@/lib/api";
-import { getRepository } from "@/lib/storage";
+import { apiRoute } from "@/lib/auth/api-route";
 import {
   isAllowedTrainingMime,
   parseTrainingAssetRole,
 } from "@/lib/training-asset-role";
 
 export async function POST(request: Request) {
-  try {
+  return apiRoute(async (repository) => {
     const body = (await request.json()) as {
       profileId?: string;
       draftProfileId?: string;
@@ -51,14 +50,16 @@ export async function POST(request: Request) {
       const expected =
         trainingRole === "avatar_image"
           ? "uma imagem (PNG, JPEG ou WebP)"
-          : "um video";
+          : trainingRole === "voice_audio"
+            ? "um audio (MP3, WAV ou M4A)"
+            : "um video";
       return NextResponse.json(
         { message: `Para ${trainingRole}, envie ${expected}.` },
         { status: 400 },
       );
     }
 
-    const assets = await getRepository().createTrainingAssets([
+    const assets = await repository.createTrainingAssets([
       {
         profileId,
         draftProfileId: profileId ? null : draftProfileId,
@@ -76,8 +77,5 @@ export async function POST(request: Request) {
     ]);
 
     return NextResponse.json({ assets }, { status: 201 });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }
-
