@@ -6,7 +6,8 @@ import {
 } from "@/lib/avatar-training-storage";
 import { handleRouteError } from "@/lib/api";
 import {
-  argilCreateAvatarFromVideo,
+  argilCreateAvatarFromImage,
+  argilCreateVoiceFromAudio,
   argilGetAvatar,
   getArgilConfig,
   isArgilAvatarTerminal,
@@ -14,7 +15,7 @@ import {
 import { getRepository } from "@/lib/storage";
 import {
   getTrainingAssetPublicUrl,
-  pickDatasetAndConsentAssets,
+  pickAvatarImageAndVoiceAudioAssets,
   resolveAppBaseUrl,
 } from "@/lib/training-asset-urls";
 import type { AvatarTrainingStatus } from "@/lib/types";
@@ -72,24 +73,27 @@ export async function POST(request: Request) {
 
     const config = getArgilConfig();
     const assets = await getRepository().listTrainingAssetsForReference(referenceId);
-    const { datasetAsset, consentAsset } = pickDatasetAndConsentAssets(assets);
+    const { avatarImageAsset, voiceAudioAsset } =
+      pickAvatarImageAndVoiceAudioAssets(assets);
 
     if (!config.dryRun) {
-      if (!datasetAsset) {
+      if (!avatarImageAsset) {
+        const hasLegacyDataset = assets.some((asset) => asset.trainingRole === "dataset");
         return NextResponse.json(
           {
-            message:
-              "Envie ao menos um video de treinamento antes de iniciar o treinamento na Argil.",
+            message: hasLegacyDataset
+              ? "A Argil nao aceita mais video de treino. Envie uma foto do rosto (PNG/JPEG) no slot de clone e clique em Treinar novamente."
+              : "Envie uma foto do rosto (PNG/JPEG) para treinar o avatar na Argil.",
           },
           { status: 400 },
         );
       }
 
-      if (!consentAsset) {
+      if (!voiceAudioAsset) {
         return NextResponse.json(
           {
             message:
-              "Para treinar na Argil, envie dois videos: um de treino (3+ min) e um curto de consentimento (ate 30s).",
+              "Envie um audio de voz (30s a 4 min, MP3/WAV/M4A) para clonar o timbre antes de treinar.",
           },
           { status: 400 },
         );
@@ -103,27 +107,34 @@ export async function POST(request: Request) {
       "Mandato Digital Avatar";
 
     const baseUrl = resolveAppBaseUrl(request);
-    const datasetVideoUrl = config.dryRun
-      ? "https://example.com/dry-run-dataset.mp4"
-      : await getTrainingAssetPublicUrl(datasetAsset!, baseUrl);
-    const consentVideoUrl = config.dryRun
-      ? "https://example.com/dry-run-consent.mp4"
-      : await getTrainingAssetPublicUrl(consentAsset!, baseUrl);
+    const datasetImageUrl = config.dryRun
+      ? "https://example.com/dry-run-avatar.jpg"
+      : await getTrainingAssetPublicUrl(avatarImageAsset!, baseUrl);
+    const voiceAudioUrl = config.dryRun
+      ? "https://example.com/dry-run-voice.mp3"
+      : await getTrainingAssetPublicUrl(voiceAudioAsset!, baseUrl);
 
     const training = await avatarTrainingStorage.create({
       profileId,
       draftProfileId: profileId ? null : draftProfileId,
       status: "TRAINING",
       dryRun: config.dryRun,
-      datasetAssetId: datasetAsset?.id ?? null,
-      consentAssetId: consentAsset?.id ?? null,
+      datasetAssetId: avatarImageAsset?.id ?? null,
+      voiceAudioAssetId: voiceAudioAsset?.id ?? null,
       avatarName,
     });
 
-    const result = await argilCreateAvatarFromVideo({
+    const voiceResult = await argilCreateVoiceFromAudio({
+      name: `${avatarName} - voz`,
+      audioUrl: voiceAudioUrl,
+    });
+
+    const clonedVoiceId = voiceResult.voice.id;
+
+    const result = await argilCreateAvatarFromImage({
       name: avatarName,
-      datasetVideoUrl,
-      consentVideoUrl,
+      datasetImageUrl,
+      voiceId: clonedVoiceId,
       extras: {
         source: "mandato-digital",
         trainingId: training.id,
@@ -134,14 +145,14 @@ export async function POST(request: Request) {
 
     let updated = await avatarTrainingStorage.update(training.id, {
       argilAvatarId: result.avatar.id,
-      argilVoiceId: result.avatar.voiceId ?? null,
+      argilVoiceId: result.avatar.voiceId ?? clonedVoiceId,
       status: toTrainingStatus(result.avatar.status),
     });
 
     if (config.dryRun) {
       updated = await avatarTrainingStorage.update(training.id, {
         argilAvatarId: result.avatar.id,
-        argilVoiceId: "dry-run-voice-id",
+        argilVoiceId: clonedVoiceId,
         status: "IDLE",
         errorMessage: "",
       });
@@ -150,7 +161,7 @@ export async function POST(request: Request) {
         profileId,
         draftProfileId,
         argilAvatarId: updated.argilAvatarId ?? result.avatar.id,
-        argilVoiceId: updated.argilVoiceId ?? "dry-run-voice-id",
+        argilVoiceId: updated.argilVoiceId ?? clonedVoiceId,
         avatarTrainingStatus: "IDLE",
       });
     } else if (profileId) {
@@ -158,7 +169,7 @@ export async function POST(request: Request) {
         profileId,
         draftProfileId,
         argilAvatarId: result.avatar.id,
-        argilVoiceId: result.avatar.voiceId ?? "",
+        argilVoiceId: result.avatar.voiceId ?? clonedVoiceId,
         avatarTrainingStatus: toTrainingStatus(result.avatar.status),
       });
     }
@@ -168,7 +179,10 @@ export async function POST(request: Request) {
         dryRun: result.dryRun,
         training: updated,
         avatar: result.avatar,
-        debug: result.dryRun ? result.request : undefined,
+        voice: voiceResult.voice,
+        debug: result.dryRun
+          ? { avatarRequest: result.request, voiceRequest: voiceResult.request }
+          : undefined,
       },
       { status: 201 },
     );

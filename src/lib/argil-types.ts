@@ -7,6 +7,12 @@ export type ArgilAvatar = {
   voiceId?: string;
 };
 
+export type ArgilVoice = {
+  id: string;
+  name: string;
+  status: string;
+};
+
 export type ArgilVideo = {
   id: string;
   name: string;

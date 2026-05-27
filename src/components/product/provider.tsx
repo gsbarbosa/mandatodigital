@@ -24,6 +24,7 @@ import type {
   GeneratedContent,
   ProfileTrainingAsset,
   ProductFeedback,
+  TrainingAssetRole,
 } from "@/lib/types";
 
 import { uploadTrainingFileToSupabase } from "@/lib/training-asset-upload-client";
@@ -62,8 +63,8 @@ type ProductAppContextValue = {
   isSavingContent: boolean;
   isSubmittingProductFeedback: boolean;
   isUploadingTrainingAssets: boolean;
-  isUploadingConsentAsset: boolean;
-  isUploadingDatasetAsset: boolean;
+  isUploadingVoiceAudioAsset: boolean;
+  isUploadingAvatarImageAsset: boolean;
   isLoadingEvaluations: boolean;
   isFeedbackWidgetOpen: boolean;
   isEvaluatingContentRequestId: string | null;
@@ -71,7 +72,7 @@ type ProductAppContextValue = {
   saveProfile: () => Promise<void>;
   uploadTrainingAssets: (
     files: File[],
-    trainingRole: "dataset" | "consent",
+    trainingRole: TrainingAssetRole,
   ) => Promise<ProfileTrainingAsset[]>;
   generateContent: () => Promise<GeneratedContent[]>;
   updateContent: (
@@ -138,7 +139,7 @@ export function ProductAppProvider({
   const [isSubmittingProductFeedback, setIsSubmittingProductFeedback] =
     useState(false);
   const [uploadingTrainingRoles, setUploadingTrainingRoles] = useState<
-    Array<"dataset" | "consent">
+    TrainingAssetRole[]
   >([]);
   const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
   const [isFeedbackWidgetOpen, setFeedbackWidgetOpen] = useState(false);
@@ -147,8 +148,10 @@ export function ProductAppProvider({
   >(null);
 
   const isUploadingTrainingAssets = uploadingTrainingRoles.length > 0;
-  const isUploadingConsentAsset = uploadingTrainingRoles.includes("consent");
-  const isUploadingDatasetAsset = uploadingTrainingRoles.includes("dataset");
+  const isUploadingVoiceAudioAsset =
+    uploadingTrainingRoles.includes("voice_audio");
+  const isUploadingAvatarImageAsset =
+    uploadingTrainingRoles.includes("avatar_image");
 
   const latestApprovedContent = useMemo(
     () => contents.find((item) => item.status === "aprovado") ?? null,
@@ -321,7 +324,7 @@ export function ProductAppProvider({
     }
   }
 
-  async function uploadTrainingAssets(files: File[], trainingRole: "dataset" | "consent") {
+  async function uploadTrainingAssets(files: File[], trainingRole: TrainingAssetRole) {
     if (!files.length) {
       return [];
     }
@@ -426,9 +429,11 @@ export function ProductAppProvider({
 
       setTrainingAssets((current) => [...uploadedAssets, ...current]);
       setStatusMessage(
-        trainingRole === "consent"
-          ? "Video de autorizacao enviado."
-          : "Video(s) de treinamento enviados.",
+        trainingRole === "voice_audio"
+          ? "Audio de voz enviado."
+          : trainingRole === "avatar_image"
+            ? "Foto para clone enviada."
+            : "Asset de treinamento enviado.",
       );
 
       return uploadedAssets;
@@ -712,8 +717,8 @@ export function ProductAppProvider({
     isSavingContent,
     isSubmittingProductFeedback,
     isUploadingTrainingAssets,
-    isUploadingConsentAsset,
-    isUploadingDatasetAsset,
+    isUploadingVoiceAudioAsset,
+    isUploadingAvatarImageAsset,
     isLoadingEvaluations,
     isFeedbackWidgetOpen,
     isEvaluatingContentRequestId,

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { handleRouteError } from "@/lib/api";
+import { parseTrainingAssetRole } from "@/lib/training-asset-role";
 import { buildResumableUploadEndpoint } from "@/lib/training-asset-upload-client";
 
 function getEnv(name: string) {
@@ -44,17 +45,14 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       profileId?: string;
       draftProfileId?: string;
-      trainingRole?: "dataset" | "consent";
+      trainingRole?: string;
       filename?: string;
     };
 
     const profileId = String(body.profileId ?? "").trim() || null;
     const draftProfileId = String(body.draftProfileId ?? "").trim() || null;
     const referenceId = profileId ?? draftProfileId;
-    const trainingRole =
-      body.trainingRole === "consent" || body.trainingRole === "dataset"
-        ? body.trainingRole
-        : "dataset";
+    const trainingRole = parseTrainingAssetRole(body.trainingRole);
     const filename = String(body.filename ?? "").trim();
 
     if (!referenceId) {

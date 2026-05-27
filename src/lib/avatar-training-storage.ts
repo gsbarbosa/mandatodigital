@@ -21,6 +21,7 @@ type ProfileAvatarTrainingCreateInput = {
   dryRun: boolean;
   datasetAssetId?: string | null;
   consentAssetId?: string | null;
+  voiceAudioAssetId?: string | null;
   avatarName: string;
   errorMessage?: string;
 };
@@ -123,6 +124,12 @@ function mapRow(row: Record<string, unknown>): ProfileAvatarTraining {
       row.dataset_asset_id === null ? null : String(row.dataset_asset_id),
     consentAssetId:
       row.consent_asset_id === null ? null : String(row.consent_asset_id),
+    voiceAudioAssetId:
+      row.voice_audio_asset_id === null || row.voice_audio_asset_id === undefined
+        ? row.consent_asset_id === null
+          ? null
+          : String(row.consent_asset_id)
+        : String(row.voice_audio_asset_id),
     avatarName: String(row.avatar_name ?? ""),
     errorMessage: String(row.error_message ?? ""),
     createdAt: String(row.created_at ?? nowIso()),
@@ -143,6 +150,7 @@ export const avatarTrainingStorage = {
       dryRun: input.dryRun,
       datasetAssetId: input.datasetAssetId ?? null,
       consentAssetId: input.consentAssetId ?? null,
+      voiceAudioAssetId: input.voiceAudioAssetId ?? input.consentAssetId ?? null,
       avatarName: input.avatarName,
       errorMessage: input.errorMessage ?? "",
       createdAt: timestamp,
@@ -161,6 +169,7 @@ export const avatarTrainingStorage = {
         dry_run: record.dryRun,
         dataset_asset_id: record.datasetAssetId,
         consent_asset_id: record.consentAssetId,
+        voice_audio_asset_id: record.voiceAudioAssetId,
         avatar_name: record.avatarName,
         error_message: record.errorMessage,
         created_at: record.createdAt,

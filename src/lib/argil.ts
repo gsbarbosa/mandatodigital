@@ -1,6 +1,11 @@
-import type { ArgilAspectRatio, ArgilAvatar, ArgilVideo } from "@/lib/argil-types";
+import type {
+  ArgilAspectRatio,
+  ArgilAvatar,
+  ArgilVideo,
+  ArgilVoice,
+} from "@/lib/argil-types";
 
-export type { ArgilAspectRatio, ArgilAvatar, ArgilVideo };
+export type { ArgilAspectRatio, ArgilAvatar, ArgilVideo, ArgilVoice };
 
 function getEnv(name: string) {
   return (process.env[name] ?? "").trim();
@@ -59,15 +64,29 @@ export type ArgilCreateAndRenderResult = {
   video: ArgilVideo;
 };
 
-export type ArgilCreateAvatarFromVideoInput = {
+export type ArgilCreateVoiceFromAudioInput = {
   name: string;
-  datasetVideoUrl: string;
-  consentVideoUrl: string;
-  callbackUrl?: string;
+  audioUrl: string;
+};
+
+export type ArgilCreateVoiceFromAudioResult = {
+  dryRun: boolean;
+  request: {
+    createUrl: string;
+    createBody: unknown;
+    headers: Record<string, string>;
+  };
+  voice: ArgilVoice;
+};
+
+export type ArgilCreateAvatarFromImageInput = {
+  name: string;
+  datasetImageUrl: string;
+  voiceId?: string;
   extras?: Record<string, string>;
 };
 
-export type ArgilCreateAvatarFromVideoResult = {
+export type ArgilCreateAvatarFromImageResult = {
   dryRun: boolean;
   request: {
     createUrl: string;
@@ -170,9 +189,66 @@ export async function argilGetVideo(videoId: string) {
   return argilFetch<ArgilVideo>(`/videos/${videoId}`);
 }
 
-export async function argilCreateAvatarFromVideo(
-  input: ArgilCreateAvatarFromVideoInput,
-): Promise<ArgilCreateAvatarFromVideoResult> {
+export async function argilCreateVoiceFromAudio(
+  input: ArgilCreateVoiceFromAudioInput,
+): Promise<ArgilCreateVoiceFromAudioResult> {
+  const config = getArgilConfig();
+  const name = input.name.trim();
+
+  if (!name) {
+    throw new Error("Informe um nome para a voz.");
+  }
+
+  if (!config.dryRun && !config.apiKey) {
+    throw new Error("ARGIL_API_KEY nao configurado.");
+  }
+
+  const headers = config.apiKey
+    ? buildHeaders(config.apiKey)
+    : { "Content-Type": "application/json" };
+  const createUrl = `${config.baseUrl}/voices`;
+  const createBody = {
+    name,
+    audioUrl: input.audioUrl,
+  };
+
+  if (config.dryRun) {
+    const fakeVoice: ArgilVoice = {
+      id: crypto.randomUUID(),
+      name,
+      status: "IDLE",
+    };
+
+    return {
+      dryRun: true,
+      request: {
+        createUrl,
+        createBody,
+        headers,
+      },
+      voice: fakeVoice,
+    };
+  }
+
+  const voice = await argilFetch<ArgilVoice>("/voices", {
+    method: "POST",
+    body: JSON.stringify(createBody),
+  });
+
+  return {
+    dryRun: false,
+    request: {
+      createUrl,
+      createBody,
+      headers,
+    },
+    voice,
+  };
+}
+
+export async function argilCreateAvatarFromImage(
+  input: ArgilCreateAvatarFromImageInput,
+): Promise<ArgilCreateAvatarFromImageResult> {
   const config = getArgilConfig();
   const name = input.name.trim();
 
@@ -189,16 +265,12 @@ export async function argilCreateAvatarFromVideo(
     : { "Content-Type": "application/json" };
   const createUrl = `${config.baseUrl}/avatars`;
   const createBody = {
-    type: "VIDEO",
+    type: "IMAGE",
     name,
-    datasetVideo: {
-      url: input.datasetVideoUrl,
+    datasetImage: {
+      url: input.datasetImageUrl,
     },
-    consentVideo: {
-      url: input.consentVideoUrl,
-    },
-    // VIDEO (legado): a Argil nao aceita callbackUrl no body; use webhooks no painel
-    // ou polling via GET /api/argil/avatars/train?trainingId=...
+    ...(input.voiceId ? { voiceId: input.voiceId } : {}),
     ...(input.extras ? { extras: input.extras } : {}),
   };
 

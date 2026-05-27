@@ -6,6 +6,10 @@ import {
   getRepository,
   storeTrainingAssetFile,
 } from "@/lib/storage";
+import {
+  isAllowedTrainingMime,
+  parseTrainingAssetRole,
+} from "@/lib/training-asset-role";
 
 const MAX_TRAINING_FILES = 5;
 
@@ -14,11 +18,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const profileId = String(formData.get("profileId") ?? "").trim() || null;
     const draftProfileId = String(formData.get("draftProfileId") ?? "").trim() || null;
-    const trainingRoleRaw = String(formData.get("trainingRole") ?? "").trim();
-    const trainingRole =
-      trainingRoleRaw === "consent" || trainingRoleRaw === "dataset"
-        ? trainingRoleRaw
-        : "dataset";
+    const trainingRole = parseTrainingAssetRole(formData.get("trainingRole"));
     const files = formData
       .getAll("files")
       .filter((value): value is File => value instanceof File && value.size > 0);
@@ -32,22 +32,26 @@ export async function POST(request: Request) {
 
     if (!files.length) {
       return NextResponse.json(
-        { message: "Envie ao menos um arquivo de video para treinamento." },
+        { message: "Envie ao menos um arquivo para treinamento." },
         { status: 400 },
       );
     }
 
     if (files.length > MAX_TRAINING_FILES) {
       return NextResponse.json(
-        { message: `Envie no maximo ${MAX_TRAINING_FILES} videos por vez.` },
+        { message: `Envie no maximo ${MAX_TRAINING_FILES} arquivos por vez.` },
         { status: 400 },
       );
     }
 
     for (const file of files) {
-      if (!file.type.startsWith("video/")) {
+      if (!isAllowedTrainingMime(trainingRole, file.type)) {
+        const expected =
+          trainingRole === "avatar_image"
+            ? "uma imagem (PNG, JPEG ou WebP)"
+            : "um video";
         return NextResponse.json(
-          { message: `O arquivo ${file.name} nao e um video valido.` },
+          { message: `O arquivo ${file.name} deve ser ${expected}.` },
           { status: 400 },
         );
       }

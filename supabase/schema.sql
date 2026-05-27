@@ -174,6 +174,7 @@ create table if not exists profile_avatar_trainings (
   dry_run boolean not null default false,
   dataset_asset_id uuid null,
   consent_asset_id uuid null,
+  voice_audio_asset_id uuid null,
   avatar_name text not null default '',
   error_message text not null default '',
   created_at timestamptz not null default now(),
@@ -221,6 +222,9 @@ alter table if exists mandate_workflow_configs
 
 alter table if exists mandate_workflow_configs
   add column if not exists notification_email text not null default '';
+
+alter table if exists profile_avatar_trainings
+  add column if not exists voice_audio_asset_id uuid null;
 
 alter table if exists product_feedback
   add column if not exists criticality text not null default 'media';

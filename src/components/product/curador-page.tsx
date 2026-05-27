@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 
 import {
   archetypeOptions,
@@ -57,8 +57,8 @@ export function CuradorPage() {
     isSavingProfile,
     trainingAssets,
     uploadTrainingAssets,
-    isUploadingConsentAsset,
-    isUploadingDatasetAsset,
+    isUploadingVoiceAudioAsset,
+    isUploadingAvatarImageAsset,
   } = useProductApp();
   const assetReferenceId = profile?.id ?? profileForm.id ?? null;
   const visibleTrainingAssets = useMemo(
@@ -73,14 +73,59 @@ export function CuradorPage() {
     [assetReferenceId, trainingAssets],
   );
 
-  const datasetAssets = useMemo(
+  const avatarImageAssets = useMemo(
+    () =>
+      visibleTrainingAssets.filter((asset) => asset.trainingRole === "avatar_image"),
+    [visibleTrainingAssets],
+  );
+  const legacyDatasetAssets = useMemo(
     () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "dataset"),
     [visibleTrainingAssets],
   );
-  const consentAssets = useMemo(
-    () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "consent"),
+  const voiceAudioAssets = useMemo(
+    () =>
+      visibleTrainingAssets.filter((asset) => asset.trainingRole === "voice_audio"),
     [visibleTrainingAssets],
   );
+
+  const isTrainingInProgress =
+    isTrainingAvatar ||
+    avatarTrainingStatus === "TRAINING" ||
+    profileForm.avatarTrainingStatus === "TRAINING";
+
+  const curadorFormSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        spectrum: profileForm.spectrum,
+        glossaryTerms: profileForm.glossaryTerms,
+        personaArchetypes: profileForm.personaArchetypes,
+        voiceTones: profileForm.voiceTones,
+        avatarType: profileForm.avatarType,
+        avatarVideoTopic: profileForm.avatarVideoTopic,
+        notificationEmail: profileForm.notificationEmail,
+      }),
+    [
+      profileForm.spectrum,
+      profileForm.glossaryTerms,
+      profileForm.personaArchetypes,
+      profileForm.voiceTones,
+      profileForm.avatarType,
+      profileForm.avatarVideoTopic,
+      profileForm.notificationEmail,
+    ],
+  );
+
+  useEffect(() => {
+    if (!isTrainingInProgress) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void saveProfile();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [isTrainingInProgress, curadorFormSnapshot, saveProfile]);
 
   async function parseJsonOrText<T>(response: Response): Promise<T> {
     const contentType = response.headers.get("content-type") ?? "";
@@ -277,23 +322,23 @@ export function CuradorPage() {
     }
   }
 
-  async function handleTrainingFileChange(files: FileList | null) {
+  async function handleAvatarImageFileChange(files: FileList | null) {
     if (!files?.length) {
       return;
     }
 
-    await uploadTrainingAssets([files[0]], "dataset");
+    await uploadTrainingAssets([files[0]], "avatar_image");
   }
 
-  async function handleConsentFileChange(files: FileList | null) {
+  async function handleVoiceAudioFileChange(files: FileList | null) {
     if (!files?.length) {
       return;
     }
 
-    await uploadTrainingAssets([files[0]], "consent");
+    await uploadTrainingAssets([files[0]], "voice_audio");
   }
 
-  const readyToTrain = datasetAssets.length >= 1 && consentAssets.length >= 1;
+  const readyToTrain = avatarImageAssets.length >= 1 && voiceAudioAssets.length >= 1;
 
   return (
     <section className="persona-page">
@@ -314,93 +359,103 @@ export function CuradorPage() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Upload de videos <span className="persona-badge">Obrigatorio</span>
+              Materiais para o clone <span className="persona-badge">Obrigatorio</span>
             </label>
 
             <div className="persona-upload-files">
               <span className="persona-file-chip">
-                1) Video de autorizacao: {consentAssets.length ? "enviado" : "pendente"}
+                1) Audio de voz: {voiceAudioAssets.length ? "enviado" : "pendente"}
               </span>
               <span className="persona-file-chip">
-                2) Video de treinamento: {datasetAssets.length ? "enviado" : "pendente"}
+                2) Foto para clone: {avatarImageAssets.length ? "enviada" : "pendente"}
               </span>
             </div>
 
             <label
-              htmlFor={`${uploadInputId}-consent`}
-              className={`upload-area persona-upload-area ${isUploadingConsentAsset ? "persona-upload-area-loading" : ""}`}
+              htmlFor={`${uploadInputId}-voice-audio`}
+              className={`upload-area persona-upload-area ${isUploadingVoiceAudioAsset ? "persona-upload-area-loading" : ""}`}
             >
-              <h4>1) Enviar video de autorizacao (obrigatorio)</h4>
-              <p>Ate 30s, dizendo que autoriza o uso do video para treinar o avatar.</p>
+              <h4>1) Enviar audio de voz (obrigatorio)</h4>
+              <p>
+                Grave 30 segundos a 4 minutos da sua voz, falando de forma natural (MP3, WAV ou
+                M4A). Usamos para clonar o timbre na Argil.
+              </p>
               <input
-                id={`${uploadInputId}-consent`}
+                id={`${uploadInputId}-voice-audio`}
                 type="file"
-                accept="video/*"
+                accept="audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,.mp3,.wav,.m4a"
                 hidden
-                data-testid="training-consent-input"
+                data-testid="training-voice-audio-input"
                 onChange={(event) => {
-                  void handleConsentFileChange(event.target.files);
+                  void handleVoiceAudioFileChange(event.target.files);
                   event.target.value = "";
                 }}
               />
               <span className="persona-btn">
-                {isUploadingConsentAsset ? (
+                {isUploadingVoiceAudioAsset ? (
                   <span className="persona-loading-row">
                     <span className="persona-spinner" aria-hidden="true" />
                     Enviando...
                   </span>
-                ) : consentAssets.length ? (
-                  "Substituir video"
+                ) : voiceAudioAssets.length ? (
+                  "Substituir audio"
                 ) : (
-                  "Selecionar video"
+                  "Selecionar audio"
                 )}
               </span>
-              {isUploadingConsentAsset && <div className="persona-progress" />}
+              {isUploadingVoiceAudioAsset && <div className="persona-progress" />}
             </label>
 
             <label
-              htmlFor={`${uploadInputId}-dataset`}
-              className={`upload-area persona-upload-area ${isUploadingDatasetAsset ? "persona-upload-area-loading" : ""}`}
+              htmlFor={`${uploadInputId}-avatar-image`}
+              className={`upload-area persona-upload-area ${isUploadingAvatarImageAsset ? "persona-upload-area-loading" : ""}`}
             >
-              <h4>2) Enviar video de treinamento (obrigatorio)</h4>
+              <h4>2) Enviar foto para clone (obrigatorio)</h4>
               <p>
-                Ideal: 2 a 5 min, frente para a camera, audio claro. Esse video forma a base
-                de voz e comunicacao do avatar.
+                A Argil exige uma foto do rosto (PNG ou JPEG), bem iluminada, olhando para a
+                camera. Nao use mais video de treino neste passo.
               </p>
               <input
-                id={`${uploadInputId}-dataset`}
+                id={`${uploadInputId}-avatar-image`}
                 type="file"
-                accept="video/*"
+                accept="image/png,image/jpeg,image/webp"
                 hidden
-                data-testid="training-dataset-input"
+                data-testid="training-avatar-image-input"
                 onChange={(event) => {
-                  void handleTrainingFileChange(event.target.files);
+                  void handleAvatarImageFileChange(event.target.files);
                   event.target.value = "";
                 }}
               />
               <span className="persona-btn">
-                {isUploadingDatasetAsset ? (
+                {isUploadingAvatarImageAsset ? (
                   <span className="persona-loading-row">
                     <span className="persona-spinner" aria-hidden="true" />
                     Enviando...
                   </span>
-                ) : datasetAssets.length ? (
-                  "Substituir video"
+                ) : avatarImageAssets.length ? (
+                  "Substituir foto"
                 ) : (
-                  "Selecionar video"
+                  "Selecionar foto"
                 )}
               </span>
-              {isUploadingDatasetAsset && <div className="persona-progress" />}
+              {isUploadingAvatarImageAsset && <div className="persona-progress" />}
             </label>
 
-            <p className="persona-helper-text">
-              Dica: se o upload ficar pesado, grave em boa luz, celular na vertical e
-              evite ruido.
-            </p>
-            {!readyToTrain && (datasetAssets.length > 0 || consentAssets.length > 0) && (
+            {legacyDatasetAssets.length > 0 && !avatarImageAssets.length && (
               <p className="persona-helper-text persona-helper-highlight">
-                Para habilitar o treinamento, envie <strong>1 video de autorizacao</strong> e{" "}
-                <strong>1 video de treinamento</strong>.
+                Voce enviou um video de treino antigo. A API da Argil passou a exigir{" "}
+                <strong>foto (IMAGE)</strong>. Envie a foto acima e treine novamente.
+              </p>
+            )}
+
+            <p className="persona-helper-text">
+              Dica: audio sem ruido de fundo; foto em boa luz com rosto centralizado (16:9 ou
+              9:16).
+            </p>
+            {!readyToTrain && (avatarImageAssets.length > 0 || voiceAudioAssets.length > 0) && (
+              <p className="persona-helper-text persona-helper-highlight">
+                Para habilitar o treinamento, envie <strong>1 audio de voz</strong> e{" "}
+                <strong>1 foto para clone</strong>.
               </p>
             )}
           </div>
@@ -425,8 +480,8 @@ export function CuradorPage() {
               </button>
             </div>
             <p className="persona-helper-text">
-              Enquanto treinamos, voce pode preencher o restante do formulario.
-              Tempo aproximado: 5 minutos.
+              Enquanto treinamos, voce pode preencher o restante do formulario (salvamos
+              automaticamente). Tempo aproximado: 2 a 5 minutos.
             </p>
             {(trainingRequested || avatarTrainingStatus) && (
               <div

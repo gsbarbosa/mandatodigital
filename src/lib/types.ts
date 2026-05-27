@@ -31,7 +31,12 @@ export type TrainingAssetStatus = (typeof trainingAssetStatuses)[number];
 export const trainingAssetSourceTypes = ["upload", "youtube"] as const;
 export type TrainingAssetSourceType = (typeof trainingAssetSourceTypes)[number];
 
-export const trainingAssetRoles = ["dataset", "consent"] as const;
+export const trainingAssetRoles = [
+  "avatar_image",
+  "voice_audio",
+  "consent",
+  "dataset",
+] as const;
 export type TrainingAssetRole = (typeof trainingAssetRoles)[number];
 
 export const trainingStorageProviders = ["supabase", "local"] as const;
@@ -233,7 +238,9 @@ export type ProfileAvatarTraining = {
   status: AvatarTrainingStatus;
   dryRun: boolean;
   datasetAssetId: string | null;
+  /** @deprecated Legado (video de consentimento). Use voiceAudioAssetId. */
   consentAssetId: string | null;
+  voiceAudioAssetId: string | null;
   avatarName: string;
   errorMessage: string;
   createdAt: string;

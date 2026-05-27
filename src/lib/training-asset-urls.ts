@@ -116,14 +116,36 @@ export async function getTrainingAssetPublicUrl(
   return `${baseUrl}/api/profile/training-assets/${asset.id}/stream?token=${encodeURIComponent(token)}`;
 }
 
+function pickLatestAsset(assets: ProfileTrainingAsset[]) {
+  return [...assets].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
+}
+
+/** Foto (IMAGE) + audio de voz (clone via POST /voices) para treino na Argil. */
+export function pickAvatarImageAndVoiceAudioAssets(assets: ProfileTrainingAsset[]) {
+  const avatarImageAssets = assets.filter(
+    (asset) => asset.trainingRole === "avatar_image",
+  );
+  const voiceAudioAssets = assets.filter(
+    (asset) => asset.trainingRole === "voice_audio",
+  );
+
+  return {
+    avatarImageAsset: pickLatestAsset(avatarImageAssets),
+    voiceAudioAsset: pickLatestAsset(voiceAudioAssets),
+  };
+}
+
+/** @deprecated Use pickAvatarImageAndVoiceAudioAssets */
+export function pickAvatarImageAndConsentAssets(assets: ProfileTrainingAsset[]) {
+  return pickAvatarImageAndVoiceAudioAssets(assets);
+}
+
+/** @deprecated Use pickAvatarImageAndVoiceAudioAssets */
 export function pickDatasetAndConsentAssets(assets: ProfileTrainingAsset[]) {
+  const { avatarImageAsset, voiceAudioAsset } = pickAvatarImageAndVoiceAudioAssets(assets);
   const datasetAssets = assets.filter((asset) => asset.trainingRole === "dataset");
-  const consentAssets = assets.filter((asset) => asset.trainingRole === "consent");
-
   const datasetAsset =
-    datasetAssets.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
-  const consentAsset =
-    consentAssets.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
+    avatarImageAsset ?? pickLatestAsset(datasetAssets);
 
-  return { datasetAsset, consentAsset };
+  return { datasetAsset, consentAsset: voiceAudioAsset };
 }
