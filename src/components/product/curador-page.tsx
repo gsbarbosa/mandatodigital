@@ -57,7 +57,8 @@ export function CuradorPage() {
     isSavingProfile,
     trainingAssets,
     uploadTrainingAssets,
-    isUploadingTrainingAssets,
+    isUploadingConsentAsset,
+    isUploadingDatasetAsset,
   } = useProductApp();
   const assetReferenceId = profile?.id ?? profileForm.id ?? null;
   const visibleTrainingAssets = useMemo(
@@ -327,7 +328,7 @@ export function CuradorPage() {
 
             <label
               htmlFor={`${uploadInputId}-consent`}
-              className={`upload-area persona-upload-area ${isUploadingTrainingAssets ? "persona-upload-area-loading" : ""}`}
+              className={`upload-area persona-upload-area ${isUploadingConsentAsset ? "persona-upload-area-loading" : ""}`}
             >
               <h4>1) Enviar video de autorizacao (obrigatorio)</h4>
               <p>Ate 30s, dizendo que autoriza o uso do video para treinar o avatar.</p>
@@ -343,7 +344,7 @@ export function CuradorPage() {
                 }}
               />
               <span className="persona-btn">
-                {isUploadingTrainingAssets ? (
+                {isUploadingConsentAsset ? (
                   <span className="persona-loading-row">
                     <span className="persona-spinner" aria-hidden="true" />
                     Enviando...
@@ -354,12 +355,12 @@ export function CuradorPage() {
                   "Selecionar video"
                 )}
               </span>
-              {isUploadingTrainingAssets && <div className="persona-progress" />}
+              {isUploadingConsentAsset && <div className="persona-progress" />}
             </label>
 
             <label
               htmlFor={`${uploadInputId}-dataset`}
-              className={`upload-area persona-upload-area ${isUploadingTrainingAssets ? "persona-upload-area-loading" : ""}`}
+              className={`upload-area persona-upload-area ${isUploadingDatasetAsset ? "persona-upload-area-loading" : ""}`}
             >
               <h4>2) Enviar video de treinamento (obrigatorio)</h4>
               <p>
@@ -378,7 +379,7 @@ export function CuradorPage() {
                 }}
               />
               <span className="persona-btn">
-                {isUploadingTrainingAssets ? (
+                {isUploadingDatasetAsset ? (
                   <span className="persona-loading-row">
                     <span className="persona-spinner" aria-hidden="true" />
                     Enviando...
@@ -389,7 +390,7 @@ export function CuradorPage() {
                   "Selecionar video"
                 )}
               </span>
-              {isUploadingTrainingAssets && <div className="persona-progress" />}
+              {isUploadingDatasetAsset && <div className="persona-progress" />}
             </label>
 
             <p className="persona-helper-text">

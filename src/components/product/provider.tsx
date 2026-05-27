@@ -60,6 +60,8 @@ type ProductAppContextValue = {
   isSavingContent: boolean;
   isSubmittingProductFeedback: boolean;
   isUploadingTrainingAssets: boolean;
+  isUploadingConsentAsset: boolean;
+  isUploadingDatasetAsset: boolean;
   isLoadingEvaluations: boolean;
   isFeedbackWidgetOpen: boolean;
   isEvaluatingContentRequestId: string | null;
@@ -133,12 +135,18 @@ export function ProductAppProvider({
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [isSubmittingProductFeedback, setIsSubmittingProductFeedback] =
     useState(false);
-  const [isUploadingTrainingAssets, setIsUploadingTrainingAssets] = useState(false);
+  const [uploadingTrainingRoles, setUploadingTrainingRoles] = useState<
+    Array<"dataset" | "consent">
+  >([]);
   const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
   const [isFeedbackWidgetOpen, setFeedbackWidgetOpen] = useState(false);
   const [isEvaluatingContentRequestId, setIsEvaluatingContentRequestId] = useState<
     string | null
   >(null);
+
+  const isUploadingTrainingAssets = uploadingTrainingRoles.length > 0;
+  const isUploadingConsentAsset = uploadingTrainingRoles.includes("consent");
+  const isUploadingDatasetAsset = uploadingTrainingRoles.includes("dataset");
 
   const latestApprovedContent = useMemo(
     () => contents.find((item) => item.status === "aprovado") ?? null,
@@ -311,12 +319,38 @@ export function ProductAppProvider({
     }
   }
 
+  async function uploadFileToSignedUrl(input: { signedUrl: string; token: string; file: File }) {
+    const url = new URL(input.signedUrl);
+    if (!url.searchParams.get("token")) {
+      url.searchParams.set("token", input.token);
+    }
+
+    const body = new FormData();
+    body.append("cacheControl", "3600");
+    body.append("", input.file);
+
+    const response = await fetch(url.toString(), {
+      method: "PUT",
+      headers: {
+        "x-upsert": "false",
+      },
+      body,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || `Upload falhou (${response.status}).`);
+    }
+  }
+
   async function uploadTrainingAssets(files: File[], trainingRole: "dataset" | "consent") {
     if (!files.length) {
       return [];
     }
 
-    setIsUploadingTrainingAssets(true);
+    setUploadingTrainingRoles((current) =>
+      current.includes(trainingRole) ? current : [...current, trainingRole],
+    );
     setStatusMessage(null);
 
     try {
@@ -326,27 +360,86 @@ export function ProductAppProvider({
         setProfileForm((current) => ({ ...current, id: profileReferenceId }));
       }
 
-      const formData = new FormData();
-      formData.append(profile?.id ? "profileId" : "draftProfileId", profileReferenceId);
-      formData.append("trainingRole", trainingRole);
-      files.forEach((file) => formData.append("files", file));
+      const isPersistedProfile = Boolean(profile?.id);
+      const profileId = isPersistedProfile ? profileReferenceId : null;
+      const draftProfileId = isPersistedProfile ? null : profileReferenceId;
 
-      const result = await handleApi<{ assets: ProfileTrainingAsset[] }>(
-        "/api/profile/training-assets",
-        {
+      const uploadedAssets: ProfileTrainingAsset[] = [];
+
+      for (const file of files) {
+        const signed = await handleApi<{
+          signedUrl?: string;
+          token?: string;
+          storageProvider?: "supabase";
+          storageBucket?: string;
+          storagePath?: string;
+          message?: string;
+        }>("/api/profile/training-assets/signed-upload", {
           method: "POST",
-          body: formData,
-        },
-      );
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            profileId,
+            draftProfileId,
+            trainingRole,
+            filename: file.name,
+          }),
+        }).catch(() => null);
 
-      setTrainingAssets((current) => [...result.assets, ...current]);
+        if (signed?.signedUrl && signed?.token && signed.storagePath) {
+          await uploadFileToSignedUrl({ signedUrl: signed.signedUrl, token: signed.token, file });
+
+          const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
+            "/api/profile/training-assets/register",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                profileId,
+                draftProfileId,
+                trainingRole,
+                storageProvider: "supabase",
+                storageBucket: signed.storageBucket ?? null,
+                storagePath: signed.storagePath,
+                originalFilename: file.name,
+                mimeType: file.type,
+                sizeBytes: file.size,
+              }),
+            },
+          );
+
+          uploadedAssets.push(...registered.assets);
+          continue;
+        }
+
+        // Fallback (dev/teste local): upload via API tradicional (multipart).
+        const formData = new FormData();
+        formData.append(isPersistedProfile ? "profileId" : "draftProfileId", profileReferenceId);
+        formData.append("trainingRole", trainingRole);
+        formData.append("files", file);
+
+        const result = await handleApi<{ assets: ProfileTrainingAsset[] }>(
+          "/api/profile/training-assets",
+          {
+            method: "POST",
+            body: formData,
+          },
+        );
+
+        uploadedAssets.push(...result.assets);
+      }
+
+      setTrainingAssets((current) => [...uploadedAssets, ...current]);
       setStatusMessage(
         trainingRole === "consent"
           ? "Video de autorizacao enviado."
           : "Video(s) de treinamento enviados.",
       );
 
-      return result.assets;
+      return uploadedAssets;
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -355,7 +448,7 @@ export function ProductAppProvider({
       );
       return [];
     } finally {
-      setIsUploadingTrainingAssets(false);
+      setUploadingTrainingRoles((current) => current.filter((role) => role !== trainingRole));
     }
   }
 
@@ -627,6 +720,8 @@ export function ProductAppProvider({
     isSavingContent,
     isSubmittingProductFeedback,
     isUploadingTrainingAssets,
+    isUploadingConsentAsset,
+    isUploadingDatasetAsset,
     isLoadingEvaluations,
     isFeedbackWidgetOpen,
     isEvaluatingContentRequestId,
