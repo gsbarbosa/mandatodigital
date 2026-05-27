@@ -80,10 +80,6 @@ export function CuradorPage() {
     () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "consent"),
     [visibleTrainingAssets],
   );
-  const orderedDatasetAssets = useMemo(() => {
-    return [...datasetAssets].sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1));
-  }, [datasetAssets]);
-
   async function pollAvatarTraining(trainingId: string) {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const response = await fetch(
@@ -273,15 +269,7 @@ export function CuradorPage() {
       return;
     }
 
-    await uploadTrainingAssets(Array.from(files), "dataset");
-  }
-
-  async function handleTrainingSlotFileChange(file: File | null) {
-    if (!file) {
-      return;
-    }
-
-    await uploadTrainingAssets([file], "dataset");
+    await uploadTrainingAssets([files[0]], "dataset");
   }
 
   async function handleConsentFileChange(files: FileList | null) {
@@ -292,15 +280,7 @@ export function CuradorPage() {
     await uploadTrainingAssets([files[0]], "consent");
   }
 
-  const readyToTrain = datasetAssets.length >= 2 && consentAssets.length >= 1;
-  const canAddMoreTraining = datasetAssets.length < 5;
-  const trainingSlots = [
-    { label: "Video 1 (obrigatorio)", required: true },
-    { label: "Video 2 (obrigatorio)", required: true },
-    { label: "Video 3 (opcional)", required: false },
-    { label: "Video 4 (opcional)", required: false },
-    { label: "Video 5 (opcional)", required: false },
-  ] as const;
+  const readyToTrain = datasetAssets.length >= 1 && consentAssets.length >= 1;
 
   return (
     <section className="persona-page">
@@ -329,7 +309,7 @@ export function CuradorPage() {
                 1) Video de autorizacao: {consentAssets.length ? "enviado" : "pendente"}
               </span>
               <span className="persona-file-chip">
-                2) Videos de treinamento: {datasetAssets.length} / 2 obrigatorios (ate 5)
+                2) Video de treinamento: {datasetAssets.length ? "enviado" : "pendente"}
               </span>
             </div>
 
@@ -369,105 +349,36 @@ export function CuradorPage() {
               htmlFor={`${uploadInputId}-dataset`}
               className={`upload-area persona-upload-area ${isUploadingTrainingAssets ? "persona-upload-area-loading" : ""}`}
             >
-              <h4>
-                2) Enviar videos de treinamento{" "}
-                <span className="persona-badge">Minimo 2</span>
-              </h4>
+              <h4>2) Enviar video de treinamento (obrigatorio)</h4>
               <p>
-                Ideal: 3+ min, frente para a camera, audio claro. Voce pode enviar ate{" "}
-                <strong>5</strong> no total.
+                Ideal: 2 a 5 min, frente para a camera, audio claro. Esse video forma a base
+                de voz e comunicacao do avatar.
               </p>
-              <div className="persona-upload-slot-list">
-                {trainingSlots.map((slot, index) => {
-                  const asset = orderedDatasetAssets[index] ?? null;
-                  const slotId = `${uploadInputId}-dataset-slot-${index + 1}`;
-                  const isFilled = Boolean(asset);
-                  const isDisabled =
-                    isUploadingTrainingAssets ||
-                    (!isFilled && !canAddMoreTraining) ||
-                    (slot.required && index > 0 && !orderedDatasetAssets[index - 1]);
-
-                  const statusLabel = asset
-                    ? "Enviado"
-                    : slot.required
-                      ? "Obrigatorio"
-                      : "Opcional";
-                  const statusVariant = asset ? "ok" : slot.required ? "warn" : "";
-
-                  return (
-                    <div key={slot.label} className="persona-upload-slot">
-                      <div className="persona-upload-slot-main">
-                        <div className="persona-upload-slot-title">{slot.label}</div>
-                        <div className="persona-upload-slot-meta">
-                          <span
-                            className={`persona-upload-slot-badge ${statusVariant}`}
-                            aria-label={`Status: ${statusLabel}`}
-                          >
-                            {statusLabel}
-                          </span>
-                          {asset ? (
-                            <span
-                              className="persona-upload-slot-filename"
-                              title={asset.originalFilename}
-                            >
-                              {asset.originalFilename}
-                            </span>
-                          ) : (
-                            <span className="persona-upload-slot-filename">
-                              {slot.required
-                                ? "Envie este video para liberar o treinamento."
-                                : "Opcional (melhora a qualidade)."}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {!isFilled && (
-                        <>
-                          <input
-                            id={slotId}
-                            type="file"
-                            accept="video/*"
-                            hidden
-                            data-testid={`training-dataset-slot-${index + 1}-input`}
-                            onChange={(event) => {
-                              void handleTrainingSlotFileChange(event.target.files?.[0] ?? null);
-                              event.target.value = "";
-                            }}
-                            disabled={isDisabled}
-                          />
-                          <label
-                            htmlFor={slotId}
-                            className="persona-btn persona-btn-compact"
-                            aria-disabled={isDisabled}
-                          >
-                            {isUploadingTrainingAssets ? (
-                              <span className="persona-loading-row">
-                                <span className="persona-spinner" aria-hidden="true" />
-                                Enviando...
-                              </span>
-                            ) : (
-                              "Selecionar"
-                            )}
-                          </label>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              <input
+                id={`${uploadInputId}-dataset`}
+                type="file"
+                accept="video/*"
+                hidden
+                data-testid="training-dataset-input"
+                onChange={(event) => {
+                  void handleTrainingFileChange(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+              <span className="persona-btn">
+                {isUploadingTrainingAssets ? (
+                  <span className="persona-loading-row">
+                    <span className="persona-spinner" aria-hidden="true" />
+                    Enviando...
+                  </span>
+                ) : datasetAssets.length ? (
+                  "Substituir video"
+                ) : (
+                  "Selecionar video"
+                )}
+              </span>
               {isUploadingTrainingAssets && <div className="persona-progress" />}
             </label>
-
-            {datasetAssets.length > 0 && (
-              <div className="persona-upload-files">
-                {datasetAssets.map((asset) => (
-                  <span key={asset.id} className="persona-file-chip">
-                    {asset.originalFilename} - {asset.status}
-                  </span>
-                ))}
-              </div>
-            )}
 
             <p className="persona-helper-text">
               Dica: se o upload ficar pesado, grave em boa luz, celular na vertical e
@@ -476,7 +387,7 @@ export function CuradorPage() {
             {!readyToTrain && (datasetAssets.length > 0 || consentAssets.length > 0) && (
               <p className="persona-helper-text persona-helper-highlight">
                 Para habilitar o treinamento, envie <strong>1 video de autorizacao</strong> e{" "}
-                <strong>2 videos de treinamento</strong>.
+                <strong>1 video de treinamento</strong>.
               </p>
             )}
           </div>

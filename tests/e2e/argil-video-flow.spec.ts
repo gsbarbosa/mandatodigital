@@ -23,15 +23,10 @@ test.describe("fluxo essencial Argil no Curador", () => {
       ),
     ]);
 
-    await page.getByTestId("training-dataset-slot-1-input").setInputFiles({
-      name: "treino-1.mp4",
+    await page.getByTestId("training-dataset-input").setInputFiles({
+      name: "treino.mp4",
       mimeType: "video/mp4",
-      buffer: Buffer.from("dummy-training-video-1"),
-    });
-    await page.getByTestId("training-dataset-slot-2-input").setInputFiles({
-      name: "treino-2.mp4",
-      mimeType: "video/mp4",
-      buffer: Buffer.from("dummy-training-video-2"),
+      buffer: Buffer.from("dummy-training-video"),
     });
     await page.getByTestId("training-consent-input").setInputFiles({
       name: "autorizacao.mp4",
