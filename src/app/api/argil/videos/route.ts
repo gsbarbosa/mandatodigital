@@ -26,6 +26,21 @@ function toGenerationStatus(status: string): AvatarVideoGenerationStatus {
     : "GENERATING_VIDEO";
 }
 
+export async function GET() {
+  return apiRoute(async (repository) => {
+    const dashboard = await repository.getDashboard();
+    const profileId = dashboard.profile?.id;
+
+    if (!profileId) {
+      return NextResponse.json({ generations: [] });
+    }
+
+    const generations = await avatarVideoStorage.listByProfileId(profileId);
+
+    return NextResponse.json({ generations });
+  });
+}
+
 export async function POST(request: Request) {
   return apiRoute(async (repository) => {
     const body = (await request.json()) as {

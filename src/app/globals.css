@@ -653,6 +653,47 @@ textarea.persona-input-control {
   background: #020617;
 }
 
+.persona-video-history-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.persona-video-history-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.persona-video-history-item.active {
+  border-color: #38bdf8;
+}
+
+.persona-video-history-select {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.persona-video-history-select span {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
 .login-page {
   min-height: 100vh;
   display: flex;

@@ -204,6 +204,46 @@ export const avatarVideoStorage = {
     return record;
   },
 
+  async listByProfileId(profileId: string, limit = 20) {
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      const { data, error } = await client
+        .from("avatar_video_generations")
+        .select("*")
+        .eq("profile_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        if (isSchemaCompatibilityError(error)) {
+          throwIfNoLocalSchemaFallback(error);
+          const database = await readLocalDatabase();
+          return (database.avatarVideoGenerations ?? [])
+            .filter((item) => item.profileId === profileId)
+            .sort(
+              (left, right) =>
+                new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+            )
+            .slice(0, limit);
+        }
+
+        throw error;
+      }
+
+      return (data ?? []).map((row) => mapRow(row));
+    }
+
+    assertLocalFilesystemAllowed();
+    const database = await readLocalDatabase();
+    return (database.avatarVideoGenerations ?? [])
+      .filter((item) => item.profileId === profileId)
+      .sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+      )
+      .slice(0, limit);
+  },
+
   async getById(id: string) {
     if (isSupabaseConfigured()) {
       const client = getSupabaseClient();

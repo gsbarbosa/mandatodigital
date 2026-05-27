@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   archetypeOptions,
@@ -8,9 +8,58 @@ import {
   spectrumOptions,
   voiceToneOptions,
 } from "@/lib/constants";
+import type { AvatarVideoGeneration } from "@/lib/types";
 
 import { AvatarImageCropModal } from "./avatar-image-crop-modal";
 import { useProductApp } from "./provider";
+
+type VideoGenerationPayload = {
+  id: string;
+  status?: string;
+  previewUrl?: string;
+  videoUrl?: string;
+  errorMessage?: string;
+  topic?: string;
+  createdAt?: string;
+};
+
+function formatVideoStatusLabel(status: string | null | undefined) {
+  switch (status) {
+    case "GENERATING_AUDIO":
+      return "Gerando audio";
+    case "GENERATING_VIDEO":
+      return "Gerando video (lip-sync)";
+    case "DONE":
+      return "Concluido";
+    case "FAILED":
+      return "Falhou";
+    case "DRY_RUN":
+      return "Simulacao (dry-run)";
+    case "IDLE":
+      return "Aguardando";
+    default:
+      return status || "Desconhecido";
+  }
+}
+
+function formatVideoCreatedAt(value: string | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function toggleValue(values: string[], value: string) {
   return values.includes(value)
@@ -46,10 +95,14 @@ export function CuradorPage() {
   const [avatarTrainingError, setAvatarTrainingError] = useState<string | null>(null);
   const [videoGenerationId, setVideoGenerationId] = useState<string | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [isRefreshingVideoStatus, setIsRefreshingVideoStatus] = useState(false);
+  const [isLoadingVideoGenerations, setIsLoadingVideoGenerations] = useState(false);
+  const [videoGenerations, setVideoGenerations] = useState<AvatarVideoGeneration[]>([]);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const autoPollStartedRef = useRef(false);
   const [avatarImageToCrop, setAvatarImageToCrop] = useState<File | null>(null);
   const {
     profile,
@@ -240,6 +293,124 @@ export function CuradorPage() {
     );
   }
 
+  function isVideoInProgress(generation?: { status?: string; videoUrl?: string | null }) {
+    if (!generation?.status || generation.status === "FAILED") {
+      return false;
+    }
+
+    return !isVideoReady(generation);
+  }
+
+  const applyGenerationState = useCallback((generation: VideoGenerationPayload) => {
+    setVideoGenerationId(generation.id);
+    setVideoStatus(generation.status ?? null);
+    setVideoPreviewUrl(generation.previewUrl?.trim() || null);
+    setVideoUrl(generation.videoUrl?.trim() || null);
+    if (generation.status === "FAILED" && generation.errorMessage) {
+      setVideoError(generation.errorMessage);
+    }
+  }, []);
+
+  const upsertVideoGeneration = useCallback((generation: AvatarVideoGeneration) => {
+    setVideoGenerations((current) => {
+      const withoutCurrent = current.filter((item) => item.id !== generation.id);
+      return [generation, ...withoutCurrent].sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+      );
+    });
+  }, []);
+
+  async function loadVideoGenerations() {
+    if (!assetReferenceId) {
+      setVideoGenerations([]);
+      return;
+    }
+
+    setIsLoadingVideoGenerations(true);
+
+    try {
+      const response = await fetch("/api/argil/videos");
+      const payload = await parseJsonOrText<{ generations?: AvatarVideoGeneration[] }>(
+        response,
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const generations = payload.generations ?? [];
+      setVideoGenerations(generations);
+
+      const active =
+        generations.find((generation) => isVideoInProgress(generation)) ?? generations[0];
+
+      if (active) {
+        applyGenerationState(active);
+      }
+    } finally {
+      setIsLoadingVideoGenerations(false);
+    }
+  }
+
+  async function refreshVideoGeneration(generationId: string, options?: { poll?: boolean }) {
+    setIsRefreshingVideoStatus(true);
+    setVideoError(null);
+
+    try {
+      if (options?.poll) {
+        setIsGeneratingVideo(true);
+        await pollVideoGeneration(generationId);
+        return;
+      }
+
+      const response = await fetch(`/api/argil/videos/${generationId}`);
+      const payload = await parseJsonOrText<{ generation?: AvatarVideoGeneration }>(response);
+
+      if (!response.ok || !payload.generation) {
+        throw new Error("Nao foi possivel consultar o status do video.");
+      }
+
+      applyGenerationState(payload.generation);
+      upsertVideoGeneration(payload.generation);
+
+      if (payload.generation.status === "FAILED") {
+        setVideoError(
+          payload.generation.errorMessage || "A geracao do video falhou na Argil.",
+        );
+      }
+    } catch (error) {
+      setVideoError(
+        error instanceof Error ? error.message : "Nao foi possivel consultar o status do video.",
+      );
+    } finally {
+      setIsRefreshingVideoStatus(false);
+      setIsGeneratingVideo(false);
+    }
+  }
+
+  useEffect(() => {
+    autoPollStartedRef.current = false;
+    void loadVideoGenerations();
+  }, [assetReferenceId]);
+
+  useEffect(() => {
+    if (autoPollStartedRef.current || isGeneratingVideo) {
+      return;
+    }
+
+    const inProgress = videoGenerations.find((generation) => isVideoInProgress(generation));
+    if (!inProgress) {
+      return;
+    }
+
+    autoPollStartedRef.current = true;
+    setIsGeneratingVideo(true);
+    void pollVideoGeneration(inProgress.id).finally(() => {
+      setIsGeneratingVideo(false);
+    });
+  }, [videoGenerations, isGeneratingVideo]);
+
   async function pollVideoGeneration(generationId: string) {
     const pollIntervalMs = 5000;
     const maxAttempts = 180;
@@ -247,12 +418,7 @@ export function CuradorPage() {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const response = await fetch(`/api/argil/videos/${generationId}`);
       const payload = await parseJsonOrText<{
-        generation?: {
-          status?: string;
-          previewUrl?: string;
-          videoUrl?: string;
-          dryRun?: boolean;
-        };
+        generation?: AvatarVideoGeneration;
         message?: string;
       }>(response);
 
@@ -261,9 +427,10 @@ export function CuradorPage() {
       }
 
       const generation = payload.generation;
-      setVideoStatus(generation?.status ?? null);
-      setVideoPreviewUrl(generation?.previewUrl || null);
-      setVideoUrl(generation?.videoUrl?.trim() || null);
+      if (generation) {
+        applyGenerationState(generation);
+        upsertVideoGeneration(generation);
+      }
 
       if (generation?.status === "FAILED") {
         throw new Error("A geracao do video falhou na Argil.");
@@ -312,12 +479,7 @@ export function CuradorPage() {
 
       const payload = await parseJsonOrText<{
         dryRun?: boolean;
-        generation?: {
-          id: string;
-          status?: string;
-          previewUrl?: string;
-          videoUrl?: string;
-        };
+        generation?: AvatarVideoGeneration;
         message?: string;
       }>(response);
 
@@ -330,12 +492,16 @@ export function CuradorPage() {
         throw new Error("Resposta invalida: geracao sem id.");
       }
 
-      setVideoGenerationId(generationId);
-      setVideoStatus(payload.generation?.status ?? (payload.dryRun ? "DRY_RUN" : "IDLE"));
-      setVideoPreviewUrl(payload.generation?.previewUrl ?? null);
-      setVideoUrl(payload.generation?.videoUrl ?? null);
+      if (payload.generation) {
+        applyGenerationState(payload.generation);
+        upsertVideoGeneration(payload.generation);
+      } else {
+        setVideoGenerationId(generationId);
+        setVideoStatus(payload.dryRun ? "DRY_RUN" : "IDLE");
+      }
 
       await pollVideoGeneration(generationId);
+      await loadVideoGenerations();
     } catch (error) {
       setVideoError(error instanceof Error ? error.message : "Falha ao gerar o video.");
     } finally {
@@ -715,12 +881,74 @@ export function CuradorPage() {
             </button>
             <p className="persona-helper-text persona-top-gap">
               A Argil primeiro mostra uma pre-visualizacao estatica; o video com lip-sync leva em
-              media <strong>5 a 15 minutos</strong>. Aguarde na tela ate aparecer o link do video
-              final.
+              media <strong>5 a 15 minutos</strong>. Voce pode sair e voltar depois — o status fica
+              salvo na lista abaixo.
             </p>
           </div>
 
-          {(videoStatus || videoError || videoPreviewUrl || videoUrl || videoGenerationId) && (
+          {(videoGenerations.length > 0 || isLoadingVideoGenerations) && (
+            <div className="persona-form-group" data-testid="argil-video-history">
+              <label className="persona-label">Videos gerados</label>
+              {isLoadingVideoGenerations ? (
+                <p className="persona-helper-text">Carregando historico...</p>
+              ) : (
+                <ul className="persona-video-history-list">
+                  {videoGenerations.map((generation) => {
+                    const isSelected = videoGenerationId === generation.id;
+                    const ready = isVideoReady(generation);
+
+                    return (
+                      <li
+                        key={generation.id}
+                        className={
+                          isSelected
+                            ? "persona-video-history-item active"
+                            : "persona-video-history-item"
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="persona-video-history-select"
+                          onClick={() => {
+                            setVideoError(null);
+                            applyGenerationState(generation);
+                          }}
+                        >
+                          <strong>{generation.topic || "Sem tema"}</strong>
+                          <span>{formatVideoCreatedAt(generation.createdAt)}</span>
+                          <span data-testid={`argil-video-history-status-${generation.id}`}>
+                            {formatVideoStatusLabel(generation.status)}
+                            {ready ? " — pronto" : ""}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="persona-btn"
+                          disabled={isRefreshingVideoStatus || isGeneratingVideo}
+                          onClick={() =>
+                            void refreshVideoGeneration(
+                              generation.id,
+                              isVideoInProgress(generation) ? { poll: true } : undefined,
+                            )
+                          }
+                          data-testid={`argil-video-refresh-${generation.id}`}
+                        >
+                          {isVideoInProgress(generation) ? "Acompanhar" : "Atualizar"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {(videoStatus ||
+            videoError ||
+            videoPreviewUrl ||
+            videoUrl ||
+            videoGenerationId ||
+            isRefreshingVideoStatus) && (
             <div
               className="persona-form-group persona-support-block"
               data-testid="argil-video-generation-panel"
@@ -737,10 +965,12 @@ export function CuradorPage() {
                 <>
                   {videoStatus && (
                     <p className="persona-helper-text" data-testid="argil-video-status">
-                      Status: {videoStatus}
+                      Status: {formatVideoStatusLabel(videoStatus)}
                     </p>
                   )}
-                  {isGeneratingVideo && <div className="persona-progress" />}
+                  {(isGeneratingVideo || isRefreshingVideoStatus) && (
+                    <div className="persona-progress" />
+                  )}
                   {videoGenerationId && (
                     <p className="persona-helper-text" data-testid="argil-video-generation-id">
                       Job: {videoGenerationId}
