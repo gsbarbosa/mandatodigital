@@ -129,7 +129,7 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     audience: data?.audience ?? "",
     spectrum: data?.spectrum ?? spectrumOptions[0],
     archetype: data?.archetype ?? archetypeOptions[0],
-    voiceTones: data?.voiceTones?.length ? data.voiceTones : ["Didatico"],
+    voiceTones: data?.voiceTones ?? [],
     keyIssues: toTextarea(data?.keyIssues ?? []),
     slogans: toTextarea(data?.slogans ?? []),
     redLines: toTextarea(data?.redLines ?? []),

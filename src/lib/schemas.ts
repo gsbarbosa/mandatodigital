@@ -52,7 +52,7 @@ export const profileInputSchema = z.object({
   audience: z.string().trim().min(3),
   spectrum: z.string().trim().min(3),
   archetype: z.string().trim().min(3),
-  voiceTones: z.array(z.string().trim().min(2)).min(1),
+  voiceTones: z.array(z.string().trim().min(2)).default([]),
   keyIssues: requiredStringList,
   slogans: optionalStringList,
   redLines: optionalStringList,

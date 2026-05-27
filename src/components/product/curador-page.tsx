@@ -610,13 +610,10 @@ export function CuradorPage() {
                   key={tone}
                   active={profileForm.voiceTones.includes(tone)}
                   onClick={() =>
-                    setProfileForm((current) => {
-                      const voiceTones = toggleValue(current.voiceTones, tone);
-                      return {
-                        ...current,
-                        voiceTones: voiceTones.length ? voiceTones : current.voiceTones,
-                      };
-                    })
+                    setProfileForm((current) => ({
+                      ...current,
+                      voiceTones: toggleValue(current.voiceTones, tone),
+                    }))
                   }
                 >
                   {tone}
@@ -688,124 +685,6 @@ export function CuradorPage() {
               Usaremos este e-mail para avisar quando o treinamento terminar (e, no futuro,
               para enviar o link do video final).
             </p>
-          </div>
-
-          <div className="persona-form-group persona-support-block">
-            <label className="persona-label">Dados complementares do mandato</label>
-            <p className="persona-helper-text">
-              Esta camada nao aparece no HTML original, mas continua necessaria para o
-              MVP executar geracao, auditoria e memoria editorial.
-            </p>
-
-            <div className="persona-grid-two">
-              <label className="persona-compact-field">
-                <span>Nome publico</span>
-                <input
-                  value={profileForm.fullName}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      fullName: event.target.value,
-                    }))
-                  }
-                  placeholder="Ex.: Maria Souza"
-                  data-testid="profile-full-name"
-                />
-              </label>
-
-              <label className="persona-compact-field">
-                <span>Cargo / posicao</span>
-                <input
-                  value={profileForm.role}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      role: event.target.value,
-                    }))
-                  }
-                  placeholder="Ex.: Vereadora"
-                  data-testid="profile-role"
-                />
-              </label>
-
-              <label className="persona-compact-field">
-                <span>Cidade</span>
-                <input
-                  value={profileForm.city}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      city: event.target.value,
-                    }))
-                  }
-                  placeholder="Ex.: Recife"
-                  data-testid="profile-city"
-                />
-              </label>
-
-              <label className="persona-compact-field">
-                <span>UF</span>
-                <input
-                  value={profileForm.state}
-                  maxLength={2}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      state: event.target.value.toUpperCase(),
-                    }))
-                  }
-                  placeholder="PE"
-                  data-testid="profile-state"
-                />
-              </label>
-            </div>
-
-            <label className="persona-compact-field">
-              <span>Eleitorado prioritario</span>
-              <input
-                value={profileForm.audience}
-                onChange={(event) =>
-                  setProfileForm((current) => ({
-                    ...current,
-                    audience: event.target.value,
-                  }))
-                }
-                placeholder="Ex.: familias de bairro, empreendedores e servidores"
-                data-testid="profile-audience"
-              />
-            </label>
-
-            <div className="persona-grid-two">
-              <label className="persona-compact-field">
-                <span>Pautas prioritarias</span>
-                <textarea
-                  value={profileForm.keyIssues}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      keyIssues: event.target.value,
-                    }))
-                  }
-                  placeholder={"Uma pauta por linha\nSaude publica\nSeguranca"}
-                  data-testid="profile-key-issues"
-                />
-              </label>
-
-              <label className="persona-compact-field">
-                <span>Resumo da identidade</span>
-                <textarea
-                  value={profileForm.bio}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      bio: event.target.value,
-                    }))
-                  }
-                  placeholder="Como esse nome deve soar, o que defende e como costuma argumentar."
-                  data-testid="profile-bio"
-                />
-              </label>
-            </div>
           </div>
 
           <div className="persona-generate-row">
@@ -892,17 +771,6 @@ export function CuradorPage() {
               estadista conciliador com tom indignado e tema corrupcao. O agente tenta
               equilibrar posturas conflitantes, e o resultado pode ficar inconsistente.
             </p>
-          </div>
-
-          <div className="persona-footer-row">
-            <div className="linked-card persona-summary-card">
-              <strong>{profile?.fullName || "Curador em calibragem"}</strong>
-              <span>
-                {profile
-                  ? `${profile.role} - ${profile.city}/${profile.state} - ${profile.spectrum}`
-                  : "Salve a calibragem para registrar a configuracao do mandato."}
-              </span>
-            </div>
           </div>
         </div>
       </div>
