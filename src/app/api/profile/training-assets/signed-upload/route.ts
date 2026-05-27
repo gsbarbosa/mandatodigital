@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 import { handleRouteError } from "@/lib/api";
+import { buildResumableUploadEndpoint } from "@/lib/training-asset-upload-client";
 
 function getEnv(name: string) {
   return (process.env[name] ?? "").trim();
@@ -88,6 +89,7 @@ export async function POST(request: Request) {
         storagePath: data.path,
         signedUrl: data.signedUrl,
         token: data.token,
+        resumableEndpoint: buildResumableUploadEndpoint(url),
       },
       { status: 201 },
     );

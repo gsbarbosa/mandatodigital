@@ -26,6 +26,8 @@ import type {
   ProductFeedback,
 } from "@/lib/types";
 
+import { uploadTrainingFileToSupabase } from "@/lib/training-asset-upload-client";
+
 import {
   buildEvaluationReportsFromDashboard,
   buildProductFeedbackState,
@@ -319,30 +321,6 @@ export function ProductAppProvider({
     }
   }
 
-  async function uploadFileToSignedUrl(input: { signedUrl: string; token: string; file: File }) {
-    const url = new URL(input.signedUrl);
-    if (!url.searchParams.get("token")) {
-      url.searchParams.set("token", input.token);
-    }
-
-    const body = new FormData();
-    body.append("cacheControl", "3600");
-    body.append("", input.file);
-
-    const response = await fetch(url.toString(), {
-      method: "PUT",
-      headers: {
-        "x-upsert": "false",
-      },
-      body,
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || `Upload falhou (${response.status}).`);
-    }
-  }
-
   async function uploadTrainingAssets(files: File[], trainingRole: "dataset" | "consent") {
     if (!files.length) {
       return [];
@@ -370,6 +348,7 @@ export function ProductAppProvider({
         const signed = await handleApi<{
           signedUrl?: string;
           token?: string;
+          resumableEndpoint?: string;
           storageProvider?: "supabase";
           storageBucket?: string;
           storagePath?: string;
@@ -387,8 +366,21 @@ export function ProductAppProvider({
           }),
         }).catch(() => null);
 
-        if (signed?.signedUrl && signed?.token && signed.storagePath) {
-          await uploadFileToSignedUrl({ signedUrl: signed.signedUrl, token: signed.token, file });
+        if (
+          signed?.signedUrl &&
+          signed?.token &&
+          signed.storagePath &&
+          signed.storageBucket &&
+          signed.resumableEndpoint
+        ) {
+          await uploadTrainingFileToSupabase({
+            signedUrl: signed.signedUrl,
+            token: signed.token,
+            storageBucket: signed.storageBucket,
+            storagePath: signed.storagePath,
+            resumableEndpoint: signed.resumableEndpoint,
+            file,
+          });
 
           const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
             "/api/profile/training-assets/register",

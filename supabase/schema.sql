@@ -99,9 +99,12 @@ create table if not exists mandate_workflow_configs (
   updated_at timestamptz not null default now()
 );
 
-insert into storage.buckets (id, name, public)
-values ('persona-training-videos', 'persona-training-videos', false)
-on conflict (id) do nothing;
+-- Limite por bucket: 150 MB (ajuste no Dashboard se o plano permitir mais).
+-- O limite global do projeto (Storage → Settings) deve ser >= ao do bucket.
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('persona-training-videos', 'persona-training-videos', false, 157286400)
+on conflict (id) do update
+set file_size_limit = excluded.file_size_limit;
 
 create table if not exists profile_training_assets (
   id uuid primary key default gen_random_uuid(),
