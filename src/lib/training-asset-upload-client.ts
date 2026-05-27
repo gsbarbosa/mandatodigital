@@ -19,10 +19,10 @@ export function buildResumableUploadEndpoint(supabaseUrl: string) {
 
   if (host.endsWith(".supabase.co")) {
     const projectRef = host.split(".")[0];
-    return `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`;
+    return `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable/sign`;
   }
 
-  return `${normalized}/storage/v1/upload/resumable`;
+  return `${normalized}/storage/v1/upload/resumable/sign`;
 }
 
 export function formatStorageUploadError(raw: string, fileSizeBytes?: number) {
@@ -76,12 +76,14 @@ export function uploadTrainingFileViaTus(input: {
   storagePath: string;
   token: string;
   resumableEndpoint: string;
+  anonKey: string;
 }) {
   return new Promise<void>((resolve, reject) => {
     const upload = new tus.Upload(input.file, {
       endpoint: input.resumableEndpoint,
       retryDelays: [0, 3000, 5000, 10000, 20000],
       headers: {
+        apikey: input.anonKey,
         "x-signature": input.token,
         "x-upsert": "false",
       },
@@ -115,12 +117,20 @@ export async function uploadTrainingFileToSupabase(input: SignedTrainingUploadPa
   file: File;
 }) {
   if (input.file.size > SUPABASE_STANDARD_UPLOAD_MAX_BYTES) {
+    const anonKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+    if (!anonKey) {
+      throw new Error(
+        "Falta NEXT_PUBLIC_SUPABASE_ANON_KEY para upload resumavel (TUS) no Supabase Storage.",
+      );
+    }
+
     await uploadTrainingFileViaTus({
       file: input.file,
       bucketName: input.storageBucket,
       storagePath: input.storagePath,
       token: input.token,
       resumableEndpoint: input.resumableEndpoint,
+      anonKey,
     });
     return;
   }
