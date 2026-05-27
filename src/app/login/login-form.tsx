@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { getAuthCallbackUrl } from "@/lib/auth/redirect-url";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
@@ -27,7 +28,16 @@ export function LoginForm() {
       const supabase = createSupabaseBrowserClient();
 
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const emailRedirectTo = getAuthCallbackUrl(window.location.origin);
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: emailRedirectTo
+            ? {
+                emailRedirectTo: `${emailRedirectTo}?next=${encodeURIComponent(nextPath)}`,
+              }
+            : undefined,
+        });
 
         if (error) {
           throw error;
