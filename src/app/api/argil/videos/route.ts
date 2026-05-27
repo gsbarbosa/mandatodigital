@@ -59,6 +59,7 @@ export async function POST(request: Request) {
 
     const dashboard = await repository.getDashboard();
     const profileId = dashboard.profile?.id ?? null;
+    const profileAvatarId = dashboard.profile?.argilAvatarId?.trim() || undefined;
     const transcript =
       explicitTranscript ||
       buildAvatarVideoTranscript({
@@ -84,8 +85,8 @@ export async function POST(request: Request) {
       topic,
       transcript,
       name: generation.name,
-      avatarId: dashboard.profile?.argilAvatarId || undefined,
-      voiceId: dashboard.profile?.argilVoiceId || undefined,
+      avatarId: profileAvatarId,
+      voiceId: dashboard.profile?.argilVoiceId?.trim() || undefined,
       callbackUrl,
     });
 

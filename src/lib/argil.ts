@@ -11,9 +11,24 @@ function getEnv(name: string) {
   return (process.env[name] ?? "").trim();
 }
 
+const ARGIL_PLACEHOLDER_IDS = new Set(["dry-run-avatar-id", "dry-run-voice-id"]);
+
+const ARGIL_UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function isDryRunEnabled() {
   const value = getEnv("ARGIL_DRY_RUN");
   return value === "" || value.toLowerCase() === "true" || value === "1";
+}
+
+export function isArgilPlaceholderId(id: string | null | undefined) {
+  const trimmed = (id ?? "").trim();
+  return !trimmed || ARGIL_PLACEHOLDER_IDS.has(trimmed);
+}
+
+export function isValidArgilUuid(id: string | null | undefined) {
+  const trimmed = (id ?? "").trim();
+  return ARGIL_UUID_PATTERN.test(trimmed);
 }
 
 export function getArgilConfig(overrides?: {
@@ -21,10 +36,11 @@ export function getArgilConfig(overrides?: {
   voiceId?: string;
 }) {
   const apiKey = getEnv("ARGIL_API_KEY");
+  const dryRun = isDryRunEnabled();
   const avatarId =
     overrides?.avatarId?.trim() ||
     getEnv("ARGIL_AVATAR_ID") ||
-    "dry-run-avatar-id";
+    (dryRun ? "dry-run-avatar-id" : "");
   const voiceId = overrides?.voiceId?.trim() || getEnv("ARGIL_VOICE_ID");
   const aspectRatio = (getEnv("ARGIL_ASPECT_RATIO") || "9:16") as ArgilAspectRatio;
   const subtitlesEnabled = (getEnv("ARGIL_SUBTITLES_ENABLED") || "true")
@@ -39,8 +55,26 @@ export function getArgilConfig(overrides?: {
     aspectRatio,
     subtitlesEnabled: subtitlesEnabled === "true" || subtitlesEnabled === "1",
     baseUrl,
-    dryRun: isDryRunEnabled(),
+    dryRun,
   };
+}
+
+function assertResolvableArgilAvatarId(avatarId: string, dryRun: boolean) {
+  if (dryRun && isArgilPlaceholderId(avatarId)) {
+    return;
+  }
+
+  if (isArgilPlaceholderId(avatarId)) {
+    throw new Error(
+      "Nenhum avatar Argil configurado. No Curador, envie foto e audio e clique em Treinar clone IA antes de gerar o video.",
+    );
+  }
+
+  if (!isValidArgilUuid(avatarId)) {
+    throw new Error(
+      `Avatar Argil invalido (${avatarId}). Treine o clone novamente no Curador para obter um ID valido.`,
+    );
+  }
 }
 
 export type ArgilCreateAndRenderInput = {
@@ -159,9 +193,9 @@ async function argilFetch<T>(
 }
 
 export async function argilGetAvatar(avatarId: string) {
-  const config = getArgilConfig();
+  const config = getArgilConfig({ avatarId });
 
-  if (config.dryRun) {
+  if (config.dryRun && isArgilPlaceholderId(avatarId)) {
     return {
       id: avatarId,
       name: "Dry-run avatar",
@@ -169,6 +203,8 @@ export async function argilGetAvatar(avatarId: string) {
       voiceId: "dry-run-voice-id",
     } satisfies ArgilAvatar;
   }
+
+  assertResolvableArgilAvatarId(avatarId, config.dryRun);
 
   return argilFetch<ArgilAvatar>(`/avatars/${avatarId}`);
 }
@@ -324,6 +360,8 @@ export async function argilCreateAndRenderVideo(
   if (!config.dryRun && !config.apiKey) {
     throw new Error("ARGIL_API_KEY nao configurado.");
   }
+
+  assertResolvableArgilAvatarId(config.avatarId, config.dryRun);
 
   const avatar = await argilGetAvatar(config.avatarId);
   if (avatar.status !== "IDLE" && !config.dryRun) {

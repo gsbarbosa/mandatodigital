@@ -10,6 +10,8 @@ import {
   argilCreateAvatarFromImage,
   argilCreateVoiceFromAudio,
   argilGetAvatar,
+  isArgilPlaceholderId,
+  isValidArgilUuid,
   getArgilConfig,
   isArgilAvatarTerminal,
 } from "@/lib/argil";
@@ -213,7 +215,9 @@ export async function GET(request: Request) {
     if (
       training.argilAvatarId &&
       !training.dryRun &&
-      !isAvatarTrainingTerminal(training.status)
+      !isAvatarTrainingTerminal(training.status) &&
+      !isArgilPlaceholderId(training.argilAvatarId) &&
+      isValidArgilUuid(training.argilAvatarId)
     ) {
       const avatar = await argilGetAvatar(training.argilAvatarId);
       const nextStatus = toTrainingStatus(avatar.status);
