@@ -32,10 +32,21 @@ export function formatStorageUploadError(raw: string, fileSizeBytes?: number) {
       : "";
 
   if (raw.includes("413") || raw.toLowerCase().includes("payload too large")) {
+    const sizeMbNum = fileSizeBytes ? fileSizeBytes / (1024 * 1024) : 0;
+
+    if (sizeMbNum > 50) {
+      return (
+        `O video tem ${sizeMbNum.toFixed(1)} MB. No plano Free do Supabase o limite global e 50 MB ` +
+        `(seu arquivo passa disso). Opcoes: (1) comprimir o video para ~40–45 MB; ` +
+        `(2) no plano Pro, em Storage → Settings, subir "Global file size limit" para 100 MB+ ` +
+        `e alinhar o bucket persona-training-videos.`
+      );
+    }
+
     return (
       `O video${sizeMb} excede o limite do Supabase Storage. ` +
-      "No painel: Storage → Settings → Global file size limit (ex.: 100 MB no Pro) " +
-      "e edite o bucket persona-training-videos → Restrict file size alinhado ao global."
+      "No painel: Storage → Settings → Global file size limit " +
+      "e edite o bucket persona-training-videos (limite do bucket <= limite global)."
     );
   }
 

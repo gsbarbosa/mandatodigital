@@ -3,6 +3,11 @@ import path from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  assertLocalFilesystemAllowed,
+  canUseLocalFilesystem,
+  supabaseSchemaOutdatedMessage,
+} from "@/lib/server-runtime";
 import type { AvatarVideoGeneration, AvatarVideoGenerationStatus } from "@/lib/types";
 
 const DATABASE_PATH = path.join(process.cwd(), "data", "mandato-digital.json");
@@ -96,8 +101,15 @@ async function readLocalDatabase(): Promise<LocalDatabase> {
 }
 
 async function writeLocalDatabase(database: LocalDatabase) {
+  assertLocalFilesystemAllowed();
   await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });
   await fs.writeFile(DATABASE_PATH, JSON.stringify(database, null, 2));
+}
+
+function throwIfNoLocalSchemaFallback(error: unknown) {
+  if (!canUseLocalFilesystem()) {
+    throw new Error(supabaseSchemaOutdatedMessage(error));
+  }
 }
 
 function mapRow(row: Record<string, unknown>): AvatarVideoGeneration {
@@ -166,6 +178,7 @@ export const avatarVideoStorage = {
 
       if (error) {
         if (isSchemaCompatibilityError(error)) {
+          throwIfNoLocalSchemaFallback(error);
           const database = await readLocalDatabase();
           database.avatarVideoGenerations = [
             record,
@@ -181,6 +194,7 @@ export const avatarVideoStorage = {
       return mapRow(data);
     }
 
+    assertLocalFilesystemAllowed();
     const database = await readLocalDatabase();
     database.avatarVideoGenerations = [
       record,
@@ -201,6 +215,7 @@ export const avatarVideoStorage = {
 
       if (error) {
         if (isSchemaCompatibilityError(error)) {
+          throwIfNoLocalSchemaFallback(error);
           const database = await readLocalDatabase();
           return (
             database.avatarVideoGenerations?.find((item) => item.id === id) ?? null
@@ -213,6 +228,7 @@ export const avatarVideoStorage = {
       return data ? mapRow(data) : null;
     }
 
+    assertLocalFilesystemAllowed();
     const database = await readLocalDatabase();
     return database.avatarVideoGenerations?.find((item) => item.id === id) ?? null;
   },
@@ -228,6 +244,7 @@ export const avatarVideoStorage = {
 
       if (error) {
         if (isSchemaCompatibilityError(error)) {
+          throwIfNoLocalSchemaFallback(error);
           const database = await readLocalDatabase();
           return (
             database.avatarVideoGenerations?.find(
@@ -242,6 +259,7 @@ export const avatarVideoStorage = {
       return data ? mapRow(data) : null;
     }
 
+    assertLocalFilesystemAllowed();
     const database = await readLocalDatabase();
     return (
       database.avatarVideoGenerations?.find(
@@ -277,6 +295,7 @@ export const avatarVideoStorage = {
 
       if (error) {
         if (isSchemaCompatibilityError(error)) {
+          throwIfNoLocalSchemaFallback(error);
           const database = await readLocalDatabase();
           const index =
             database.avatarVideoGenerations?.findIndex((item) => item.id === id) ?? -1;
@@ -302,6 +321,7 @@ export const avatarVideoStorage = {
       return mapRow(data);
     }
 
+    assertLocalFilesystemAllowed();
     const database = await readLocalDatabase();
     const index =
       database.avatarVideoGenerations?.findIndex((item) => item.id === id) ?? -1;

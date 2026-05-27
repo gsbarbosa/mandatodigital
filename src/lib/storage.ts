@@ -3,6 +3,13 @@ import path from "node:path";
 
 import { createClient } from "@supabase/supabase-js";
 
+import {
+  assertLocalFilesystemAllowed,
+  canUseLocalFilesystem,
+  SUPABASE_REQUIRED_IN_PRODUCTION_MESSAGE,
+  supabaseSchemaOutdatedMessage,
+} from "@/lib/server-runtime";
+
 import type {
   ContentRequestInput,
   EvaluationCandidateCreateInput,
@@ -339,6 +346,7 @@ function mergeWorkflowProfileConfig(
 }
 
 async function ensureLocalDatabase() {
+  assertLocalFilesystemAllowed();
   await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });
 
   try {
@@ -349,7 +357,23 @@ async function ensureLocalDatabase() {
 }
 
 async function ensureLocalTrainingAssetDir() {
+  assertLocalFilesystemAllowed();
   await fs.mkdir(LOCAL_TRAINING_ASSET_DIR, { recursive: true });
+}
+
+async function withLocalSchemaFallback<T>(
+  error: unknown,
+  localFallback: () => Promise<T>,
+): Promise<T> {
+  if (!isSchemaCompatibilityError(error)) {
+    throw error;
+  }
+
+  if (canUseLocalFilesystem()) {
+    return localFallback();
+  }
+
+  throw new Error(supabaseSchemaOutdatedMessage(error));
 }
 
 async function readLocalDatabase(): Promise<AppDatabase> {
@@ -1240,11 +1264,9 @@ const supabaseRepository: Repository = {
       .select("*");
 
     if (error) {
-      if (isSchemaCompatibilityError(error)) {
-        return localRepository.createTrainingAssets(items);
-      }
-
-      throw error;
+      return withLocalSchemaFallback(error, () =>
+        localRepository.createTrainingAssets(items),
+      );
     }
 
     return data.map(mapTrainingAssetRow);
@@ -1806,7 +1828,15 @@ const supabaseRepository: Repository = {
 };
 
 export function getRepository(): Repository {
-  return isSupabaseConfigured() ? supabaseRepository : localRepository;
+  if (isSupabaseConfigured()) {
+    return supabaseRepository;
+  }
+
+  if (!canUseLocalFilesystem()) {
+    throw new Error(SUPABASE_REQUIRED_IN_PRODUCTION_MESSAGE);
+  }
+
+  return localRepository;
 }
 
 export async function storeTrainingAssetFile(input: {
@@ -1844,6 +1874,7 @@ export async function storeTrainingAssetFile(input: {
     };
   }
 
+  assertLocalFilesystemAllowed();
   await ensureLocalTrainingAssetDir();
   const absolutePath = path.join(LOCAL_TRAINING_ASSET_DIR, storagePath);
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
