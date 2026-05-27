@@ -108,6 +108,7 @@ create table if not exists profile_training_assets (
   profile_id uuid null references politician_profiles(id) on delete set null,
   draft_profile_id uuid null,
   source_type text not null default 'upload',
+  training_role text not null default 'dataset',
   storage_provider text not null default 'local',
   storage_bucket text null,
   storage_path text not null,
@@ -126,6 +127,9 @@ alter table if exists profile_training_assets
 
 alter table if exists profile_training_assets
   add column if not exists source_type text not null default 'upload';
+
+alter table if exists profile_training_assets
+  add column if not exists training_role text not null default 'dataset';
 
 alter table if exists profile_training_assets
   add column if not exists storage_provider text not null default 'local';
@@ -322,3 +326,5 @@ create index if not exists evaluation_scores_run_id_idx
 
 create unique index if not exists evaluation_scores_unique_idx
   on evaluation_scores(evaluation_run_id, candidate_id, criterion);
+
+

@@ -360,10 +360,16 @@ async function readLocalDatabase(): Promise<AppDatabase> {
     return structuredClone(EMPTY_DATABASE);
   }
 
-  return {
-    ...structuredClone(EMPTY_DATABASE),
-    ...JSON.parse(raw),
-  } as AppDatabase;
+  try {
+    return {
+      ...structuredClone(EMPTY_DATABASE),
+      ...JSON.parse(raw),
+    } as AppDatabase;
+  } catch {
+    const reset = structuredClone(EMPTY_DATABASE);
+    await fs.writeFile(DATABASE_PATH, JSON.stringify(reset, null, 2));
+    return reset;
+  }
 }
 
 async function writeLocalDatabase(database: AppDatabase) {
@@ -518,6 +524,7 @@ function mapTrainingAssetRow(row: Record<string, unknown>): ProfileTrainingAsset
     draftProfileId:
       row.draft_profile_id === null ? null : String(row.draft_profile_id),
     sourceType: String(row.source_type ?? "upload") as ProfileTrainingAsset["sourceType"],
+    trainingRole: String(row.training_role ?? "dataset") as ProfileTrainingAsset["trainingRole"],
     storageProvider: String(row.storage_provider ?? "local") as ProfileTrainingAsset["storageProvider"],
     storageBucket: row.storage_bucket === null ? null : String(row.storage_bucket),
     storagePath: String(row.storage_path ?? ""),
@@ -661,6 +668,7 @@ const localRepository: Repository = {
       profileId: item.profileId ?? null,
       draftProfileId: item.draftProfileId ?? null,
       sourceType: item.sourceType,
+      trainingRole: item.trainingRole,
       storageProvider: item.storageProvider,
       storageBucket: item.storageBucket ?? null,
       storagePath: item.storagePath,
@@ -1213,6 +1221,7 @@ const supabaseRepository: Repository = {
       profile_id: item.profileId ?? null,
       draft_profile_id: item.draftProfileId ?? null,
       source_type: item.sourceType,
+      training_role: item.trainingRole,
       storage_provider: item.storageProvider,
       storage_bucket: item.storageBucket ?? null,
       storage_path: item.storagePath,

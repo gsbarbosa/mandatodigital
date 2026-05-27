@@ -8,6 +8,41 @@ test.describe("fluxo essencial Argil no Curador", () => {
 
     await gotoCurador(page);
 
+    const trainingUploads = Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/profile/training-assets") &&
+          response.request().method() === "POST",
+        { timeout: 30_000 },
+      ),
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/profile/training-assets") &&
+          response.request().method() === "POST",
+        { timeout: 30_000 },
+      ),
+    ]);
+
+    await page.getByTestId("training-dataset-slot-1-input").setInputFiles({
+      name: "treino-1.mp4",
+      mimeType: "video/mp4",
+      buffer: Buffer.from("dummy-training-video-1"),
+    });
+    await page.getByTestId("training-dataset-slot-2-input").setInputFiles({
+      name: "treino-2.mp4",
+      mimeType: "video/mp4",
+      buffer: Buffer.from("dummy-training-video-2"),
+    });
+    await page.getByTestId("training-consent-input").setInputFiles({
+      name: "autorizacao.mp4",
+      mimeType: "video/mp4",
+      buffer: Buffer.from("dummy-consent-video"),
+    });
+
+    const [upload1, upload2] = await trainingUploads;
+    expect(upload1.status()).toBe(201);
+    expect(upload2.status()).toBe(201);
+
     const createResponse = page.waitForResponse(
       (response) =>
         response.url().includes("/api/argil/avatars/train") &&
@@ -17,6 +52,7 @@ test.describe("fluxo essencial Argil no Curador", () => {
 
     const trainButton = page.getByTestId("train-avatar-button");
     await trainButton.scrollIntoViewIfNeeded();
+    await expect(trainButton).toBeEnabled({ timeout: 30_000 });
     await trainButton.click();
 
     const response = await createResponse;

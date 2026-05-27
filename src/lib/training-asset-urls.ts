@@ -117,13 +117,13 @@ export async function getTrainingAssetPublicUrl(
 }
 
 export function pickDatasetAndConsentAssets(assets: ProfileTrainingAsset[]) {
-  if (!assets.length) {
-    return { datasetAsset: null, consentAsset: null };
-  }
+  const datasetAssets = assets.filter((asset) => asset.trainingRole === "dataset");
+  const consentAssets = assets.filter((asset) => asset.trainingRole === "consent");
 
-  const sorted = [...assets].sort((left, right) => right.sizeBytes - left.sizeBytes);
-  const datasetAsset = sorted[0] ?? null;
-  const consentAsset = sorted.length > 1 ? sorted[sorted.length - 1] : null;
+  const datasetAsset =
+    datasetAssets.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
+  const consentAsset =
+    consentAssets.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
 
   return { datasetAsset, consentAsset };
 }

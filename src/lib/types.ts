@@ -31,6 +31,9 @@ export type TrainingAssetStatus = (typeof trainingAssetStatuses)[number];
 export const trainingAssetSourceTypes = ["upload", "youtube"] as const;
 export type TrainingAssetSourceType = (typeof trainingAssetSourceTypes)[number];
 
+export const trainingAssetRoles = ["dataset", "consent"] as const;
+export type TrainingAssetRole = (typeof trainingAssetRoles)[number];
+
 export const trainingStorageProviders = ["supabase", "local"] as const;
 export type TrainingStorageProvider = (typeof trainingStorageProviders)[number];
 
@@ -259,6 +262,7 @@ export type ProfileTrainingAsset = {
   profileId: string | null;
   draftProfileId: string | null;
   sourceType: TrainingAssetSourceType;
+  trainingRole: TrainingAssetRole;
   storageProvider: TrainingStorageProvider;
   storageBucket: string | null;
   storagePath: string;

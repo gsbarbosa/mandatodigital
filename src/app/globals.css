@@ -435,6 +435,92 @@ textarea.persona-input-control {
   font-weight: 600;
 }
 
+.persona-upload-slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 560px;
+  margin: 0.75rem auto 0;
+}
+
+.persona-upload-slot {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  background: radial-gradient(
+      120% 120% at 0% 0%,
+      rgba(59, 130, 246, 0.18) 0%,
+      rgba(59, 130, 246, 0.03) 45%,
+      rgba(2, 6, 23, 0.15) 100%
+    ),
+    rgba(2, 6, 23, 0.25);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 30px rgba(2, 6, 23, 0.22);
+}
+
+.persona-upload-slot-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.persona-upload-slot-title {
+  font-weight: 750;
+  letter-spacing: 0.1px;
+}
+
+.persona-upload-slot-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.persona-upload-slot-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.persona-upload-slot-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.55);
+  color: #e2e8f0;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.persona-upload-slot-badge.ok {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+}
+
+.persona-upload-slot-badge.warn {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.12);
+  color: #fecaca;
+}
+
+.persona-btn.persona-btn-compact {
+  padding: 0.55rem 1.1rem;
+  border-radius: 12px;
+  min-width: 132px;
+}
+
 .persona-inline-field {
   margin-top: 1rem;
 }

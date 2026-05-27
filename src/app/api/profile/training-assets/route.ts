@@ -14,6 +14,11 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const profileId = String(formData.get("profileId") ?? "").trim() || null;
     const draftProfileId = String(formData.get("draftProfileId") ?? "").trim() || null;
+    const trainingRoleRaw = String(formData.get("trainingRole") ?? "").trim();
+    const trainingRole =
+      trainingRoleRaw === "consent" || trainingRoleRaw === "dataset"
+        ? trainingRoleRaw
+        : "dataset";
     const files = formData
       .getAll("files")
       .filter((value): value is File => value instanceof File && value.size > 0);
@@ -60,6 +65,7 @@ export async function POST(request: Request) {
           profileId,
           draftProfileId: profileId ? null : draftProfileId,
           sourceType: "upload",
+          trainingRole,
           storageProvider: item.storageProvider,
           storageBucket: item.storageBucket,
           storagePath: item.storagePath,

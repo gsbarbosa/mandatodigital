@@ -72,6 +72,18 @@ export function CuradorPage() {
     [assetReferenceId, trainingAssets],
   );
 
+  const datasetAssets = useMemo(
+    () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "dataset"),
+    [visibleTrainingAssets],
+  );
+  const consentAssets = useMemo(
+    () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "consent"),
+    [visibleTrainingAssets],
+  );
+  const orderedDatasetAssets = useMemo(() => {
+    return [...datasetAssets].sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1));
+  }, [datasetAssets]);
+
   async function pollAvatarTraining(trainingId: string) {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const response = await fetch(
@@ -261,11 +273,34 @@ export function CuradorPage() {
       return;
     }
 
-    await uploadTrainingAssets(Array.from(files));
+    await uploadTrainingAssets(Array.from(files), "dataset");
   }
 
-  const hasAtLeastTwoTrainingVideos = visibleTrainingAssets.length >= 2;
-  const readyToTrain = hasAtLeastTwoTrainingVideos;
+  async function handleTrainingSlotFileChange(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    await uploadTrainingAssets([file], "dataset");
+  }
+
+  async function handleConsentFileChange(files: FileList | null) {
+    if (!files?.length) {
+      return;
+    }
+
+    await uploadTrainingAssets([files[0]], "consent");
+  }
+
+  const readyToTrain = datasetAssets.length >= 2 && consentAssets.length >= 1;
+  const canAddMoreTraining = datasetAssets.length < 5;
+  const trainingSlots = [
+    { label: "Video 1 (obrigatorio)", required: true },
+    { label: "Video 2 (obrigatorio)", required: true },
+    { label: "Video 3 (opcional)", required: false },
+    { label: "Video 4 (opcional)", required: false },
+    { label: "Video 5 (opcional)", required: false },
+  ] as const;
 
   return (
     <section className="persona-page">
@@ -289,40 +324,29 @@ export function CuradorPage() {
               Upload de videos <span className="persona-badge">Obrigatorio</span>
             </label>
 
+            <div className="persona-upload-files">
+              <span className="persona-file-chip">
+                1) Video de autorizacao: {consentAssets.length ? "enviado" : "pendente"}
+              </span>
+              <span className="persona-file-chip">
+                2) Videos de treinamento: {datasetAssets.length} / 2 obrigatorios (ate 5)
+              </span>
+            </div>
+
             <label
-              htmlFor={uploadInputId}
+              htmlFor={`${uploadInputId}-consent`}
               className={`upload-area persona-upload-area ${isUploadingTrainingAssets ? "persona-upload-area-loading" : ""}`}
             >
-              <div className="persona-upload-icon" aria-hidden="true">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="persona-upload-svg"
-                >
-                  <path
-                    d="M12 16V6M12 6L8.5 9.5M12 6L15.5 9.5M5 17.5V18C5 19.1046 5.89543 20 7 20H17C18.1046 20 19 19.1046 19 18V17.5"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <h4>BASE DE TREINO (CLONAGEM)</h4>
-              <p>
-                Envie <strong>2 videos</strong> (minimo) e ate 5
-                <br />
-                1) <strong>Treino</strong> (mais longo) + 2) <strong>Consentimento</strong> (curto)
-              </p>
+              <h4>1) Enviar video de autorizacao (obrigatorio)</h4>
+              <p>Ate 30s, dizendo que autoriza o uso do video para treinar o avatar.</p>
               <input
-                id={uploadInputId}
+                id={`${uploadInputId}-consent`}
                 type="file"
                 accept="video/*"
-                multiple
                 hidden
+                data-testid="training-consent-input"
                 onChange={(event) => {
-                  void handleTrainingFileChange(event.target.files);
+                  void handleConsentFileChange(event.target.files);
                   event.target.value = "";
                 }}
               />
@@ -332,16 +356,112 @@ export function CuradorPage() {
                     <span className="persona-spinner" aria-hidden="true" />
                     Enviando...
                   </span>
+                ) : consentAssets.length ? (
+                  "Substituir video"
                 ) : (
-                  "Selecionar Arquivos"
+                  "Selecionar video"
                 )}
               </span>
               {isUploadingTrainingAssets && <div className="persona-progress" />}
             </label>
 
-            {visibleTrainingAssets.length > 0 && (
+            <label
+              htmlFor={`${uploadInputId}-dataset`}
+              className={`upload-area persona-upload-area ${isUploadingTrainingAssets ? "persona-upload-area-loading" : ""}`}
+            >
+              <h4>
+                2) Enviar videos de treinamento{" "}
+                <span className="persona-badge">Minimo 2</span>
+              </h4>
+              <p>
+                Ideal: 3+ min, frente para a camera, audio claro. Voce pode enviar ate{" "}
+                <strong>5</strong> no total.
+              </p>
+              <div className="persona-upload-slot-list">
+                {trainingSlots.map((slot, index) => {
+                  const asset = orderedDatasetAssets[index] ?? null;
+                  const slotId = `${uploadInputId}-dataset-slot-${index + 1}`;
+                  const isFilled = Boolean(asset);
+                  const isDisabled =
+                    isUploadingTrainingAssets ||
+                    (!isFilled && !canAddMoreTraining) ||
+                    (slot.required && index > 0 && !orderedDatasetAssets[index - 1]);
+
+                  const statusLabel = asset
+                    ? "Enviado"
+                    : slot.required
+                      ? "Obrigatorio"
+                      : "Opcional";
+                  const statusVariant = asset ? "ok" : slot.required ? "warn" : "";
+
+                  return (
+                    <div key={slot.label} className="persona-upload-slot">
+                      <div className="persona-upload-slot-main">
+                        <div className="persona-upload-slot-title">{slot.label}</div>
+                        <div className="persona-upload-slot-meta">
+                          <span
+                            className={`persona-upload-slot-badge ${statusVariant}`}
+                            aria-label={`Status: ${statusLabel}`}
+                          >
+                            {statusLabel}
+                          </span>
+                          {asset ? (
+                            <span
+                              className="persona-upload-slot-filename"
+                              title={asset.originalFilename}
+                            >
+                              {asset.originalFilename}
+                            </span>
+                          ) : (
+                            <span className="persona-upload-slot-filename">
+                              {slot.required
+                                ? "Envie este video para liberar o treinamento."
+                                : "Opcional (melhora a qualidade)."}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {!isFilled && (
+                        <>
+                          <input
+                            id={slotId}
+                            type="file"
+                            accept="video/*"
+                            hidden
+                            data-testid={`training-dataset-slot-${index + 1}-input`}
+                            onChange={(event) => {
+                              void handleTrainingSlotFileChange(event.target.files?.[0] ?? null);
+                              event.target.value = "";
+                            }}
+                            disabled={isDisabled}
+                          />
+                          <label
+                            htmlFor={slotId}
+                            className="persona-btn persona-btn-compact"
+                            aria-disabled={isDisabled}
+                          >
+                            {isUploadingTrainingAssets ? (
+                              <span className="persona-loading-row">
+                                <span className="persona-spinner" aria-hidden="true" />
+                                Enviando...
+                              </span>
+                            ) : (
+                              "Selecionar"
+                            )}
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {isUploadingTrainingAssets && <div className="persona-progress" />}
+            </label>
+
+            {datasetAssets.length > 0 && (
               <div className="persona-upload-files">
-                {visibleTrainingAssets.map((asset) => (
+                {datasetAssets.map((asset) => (
                   <span key={asset.id} className="persona-file-chip">
                     {asset.originalFilename} - {asset.status}
                   </span>
@@ -366,14 +486,13 @@ export function CuradorPage() {
             </div>
 
             <p className="persona-helper-text">
-              Para treinar na Argil, voce precisa de <strong>2 videos</strong>: um de
-              treino (ideal: 3+ min, candidato de frente para a camera) e um de
-              consentimento (ate 30s).
+              Dica: se o upload ficar pesado, grave em boa luz, celular na vertical e
+              evite ruido.
             </p>
-            {!readyToTrain && visibleTrainingAssets.length > 0 && (
+            {!readyToTrain && (datasetAssets.length > 0 || consentAssets.length > 0) && (
               <p className="persona-helper-text persona-helper-highlight">
-                Falta pelo menos {2 - visibleTrainingAssets.length} video(s) para habilitar o
-                treinamento.
+                Para habilitar o treinamento, envie <strong>1 video de autorizacao</strong> e{" "}
+                <strong>2 videos de treinamento</strong>.
               </p>
             )}
           </div>

@@ -65,7 +65,10 @@ type ProductAppContextValue = {
   isEvaluatingContentRequestId: string | null;
   setFeedbackWidgetOpen: Dispatch<SetStateAction<boolean>>;
   saveProfile: () => Promise<void>;
-  uploadTrainingAssets: (files: File[]) => Promise<ProfileTrainingAsset[]>;
+  uploadTrainingAssets: (
+    files: File[],
+    trainingRole: "dataset" | "consent",
+  ) => Promise<ProfileTrainingAsset[]>;
   generateContent: () => Promise<GeneratedContent[]>;
   updateContent: (
     contentId: string,
@@ -290,7 +293,7 @@ export function ProductAppProvider({
     }
   }
 
-  async function uploadTrainingAssets(files: File[]) {
+  async function uploadTrainingAssets(files: File[], trainingRole: "dataset" | "consent") {
     if (!files.length) {
       return [];
     }
@@ -307,6 +310,7 @@ export function ProductAppProvider({
 
       const formData = new FormData();
       formData.append(profile?.id ? "profileId" : "draftProfileId", profileReferenceId);
+      formData.append("trainingRole", trainingRole);
       files.forEach((file) => formData.append("files", file));
 
       const result = await handleApi<{ assets: ProfileTrainingAsset[] }>(
@@ -319,7 +323,9 @@ export function ProductAppProvider({
 
       setTrainingAssets((current) => [...result.assets, ...current]);
       setStatusMessage(
-        "Assets de treino enviados. O mandato ja tem base de video registrada para a proxima etapa.",
+        trainingRole === "consent"
+          ? "Video de autorizacao enviado."
+          : "Video(s) de treinamento enviados.",
       );
 
       return result.assets;

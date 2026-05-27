@@ -13,6 +13,7 @@ import {
   llmProviders,
   productFeedbackClassifications,
   productFeedbackCriticalities,
+  trainingAssetRoles,
   trainingAssetSourceTypes,
   trainingAssetStatuses,
   trainingStorageProviders,
@@ -29,6 +30,7 @@ import {
   type ProductFeedbackCriticality,
   type TrainingAssetSourceType,
   type TrainingAssetStatus,
+  type TrainingAssetRole,
   type TrainingStorageProvider,
 } from "@/lib/types";
 
@@ -228,6 +230,7 @@ export const trainingAssetCreateSchema = z.object({
   profileId: z.string().trim().optional().nullable(),
   draftProfileId: z.string().trim().optional().nullable(),
   sourceType: z.enum(trainingAssetSourceTypes).default("upload"),
+  trainingRole: z.enum(trainingAssetRoles).default("dataset"),
   storageProvider: z.enum(trainingStorageProviders),
   storageBucket: z.string().trim().optional().nullable(),
   storagePath: z.string().trim().min(3),
