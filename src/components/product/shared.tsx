@@ -6,7 +6,6 @@ import {
   avatarVoicePaceOptions,
   defaultFormats,
   defaultIntensities,
-  spectrumOptions,
 } from "@/lib/constants";
 import type { DashboardData } from "@/lib/types";
 import type {
@@ -127,7 +126,7 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     city: data?.city ?? "",
     state: data?.state ?? "",
     audience: data?.audience ?? "",
-    spectrum: data?.spectrum ?? spectrumOptions[0],
+    spectrum: data?.spectrum ?? "",
     archetype: data?.archetype ?? archetypeOptions[0],
     voiceTones: data?.voiceTones ?? [],
     keyIssues: toTextarea(data?.keyIssues ?? []),
