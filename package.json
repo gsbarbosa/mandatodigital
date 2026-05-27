@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:argil": "npm run build && PW_FORCE_FRESH_SERVER=1 PW_DEV_PORT=3010 PW_USE_START=1 playwright test tests/e2e/argil-video-flow.spec.ts",
     "test:e2e:headed": "playwright test --headed",
     "playwright:install": "playwright install --with-deps chromium"
   },

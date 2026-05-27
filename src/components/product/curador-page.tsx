@@ -40,6 +40,15 @@ function PersonaTag({
 export function CuradorPage() {
   const uploadInputId = useId();
   const [trainingRequested, setTrainingRequested] = useState(false);
+  const [isTrainingAvatar, setIsTrainingAvatar] = useState(false);
+  const [avatarTrainingStatus, setAvatarTrainingStatus] = useState<string | null>(null);
+  const [avatarTrainingError, setAvatarTrainingError] = useState<string | null>(null);
+  const [videoGenerationId, setVideoGenerationId] = useState<string | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [videoStatus, setVideoStatus] = useState<string | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
   const {
     profile,
     profileForm,
@@ -63,13 +72,188 @@ export function CuradorPage() {
     [assetReferenceId, trainingAssets],
   );
 
+  async function pollAvatarTraining(trainingId: string) {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const response = await fetch(
+        `/api/argil/avatars/train?trainingId=${encodeURIComponent(trainingId)}`,
+      );
+      const payload = (await response.json()) as {
+        training?: {
+          status?: string;
+          argilAvatarId?: string | null;
+          argilVoiceId?: string | null;
+          errorMessage?: string;
+        };
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel consultar o treinamento.");
+      }
+
+      const training = payload.training;
+      setAvatarTrainingStatus(training?.status ?? null);
+
+      if (training?.status === "IDLE") {
+        setProfileForm((current) => ({
+          ...current,
+          argilAvatarId: training.argilAvatarId ?? current.argilAvatarId,
+          argilVoiceId: training.argilVoiceId ?? current.argilVoiceId,
+          avatarTrainingStatus: "IDLE",
+        }));
+        return training;
+      }
+
+      if (
+        training?.status === "TRAINING_FAILED" ||
+        training?.status === "REFUSED"
+      ) {
+        throw new Error(training.errorMessage || "Treinamento falhou na Argil.");
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    return null;
+  }
+
   async function handleTrainIa() {
     setTrainingRequested(true);
-    await saveProfile();
+    setAvatarTrainingError(null);
+    setAvatarTrainingStatus(null);
+    setIsTrainingAvatar(true);
+
+    try {
+      void saveProfile();
+
+      const response = await fetch("/api/argil/avatars/train", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          profileId: profile?.id ?? null,
+          draftProfileId: profile?.id ? null : profileForm.id ?? null,
+          avatarName: profileForm.fullName?.trim() || undefined,
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        training?: { id?: string; status?: string };
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel iniciar o treinamento.");
+      }
+
+      const trainingId = payload.training?.id;
+      if (!trainingId) {
+        throw new Error("Resposta de treinamento invalida.");
+      }
+
+      setAvatarTrainingStatus(payload.training?.status ?? "TRAINING");
+      await pollAvatarTraining(trainingId);
+    } catch (error) {
+      setAvatarTrainingError(
+        error instanceof Error ? error.message : "Erro ao treinar avatar.",
+      );
+    } finally {
+      setIsTrainingAvatar(false);
+    }
+  }
+
+  async function pollVideoGeneration(generationId: string) {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const response = await fetch(`/api/argil/videos/${generationId}`);
+      const payload = (await response.json()) as {
+        generation?: {
+          status?: string;
+          previewUrl?: string;
+          videoUrl?: string;
+          dryRun?: boolean;
+        };
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel consultar o status do video.");
+      }
+
+      const generation = payload.generation;
+      setVideoStatus(generation?.status ?? null);
+      setVideoPreviewUrl(generation?.previewUrl || null);
+      setVideoUrl(generation?.videoUrl || null);
+
+      if (generation?.status === "DONE" || generation?.status === "FAILED") {
+        return generation;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    return null;
   }
 
   async function handleGenerateAvatar() {
-    await saveProfile();
+    setVideoError(null);
+    setVideoStatus(null);
+    setVideoPreviewUrl(null);
+    setVideoUrl(null);
+    setVideoGenerationId(null);
+    setIsGeneratingVideo(true);
+
+    try {
+      const topic = profileForm.avatarVideoTopic.trim();
+      if (!topic) {
+        throw new Error("Informe o tema do video antes de gerar.");
+      }
+
+      void saveProfile();
+
+      const response = await fetch("/api/argil/videos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topic,
+          profileId: profile?.id ?? profileForm.id ?? null,
+          name: `Avatar - ${profileForm.fullName || "Politico"} - ${topic}`,
+        }),
+      });
+
+      const payload = (await response.json()) as {
+        dryRun?: boolean;
+        generation?: {
+          id: string;
+          status?: string;
+          previewUrl?: string;
+          videoUrl?: string;
+        };
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel gerar o video.");
+      }
+
+      const generationId = payload.generation?.id;
+      if (!generationId) {
+        throw new Error("Resposta invalida: geracao sem id.");
+      }
+
+      setVideoGenerationId(generationId);
+      setVideoStatus(payload.generation?.status ?? (payload.dryRun ? "DRY_RUN" : "IDLE"));
+      setVideoPreviewUrl(payload.generation?.previewUrl ?? null);
+      setVideoUrl(payload.generation?.videoUrl ?? null);
+
+      await pollVideoGeneration(generationId);
+    } catch (error) {
+      setVideoError(error instanceof Error ? error.message : "Falha ao gerar o video.");
+    } finally {
+      setIsGeneratingVideo(false);
+    }
   }
 
   async function handleTrainingFileChange(files: FileList | null) {
@@ -179,10 +363,11 @@ export function CuradorPage() {
               <button
                 type="button"
                 className="persona-btn"
+                data-testid="train-avatar-button"
                 onClick={() => void handleTrainIa()}
-                disabled={isSavingProfile}
+                disabled={isSavingProfile || isTrainingAvatar}
               >
-                {isSavingProfile ? "Treinando..." : "Treinar a IA"}
+                {isTrainingAvatar ? "Treinando..." : "Treinar a IA"}
               </button>
             </div>
             <p className="persona-helper-text">
@@ -190,11 +375,25 @@ export function CuradorPage() {
               abaixo. Assim que concluido o treinamento, enviaremos uma notificacao para
               seu e-mail. Tempo aproximado de 5 minutos.
             </p>
-            {trainingRequested && (
+            {(trainingRequested || avatarTrainingStatus) && (
+              <div
+                className="persona-helper-text persona-helper-highlight"
+                data-testid="argil-avatar-training-panel"
+              >
+                <p data-testid="argil-avatar-training-status">
+                  Status do treinamento: {avatarTrainingStatus ?? "TRAINING"}
+                </p>
+                {profileForm.argilAvatarId && (
+                  <p>Avatar Argil: {profileForm.argilAvatarId}</p>
+                )}
+                {avatarTrainingError && <p>{avatarTrainingError}</p>}
+              </div>
+            )}
+            {trainingRequested && !avatarTrainingStatus && !avatarTrainingError && (
               <p className="persona-helper-text persona-helper-highlight">
-                No MVP atual, os videos enviados ja ficam persistidos e a calibragem
-                e salva no sistema; o treino/render final ainda depende da camada
-                externa.
+                Para treino real na Argil, envie um video longo de treino e um curto de
+                consentimento (ate 30s). No dry-run, o fluxo simula o treinamento sem
+                consumir creditos.
               </p>
             )}
           </div>
@@ -334,6 +533,7 @@ export function CuradorPage() {
                 }))
               }
               placeholder="Digite o tema do video..."
+              data-testid="avatar-video-topic"
             />
           </div>
 
@@ -479,12 +679,62 @@ export function CuradorPage() {
               type="button"
               className="persona-btn persona-btn-large"
               onClick={() => void handleGenerateAvatar()}
-              disabled={isSavingProfile}
-              data-testid="save-profile-button"
+              disabled={isSavingProfile || isGeneratingVideo}
+              data-testid="generate-avatar-video-button"
             >
-              {isSavingProfile ? "Salvando..." : "Gerar meu avatar"}
+              {isGeneratingVideo
+                ? "Gerando video..."
+                : isSavingProfile
+                  ? "Salvando..."
+                  : "Gerar meu avatar"}
             </button>
           </div>
+
+          {(videoStatus || videoError || videoPreviewUrl || videoUrl || videoGenerationId) && (
+            <div
+              className="persona-form-group persona-support-block"
+              data-testid="argil-video-generation-panel"
+            >
+              <label className="persona-label">Geracao do video (Argil)</label>
+              {videoError ? (
+                <p
+                  className="persona-helper-text persona-helper-highlight"
+                  data-testid="argil-video-error"
+                >
+                  {videoError}
+                </p>
+              ) : (
+                <>
+                  {videoStatus && (
+                    <p className="persona-helper-text" data-testid="argil-video-status">
+                      Status: {videoStatus}
+                    </p>
+                  )}
+                  {videoGenerationId && (
+                    <p className="persona-helper-text" data-testid="argil-video-generation-id">
+                      Job: {videoGenerationId}
+                    </p>
+                  )}
+                  {videoPreviewUrl && (
+                    <p className="persona-helper-text">
+                      Preview:{" "}
+                      <a href={videoPreviewUrl} data-testid="argil-video-preview-link">
+                        abrir
+                      </a>
+                    </p>
+                  )}
+                  {videoUrl && (
+                    <p className="persona-helper-text">
+                      Video final:{" "}
+                      <a href={videoUrl} data-testid="argil-video-final-link">
+                        abrir
+                      </a>
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
           <div className="persona-form-group">
             <label className="persona-label">Observacoes importantes:</label>

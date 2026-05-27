@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const hasExternalBaseUrl = Boolean(process.env.APP_BASE_URL);
-const localBaseUrl = "http://127.0.0.1:3000";
+const localBaseUrl = process.env.PW_DEV_PORT
+  ? `http://127.0.0.1:${process.env.PW_DEV_PORT}`
+  : "http://127.0.0.1:3000";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -20,10 +22,19 @@ export default defineConfig({
   webServer: hasExternalBaseUrl
     ? undefined
     : {
-        command: "npm run dev",
+        command: process.env.PW_USE_START
+          ? `npm run start -- --port ${process.env.PW_DEV_PORT ?? "3000"}`
+          : process.env.PW_DEV_PORT
+            ? `npm run dev -- --port ${process.env.PW_DEV_PORT}`
+            : "npm run dev",
         url: localBaseUrl,
-        reuseExistingServer: true,
+        reuseExistingServer: !process.env.PW_FORCE_FRESH_SERVER,
         timeout: 120_000,
+        env: {
+          ...process.env,
+          ARGIL_DRY_RUN: process.env.ARGIL_DRY_RUN ?? "true",
+          ARGIL_AVATAR_ID: process.env.ARGIL_AVATAR_ID ?? "dry-run-avatar-id",
+        },
       },
   projects: [
     {

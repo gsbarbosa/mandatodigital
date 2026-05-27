@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  avatarTrainingStatuses,
   contentFormats,
   contentStatuses,
   evaluationCandidateRoles,
@@ -68,6 +69,11 @@ export const profileInputSchema = z.object({
   youtubeVideoUrl: z.string().trim().url().or(z.literal("")).default(""),
   avatarType: z.string().trim().default(""),
   avatarVideoTopic: z.string().trim().default(""),
+  argilAvatarId: z.string().trim().default(""),
+  argilVoiceId: z.string().trim().default(""),
+  avatarTrainingStatus: z
+    .enum([...avatarTrainingStatuses, ""])
+    .default(""),
   notificationEmail: z.string().trim().email().or(z.literal("")).default(""),
   avatarEmotions: optionalStringList,
   voicePace: z.string().trim().default("Manter velocidade original"),

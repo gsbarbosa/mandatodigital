@@ -34,6 +34,25 @@ export type TrainingAssetSourceType = (typeof trainingAssetSourceTypes)[number];
 export const trainingStorageProviders = ["supabase", "local"] as const;
 export type TrainingStorageProvider = (typeof trainingStorageProviders)[number];
 
+export const avatarTrainingStatuses = [
+  "NOT_TRAINED",
+  "TRAINING",
+  "TRAINING_FAILED",
+  "IDLE",
+  "REFUSED",
+] as const;
+export type AvatarTrainingStatus = (typeof avatarTrainingStatuses)[number];
+
+export const avatarVideoGenerationStatuses = [
+  "IDLE",
+  "GENERATING_AUDIO",
+  "GENERATING_VIDEO",
+  "DONE",
+  "FAILED",
+] as const;
+export type AvatarVideoGenerationStatus =
+  (typeof avatarVideoGenerationStatuses)[number];
+
 export const contentFormats = [
   "Post Instagram",
   "Legenda Instagram",
@@ -139,6 +158,9 @@ export type PoliticianProfile = {
   youtubeVideoUrl: string;
   avatarType: string;
   avatarVideoTopic: string;
+  argilAvatarId: string;
+  argilVoiceId: string;
+  avatarTrainingStatus: AvatarTrainingStatus | "";
   notificationEmail: string;
   avatarEmotions: string[];
   voicePace: string;
@@ -197,6 +219,39 @@ export type ProductFeedback = {
   implementationPrompt: string;
   provider: string;
   createdAt: string;
+};
+
+export type ProfileAvatarTraining = {
+  id: string;
+  profileId: string | null;
+  draftProfileId: string | null;
+  argilAvatarId: string | null;
+  argilVoiceId: string | null;
+  status: AvatarTrainingStatus;
+  dryRun: boolean;
+  datasetAssetId: string | null;
+  consentAssetId: string | null;
+  avatarName: string;
+  errorMessage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AvatarVideoGeneration = {
+  id: string;
+  profileId: string | null;
+  topic: string;
+  transcript: string;
+  name: string;
+  argilVideoId: string | null;
+  status: AvatarVideoGenerationStatus;
+  dryRun: boolean;
+  previewUrl: string;
+  videoUrl: string;
+  videoUrlSubtitled: string;
+  errorMessage: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ProfileTrainingAsset = {

@@ -69,6 +69,16 @@ export type Repository = {
   saveProfile(input: ProfileInput): Promise<PoliticianProfile>;
   createTrainingAssets(items: TrainingAssetCreateInput[]): Promise<ProfileTrainingAsset[]>;
   listTrainingAssetsByProfile(profileId: string): Promise<ProfileTrainingAsset[]>;
+  listTrainingAssetsForReference(referenceId: string): Promise<ProfileTrainingAsset[]>;
+  getTrainingAssetById(id: string): Promise<ProfileTrainingAsset | null>;
+  updateProfileArgilTraining(
+    profileId: string,
+    input: {
+      argilAvatarId: string;
+      argilVoiceId: string;
+      avatarTrainingStatus: string;
+    },
+  ): Promise<PoliticianProfile | null>;
   attachDraftTrainingAssets(
     profileId: string,
     draftProfileId: string,
@@ -172,6 +182,9 @@ function buildDefaultWorkflowProfileConfig() {
     youtubeVideoUrl: "",
     avatarType: "",
     avatarVideoTopic: "",
+    argilAvatarId: "",
+    argilVoiceId: "",
+    avatarTrainingStatus: "" as PoliticianProfile["avatarTrainingStatus"],
     notificationEmail: "",
     avatarEmotions: [],
     voicePace: "Manter velocidade original",
@@ -227,6 +240,10 @@ function pickWorkflowProfileConfig(
     youtubeVideoUrl: profile.youtubeVideoUrl ?? defaults.youtubeVideoUrl,
     avatarType: profile.avatarType ?? defaults.avatarType,
     avatarVideoTopic: profile.avatarVideoTopic ?? defaults.avatarVideoTopic,
+    argilAvatarId: profile.argilAvatarId ?? defaults.argilAvatarId,
+    argilVoiceId: profile.argilVoiceId ?? defaults.argilVoiceId,
+    avatarTrainingStatus:
+      profile.avatarTrainingStatus ?? defaults.avatarTrainingStatus,
     notificationEmail: profile.notificationEmail ?? defaults.notificationEmail,
     avatarEmotions: profile.avatarEmotions ?? defaults.avatarEmotions,
     voicePace: profile.voicePace ?? defaults.voicePace,
@@ -278,6 +295,11 @@ function mapWorkflowProfileConfigRow(row: Record<string, unknown> | null | undef
     youtubeVideoUrl: String(row.youtube_video_url ?? defaults.youtubeVideoUrl),
     avatarType: String(row.avatar_type ?? defaults.avatarType),
     avatarVideoTopic: String(row.avatar_video_topic ?? defaults.avatarVideoTopic),
+    argilAvatarId: String(row.argil_avatar_id ?? defaults.argilAvatarId),
+    argilVoiceId: String(row.argil_voice_id ?? defaults.argilVoiceId),
+    avatarTrainingStatus: String(
+      row.avatar_training_status ?? defaults.avatarTrainingStatus,
+    ) as PoliticianProfile["avatarTrainingStatus"],
     notificationEmail: String(row.notification_email ?? defaults.notificationEmail),
     avatarEmotions: Array.isArray(row.avatar_emotions)
       ? row.avatar_emotions.map(String)
@@ -660,6 +682,37 @@ const localRepository: Repository = {
   async listTrainingAssetsByProfile(profileId) {
     const database = await readLocalDatabase();
     return database.trainingAssets.filter((item) => item.profileId === profileId);
+  },
+
+  async listTrainingAssetsForReference(referenceId) {
+    const database = await readLocalDatabase();
+    return database.trainingAssets.filter(
+      (item) =>
+        item.profileId === referenceId || item.draftProfileId === referenceId,
+    );
+  },
+
+  async getTrainingAssetById(id) {
+    const database = await readLocalDatabase();
+    return database.trainingAssets.find((item) => item.id === id) ?? null;
+  },
+
+  async updateProfileArgilTraining(profileId, input) {
+    const database = await readLocalDatabase();
+
+    if (!database.profile || database.profile.id !== profileId) {
+      return null;
+    }
+
+    database.profile = {
+      ...database.profile,
+      argilAvatarId: input.argilAvatarId,
+      argilVoiceId: input.argilVoiceId,
+      avatarTrainingStatus: input.avatarTrainingStatus as PoliticianProfile["avatarTrainingStatus"],
+      updatedAt: nowIso(),
+    };
+    await writeLocalDatabase(database);
+    return database.profile;
   },
 
   async attachDraftTrainingAssets(profileId, draftProfileId) {
@@ -1113,6 +1166,9 @@ const supabaseRepository: Repository = {
       youtube_video_url: input.youtubeVideoUrl,
       avatar_type: input.avatarType,
       avatar_video_topic: input.avatarVideoTopic,
+      argil_avatar_id: input.argilAvatarId,
+      argil_voice_id: input.argilVoiceId,
+      avatar_training_status: input.avatarTrainingStatus,
       notification_email: input.notificationEmail,
       avatar_emotions: input.avatarEmotions,
       voice_pace: input.voicePace,
@@ -1202,6 +1258,89 @@ const supabaseRepository: Repository = {
     }
 
     return data.map(mapTrainingAssetRow);
+  },
+
+  async listTrainingAssetsForReference(referenceId) {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from("profile_training_assets")
+      .select("*")
+      .or(`profile_id.eq.${referenceId},draft_profile_id.eq.${referenceId}`)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      if (isSchemaCompatibilityError(error)) {
+        return localRepository.listTrainingAssetsForReference(referenceId);
+      }
+
+      throw error;
+    }
+
+    return data.map(mapTrainingAssetRow);
+  },
+
+  async getTrainingAssetById(id) {
+    const client = getSupabaseClient();
+    const { data, error } = await client
+      .from("profile_training_assets")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      if (isSchemaCompatibilityError(error)) {
+        return localRepository.getTrainingAssetById(id);
+      }
+
+      throw error;
+    }
+
+    return data ? mapTrainingAssetRow(data) : null;
+  },
+
+  async updateProfileArgilTraining(profileId, input) {
+    const client = getSupabaseClient();
+    const timestamp = nowIso();
+    const payload = {
+      argil_avatar_id: input.argilAvatarId,
+      argil_voice_id: input.argilVoiceId,
+      avatar_training_status: input.avatarTrainingStatus,
+      updated_at: timestamp,
+    };
+
+    const { data, error } = await client
+      .from("mandate_workflow_configs")
+      .update(payload)
+      .eq("profile_id", profileId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      if (isSchemaCompatibilityError(error)) {
+        return localRepository.updateProfileArgilTraining(profileId, input);
+      }
+
+      throw error;
+    }
+
+    if (!data) {
+      return localRepository.updateProfileArgilTraining(profileId, input);
+    }
+
+    const profileRes = await client
+      .from("politician_profiles")
+      .select("*")
+      .eq("id", profileId)
+      .maybeSingle();
+
+    if (profileRes.error || !profileRes.data) {
+      return localRepository.updateProfileArgilTraining(profileId, input);
+    }
+
+    return mergeWorkflowProfileConfig(
+      mapProfileRow(profileRes.data),
+      mapWorkflowProfileConfigRow(data),
+    );
   },
 
   async attachDraftTrainingAssets(profileId, draftProfileId) {

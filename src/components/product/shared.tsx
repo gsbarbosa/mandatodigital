@@ -47,6 +47,9 @@ export type ProfileFormState = {
   youtubeVideoUrl: string;
   avatarType: string;
   avatarVideoTopic: string;
+  argilAvatarId: string;
+  argilVoiceId: string;
+  avatarTrainingStatus: string;
   notificationEmail: string;
   avatarEmotions: string[];
   voicePace: string;
@@ -152,6 +155,9 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     youtubeVideoUrl: data?.youtubeVideoUrl ?? "",
     avatarType: data?.avatarType ?? "",
     avatarVideoTopic: data?.avatarVideoTopic ?? "",
+    argilAvatarId: data?.argilAvatarId ?? "",
+    argilVoiceId: data?.argilVoiceId ?? "",
+    avatarTrainingStatus: data?.avatarTrainingStatus ?? "",
     notificationEmail: data?.notificationEmail ?? "",
     avatarEmotions: data?.avatarEmotions ?? ["Manter o estilo do video original"],
     voicePace: data?.voicePace ?? avatarVoicePaceOptions[0],

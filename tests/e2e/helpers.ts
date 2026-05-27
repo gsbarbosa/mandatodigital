@@ -16,7 +16,13 @@ async function gotoPath(
 ) {
   const targetUrl = options?.openFeedback ? `${path}?e2e=open-feedback` : path;
   await page.goto(targetUrl);
-  await expect(page.getByRole("heading", { name: "Mandato Digital" })).toBeVisible();
+  if (path === "/curador") {
+    await expect(
+      page.getByRole("heading", { name: "Calibragem de Persona" }),
+    ).toBeVisible();
+  } else {
+    await expect(page.getByRole("heading", { name: "Mandato Digital" })).toBeVisible();
+  }
   await page.waitForLoadState("networkidle");
 }
 

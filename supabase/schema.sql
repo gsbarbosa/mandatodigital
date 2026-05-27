@@ -84,6 +84,9 @@ create table if not exists mandate_workflow_configs (
   youtube_video_url text not null default '',
   avatar_type text not null default '',
   avatar_video_topic text not null default '',
+  argil_avatar_id text not null default '',
+  argil_voice_id text not null default '',
+  avatar_training_status text not null default '',
   notification_email text not null default '',
   avatar_emotions text[] not null default '{}',
   voice_pace text not null default 'Manter velocidade original',
@@ -154,6 +157,40 @@ alter table if exists profile_training_assets
 alter table if exists profile_training_assets
   add column if not exists updated_at timestamptz not null default now();
 
+create table if not exists profile_avatar_trainings (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid null references politician_profiles(id) on delete set null,
+  draft_profile_id uuid null,
+  argil_avatar_id text null,
+  argil_voice_id text null,
+  status text not null default 'TRAINING',
+  dry_run boolean not null default false,
+  dataset_asset_id uuid null,
+  consent_asset_id uuid null,
+  avatar_name text not null default '',
+  error_message text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (profile_id is not null or draft_profile_id is not null)
+);
+
+create table if not exists avatar_video_generations (
+  id uuid primary key default gen_random_uuid(),
+  profile_id uuid null references politician_profiles(id) on delete set null,
+  topic text not null,
+  transcript text not null,
+  name text not null,
+  argil_video_id text null,
+  status text not null default 'IDLE',
+  dry_run boolean not null default false,
+  preview_url text not null default '',
+  video_url text not null default '',
+  video_url_subtitled text not null default '',
+  error_message text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table if exists mandate_workflow_configs
   add column if not exists persona_archetypes text[] not null default '{}';
 
@@ -165,6 +202,15 @@ alter table if exists mandate_workflow_configs
 
 alter table if exists mandate_workflow_configs
   add column if not exists avatar_video_topic text not null default '';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists argil_avatar_id text not null default '';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists argil_voice_id text not null default '';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists avatar_training_status text not null default '';
 
 alter table if exists mandate_workflow_configs
   add column if not exists notification_email text not null default '';
@@ -243,6 +289,27 @@ create index if not exists profile_training_assets_draft_profile_id_idx
 
 create index if not exists profile_training_assets_created_at_idx
   on profile_training_assets(created_at desc);
+
+create index if not exists profile_avatar_trainings_profile_id_idx
+  on profile_avatar_trainings(profile_id);
+
+create index if not exists profile_avatar_trainings_draft_profile_id_idx
+  on profile_avatar_trainings(draft_profile_id);
+
+create index if not exists profile_avatar_trainings_argil_avatar_id_idx
+  on profile_avatar_trainings(argil_avatar_id);
+
+create index if not exists profile_avatar_trainings_created_at_idx
+  on profile_avatar_trainings(created_at desc);
+
+create index if not exists avatar_video_generations_profile_id_idx
+  on avatar_video_generations(profile_id);
+
+create index if not exists avatar_video_generations_argil_video_id_idx
+  on avatar_video_generations(argil_video_id);
+
+create index if not exists avatar_video_generations_created_at_idx
+  on avatar_video_generations(created_at desc);
 
 create index if not exists evaluation_runs_created_at_idx
   on evaluation_runs(created_at desc);
