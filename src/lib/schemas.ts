@@ -50,7 +50,7 @@ export const profileInputSchema = z.object({
   city: z.string().trim().min(2),
   state: z.string().trim().min(2).max(2),
   audience: z.string().trim().min(3),
-  spectrum: z.string().trim().min(3),
+  spectrum: z.string().trim().default(""),
   archetype: z.string().trim().min(3),
   voiceTones: z.array(z.string().trim().min(2)).default([]),
   keyIssues: requiredStringList,

@@ -176,7 +176,7 @@ export function CuradorPage() {
     }
 
     const timer = setTimeout(() => {
-      void saveProfile();
+      void saveProfile({ allowDraftDefaults: true });
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -245,7 +245,7 @@ export function CuradorPage() {
     setIsTrainingAvatar(true);
 
     try {
-      void saveProfile();
+      void saveProfile({ allowDraftDefaults: true });
 
       const response = await fetch("/api/argil/avatars/train", {
         method: "POST",
@@ -463,7 +463,7 @@ export function CuradorPage() {
         throw new Error("Informe o tema do video antes de gerar.");
       }
 
-      void saveProfile();
+      void saveProfile({ allowDraftDefaults: true });
 
       const response = await fetch("/api/argil/videos", {
         method: "POST",

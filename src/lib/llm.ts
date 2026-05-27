@@ -275,6 +275,107 @@ export function parseJsonResponse<T>(text: string): T | null {
   return parseMaybeJson(text) as T | null;
 }
 
+async function callOpenAIPlainText(
+  system: string,
+  user: string,
+  options: ProviderRequestOptions,
+): Promise<LlmExecutionResult> {
+  const { apiKey } = getConfiguredProvider("openai");
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY nao configurada.");
+  }
+
+  const startedAt = Date.now();
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: options.model,
+      temperature: options?.temperature ?? 0.8,
+      max_tokens: options?.maxTokens ?? 400,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Falha ao consultar OpenAI.");
+  }
+
+  const json = (await response.json()) as {
+    choices?: Array<{
+      message?: {
+        content?: string;
+      };
+    }>;
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    };
+  };
+
+  const tokenUsage = json.usage
+    ? normalizeTokenUsage(
+        json.usage.prompt_tokens ?? 0,
+        json.usage.completion_tokens ?? 0,
+      )
+    : null;
+
+  return {
+    rawText: json.choices?.[0]?.message?.content ?? null,
+    provider: "openai",
+    model: options.model,
+    latencyMs: Date.now() - startedAt,
+    tokenUsage: tokenUsage
+      ? {
+          ...tokenUsage,
+          totalTokens: json.usage?.total_tokens ?? tokenUsage.totalTokens,
+        }
+      : null,
+  };
+}
+
+export async function requestPlainText(
+  system: string,
+  user: string,
+  options?: LlmExecutionOptionsInput,
+): Promise<LlmExecutionResult> {
+  const provider = resolveExecutionProvider(options?.provider);
+
+  if (!provider) {
+    if (options?.strict) {
+      throw new Error("Nenhum provider de LLM configurado para esta execucao.");
+    }
+
+    return {
+      rawText: null,
+      provider: null,
+      model: null,
+      latencyMs: null,
+      tokenUsage: null,
+    };
+  }
+
+  const { defaultModel } = getConfiguredProvider(provider);
+  const requestOptions = {
+    model: options?.model?.trim() || defaultModel,
+    temperature: options?.temperature,
+    maxTokens: options?.maxTokens,
+  };
+
+  return provider === "openai"
+    ? callOpenAIPlainText(system, user, requestOptions)
+    : callAnthropic(system, user, requestOptions);
+}
+
 export async function requestStructuredJson(
   system: string,
   user: string,

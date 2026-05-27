@@ -62,10 +62,10 @@ export async function POST(request: Request) {
     const profileAvatarId = dashboard.profile?.argilAvatarId?.trim() || undefined;
     const transcript =
       explicitTranscript ||
-      buildAvatarVideoTranscript({
+      (await buildAvatarVideoTranscript({
         topic,
         profile: dashboard.profile,
-      });
+      }));
 
     const generation = await avatarVideoStorage.create({
       profileId,

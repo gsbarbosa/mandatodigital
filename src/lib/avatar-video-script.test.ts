@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
+import { buildAvatarVideoPrompt, buildAvatarVideoTranscriptFallback } from "@/lib/avatar-video-script";
 
-describe("buildAvatarVideoTranscript", () => {
+describe("buildAvatarVideoTranscriptFallback", () => {
   it("monta script curto com tema e perfil", () => {
-    const transcript = buildAvatarVideoTranscript({
+    const transcript = buildAvatarVideoTranscriptFallback({
       topic: "tempo de espera em consultas",
       profile: {
         id: "profile-1",
@@ -47,8 +47,21 @@ describe("buildAvatarVideoTranscript", () => {
       },
     });
 
-    expect(transcript).toContain("Maria Souza");
+    expect(transcript).not.toContain("Maria Souza");
     expect(transcript).toContain("tempo de espera em consultas");
+    expect(transcript.toLowerCase()).toContain("centro-direita");
     expect(transcript.length).toBeLessThanOrEqual(500);
+  });
+});
+
+describe("buildAvatarVideoPrompt", () => {
+  it("expoe o prompt pai do doc video 03", () => {
+    const prompt = buildAvatarVideoPrompt({
+      topic: "Saude publica",
+      profile: null,
+    });
+
+    expect(prompt.system).toContain("estrategista chefe");
+    expect(prompt.user).toContain("Tema Central: Saude publica");
   });
 });

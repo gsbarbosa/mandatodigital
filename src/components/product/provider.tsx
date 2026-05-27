@@ -11,11 +11,13 @@ import {
   type SetStateAction,
 } from "react";
 
+import { mergeProfileInputForSave } from "@/lib/profile-save";
 import {
   contentRequestInputSchema,
   productFeedbackInputSchema,
   profileInputSchema,
 } from "@/lib/schemas";
+import type { ProfileInput } from "@/lib/schemas";
 import type { DashboardData } from "@/lib/types";
 import type { SessionUser } from "@/lib/auth/session";
 import type {
@@ -70,7 +72,7 @@ type ProductAppContextValue = {
   isFeedbackWidgetOpen: boolean;
   isEvaluatingContentRequestId: string | null;
   setFeedbackWidgetOpen: Dispatch<SetStateAction<boolean>>;
-  saveProfile: () => Promise<void>;
+  saveProfile: (options?: { allowDraftDefaults?: boolean }) => Promise<void>;
   uploadTrainingAssets: (
     files: File[],
     trainingRole: TrainingAssetRole,
@@ -238,12 +240,12 @@ export function ProductAppProvider({
     return (payload ?? ({} as T)) as T;
   }
 
-  async function saveProfile() {
+  async function saveProfile(options?: { allowDraftDefaults?: boolean }) {
     setIsSavingProfile(true);
     setStatusMessage(null);
 
     try {
-      const payload = {
+      const rawPayload: ProfileInput = {
         id: profileForm.id,
         fullName: profileForm.fullName,
         role: profileForm.role,
@@ -284,7 +286,15 @@ export function ProductAppProvider({
         distributionChannels: profileForm.distributionChannels,
         distributionWindows: profileForm.distributionWindows,
         autoPublish: profileForm.autoPublish,
+        argilAvatarId: profileForm.argilAvatarId,
+        argilVoiceId: profileForm.argilVoiceId,
+        avatarTrainingStatus: (profileForm.avatarTrainingStatus ||
+          "") as ProfileInput["avatarTrainingStatus"],
       };
+
+      const payload = mergeProfileInputForSave(rawPayload, profile, {
+        allowDraftDefaults: options?.allowDraftDefaults,
+      });
 
       const parsedPayload = profileInputSchema.safeParse(payload);
 
@@ -301,7 +311,7 @@ export function ProductAppProvider({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(parsedPayload.data),
       });
 
       setProfile(result.profile);
