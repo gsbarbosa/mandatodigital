@@ -469,22 +469,6 @@ export function CuradorPage() {
               </div>
             )}
 
-            <div className="persona-inline-field">
-              <label className="persona-inline-label">URL do YouTube</label>
-              <input
-                type="url"
-                className="persona-input-control"
-                value={profileForm.youtubeVideoUrl}
-                onChange={(event) =>
-                  setProfileForm((current) => ({
-                    ...current,
-                    youtubeVideoUrl: event.target.value,
-                  }))
-                }
-                placeholder="Cole aqui o link do video do YouTube..."
-              />
-            </div>
-
             <p className="persona-helper-text">
               Dica: se o upload ficar pesado, grave em boa luz, celular na vertical e
               evite ruido.
