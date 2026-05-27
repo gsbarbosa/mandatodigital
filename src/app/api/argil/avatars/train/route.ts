@@ -120,15 +120,10 @@ export async function POST(request: Request) {
       avatarName,
     });
 
-    const callbackUrl = baseUrl.startsWith("https://")
-      ? `${baseUrl}/api/argil/webhooks`
-      : undefined;
-
     const result = await argilCreateAvatarFromVideo({
       name: avatarName,
       datasetVideoUrl,
       consentVideoUrl,
-      callbackUrl,
       extras: {
         source: "mandato-digital",
         trainingId: training.id,

@@ -197,7 +197,8 @@ export async function argilCreateAvatarFromVideo(
     consentVideo: {
       url: input.consentVideoUrl,
     },
-    ...(input.callbackUrl ? { callbackUrl: input.callbackUrl } : {}),
+    // VIDEO (legado): a Argil nao aceita callbackUrl no body; use webhooks no painel
+    // ou polling via GET /api/argil/avatars/train?trainingId=...
     ...(input.extras ? { extras: input.extras } : {}),
   };
 
