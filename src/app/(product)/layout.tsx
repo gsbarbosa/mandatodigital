@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ProductAppProvider } from "@/components/product/provider";
 import { ProductShell } from "@/components/product/shell";
 import { runWithSessionRepository } from "@/lib/auth/runner";
-import { getSessionUser } from "@/lib/auth/session";
+import { getSessionUser, requireSessionUser } from "@/lib/auth/session";
 import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,10 @@ export default async function ProductLayout({
 }: {
   children: ReactNode;
 }) {
+  if (isSupabaseAuthConfigured()) {
+    await requireSessionUser();
+  }
+
   const initialData = await runWithSessionRepository((repository) =>
     repository.getDashboard(),
   );
