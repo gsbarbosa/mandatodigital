@@ -264,6 +264,9 @@ export function CuradorPage() {
     await uploadTrainingAssets(Array.from(files));
   }
 
+  const hasAtLeastTwoTrainingVideos = visibleTrainingAssets.length >= 2;
+  const readyToTrain = hasAtLeastTwoTrainingVideos;
+
   return (
     <section className="persona-page">
       <div className="persona-container">
@@ -283,10 +286,13 @@ export function CuradorPage() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Upload de video <span className="persona-badge">Obrigatorio</span>
+              Upload de videos <span className="persona-badge">Obrigatorio</span>
             </label>
 
-            <label htmlFor={uploadInputId} className="upload-area persona-upload-area">
+            <label
+              htmlFor={uploadInputId}
+              className={`upload-area persona-upload-area ${isUploadingTrainingAssets ? "persona-upload-area-loading" : ""}`}
+            >
               <div className="persona-upload-icon" aria-hidden="true">
                 <svg
                   viewBox="0 0 24 24"
@@ -305,9 +311,9 @@ export function CuradorPage() {
               </div>
               <h4>BASE DE TREINO (CLONAGEM)</h4>
               <p>
-                Upload de 1 a 5 videos originais
-                <br />A IA mapeara sua cadencia, pausas, voz, estilo visual e
-                comunicacional
+                Envie <strong>2 videos</strong> (minimo) e ate 5
+                <br />
+                1) <strong>Treino</strong> (mais longo) + 2) <strong>Consentimento</strong> (curto)
               </p>
               <input
                 id={uploadInputId}
@@ -321,8 +327,16 @@ export function CuradorPage() {
                 }}
               />
               <span className="persona-btn">
-                {isUploadingTrainingAssets ? "Enviando..." : "Selecionar Arquivos"}
+                {isUploadingTrainingAssets ? (
+                  <span className="persona-loading-row">
+                    <span className="persona-spinner" aria-hidden="true" />
+                    Enviando...
+                  </span>
+                ) : (
+                  "Selecionar Arquivos"
+                )}
               </span>
+              {isUploadingTrainingAssets && <div className="persona-progress" />}
             </label>
 
             {visibleTrainingAssets.length > 0 && (
@@ -352,10 +366,16 @@ export function CuradorPage() {
             </div>
 
             <p className="persona-helper-text">
-              E obrigatorio o upload de pelo menos um video de 3 minutos com o
-              candidato falando de frente para a camera de forma natural sobre um tema
-              qualquer. Esse video forma a base de como o candidato deve comunicar.
+              Para treinar na Argil, voce precisa de <strong>2 videos</strong>: um de
+              treino (ideal: 3+ min, candidato de frente para a camera) e um de
+              consentimento (ate 30s).
             </p>
+            {!readyToTrain && visibleTrainingAssets.length > 0 && (
+              <p className="persona-helper-text persona-helper-highlight">
+                Falta pelo menos {2 - visibleTrainingAssets.length} video(s) para habilitar o
+                treinamento.
+              </p>
+            )}
           </div>
 
           <div className="persona-cta-block">
@@ -365,15 +385,21 @@ export function CuradorPage() {
                 className="persona-btn"
                 data-testid="train-avatar-button"
                 onClick={() => void handleTrainIa()}
-                disabled={isSavingProfile || isTrainingAvatar}
+                disabled={isSavingProfile || isTrainingAvatar || !readyToTrain}
               >
-                {isTrainingAvatar ? "Treinando..." : "Treinar a IA"}
+                {isTrainingAvatar ? (
+                  <span className="persona-loading-row">
+                    <span className="persona-spinner" aria-hidden="true" />
+                    Treinando...
+                  </span>
+                ) : (
+                  "Treinar a IA"
+                )}
               </button>
             </div>
             <p className="persona-helper-text">
-              Enquanto estamos treinando a IA, fique a vontade para preencher os campos
-              abaixo. Assim que concluido o treinamento, enviaremos uma notificacao para
-              seu e-mail. Tempo aproximado de 5 minutos.
+              Enquanto treinamos, voce pode preencher o restante do formulario.
+              Tempo aproximado: 5 minutos.
             </p>
             {(trainingRequested || avatarTrainingStatus) && (
               <div
@@ -383,6 +409,7 @@ export function CuradorPage() {
                 <p data-testid="argil-avatar-training-status">
                   Status do treinamento: {avatarTrainingStatus ?? "TRAINING"}
                 </p>
+                {isTrainingAvatar && <div className="persona-progress" />}
                 {profileForm.argilAvatarId && (
                   <p>Avatar Argil: {profileForm.argilAvatarId}</p>
                 )}
@@ -391,9 +418,8 @@ export function CuradorPage() {
             )}
             {trainingRequested && !avatarTrainingStatus && !avatarTrainingError && (
               <p className="persona-helper-text persona-helper-highlight">
-                Para treino real na Argil, envie um video longo de treino e um curto de
-                consentimento (ate 30s). No dry-run, o fluxo simula o treinamento sem
-                consumir creditos.
+                Dica: em ambiente de testes (dry-run), o treino e simulado e nao consome
+                creditos.
               </p>
             )}
           </div>
@@ -521,7 +547,9 @@ export function CuradorPage() {
           </div>
 
           <div className="persona-form-group">
-            <label className="persona-label">Inserir tema do video</label>
+            <label className="persona-label">
+              Tema do video <span className="persona-badge">Obrigatorio</span>
+            </label>
             <input
               type="text"
               className="persona-input-control"
@@ -538,7 +566,9 @@ export function CuradorPage() {
           </div>
 
           <div className="persona-form-group">
-            <label className="persona-label">Seu e-mail</label>
+            <label className="persona-label">
+              Seu e-mail <span className="persona-badge">Obrigatorio</span>
+            </label>
             <input
               type="email"
               className="persona-input-control"
@@ -552,7 +582,8 @@ export function CuradorPage() {
               placeholder="Digite seu e-mail..."
             />
             <p className="persona-helper-text persona-top-gap">
-              Inclua seu e-mail para receber o video do avatar.
+              Usaremos este e-mail para avisar quando o treinamento terminar (e, no futuro,
+              para enviar o link do video final).
             </p>
           </div>
 
@@ -710,6 +741,7 @@ export function CuradorPage() {
                       Status: {videoStatus}
                     </p>
                   )}
+                  {isGeneratingVideo && <div className="persona-progress" />}
                   {videoGenerationId && (
                     <p className="persona-helper-text" data-testid="argil-video-generation-id">
                       Job: {videoGenerationId}
@@ -728,6 +760,18 @@ export function CuradorPage() {
                       Video final:{" "}
                       <a href={videoUrl} data-testid="argil-video-final-link">
                         abrir
+                      </a>
+                    </p>
+                  )}
+                  {videoUrl && (
+                    <p className="persona-helper-text persona-top-gap">
+                      <a
+                        className="persona-btn"
+                        href={videoUrl}
+                        download={`avatar-${(profileForm.fullName || "politico").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(profileForm.avatarVideoTopic || "tema").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`}
+                        data-testid="argil-video-download-link"
+                      >
+                        Baixar video
                       </a>
                     </p>
                   )}
