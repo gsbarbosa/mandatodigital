@@ -412,8 +412,9 @@ export function CuradorPage() {
             >
               <h4>2) Enviar foto para clone (obrigatorio)</h4>
               <p>
-                A Argil exige uma foto do rosto (PNG ou JPEG), bem iluminada, olhando para a
-                camera. Nao use mais video de treino neste passo.
+                Foto do rosto (PNG ou JPEG), bem iluminada. A Argil exige proporcao{" "}
+                <strong>9:16</strong> (retrato) ou <strong>16:9</strong> (paisagem); se a sua foto
+                for 3:4 ou outra, recortamos automaticamente ao enviar.
               </p>
               <input
                 id={`${uploadInputId}-avatar-image`}

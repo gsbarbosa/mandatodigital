@@ -27,6 +27,7 @@ import type {
   TrainingAssetRole,
 } from "@/lib/types";
 
+import { prepareAvatarImageForArgil } from "@/lib/argil-image";
 import { uploadTrainingFileToSupabase } from "@/lib/training-asset-upload-client";
 
 import {
@@ -347,7 +348,18 @@ export function ProductAppProvider({
 
       const uploadedAssets: ProfileTrainingAsset[] = [];
 
-      for (const file of files) {
+      for (let file of files) {
+        if (trainingRole === "avatar_image") {
+          const prepared = await prepareAvatarImageForArgil(file);
+          file = prepared.file;
+
+          if (prepared.wasCropped) {
+            setStatusMessage(
+              `Foto ajustada automaticamente para ${prepared.width}x${prepared.height} (proporcao exigida pela Argil: 9:16 ou 16:9).`,
+            );
+          }
+        }
+
         const signed = await handleApi<{
           signedUrl?: string;
           token?: string;
