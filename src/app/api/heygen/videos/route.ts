@@ -45,8 +45,11 @@ export async function POST(request: Request) {
       const freePrompt = String(body.freePrompt ?? "").trim();
       const name = String(body.name ?? "").trim() || undefined;
 
-      if (!topic) {
-        return NextResponse.json({ message: "Informe o tema do video." }, { status: 400 });
+      if (!topic && !explicitTranscript) {
+        return NextResponse.json(
+          { message: "Informe o tema do video ou um roteiro completo (prompt livre)." },
+          { status: 400 },
+        );
       }
       if (!avatarId) {
         return NextResponse.json(
@@ -57,16 +60,18 @@ export async function POST(request: Request) {
       // voiceId e opcional: se omitido, a HeyGen usa a voz padrao do avatar look (quando existir).
 
       const dashboard = await repository.getDashboard();
-      const baseTranscript =
-        explicitTranscript ||
-        (await buildAvatarVideoTranscript({
-          topic,
-          profile: dashboard.profile,
-        }));
+      const baseTranscript = explicitTranscript
+        ? explicitTranscript
+        : await buildAvatarVideoTranscript({
+            topic,
+            profile: dashboard.profile,
+          });
 
-      const transcript = freePrompt
-        ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
-        : baseTranscript;
+      const transcript = explicitTranscript
+        ? baseTranscript
+        : freePrompt
+          ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
+          : baseTranscript;
 
       const appBaseUrl = resolveAppBaseUrl(request);
       const callbackUrl = appBaseUrl.startsWith("https://")
@@ -125,7 +130,7 @@ export async function POST(request: Request) {
           avatarId,
           voiceId,
           script: transcript,
-          title: name ?? `Curador v2 - ${topic}`,
+          title: name ?? (topic ? `Curador v2 - ${topic}` : "Curador v2 - prompt livre"),
           aspectRatio: "9:16" as const,
           resolution: "1080p" as const,
           callbackUrl,

@@ -52,6 +52,7 @@ export function CuradorPageV2() {
   const [captionUrl, setCaptionUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [freePrompt, setFreePrompt] = useState<string>("");
+  const [useFreePromptAsTranscript, setUseFreePromptAsTranscript] = useState(false);
   const autoPollStartedRef = useRef(false);
 
   const {
@@ -284,8 +285,12 @@ export function CuradorPageV2() {
 
     try {
       const topic = profileForm.avatarVideoTopic.trim();
-      if (!topic) {
+      const free = freePrompt.trim();
+      if (!useFreePromptAsTranscript && !topic) {
         throw new Error("Informe o tema do video antes de gerar.");
+      }
+      if (useFreePromptAsTranscript && !free) {
+        throw new Error("Escreva o roteiro completo no Prompt livre para gerar em modo teste.");
       }
       if (!heygenAvatarId) {
         throw new Error(
@@ -299,11 +304,14 @@ export function CuradorPageV2() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic,
+          topic: useFreePromptAsTranscript ? undefined : topic,
           avatarId: heygenAvatarId,
           voiceId: heygenVoiceId || undefined,
-          name: `Curador v2 - ${profileForm.fullName || "Politico"} - ${topic}`,
-          freePrompt: freePrompt.trim() || undefined,
+          name: useFreePromptAsTranscript
+            ? `Curador v2 - prompt livre - ${profileForm.fullName || "Politico"}`
+            : `Curador v2 - ${profileForm.fullName || "Politico"} - ${topic}`,
+          transcript: useFreePromptAsTranscript ? free : undefined,
+          freePrompt: useFreePromptAsTranscript ? undefined : free || undefined,
         }),
       });
 
@@ -646,8 +654,20 @@ export function CuradorPageV2() {
               rows={6}
               placeholder="Use 1-2 frases curtas. Ex: 'tom confiante. frases curtas. finalize com CTA.'"
             />
+            <div className="persona-checkbox-row">
+              <label className="persona-checkbox">
+                <input
+                  type="checkbox"
+                  checked={useFreePromptAsTranscript}
+                  onChange={(event) => setUseFreePromptAsTranscript(event.target.checked)}
+                />
+                Usar o Prompt livre como roteiro completo (ignorar o sistema)
+              </label>
+            </div>
             <p className="persona-helper-text">
-              Dica: esse texto entra junto do script e pode aumentar a duracao/custo do video.
+              {useFreePromptAsTranscript
+                ? "Modo teste: o Prompt livre vira o texto falado completo."
+                : "Dica: esse texto entra junto do script e pode aumentar a duracao/custo do video."}
             </p>
           </div>
 

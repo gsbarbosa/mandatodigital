@@ -795,6 +795,23 @@ textarea.persona-input-control {
   box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
 }
 
+.persona-checkbox-row {
+  margin-top: 0.9rem;
+}
+
+.persona-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.persona-checkbox input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--blue);
+}
+
 .persona-support-block {
   padding-top: 2rem;
   border-top: 1px solid rgba(148, 163, 184, 0.16);
