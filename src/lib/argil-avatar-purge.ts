@@ -28,7 +28,7 @@ async function argilFetch(path: string, init?: RequestInit) {
       "x-api-key": apiKey,
       ...(init?.headers ?? {}),
     },
-  });
+  }); 
 
   const text = await response.text();
   let json: unknown = null;
