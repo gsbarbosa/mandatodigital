@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
       const topic = String(body.topic ?? "").trim();
       const avatarId = String(body.avatarId ?? "").trim();
-      const voiceId = String(body.voiceId ?? "").trim();
+      const voiceId = String(body.voiceId ?? "").trim() || undefined;
       const explicitTranscript = String(body.transcript ?? "").trim();
       const freePrompt = String(body.freePrompt ?? "").trim();
       const name = String(body.name ?? "").trim() || undefined;
@@ -40,12 +40,7 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      if (!voiceId) {
-        return NextResponse.json(
-          { message: "Voz HeyGen ausente. Clique em Treinar (HeyGen) primeiro." },
-          { status: 400 },
-        );
-      }
+      // voiceId e opcional: se omitido, a HeyGen usa a voz padrao do avatar look (quando existir).
 
       const dashboard = await repository.getDashboard();
       const baseTranscript =
@@ -120,6 +115,12 @@ export async function POST(request: Request) {
         const imageUrlBase = resolveAppBaseUrl(request);
         const { getTrainingAssetPublicUrl } = await import("@/lib/training-asset-urls");
         const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
+
+        if (!voiceId) {
+          throw new Error(
+            `${message} (fallback por imagem exige uma voz selecionada/clonada).`,
+          );
+        }
 
         const result = await heygenCreateVideoFromImage({
           image: { type: "url", url: imageUrl },

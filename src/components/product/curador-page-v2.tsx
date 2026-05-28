@@ -527,11 +527,17 @@ export function CuradorPageV2() {
             type="button"
             className="persona-btn"
             onClick={() => void handleGenerate()}
-            disabled={isGenerating || !heygenAvatarId || !heygenVoiceId}
+            disabled={isGenerating || !heygenAvatarId}
           >
             {isGenerating ? "Gerando..." : "Gerar video (HeyGen)"}
           </button>
         </div>
+
+        {!heygenVoiceId && heygenAvatarId && (
+          <p className="persona-helper-text">
+            Observacao: sem voz clonada/selecionada, a HeyGen pode usar a voz padrao do avatar.
+          </p>
+        )}
 
         {videoError ? (
           <p className="persona-helper-text persona-helper-highlight">{videoError}</p>

@@ -269,7 +269,7 @@ export type HeyGenCreateVideoResponse = {
 
 export async function heygenCreateVideo(input: {
   avatarId: string;
-  voiceId: string;
+  voiceId?: string;
   script?: string;
   title?: string;
   aspectRatio?: "9:16" | "16:9";
@@ -282,7 +282,7 @@ export async function heygenCreateVideo(input: {
   const payload: Record<string, unknown> = {
     type: "avatar",
     avatar_id: input.avatarId,
-    voice_id: input.voiceId,
+    ...(input.voiceId ? { voice_id: input.voiceId } : null),
     script: input.script ?? "",
     title: input.title ?? undefined,
     aspect_ratio: input.aspectRatio ?? "9:16",
