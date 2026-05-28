@@ -191,6 +191,10 @@ async function main() {
     }
 
     if ((result.failed ?? 0) > 0) {
+      console.log("");
+      console.log(
+        "A API da Argil nao permite apagar avatares. Remova em https://app.argil.ai/avatars (menu ... em cada card).",
+      );
       process.exitCode = 1;
     }
     return;
@@ -229,7 +233,11 @@ async function main() {
   if (failed > 0) {
     console.log("");
     console.log(
-      "A Argil nao expoe DELETE de avatar na documentacao. Apague os restantes em app.argil.ai/avatars (menu ... em cada card).",
+      "A API da Argil nao permite apagar avatares (so listar/criar). " +
+        "Remova manualmente em https://app.argil.ai/avatars — menu ... em cada card.",
+    );
+    console.log(
+      "Documentacao: https://docs.argil.ai/api-reference/endpoint/avatars.list (sem endpoint delete).",
     );
     process.exitCode = 1;
   }
