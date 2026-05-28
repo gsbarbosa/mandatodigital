@@ -280,6 +280,8 @@ export async function heygenCreateVideo(input: {
   expressiveness?: "low" | "medium" | "high";
   engine?: "avatar_iv" | "avatar_v";
 }) {
+  const hasMotionControls =
+    Boolean(input.motionPrompt?.trim()) || Boolean(input.expressiveness);
   const payload: Record<string, unknown> = {
     type: "avatar",
     avatar_id: input.avatarId,
@@ -290,10 +292,10 @@ export async function heygenCreateVideo(input: {
     resolution: input.resolution ?? "1080p",
     callback_url: input.callbackUrl ?? undefined,
     ...(input.engine ? { engine: { type: input.engine } } : null),
-    ...(input.engine === "avatar_iv"
+    ...(input.engine === "avatar_iv" && hasMotionControls
       ? {
           motion_prompt: input.motionPrompt ?? undefined,
-          expressiveness: input.expressiveness ?? "low",
+          expressiveness: input.expressiveness ?? undefined,
         }
       : null),
   };

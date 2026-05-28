@@ -99,8 +99,11 @@ export async function POST(request: Request) {
           });
         } catch (error) {
           const message = formatHeyGenError(error);
-          // Se a HeyGen rejeitar motion_prompt, tenta novamente sem esse campo.
-          if (message.includes("motion_prompt is not supported")) {
+          // Se a HeyGen rejeitar controles de motion, tenta novamente sem eles.
+          if (
+            message.includes("motion_prompt is not supported") ||
+            message.includes("expressiveness is not supported")
+          ) {
             result = await heygenCreateVideo(baseCreatePayload);
           } else {
             throw error;
