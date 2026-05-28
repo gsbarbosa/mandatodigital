@@ -2,6 +2,12 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
+import {
+  archetypeOptions,
+  avatarTypeOptions,
+  spectrumOptions,
+  voiceToneOptions,
+} from "@/lib/constants";
 import { useProductApp } from "@/components/product/provider";
 
 function formatStatus(status: string | null | undefined) {
@@ -17,6 +23,32 @@ function formatStatus(status: string | null | undefined) {
     default:
       return status || "Desconhecido";
   }
+}
+
+function toggleValue(values: string[], value: string) {
+  return values.includes(value)
+    ? values.filter((item) => item !== value)
+    : [...values, value];
+}
+
+function PersonaTag({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      className={active ? "persona-tag active" : "persona-tag"}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
 }
 
 export function CuradorPageV2() {
@@ -697,6 +729,124 @@ export function CuradorPageV2() {
           )}
 
           <hr className="persona-divider" />
+
+          <div className="persona-form-group">
+            <label className="persona-label">
+              Posicionamento ideologico <span className="persona-badge">Obrigatorio</span>
+            </label>
+            <p className="persona-helper-text">
+              O posicionamento ideologico compoe a base da resposta que a IA vai gerar sobre o
+              tema.
+            </p>
+            <div className="persona-tag-list">
+              {spectrumOptions.map((option) => (
+                <PersonaTag
+                  key={option}
+                  active={profileForm.spectrum === option}
+                  onClick={() =>
+                    setProfileForm((current) => ({
+                      ...current,
+                      spectrum: option,
+                    }))
+                  }
+                >
+                  {option}
+                </PersonaTag>
+              ))}
+            </div>
+          </div>
+
+          <div className="persona-form-group">
+            <label className="persona-label">Glossario de expressoes</label>
+            <p className="persona-helper-text">
+              Inclua caracteristicas fundamentais da sua expressao, como por exemplo: ne, tipo,
+              entendeu, sabe, ta, ok, certo, mano, assim.
+            </p>
+            <textarea
+              className="persona-input-control"
+              value={profileForm.glossaryTerms ?? ""}
+              onChange={(event) =>
+                setProfileForm((current) => ({
+                  ...current,
+                  glossaryTerms: event.target.value,
+                }))
+              }
+              placeholder="Digite suas expressoes, separadas por virgula..."
+            />
+          </div>
+
+          <div className="persona-form-group">
+            <label className="persona-label">Arquetipos de Persona Politica</label>
+            <div className="persona-tag-list">
+              {archetypeOptions.map((option) => (
+                <PersonaTag
+                  key={option}
+                  active={(profileForm.personaArchetypes ?? []).includes(option)}
+                  onClick={() =>
+                    setProfileForm((current) => {
+                      const personaArchetypes = toggleValue(
+                        current.personaArchetypes ?? [],
+                        option,
+                      );
+                      return {
+                        ...current,
+                        personaArchetypes,
+                        archetype: personaArchetypes[0] ?? current.archetype,
+                      };
+                    })
+                  }
+                >
+                  {option}
+                </PersonaTag>
+              ))}
+            </div>
+            <p className="persona-helper-text persona-top-gap">
+              A nao selecao de algum arquetipo nao traz prejuizo para sua identidade comunicacional.
+            </p>
+          </div>
+
+          <div className="persona-form-group">
+            <label className="persona-label">Tom de linguagem</label>
+            <div className="persona-tag-list">
+              {voiceToneOptions.map((tone) => (
+                <PersonaTag
+                  key={tone}
+                  active={(profileForm.voiceTones ?? []).includes(tone)}
+                  onClick={() =>
+                    setProfileForm((current) => ({
+                      ...current,
+                      voiceTones: toggleValue(current.voiceTones ?? [], tone),
+                    }))
+                  }
+                >
+                  {tone}
+                </PersonaTag>
+              ))}
+            </div>
+            <p className="persona-helper-text persona-top-gap">
+              A nao selecao de algum modificador de tom nao traz prejuizo para sua identidade comunicacional.
+            </p>
+          </div>
+
+          <div className="persona-form-group">
+            <label className="persona-label">Tipo de Avatar</label>
+            <div className="persona-tag-list">
+              {avatarTypeOptions.map((option) => (
+                <PersonaTag
+                  key={option}
+                  active={profileForm.avatarType === option}
+                  onClick={() =>
+                    setProfileForm((current) => ({
+                      ...current,
+                      avatarType: option,
+                    }))
+                  }
+                >
+                  {option}
+                </PersonaTag>
+              ))}
+            </div>
+          </div>
 
           <div className="persona-form-group">
             <label className="persona-label">Tema do video</label>
