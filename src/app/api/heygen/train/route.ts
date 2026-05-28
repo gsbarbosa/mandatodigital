@@ -59,22 +59,10 @@ export async function POST(request: Request) {
 
       const appBaseUrl = resolveAppBaseUrl(request);
       const assetBaseUrl = resolveAppBaseUrl(request);
-      const avatarImageUrl = await getTrainingAssetPublicUrl({
-        asset: avatarImageAsset,
-        repository,
-        appBaseUrl: assetBaseUrl,
-      });
-      const voiceAudioUrl = await getTrainingAssetPublicUrl({
-        asset: voiceAudioAsset,
-        repository,
-        appBaseUrl: assetBaseUrl,
-      });
+      const avatarImageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, assetBaseUrl);
+      const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, assetBaseUrl);
       const trainingVideoUrl = latestVideoAsset
-        ? await getTrainingAssetPublicUrl({
-            asset: latestVideoAsset,
-            repository,
-            appBaseUrl: assetBaseUrl,
-          })
+        ? await getTrainingAssetPublicUrl(latestVideoAsset, assetBaseUrl)
         : "";
 
       const avatarName =

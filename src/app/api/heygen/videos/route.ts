@@ -3,8 +3,14 @@ import { NextResponse } from "next/server";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
-import { formatHeyGenError, heygenCreateVideo, heygenGetAvatarLook } from "@/lib/heygen";
+import {
+  formatHeyGenError,
+  heygenCreateVideo,
+  heygenCreateVideoFromImage,
+  heygenGetAvatarLook,
+} from "@/lib/heygen";
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
+import { pickAvatarImageAndVoiceAudioAssets } from "@/lib/training-asset-urls";
 
 export async function POST(request: Request) {
   try {
@@ -15,12 +21,14 @@ export async function POST(request: Request) {
         voiceId?: string;
         transcript?: string;
         name?: string;
+        freePrompt?: string;
       };
 
       const topic = String(body.topic ?? "").trim();
       const avatarId = String(body.avatarId ?? "").trim();
       const voiceId = String(body.voiceId ?? "").trim();
       const explicitTranscript = String(body.transcript ?? "").trim();
+      const freePrompt = String(body.freePrompt ?? "").trim();
       const name = String(body.name ?? "").trim() || undefined;
 
       if (!topic) {
@@ -40,12 +48,16 @@ export async function POST(request: Request) {
       }
 
       const dashboard = await repository.getDashboard();
-      const transcript =
+      const baseTranscript =
         explicitTranscript ||
         (await buildAvatarVideoTranscript({
           topic,
           profile: dashboard.profile,
         }));
+
+      const transcript = freePrompt
+        ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
+        : baseTranscript;
 
       const appBaseUrl = resolveAppBaseUrl(request);
       const callbackUrl = appBaseUrl.startsWith("https://")
@@ -63,26 +75,73 @@ export async function POST(request: Request) {
         // ignore (fallback to avatar_iv)
       }
 
-      const result = await heygenCreateVideo({
-        avatarId,
-        voiceId,
-        script: transcript,
-        title: name ?? `Curador v2 - ${topic}`,
-        aspectRatio: "9:16",
-        resolution: "1080p",
-        callbackUrl,
-        engine,
-        motionPrompt: "nodding gently",
-        expressiveness: "medium",
-      });
+      try {
+        const result = await heygenCreateVideo({
+          avatarId,
+          voiceId,
+          script: transcript,
+          title: name ?? `Curador v2 - ${topic}`,
+          aspectRatio: "9:16",
+          resolution: "1080p",
+          callbackUrl,
+          engine,
+          motionPrompt: "nodding gently",
+          expressiveness: "medium",
+        });
 
-      return NextResponse.json(
-        {
-          videoId: result.videoId,
-          message: "Video enviado para a HeyGen. Aguarde a renderizacao.",
-        },
-        { status: 201 },
-      );
+        return NextResponse.json(
+          {
+            videoId: result.videoId,
+            providerMode: "avatar",
+            message: "Video enviado para a HeyGen. Aguarde a renderizacao.",
+          },
+          { status: 201 },
+        );
+      } catch (error) {
+        const message = formatHeyGenError(error);
+        const isUnsupported =
+          message.includes("is not supported") || message.includes("not supported");
+
+        if (!isUnsupported) {
+          throw error;
+        }
+
+        // Fallback: se o look nao for elegivel, gera via input direto de imagem.
+        const assets = await repository.listTrainingAssetsForReference(
+          dashboard.profile?.id ?? "",
+        );
+        const { avatarImageAsset } = pickAvatarImageAndVoiceAudioAssets(assets);
+        if (!avatarImageAsset) {
+          throw new Error(
+            `${message} (e nao foi encontrada foto para fallback de imagem).`,
+          );
+        }
+
+        const imageUrlBase = resolveAppBaseUrl(request);
+        const { getTrainingAssetPublicUrl } = await import("@/lib/training-asset-urls");
+        const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
+
+        const result = await heygenCreateVideoFromImage({
+          image: { type: "url", url: imageUrl },
+          voiceId,
+          script: transcript,
+          title: name ?? `Curador v2 (fallback imagem) - ${topic}`,
+          aspectRatio: "9:16",
+          resolution: "1080p",
+          callbackUrl,
+        });
+
+        return NextResponse.json(
+          {
+            videoId: result.videoId,
+            providerMode: "image_fallback",
+            message:
+              "O avatar treinado nao foi aceito pela HeyGen (provavel consent/estado do look). " +
+              "Gerei via input direto de imagem para voce ver o resultado end-to-end.",
+          },
+          { status: 201 },
+        );
+      }
     });
   } catch (error) {
     return handleRouteError(new Error(formatHeyGenError(error)));

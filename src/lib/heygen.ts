@@ -274,6 +274,39 @@ export async function heygenCreateVideo(input: {
   return { videoId, raw: response };
 }
 
+export async function heygenCreateVideoFromImage(input: {
+  image: HeyGenAssetInput;
+  voiceId: string;
+  script: string;
+  title?: string;
+  aspectRatio?: "9:16" | "16:9" | "auto";
+  resolution?: "720p" | "1080p" | "4k";
+  callbackUrl?: string;
+}) {
+  const payload: Record<string, unknown> = {
+    type: "image",
+    image: input.image,
+    voice_id: input.voiceId,
+    script: input.script,
+    title: input.title ?? undefined,
+    aspect_ratio: input.aspectRatio ?? "9:16",
+    resolution: input.resolution ?? "1080p",
+    callback_url: input.callbackUrl ?? undefined,
+  };
+
+  const response = await heygenFetch<HeyGenCreateVideoResponse>("/v3/videos", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+  const videoId = response.data?.video_id?.trim();
+  if (!videoId) {
+    throw new Error("Resposta invalida da HeyGen: video_id ausente.");
+  }
+
+  return { videoId, raw: response };
+}
+
 export type HeyGenVideoDetailsResponse = {
   data?: {
     status?: "pending" | "processing" | "completed" | "failed" | string;

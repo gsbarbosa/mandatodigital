@@ -40,6 +40,7 @@ export function CuradorPageV2() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [captionUrl, setCaptionUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [freePrompt, setFreePrompt] = useState<string>("");
   const autoPollStartedRef = useRef(false);
 
   const {
@@ -202,6 +203,7 @@ export function CuradorPageV2() {
           avatarId: heygenAvatarId,
           voiceId: heygenVoiceId,
           name: `Curador v2 - ${profileForm.fullName || "Politico"} - ${topic}`,
+          freePrompt: freePrompt.trim() || undefined,
         }),
       });
 
@@ -231,10 +233,7 @@ export function CuradorPageV2() {
   const selectedVoiceAudio = voiceAudioAssets[0] ?? null;
   const selectedTrainingVideo = trainingVideoAssets[0] ?? null;
 
-  const avatarImagePreviewUrl = useMemo(() => {
-    const url = selectedAvatarImage?.localPreviewUrl?.trim();
-    return url ? url : null;
-  }, [selectedAvatarImage?.localPreviewUrl]);
+  const avatarImagePreviewUrl = useMemo(() => null, []);
 
   useEffect(() => {
     if (!videoId || autoPollStartedRef.current || isGenerating) {
@@ -287,15 +286,8 @@ export function CuradorPageV2() {
         <div className="persona-form-row">
           <div className="persona-form-group">
             <label className="persona-label">Foto do rosto (fallback)</label>
-            {avatarImagePreviewUrl ? (
-              <div className="persona-preview">
-                <Image
-                  src={avatarImagePreviewUrl}
-                  alt="Preview avatar"
-                  width={240}
-                  height={240}
-                />
-              </div>
+            {selectedAvatarImage ? (
+              <p className="persona-helper-text">{selectedAvatarImage.originalFilename}</p>
             ) : (
               <p className="persona-helper-text">Envie uma foto para criar o avatar.</p>
             )}
@@ -408,6 +400,20 @@ export function CuradorPageV2() {
             }
             rows={4}
           />
+        </div>
+
+        <div className="persona-form-group">
+          <label className="persona-label">Prompt livre (teste)</label>
+          <textarea
+            className="persona-input"
+            value={freePrompt}
+            onChange={(event) => setFreePrompt(event.target.value)}
+            rows={6}
+            placeholder="Escreva instrucoes livres (estilo, ritmo, frases, estrutura, gestos, tom). Ex: 'mais agressivo, 2 frases curtas no inicio, finalize com CTA...'"
+          />
+          <p className="persona-helper-text">
+            Esse texto entra como instrucoes adicionais no script enviado para a HeyGen.
+          </p>
         </div>
 
         <div className="persona-actions">
