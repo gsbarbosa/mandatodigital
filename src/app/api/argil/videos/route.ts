@@ -6,6 +6,7 @@ import { apiRoute } from "@/lib/auth/api-route";
 import {
   argilCreateAndRenderVideo,
   getArgilConfig,
+  isArgilPlaceholderId,
   isArgilVideoReady,
   mapArgilVideoToGenerationUpdate,
 } from "@/lib/argil";
@@ -60,6 +61,21 @@ export async function POST(request: Request) {
     const dashboard = await repository.getDashboard();
     const profileId = dashboard.profile?.id ?? null;
     const profileAvatarId = dashboard.profile?.argilAvatarId?.trim() || undefined;
+    const config = getArgilConfig();
+
+    if (!config.dryRun && isArgilPlaceholderId(profileAvatarId)) {
+      const trainingStatus = dashboard.profile?.avatarTrainingStatus ?? "";
+      const hint =
+        trainingStatus === "TRAINING_FAILED"
+          ? " O treino do clone IA falhou. Veja a mensagem acima e tente Treinar novamente apos liberar vagas na Argil (app.argil.ai)."
+          : " No Curador, envie foto e audio e clique em Treinar clone IA antes de gerar o video.";
+
+      return NextResponse.json(
+        { message: `Avatar ainda nao esta pronto.${hint}` },
+        { status: 400 },
+      );
+    }
+
     const transcript =
       explicitTranscript ||
       (await buildAvatarVideoTranscript({
@@ -72,7 +88,7 @@ export async function POST(request: Request) {
       topic,
       transcript,
       name: name ?? `Avatar - ${topic}`,
-      dryRun: getArgilConfig().dryRun,
+      dryRun: config.dryRun,
       status: "IDLE",
     });
 
@@ -81,38 +97,50 @@ export async function POST(request: Request) {
       ? `${appBaseUrl}/api/argil/webhooks`
       : undefined;
 
-    const result = await argilCreateAndRenderVideo({
-      topic,
-      transcript,
-      name: generation.name,
-      avatarId: profileAvatarId,
-      voiceId: dashboard.profile?.argilVoiceId?.trim() || undefined,
-      callbackUrl,
-    });
+    try {
+      const result = await argilCreateAndRenderVideo({
+        topic,
+        transcript,
+        name: generation.name,
+        avatarId: profileAvatarId,
+        voiceId: dashboard.profile?.argilVoiceId?.trim() || undefined,
+        callbackUrl,
+      });
 
-    const videoUpdate = mapArgilVideoToGenerationUpdate(result.video);
-    const updated = await avatarVideoStorage.update(generation.id, {
-      ...videoUpdate,
-      status: toGenerationStatus(videoUpdate.status),
-    });
+      const videoUpdate = mapArgilVideoToGenerationUpdate(result.video);
+      const updated = await avatarVideoStorage.update(generation.id, {
+        ...videoUpdate,
+        status: toGenerationStatus(videoUpdate.status),
+      });
 
-    const finalGeneration =
-      result.dryRun && !isArgilVideoReady(updated)
-        ? await avatarVideoStorage.update(updated.id, {
-            status: "DONE",
-            previewUrl: result.video.previewUrl ?? updated.previewUrl,
-            videoUrl: "https://example.com/argil-video-dry-run.mp4",
-          })
-        : updated;
+      const finalGeneration =
+        result.dryRun && !isArgilVideoReady(updated)
+          ? await avatarVideoStorage.update(updated.id, {
+              status: "DONE",
+              previewUrl: result.video.previewUrl ?? updated.previewUrl,
+              videoUrl: "https://example.com/argil-video-dry-run.mp4",
+            })
+          : updated;
 
-    return NextResponse.json(
-      {
-        dryRun: result.dryRun,
-        generation: finalGeneration,
-        video: result.video,
-        debug: result.dryRun ? result.request : undefined,
-      },
-      { status: 201 },
-    );
+      return NextResponse.json(
+        {
+          dryRun: result.dryRun,
+          generation: finalGeneration,
+          video: result.video,
+          debug: result.dryRun ? result.request : undefined,
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Nao foi possivel enviar o video para a Argil.";
+
+      const failedGeneration = await avatarVideoStorage.update(generation.id, {
+        status: "FAILED",
+        errorMessage: message,
+      });
+
+      return NextResponse.json({ message, generation: failedGeneration }, { status: 502 });
+    }
   });
 }

@@ -98,5 +98,10 @@ export function mergeProfileInputForSave(
       useDefaults,
     ),
     bio: pickString(input.bio, existing?.bio, PROFILE_CORE_DEFAULTS.bio, useDefaults),
+    argilAvatarId: input.argilAvatarId?.trim() || existing?.argilAvatarId || "",
+    argilVoiceId: input.argilVoiceId?.trim() || existing?.argilVoiceId || "",
+    avatarTrainingStatus: (input.avatarTrainingStatus ||
+      existing?.avatarTrainingStatus ||
+      "") as ProfileInput["avatarTrainingStatus"],
   };
 }

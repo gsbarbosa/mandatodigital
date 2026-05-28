@@ -23,7 +23,23 @@ type VideoGenerationPayload = {
   createdAt?: string;
 };
 
-function formatVideoStatusLabel(status: string | null | undefined) {
+function isVideoStuckIdle(generation?: {
+  status?: string | null;
+  argilVideoId?: string | null;
+}) {
+  return (
+    generation?.status === "IDLE" && !String(generation.argilVideoId ?? "").trim()
+  );
+}
+
+function formatVideoStatusLabel(
+  status: string | null | undefined,
+  generation?: { argilVideoId?: string | null },
+) {
+  if (isVideoStuckIdle({ status, argilVideoId: generation?.argilVideoId })) {
+    return "Nao enviado para Argil";
+  }
+
   switch (status) {
     case "GENERATING_AUDIO":
       return "Gerando audio";
@@ -36,7 +52,7 @@ function formatVideoStatusLabel(status: string | null | undefined) {
     case "DRY_RUN":
       return "Simulacao (dry-run)";
     case "IDLE":
-      return "Aguardando";
+      return "Na fila Argil";
     default:
       return status || "Desconhecido";
   }
@@ -316,7 +332,15 @@ export function CuradorPage() {
     );
   }
 
-  function isVideoInProgress(generation?: { status?: string; videoUrl?: string | null }) {
+  function isVideoInProgress(generation?: {
+    status?: string;
+    videoUrl?: string | null;
+    argilVideoId?: string | null;
+  }) {
+    if (isVideoStuckIdle(generation)) {
+      return false;
+    }
+
     if (!generation?.status || generation.status === "FAILED") {
       return false;
     }
@@ -370,6 +394,14 @@ export function CuradorPage() {
 
       if (active) {
         applyGenerationState(active);
+        if (isVideoStuckIdle(active)) {
+          setVideoError(
+            active.errorMessage?.trim() ||
+              "Este video nao foi enviado para a Argil. Treine o clone IA e gere novamente.",
+          );
+        } else if (active.status === "FAILED" && active.errorMessage?.trim()) {
+          setVideoError(active.errorMessage.trim());
+        }
       }
     } finally {
       setIsLoadingVideoGenerations(false);
@@ -418,6 +450,46 @@ export function CuradorPage() {
   }, [assetReferenceId]);
 
   useEffect(() => {
+    if (!assetReferenceId || profileForm.argilAvatarId?.trim()) {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/argil/avatars/train?profileId=${encodeURIComponent(assetReferenceId)}`,
+        );
+        const payload = await parseJsonOrText<{
+          training?: { status?: string; errorMessage?: string };
+        }>(response);
+
+        if (!response.ok || !payload.training) {
+          return;
+        }
+
+        const { training } = payload;
+        setAvatarTrainingStatus(training.status ?? null);
+
+        if (
+          training.status === "TRAINING_FAILED" ||
+          training.status === "REFUSED"
+        ) {
+          setAvatarTrainingError(
+            training.errorMessage?.trim() ||
+              "O treino do clone IA falhou. Libere vagas na Argil (app.argil.ai) e clique em Treinar novamente.",
+          );
+          setProfileForm((current) => ({
+            ...current,
+            avatarTrainingStatus: training.status as typeof current.avatarTrainingStatus,
+          }));
+        }
+      } catch {
+        // Consulta auxiliar; falha silenciosa.
+      }
+    })();
+  }, [assetReferenceId, profileForm.argilAvatarId, setProfileForm]);
+
+  useEffect(() => {
     if (autoPollStartedRef.current || isGeneratingVideo) {
       return;
     }
@@ -455,8 +527,17 @@ export function CuradorPage() {
         upsertVideoGeneration(generation);
       }
 
+      if (isVideoStuckIdle(generation)) {
+        throw new Error(
+          generation?.errorMessage?.trim() ||
+            "Este video nao chegou a ser enviado para a Argil (avatar nao pronto). Treine o clone IA e gere novamente.",
+        );
+      }
+
       if (generation?.status === "FAILED") {
-        throw new Error("A geracao do video falhou na Argil.");
+        throw new Error(
+          generation.errorMessage?.trim() || "A geracao do video falhou na Argil.",
+        );
       }
 
       if (isVideoReady(generation)) {
@@ -486,7 +567,7 @@ export function CuradorPage() {
         throw new Error("Informe o tema do video antes de gerar.");
       }
 
-      void saveProfile({ allowDraftDefaults: true });
+      void saveProfile({ allowDraftDefaults: true, silent: true });
 
       const response = await fetch("/api/argil/videos", {
         method: "POST",
@@ -507,6 +588,10 @@ export function CuradorPage() {
       }>(response);
 
       if (!response.ok) {
+        if (payload.generation) {
+          applyGenerationState(payload.generation);
+          upsertVideoGeneration(payload.generation);
+        }
         throw new Error(payload.message || "Nao foi possivel gerar o video.");
       }
 
@@ -949,7 +1034,7 @@ export function CuradorPage() {
                           <strong>{generation.topic || "Sem tema"}</strong>
                           <span>{formatVideoCreatedAt(generation.createdAt)}</span>
                           <span data-testid={`argil-video-history-status-${generation.id}`}>
-                            {formatVideoStatusLabel(generation.status)}
+                            {formatVideoStatusLabel(generation.status, generation)}
                             {ready ? " — pronto" : ""}
                           </span>
                         </button>
@@ -997,7 +1082,12 @@ export function CuradorPage() {
                 <>
                   {videoStatus && (
                     <p className="persona-helper-text" data-testid="argil-video-status">
-                      Status: {formatVideoStatusLabel(videoStatus)}
+                      Status:{" "}
+                      {formatVideoStatusLabel(videoStatus, {
+                        argilVideoId: videoGenerations.find(
+                          (item) => item.id === videoGenerationId,
+                        )?.argilVideoId,
+                      })}
                     </p>
                   )}
                   {(isGeneratingVideo || isRefreshingVideoStatus) && (

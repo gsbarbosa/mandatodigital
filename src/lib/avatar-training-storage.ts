@@ -240,6 +240,52 @@ export const avatarTrainingStorage = {
     return database.profileAvatarTrainings?.find((item) => item.id === id) ?? null;
   },
 
+  async getLatestByProfileId(profileId: string) {
+    if (isSupabaseConfigured()) {
+      const client = getSupabaseClient();
+      const { data, error } = await client
+        .from("profile_avatar_trainings")
+        .select("*")
+        .eq("profile_id", profileId)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        if (isSchemaCompatibilityError(error)) {
+          throwIfNoLocalSchemaFallback(error);
+          const database = await readLocalDatabase();
+          const matches =
+            database.profileAvatarTrainings?.filter(
+              (item) => item.profileId === profileId,
+            ) ?? [];
+          return (
+            matches.sort(
+              (left, right) =>
+                new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+            )[0] ?? null
+          );
+        }
+
+        throw error;
+      }
+
+      return data ? mapRow(data) : null;
+    }
+
+    assertLocalFilesystemAllowed();
+    const database = await readLocalDatabase();
+    const matches =
+      database.profileAvatarTrainings?.filter((item) => item.profileId === profileId) ??
+      [];
+    return (
+      matches.sort(
+        (left, right) =>
+          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+      )[0] ?? null
+    );
+  },
+
   async getByArgilAvatarId(argilAvatarId: string) {
     if (isSupabaseConfigured()) {
       const client = getSupabaseClient();

@@ -72,7 +72,10 @@ type ProductAppContextValue = {
   isFeedbackWidgetOpen: boolean;
   isEvaluatingContentRequestId: string | null;
   setFeedbackWidgetOpen: Dispatch<SetStateAction<boolean>>;
-  saveProfile: (options?: { allowDraftDefaults?: boolean }) => Promise<void>;
+  saveProfile: (options?: {
+    allowDraftDefaults?: boolean;
+    silent?: boolean;
+  }) => Promise<void>;
   uploadTrainingAssets: (
     files: File[],
     trainingRole: TrainingAssetRole,
@@ -240,7 +243,10 @@ export function ProductAppProvider({
     return (payload ?? ({} as T)) as T;
   }
 
-  async function saveProfile(options?: { allowDraftDefaults?: boolean }) {
+  async function saveProfile(options?: {
+    allowDraftDefaults?: boolean;
+    silent?: boolean;
+  }) {
     setIsSavingProfile(true);
     setStatusMessage(null);
 
@@ -327,9 +333,13 @@ export function ProductAppProvider({
             : asset,
         ),
       );
-      setStatusMessage(
-        "Configuracao salva. O onboarding profundo do mandato ja esta persistido para as proximas etapas.",
-      );
+      if (!options?.silent) {
+        setStatusMessage(
+          options?.allowDraftDefaults
+            ? "Preferencias do Curador salvas."
+            : "Configuracao salva. O onboarding profundo do mandato ja esta persistido para as proximas etapas.",
+        );
+      }
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Nao foi possivel salvar o perfil.",

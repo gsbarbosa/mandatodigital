@@ -298,11 +298,23 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   return apiRoute(async (repository) => {
-    const trainingId = new URL(request.url).searchParams.get("trainingId")?.trim();
+    const searchParams = new URL(request.url).searchParams;
+    const trainingId = searchParams.get("trainingId")?.trim();
+    const profileId = searchParams.get("profileId")?.trim();
+
+    if (!trainingId && profileId) {
+      const dashboard = await repository.getDashboard();
+      if (dashboard.profile?.id !== profileId) {
+        return NextResponse.json({ message: "Perfil nao autorizado." }, { status: 403 });
+      }
+
+      const training = await avatarTrainingStorage.getLatestByProfileId(profileId);
+      return NextResponse.json({ training });
+    }
 
     if (!trainingId) {
       return NextResponse.json(
-        { message: "Informe trainingId para consultar o treinamento." },
+        { message: "Informe trainingId ou profileId para consultar o treinamento." },
         { status: 400 },
       );
     }
