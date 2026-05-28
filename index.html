@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calibragem de Persona</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* BASE & RESET */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.3);
+            --bg-dark: #020617;
+            --bg-card: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #1e293b;
+            --danger: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 40px 20px;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* TECH BACKGROUND GRID */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(30, 41, 59, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(30, 41, 59, 0.3) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* CARDS */
+        .card {
+            background-color: rgba(15, 23, 42, 0.7);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* FORM ELEMENTS */
+        .form-group {
+            margin-bottom: 2.5rem;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 1.05rem;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            background-color: var(--danger);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-control {
+            width: 100%;
+            background-color: rgba(2, 6, 23, 0.5);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.875rem 1rem;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        textarea.input-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .helper-text {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        /* UPLOAD AREA */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            background-color: rgba(2, 6, 23, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-area i {
+            color: var(--primary);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area h4 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .upload-area p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* TAGS / CHIPS */
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .tag {
+            background-color: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            user-select: none;
+        }
+
+        .tag:hover {
+            border-color: #475569;
+            color: var(--text-main);
+        }
+
+        .tag.active {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* MODAL / POPUP */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal-content i {
+            color: var(--primary);
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .modal-content p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* FILE LIST */
+        .file-list {
+            margin-top: 1rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background-color: rgba(59, 130, 246, 0.1);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .file-item i {
+            color: var(--primary);
+        }
+
+        /* LOADING SPINNER */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .card { padding: 1.5rem; }
+            .tag { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        
+        <!-- Header -->
+        <div class="section-header">
+            <i class="fa-solid fa-user-check fa-3x" style="color: var(--primary); margin-bottom: 1rem;"></i>
+            <h2>Calibragem de Persona</h2>
+            <p>O Agente Curador usa estes dados para garantir que os roteiros tenham "a sua cara".</p>
+        </div>
+
+        <!-- 1. Upload de vídeo -->
+        <div class="form-group">
+            <label>Upload de vídeo <span class="badge">Obrigatório</span></label>
+            
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('videoFile').click()">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <h4>BASE DE TREINO (CLONAGEM)</h4>
+                <p>Upload de 1 a 5 vídeos originais<br>A IA mapeará sua cadência, pausas, voz, estilo visual e comunicacional</p>
+                <input type="file" id="videoFile" style="display: none;" accept="video/*" multiple>
+                <button type="button" class="btn">Selecionar Arquivos</button>
+            </div>
+            <div class="file-list" id="fileList"></div>
+            
+            <p class="helper-text" style="margin-top: 1.5rem;">
+                É obrigatório o upload de pelo menos um vídeo de 3 minutos com o Candidato falando de frente para a câmera de forma natural sobre um tema qualquer. Esse vídeo forma a base de como o candidato deve comunicar.
+            </p>
+        </div>
+
+        <!-- E-mail para treinamento -->
+        <div class="form-group">
+            <label>Seu e-mail <span class="badge">Obrigatório</span></label>
+            <input type="email" id="emailTreinamento" class="input-control" placeholder="Digite seu e-mail para receber o status do treinamento...">
+        </div>
+
+        <!-- BLOCO: Botão de Treinar a IA -->
+        <div style="margin: 3rem 0 2rem 0;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <button type="button" id="btnTreinar" class="btn" style="padding: 0.8rem 2.5rem; font-size: 1.05rem;" onclick="treinarIA()">
+                    <i class="fa-solid fa-microchip" style="margin-right: 8px;"></i> Treinar a IA
+                </button>
+            </div>
+            <p class="helper-text">
+                Enquanto estamos treinando a IA, fique à vontade para preencher os campos abaixo. Assim que concluído o treinamento, enviaremos uma notificação para seu e-mail. Tempo aproximado de 5 minutos.
+            </p>
+        </div>
+
+        <!-- Linha Divisória Discreta -->
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin-bottom: 3rem; opacity: 0.8;">
+
+        <!-- 2. Posicionamento Ideológico -->
+        <div class="form-group">
+            <label>Posicionamento ideológico <span class="badge">Obrigatório</span></label>
+            <p class="helper-text">
+                O posicionamento ideológico compõe a base da resposta que a IA vai gerar sobre o tema.
+            </p>
+            <div class="tag-list" id="ideologia-list">
+                <div class="tag" onclick="toggleSingle(this, 'ideologia-list')">Extrema-Esquerda</div>
+                <div class="tag" onclick="toggleSingle(this, 'ideologia-list')">Esquerda</div>
+                <div class="tag" onclick="toggleSingle(this, 'ideologia-list')">Centro-Esquerda</div>
+                <div class="tag" onclick="toggleSingle(this, 'ideologia-list')">Centro</div>
+                <div class="tag" onclick="toggleSingle(this, 'ideologia-list')">Centro-Direita</div>
+                <div class="tag" onclick="toggleSingle(this, 'ideologia-list')">Direita</div>
+                <div class="tag" onclick="toggleSingle(this, 'ideologia-list')">Extrema-Direita</div>
+            </div>
+        </div>
+
+        <!-- 3. Glossário de Expressões -->
+        <div class="form-group">
+            <label>Glossário de expressões</label>
+            <p class="helper-text">
+                Inclua características fundamentais da sua expressão (para serem repetidas na sua fala), como por exemplo: "né; tipo...; entendeu?; sabe?; tá?; ok?; certo?; mano; assim."
+            </p>
+            <textarea id="glossarioExpressoes" class="input-control" placeholder="Digite suas expressões, separadas por vírgula..."></textarea>
+        </div>
+
+        <!-- 4. Arquétipos de Persona Política -->
+        <div class="form-group">
+            <label>Arquétipos de Persona Política</label>
+            <div class="tag-list" id="arquetipos-list">
+                <div class="tag" onclick="toggleMultiple(this)">O Estadista (Sério, Longo prazo)</div>
+                <div class="tag" onclick="toggleMultiple(this)">Homem do Povo (Empatia)</div>
+                <div class="tag" onclick="toggleMultiple(this)">O Xerife/Justiceiro (Ordem)</div>
+                <div class="tag" onclick="toggleMultiple(this)">O Missionário (Moral/Costumes)</div>
+                <div class="tag" onclick="toggleMultiple(this)">O Gestor/CEO (Eficiência)</div>
+                <div class="tag" onclick="toggleMultiple(this)">O Militante (Mobilizador)</div>
+                <div class="tag" onclick="toggleMultiple(this)">O Professor (Didático)</div>
+                <div class="tag" onclick="toggleMultiple(this)">O Conciliador (União/Pontes)</div>
+                <div class="tag" onclick="toggleMultiple(this)">Agro/Regionalista (Interior)</div>
+                <div class="tag" onclick="toggleMultiple(this)">O Inovador/Digital (Tech)</div>
+            </div>
+            <p class="helper-text" style="margin-top: 1.5rem;">
+                A não seleção de algum arquétipo não traz prejuízo para sua identidade comunicacional, previamente mapeada pelos vídeos encaminhados
+            </p>
+        </div>
+
+        <!-- 5. Tom de Linguagem -->
+        <div class="form-group">
+            <label>Tom de linguagem</label>
+            <div class="tag-list" id="tom-list">
+                <div class="tag" onclick="toggleMultiple(this)">Acadêmico</div>
+                <div class="tag" onclick="toggleMultiple(this)">Popular</div>
+                <div class="tag" onclick="toggleMultiple(this)">Indignado</div>
+                <div class="tag" onclick="toggleMultiple(this)">Conciliador</div>
+                <div class="tag" onclick="toggleMultiple(this)">Institucional</div>
+                <div class="tag" onclick="toggleMultiple(this)">Técnico/Êxito</div>
+                <div class="tag" onclick="toggleMultiple(this)">Didático</div>
+                <div class="tag" onclick="toggleMultiple(this)">Patriótico</div>
+                <div class="tag" onclick="toggleMultiple(this)">Agressivo</div>
+                <div class="tag" onclick="toggleMultiple(this)">Sofisticado</div>
+                <div class="tag" onclick="toggleMultiple(this)">Otimista</div>
+                <div class="tag" onclick="toggleMultiple(this)">Paternal/Maternal</div>
+                <div class="tag" onclick="toggleMultiple(this)">Sarcástico/Irônico</div>
+                <div class="tag" onclick="toggleMultiple(this)">Motivacional</div>
+                <div class="tag" onclick="toggleMultiple(this)">Denuncista</div>
+                <div class="tag" onclick="toggleMultiple(this)">Humorístico</div>
+            </div>
+            <p class="helper-text" style="margin-top: 1.5rem;">
+                A não seleção de algum modificador de tom, não traz prejuízo para sua identidade comunicacional, previamente mapeada pelos vídeos encaminhados
+            </p>
+        </div>
+
+        <!-- Tipo de Avatar -->
+        <div class="form-group">
+            <label>Tipo de Avatar</label>
+            <div class="tag-list" id="avatar-list">
+                <div class="tag" onclick="toggleSingle(this, 'avatar-list')">Meu Gêmeo Digital</div>
+                <div class="tag" onclick="toggleSingle(this, 'avatar-list')">Minha Caricatura</div>
+            </div>
+        </div>
+    
+        <!-- Tema do Vídeo -->
+        <div class="form-group">
+            <label>Inserir tema do vídeo <span class="badge">Obrigatório</span></label>
+            <input type="text" id="temaVideo" class="input-control" placeholder="Digite o tema do vídeo...">
+        </div>
+
+        <!-- E-mail -->
+        <div class="form-group">
+            <label>Seu e-mail <span class="badge">Obrigatório</span></label>
+            <input type="email" id="emailGeracao" class="input-control" placeholder="Digite seu e-mail...">
+            <p class="helper-text" style="margin-top: 0.5rem; font-size: 0.85rem;">
+                Inclua seu e-mail para receber o vídeo do avatar.
+            </p>
+        </div>
+
+        <!-- Botão Gerar Avatar -->
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <button type="button" id="btnGerar" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem; border-radius: 8px; box-shadow: 0 4px 15px var(--primary-glow);" onclick="gerarAvatar()">
+                <i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 8px;"></i> Gerar meu avatar
+            </button>
+        </div>
+
+        <!-- 6. Observações -->
+        <div class="form-group">
+            <label>Observações importantes:</label>
+            <p class="helper-text">
+                Com foco na geração de conteúdo viral, a IA pode não utilizar "Arquétipos da Persona Política" e/ou "Tom de Linguagem". O Paradoxo das Restrições reduz a viralidade do vídeo. Imagine o cenário: Arquétipo: Estadista Conciliador + Tom: Indignado/Agressivo + Tema: Corrupção. O Agente tentará equilibrar um tom agressivo com uma postura conciliadora. O resultado será inconsistente.
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Modal de Feedback -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+        <i id="modalIcon" class="fa-solid fa-circle-check"></i>
+        <h3 id="modalTitle">Processando...</h3>
+        <p id="modalMessage">Aguarde um momento.</p>
+        <button class="btn" onclick="fecharModal()">Entendido</button>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    // CONFIGURAÇÃO: Substitua pelas URLs reais dos seus webhooks N8N
+    // ============================================================
+    const CONFIG = {
+        WEBHOOK_TREINAMENTO: 'https://n8n.srv932594.hstgr.cloud/webhook-test/treinamento-avatar',
+        WEBHOOK_GERACAO: 'https://n8n.srv932594.hstgr.cloud/webhook-test/gerar-video-avatar'
+    };
+
+    // ============================================================
+    // FUNÇÕES DE SELEÇÃO (Tags)
+    // ============================================================
+    function toggleSingle(element, containerId) {
+        const container = document.getElementById(containerId);
+        const tags = container.getElementsByClassName('tag');
+        for (let i = 0; i < tags.length; i++) {
+            tags[i].classList.remove('active');
+        }
+        element.classList.add('active');
+    }
+
+    function toggleMultiple(element) {
+        element.classList.toggle('active');
+    }
+
+    // Retorna o texto da tag ativa em um container de seleção única
+    function getSelectedSingle(containerId) {
+        const container = document.getElementById(containerId);
+        const active = container.querySelector('.tag.active');
+        return active ? active.textContent.trim() : '';
+    }
+
+    // Retorna array de textos das tags ativas em um container de seleção múltipla
+    function getSelectedMultiple(containerId) {
+        const container = document.getElementById(containerId);
+        const actives = container.querySelectorAll('.tag.active');
+        return Array.from(actives).map(tag => tag.textContent.trim());
+    }
+
+    // ============================================================
+    // UPLOAD DE ARQUIVOS - Exibição visual
+    // ============================================================
+    document.getElementById('videoFile').addEventListener('change', function(e) {
+        const fileList = document.getElementById('fileList');
+        fileList.innerHTML = '';
+        const files = e.target.files;
+        for (let i = 0; i < files.length; i++) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            fileItem.innerHTML = `<i class="fa-solid fa-video"></i> ${files[i].name} (${(files[i].size / 1024 / 1024).toFixed(1)} MB)`;
+            fileList.appendChild(fileItem);
+        }
+    });
+
+    // ============================================================
+    // MODAL
+    // ============================================================
+    function mostrarModal(icon, title, message) {
+        document.getElementById('modalIcon').className = `fa-solid ${icon}`;
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalMessage').textContent = message;
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+
+    function fecharModal() {
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    // ============================================================
+    // FUNÇÃO: TREINAR A IA
+    // Envia o vídeo para o Webhook de Treinamento (Workflow 1)
+    // ============================================================
+async function treinarIA() {
+    const videoInput = document.getElementById('videoFile');
+    const email = document.getElementById('emailTreinamento').value.trim();
+
+    // Validações
+    if (!videoInput.files || videoInput.files.length === 0) {
+        mostrarModal('fa-triangle-exclamation', 'Atenção', 'Por favor, selecione pelo menos um vídeo para o treinamento.');
+        return;
+    }
+    if (!email) {
+        mostrarModal('fa-triangle-exclamation', 'Atenção', 'Por favor, informe seu e-mail para receber o status do treinamento.');
+        return;
+    }
+
+    // Desabilita botão e mostra loading
+    const btn = document.getElementById('btnTreinar');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Enviando...';
+
+    try {
+        // Monta FormData com o vídeo e o e-mail
+        const formData = new FormData();
+        formData.append('email', email);
+        formData.append('data', videoInput.files[0]);
+
+        const response = await fetch(CONFIG.WEBHOOK_TREINAMENTO, {
+            method: 'POST',
+            body: formData,
+            mode: 'no-cors'  // ADICIONE ESTA LINHA
+        });
+
+        // Com mode: 'no-cors', não podemos ler a resposta
+        // Mas se chegou aqui, significa que foi enviado com sucesso
+        mostrarModal('fa-circle-check', 'Treinamento Iniciado!', 'Treinamento da IA em processamento. Verifique seu e-mail em 5 minutos.');
+        
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarModal('fa-circle-xmark', 'Erro de Conexão', 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-microchip" style="margin-right: 8px;"></i> Treinar a IA';
+    }
+}
+
+
+    // ============================================================
+    // FUNÇÃO: GERAR MEU AVATAR (Vídeo)
+    // Envia os dados de persona para o Webhook de Geração (Workflow 2)
+    // ============================================================
+async function gerarAvatar() {
+    const posicionamento = getSelectedSingle('ideologia-list');
+    const tema = document.getElementById('temaVideo').value.trim();
+    const email = document.getElementById('emailGeracao').value.trim();
+
+    // Validações obrigatórias
+    if (!posicionamento) {
+        mostrarModal('fa-triangle-exclamation', 'Atenção', 'Por favor, selecione seu posicionamento ideológico.');
+        return;
+    }
+    if (!tema) {
+        mostrarModal('fa-triangle-exclamation', 'Atenção', 'Por favor, insira o tema do vídeo.');
+        return;
+    }
+    if (!email) {
+        mostrarModal('fa-triangle-exclamation', 'Atenção', 'Por favor, informe seu e-mail para receber o vídeo.');
+        return;
+    }
+
+    // Coleta dados opcionais
+    const glossario = document.getElementById('glossarioExpressoes').value.trim();
+    const arquetipos = getSelectedMultiple('arquetipos-list');
+    const tom = getSelectedMultiple('tom-list');
+    const tipoAvatar = getSelectedSingle('avatar-list');
+
+    // Desabilita botão e mostra loading
+    const btn = document.getElementById('btnGerar');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Processando...';
+
+    // Monta payload JSON
+    const payload = {
+        posicionamento_ideologico: posicionamento,
+        glossario_expressoes: glossario,
+        arquetipos: arquetipos.join(', '),
+        tom_linguagem: tom.join(', '),
+        tipo_avatar: tipoAvatar,
+        tema_do_video: tema,
+        email: email
+    };
+
+    try {
+        const response = await fetch(CONFIG.WEBHOOK_GERACAO, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            mode: 'no-cors'  // ADICIONE ESTA LINHA
+        });
+
+        // Com mode: 'no-cors', não podemos ler a resposta
+        // Mas se chegou aqui, significa que foi enviado com sucesso
+        mostrarModal('fa-circle-check', 'Vídeo em Produção!', 'Seu vídeo está sendo gerado! Você receberá um e-mail com o link assim que estiver pronto.');
+        
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarModal('fa-circle-xmark', 'Erro de Conexão', 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles" style="margin-right: 8px;"></i> Gerar meu avatar';
+    }
+}
+
+</script>
+
+</body>
+</html>

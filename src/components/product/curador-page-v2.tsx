@@ -100,6 +100,12 @@ export function CuradorPageV2() {
     [visibleTrainingAssets],
   );
 
+  const formatBytes = useCallback((bytes: number) => {
+    if (!Number.isFinite(bytes) || bytes <= 0) return "";
+    const mb = bytes / 1024 / 1024;
+    return `${mb.toFixed(1)} MB`;
+  }, []);
+
   const canTrain =
     trainingMode === "digital_twin"
       ? Boolean(trainingVideoAssets[0] && voiceAudioAssets[0])
@@ -370,7 +376,7 @@ export function CuradorPageV2() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Materiais para o clone <span className="persona-badge">Obrigatorio</span>
+              Upload de midias <span className="persona-badge">Obrigatorio</span>
             </label>
 
             <div className="persona-upload-files">
@@ -389,7 +395,15 @@ export function CuradorPageV2() {
               htmlFor={`${uploadInputId}-voice-audio`}
               className={`upload-area persona-upload-area ${isUploadingVoiceAudioAsset ? "persona-upload-area-loading" : ""}`}
             >
-              <h4>1) Enviar audio de voz (obrigatorio)</h4>
+              <div className="persona-upload-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" className="persona-upload-svg">
+                  <path
+                    fill="currentColor"
+                    d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"
+                  />
+                </svg>
+              </div>
+              <h4>1) Audio de voz (obrigatorio)</h4>
               <p>
                 Grave de 30 segundos a alguns minutos falando de forma natural (MP3, WAV ou
                 M4A). Usamos para clonar a voz na HeyGen.
@@ -425,7 +439,15 @@ export function CuradorPageV2() {
               htmlFor={`${uploadInputId}-training-video`}
               className="upload-area persona-upload-area"
             >
-              <h4>2) Enviar video para Digital Twin (recomendado)</h4>
+              <div className="persona-upload-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" className="persona-upload-svg">
+                  <path
+                    fill="currentColor"
+                    d="M17 10.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4.5l4 4v-13l-4 4Z"
+                  />
+                </svg>
+              </div>
+              <h4>2) Video (Digital Twin) — base de treino</h4>
               <p>
                 Video em boa luz, rosto visivel e audio ok (MP4). Essa e a opcao mais realista.
               </p>
@@ -434,23 +456,48 @@ export function CuradorPageV2() {
                 type="file"
                 accept="video/*"
                 hidden
+                multiple
                 onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  void uploadTrainingAssets([file], "dataset");
+                  const files = Array.from(event.target.files ?? []);
+                  if (!files.length) return;
+                  void uploadTrainingAssets(files, "dataset");
                   event.target.value = "";
                 }}
               />
               <span className="persona-btn persona-btn-secondary">
-                {selectedTrainingVideo ? "Substituir video" : "Selecionar video"}
+                {selectedTrainingVideo ? "Adicionar/Substituir videos" : "Selecionar videos"}
               </span>
             </label>
+
+            {trainingVideoAssets.length > 0 && (
+              <div className="persona-upload-files">
+                {trainingVideoAssets.slice(0, 5).map((asset) => (
+                  <span key={asset.id} className="persona-file-chip">
+                    {asset.originalFilename}
+                    {asset.sizeBytes ? ` (${formatBytes(asset.sizeBytes)})` : ""}
+                  </span>
+                ))}
+                {trainingVideoAssets.length > 5 && (
+                  <span className="persona-helper-text">
+                    +{trainingVideoAssets.length - 5} videos adicionais
+                  </span>
+                )}
+              </div>
+            )}
 
             <label
               htmlFor={`${uploadInputId}-avatar-image`}
               className={`upload-area persona-upload-area ${isUploadingAvatarImageAsset ? "persona-upload-area-loading" : ""}`}
             >
-              <h4>3) Enviar foto (fallback rapido)</h4>
+              <div className="persona-upload-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" className="persona-upload-svg">
+                  <path
+                    fill="currentColor"
+                    d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2ZM8.5 13.5 11 16.5l3.5-4.5L19 18H5l3.5-4.5Z"
+                  />
+                </svg>
+              </div>
+              <h4>3) Foto (fallback rapido)</h4>
               <p>Foto do rosto (PNG/JPEG/WebP), bem iluminada, de frente.</p>
               <input
                 id={`${uploadInputId}-avatar-image`}
@@ -478,6 +525,27 @@ export function CuradorPageV2() {
               </span>
               {isUploadingAvatarImageAsset && <div className="persona-progress" />}
             </label>
+
+            <div className="persona-form-group persona-top-gap">
+              <label className="persona-label">
+                Seu e-mail <span className="persona-badge">Obrigatorio</span>
+              </label>
+              <input
+                className="persona-input-control"
+                value={profileForm.notificationEmail ?? ""}
+                onChange={(event) =>
+                  setProfileForm((current) => ({
+                    ...current,
+                    notificationEmail: event.target.value,
+                  }))
+                }
+                placeholder="Digite seu e-mail para receber status e links..."
+              />
+              <p className="persona-helper-text persona-top-gap">
+                Usamos esse e-mail para notificacoes (quando aplicavel) e para facilitar o
+                acompanhamento do fluxo.
+              </p>
+            </div>
           </div>
 
           <div className="persona-form-group">
