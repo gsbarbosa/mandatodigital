@@ -30,7 +30,9 @@ function pickByIndex(items: readonly string[], index: number) {
 }
 
 function hashtagsFromProfile(profile: PoliticianProfile) {
-  return profile.keyIssues.slice(0, 2).map((issue) => `#${issue.replace(/\s+/g, "")}`);
+  return (profile.keyIssues ?? [])
+    .slice(0, 2)
+    .map((issue) => `#${issue.replace(/\s+/g, "")}`);
 }
 
 function buildBody(
@@ -40,12 +42,15 @@ function buildBody(
   angle: string,
 ) {
   const intro = pickByIndex(introByIntensity[request.intensity], variantIndex);
-  const mainIssue = profile.keyIssues[0] ?? "resultado concreto";
-  const secondaryIssue = profile.keyIssues[1] ?? "respeito com quem mora aqui";
-  const signature = profile.slogans[0] ? `${profile.slogans[0]}.` : "";
-  const glossaryLead = profile.glossaryTerms[0] ? `${profile.glossaryTerms[0]}, ` : "";
-  const mandatoryTerms = request.mandatoryTerms.length
-    ? `Termos-chave: ${request.mandatoryTerms.join(", ")}.`
+  const mainIssue = (profile.keyIssues ?? [])[0] ?? "resultado concreto";
+  const secondaryIssue =
+    (profile.keyIssues ?? [])[1] ?? "respeito com quem mora aqui";
+  const signature = (profile.slogans ?? [])[0] ? `${(profile.slogans ?? [])[0]}.` : "";
+  const glossaryLead = (profile.glossaryTerms ?? [])[0]
+    ? `${(profile.glossaryTerms ?? [])[0]}, `
+    : "";
+  const mandatoryTerms = (request.mandatoryTerms ?? []).length
+    ? `Termos-chave: ${(request.mandatoryTerms ?? []).join(", ")}.`
     : "";
   const cta = request.desiredCallToAction
     ? request.desiredCallToAction
@@ -76,8 +81,8 @@ function buildBody(
     return [
       `Oi, gente. Aqui e ${profile.fullName.split(" ")[0]}. ${intro}`,
       `Estou falando sobre ${request.topic.toLowerCase()} porque isso conversa diretamente com ${mainIssue.toLowerCase()} em ${profile.city}.`,
-      request.keyFacts.length
-        ? `O que ja sabemos: ${request.keyFacts.join("; ")}.`
+      (request.keyFacts ?? []).length
+        ? `O que ja sabemos: ${(request.keyFacts ?? []).join("; ")}.`
         : "Ainda ha pontos que precisam ser confirmados, mas o impacto local ja merece resposta.",
       `Minha linha e ${angle.toLowerCase()}, sem abrir mao de ${secondaryIssue.toLowerCase()}.`,
       cta,
@@ -93,8 +98,8 @@ function buildBody(
     request.context
       ? `Meu ponto de partida e simples: ${request.context}`
       : "Meu ponto de partida e simples: resposta publica com clareza, contexto e compromisso com entrega.",
-    request.keyFacts.length
-      ? `Fatos que ajudam a orientar a resposta: ${request.keyFacts.join("; ")}.`
+    (request.keyFacts ?? []).length
+      ? `Fatos que ajudam a orientar a resposta: ${(request.keyFacts ?? []).join("; ")}.`
       : "Onde ainda faltar confirmacao, o certo e sinalizar isso com transparencia.",
     `Como ${profile.role}, vou sustentar uma abordagem ${angle.toLowerCase()}, coerente com ${profile.spectrum.toLowerCase()} e com a voz que construimos juntos.`,
     signature,

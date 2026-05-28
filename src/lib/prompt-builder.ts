@@ -19,8 +19,9 @@ type BuildGenerationPromptOptions = {
   userAddendum?: string;
 };
 
-function joinList(items: string[]) {
-  return items.length ? items.join(", ") : "nao informado";
+function joinList(items?: string[] | null) {
+  const list = items ?? [];
+  return list.length ? list.join(", ") : "nao informado";
 }
 
 export function buildGenerationPrompt(
