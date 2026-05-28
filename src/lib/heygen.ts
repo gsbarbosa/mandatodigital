@@ -170,6 +170,7 @@ export type HeyGenAvatarLookDetailsResponse = {
   data?: {
     avatar_look?: {
       id?: string;
+      avatar_type?: string | null;
       supported_api_engines?: string[];
     };
   };

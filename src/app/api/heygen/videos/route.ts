@@ -60,8 +60,10 @@ export async function POST(request: Request) {
         : undefined;
 
       let engine: "avatar_iv" | "avatar_v" = "avatar_iv";
+      let avatarType: string | null = null;
       try {
         const look = await heygenGetAvatarLook(avatarId);
+        avatarType = look.data?.avatar_look?.avatar_type ?? null;
         const supported = look.data?.avatar_look?.supported_api_engines ?? [];
         if (supported.includes("avatar_v")) {
           engine = "avatar_v";
@@ -71,6 +73,10 @@ export async function POST(request: Request) {
       }
 
       try {
+        const supportsMotionPrompt =
+          engine === "avatar_iv" &&
+          (avatarType === "photo_avatar" || avatarType === "image" || avatarType === null);
+
         const result = await heygenCreateVideo({
           avatarId,
           voiceId,
@@ -80,8 +86,9 @@ export async function POST(request: Request) {
           resolution: "1080p",
           callbackUrl,
           engine,
-          motionPrompt: "nodding gently",
-          expressiveness: "medium",
+          ...(supportsMotionPrompt
+            ? { motionPrompt: "nodding gently", expressiveness: "medium" }
+            : null),
         });
 
         return NextResponse.json(
