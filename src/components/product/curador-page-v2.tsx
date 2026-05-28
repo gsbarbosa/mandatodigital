@@ -26,11 +26,13 @@ export function CuradorPageV2() {
   const [trainingError, setTrainingError] = useState<string | null>(null);
   const [trainingInfo, setTrainingInfo] = useState<string | null>(null);
   const [heygenAvatarId, setHeygenAvatarId] = useState<string>("");
+  const [heygenAvatarGroupId, setHeygenAvatarGroupId] = useState<string>("");
   const [heygenVoiceId, setHeygenVoiceId] = useState<string>("");
   const [heygenConsentUrl, setHeygenConsentUrl] = useState<string>("");
   const [trainingMode, setTrainingMode] = useState<"digital_twin" | "photo">(
     "digital_twin",
   );
+  const [consentInfo, setConsentInfo] = useState<string | null>(null);
   const [isLoadingLooks, setIsLoadingLooks] = useState(false);
   const [looksError, setLooksError] = useState<string | null>(null);
   const [privateTwinLooks, setPrivateTwinLooks] = useState<
@@ -149,6 +151,7 @@ export function CuradorPageV2() {
   async function handleTrainHeyGen() {
     setTrainingError(null);
     setTrainingInfo(null);
+    setConsentInfo(null);
     setHeygenConsentUrl("");
     setIsTraining(true);
 
@@ -164,8 +167,11 @@ export function CuradorPageV2() {
       });
       const payload = await parseJsonOrText<{
         avatarId?: string;
+        avatarGroupId?: string | null;
         voiceId?: string;
         consentUrl?: string | null;
+        consentStatus?: string | null;
+        avatarGroupStatus?: string | null;
         message?: string;
       }>(response);
 
@@ -174,13 +180,64 @@ export function CuradorPageV2() {
       }
 
       setHeygenAvatarId(payload.avatarId?.trim() || "");
+      setHeygenAvatarGroupId(String(payload.avatarGroupId ?? "").trim());
       setHeygenVoiceId(payload.voiceId?.trim() || "");
       setHeygenConsentUrl(String(payload.consentUrl ?? "").trim());
       setTrainingInfo(payload.message || "Treino concluido.");
+
+      if (
+        !String(payload.consentUrl ?? "").trim() &&
+        (payload.consentStatus || payload.avatarGroupStatus)
+      ) {
+        setConsentInfo(
+          `Status do consentimento: ${payload.consentStatus ?? "(nao informado)"} | ` +
+            `Status do grupo: ${payload.avatarGroupStatus ?? "(nao informado)"}`,
+        );
+      }
     } catch (error) {
       setTrainingError(error instanceof Error ? error.message : "Erro ao treinar HeyGen.");
     } finally {
       setIsTraining(false);
+    }
+  }
+
+  async function handleCheckConsent() {
+    setConsentInfo(null);
+    setTrainingError(null);
+
+    if (!heygenAvatarGroupId) {
+      setConsentInfo("Group ID ausente. Treine um Digital Twin para gerar o link de consentimento.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/heygen/avatars/groups/${encodeURIComponent(heygenAvatarGroupId)}`,
+      );
+      const payload = await parseJsonOrText<{
+        group?: { status?: string | null; consent_status?: string | null; name?: string | null };
+        message?: string;
+      }>(response);
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel consultar o status do consentimento.");
+      }
+
+      setConsentInfo(
+        `Grupo: ${payload.group?.name ?? heygenAvatarGroupId} | ` +
+          `Status: ${payload.group?.status ?? "(nao informado)"} | ` +
+          `Consentimento: ${payload.group?.consent_status ?? "(nao informado)"}`,
+      );
+
+      if (payload.group?.consent_status === "completed" || payload.group?.status === "completed") {
+        setTrainingInfo(
+          "Consentimento concluido. Agora clique em 'Selecionar Digital Twin existente' e escolha o look para gerar videos.",
+        );
+      }
+    } catch (error) {
+      setTrainingError(
+        error instanceof Error ? error.message : "Nao foi possivel consultar o status.",
+      );
     }
   }
 
@@ -487,6 +544,23 @@ export function CuradorPageV2() {
                 </a>
               </p>
             )}
+            {heygenAvatarGroupId && (
+              <p className="persona-helper-text">
+                HeyGen group_id (Digital Twin): {heygenAvatarGroupId}
+              </p>
+            )}
+            {trainingMode === "digital_twin" && heygenAvatarGroupId && (
+              <div className="persona-cta-row">
+                <button
+                  type="button"
+                  className="persona-btn persona-btn-secondary"
+                  onClick={() => void handleCheckConsent()}
+                >
+                  Verificar status do consentimento
+                </button>
+              </div>
+            )}
+            {consentInfo && <p className="persona-helper-text">{consentInfo}</p>}
             {(heygenAvatarId || heygenVoiceId) && (
               <p className="persona-helper-text">
                 HeyGen avatar: {heygenAvatarId || "(vazio)"} | voz: {heygenVoiceId || "(vazio)"}

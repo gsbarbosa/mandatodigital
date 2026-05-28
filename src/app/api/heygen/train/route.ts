@@ -9,6 +9,7 @@ import {
   heygenCreateAvatarConsent,
   heygenCreateDigitalTwin,
   heygenCreatePhotoAvatar,
+  heygenGetAvatarGroup,
   heygenGetVoice,
 } from "@/lib/heygen";
 import {
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
       const mode = body.mode ?? "photo";
 
       let avatarId = "";
+      let avatarGroupId: string | null = null;
       let consentUrl: string | null = null;
 
       if (mode === "digital_twin") {
@@ -91,14 +93,47 @@ export async function POST(request: Request) {
           file: { type: "url", url: trainingVideoUrl },
         });
         avatarId = twin.avatarId;
+        avatarGroupId = twin.groupId;
 
-        const consent = await heygenCreateAvatarConsent({
-          groupId: twin.groupId,
-          rerouteUrl: appBaseUrl.startsWith("https://")
-            ? `${appBaseUrl}/curador-v2`
-            : undefined,
-        });
-        consentUrl = consent.consentUrl;
+        try {
+          const consent = await heygenCreateAvatarConsent({
+            groupId: twin.groupId,
+            rerouteUrl: appBaseUrl.startsWith("https://")
+              ? `${appBaseUrl}/curador-v2`
+              : undefined,
+          });
+          consentUrl = consent.consentUrl;
+        } catch (error) {
+          const message = formatHeyGenError(error);
+          // HeyGen: o security code do consentimento ja foi "bindado" a este grupo.
+          // Nao ha endpoint documentado para recuperar a URL anterior; entao retornamos
+          // um status para o usuario continuar o consentimento pelo dashboard.
+          if (message.toLowerCase().includes("security code already binded")) {
+            let groupStatus: unknown = null;
+            try {
+              groupStatus = await heygenGetAvatarGroup(twin.groupId);
+            } catch {
+              groupStatus = null;
+            }
+
+            return NextResponse.json(
+              {
+                avatarId,
+                avatarGroupId: twin.groupId,
+                voiceId: null,
+                consentUrl: null,
+                consentStatus: (groupStatus as any)?.data?.avatar_group?.consent_status ?? null,
+                avatarGroupStatus: (groupStatus as any)?.data?.avatar_group?.status ?? null,
+                message:
+                  "O consentimento deste Digital Twin ja foi iniciado (security code ja vinculado). " +
+                  "Abra o HeyGen e finalize o consentimento do grupo, ou selecione um Digital Twin existente na lista.",
+              },
+              { status: 202 },
+            );
+          }
+
+          throw error;
+        }
       } else {
         const photo = await heygenCreatePhotoAvatar({
           name: avatarName,
@@ -132,6 +167,7 @@ export async function POST(request: Request) {
         {
           avatarId,
           voiceId,
+          avatarGroupId,
           consentUrl,
           message:
             mode === "digital_twin"
