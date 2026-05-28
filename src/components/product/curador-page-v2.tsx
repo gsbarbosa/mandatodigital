@@ -232,8 +232,10 @@ export function CuradorPageV2() {
       if (!topic) {
         throw new Error("Informe o tema do video antes de gerar.");
       }
-      if (!heygenAvatarId || !heygenVoiceId) {
-        throw new Error("Clique em Treinar (HeyGen) antes de gerar o video.");
+      if (!heygenAvatarId) {
+        throw new Error(
+          "Selecione um Digital Twin existente ou clique em Treinar (HeyGen) antes de gerar o video.",
+        );
       }
 
       void saveProfile({ allowDraftDefaults: true, silent: true });
@@ -244,7 +246,7 @@ export function CuradorPageV2() {
         body: JSON.stringify({
           topic,
           avatarId: heygenAvatarId,
-          voiceId: heygenVoiceId,
+          voiceId: heygenVoiceId || undefined,
           name: `Curador v2 - ${profileForm.fullName || "Politico"} - ${topic}`,
           freePrompt: freePrompt.trim() || undefined,
         }),
