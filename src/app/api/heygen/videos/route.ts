@@ -8,9 +8,23 @@ import {
   heygenCreateVideo,
   heygenCreateVideoFromImage,
   heygenGetAvatarLook,
+  heygenGetUserMe,
 } from "@/lib/heygen";
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
 import { pickAvatarImageAndVoiceAudioAssets } from "@/lib/training-asset-urls";
+
+function countWords(text: string) {
+  return text
+    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
+
+function estimateSecondsFromWords(words: number) {
+  // Aproximacao: 150 wpm ~ 2.5 w/s para voz PT-BR.
+  return words / 2.5;
+}
 
 export async function POST(request: Request) {
   try {
@@ -70,6 +84,35 @@ export async function POST(request: Request) {
         }
       } catch {
         // ignore (fallback to avatar_iv)
+      }
+
+      // Pre-flight: estima custo com base na duracao aproximada do texto.
+      // Importante: o erro "Insufficient credit" costuma acontecer quando o roteiro fica longo
+      // (especialmente quando o prompt livre vira texto de fala).
+      try {
+        const me = await heygenGetUserMe();
+        const remaining = Number(me.data?.wallet?.remaining_balance ?? 0);
+        const words = countWords(transcript);
+        const seconds = estimateSecondsFromWords(words);
+        const ratePerSecond = avatarType === "photo_avatar" ? 0.05 : 0.0667; // docs pricing (IV/V 1080p)
+        const estimatedCost = seconds * ratePerSecond;
+
+        if (remaining > 0 && estimatedCost > remaining) {
+          return NextResponse.json(
+            {
+              message:
+                `Saldo insuficiente no wallet da API da HeyGen. ` +
+                `Saldo: $${remaining.toFixed(2)}. ` +
+                `Estimativa: ~${Math.ceil(seconds)}s (~${words} palavras) ≈ $${estimatedCost.toFixed(2)}. ` +
+                `Dica: encurte o roteiro/prompt livre para ~${Math.floor(
+                  (remaining / ratePerSecond) * 2.5,
+                )} palavras, ou adicione mais saldo.`,
+            },
+            { status: 402 },
+          );
+        }
+      } catch {
+        // Se o endpoint /v3/users/me falhar, nao bloqueia a geracao.
       }
 
       try {
