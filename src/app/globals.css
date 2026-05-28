@@ -721,21 +721,201 @@ textarea.persona-input-control {
   gap: 0.75rem;
 }
 
+.app-top-bar {
+  margin-bottom: 1.25rem;
+}
+
+.app-top-bar-focus {
+  margin-bottom: 1rem;
+}
+
 .session-bar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding: 0.65rem 1rem;
-  border-radius: 10px;
+  padding: 0.55rem 0.85rem;
+  border-radius: 12px;
   border: 1px solid var(--panel-border);
-  background: rgba(15, 23, 42, 0.72);
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+.session-bar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.session-bar-avatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .session-bar-email {
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(280px, 52vw);
+}
+
+.session-bar-logout {
+  flex-shrink: 0;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.12);
+  color: #bfdbfe;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.session-bar-logout:hover {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(59, 130, 246, 0.55);
+}
+
+.menu-panel-pipeline {
+  padding: 1.25rem 1.5rem;
+}
+
+.workflow-pipeline {
+  margin-top: 0.75rem;
+}
+
+.app-top-bar-focus .workflow-pipeline {
+  margin-top: 0.65rem;
+}
+
+.workflow-pipeline-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.workflow-pipeline-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.workflow-pipeline-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.workflow-pipeline-item.is-locked .workflow-pipeline-step {
+  cursor: not-allowed;
+  opacity: 0.55;
+  color: var(--text-soft);
+  border-color: rgba(148, 163, 184, 0.12);
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.workflow-pipeline-item.is-enabled .workflow-pipeline-step {
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.45);
+  color: var(--text-muted);
+}
+
+.workflow-pipeline-item.is-enabled.is-active .workflow-pipeline-step,
+.workflow-pipeline-item.is-enabled .workflow-pipeline-step:hover {
+  border-color: rgba(59, 130, 246, 0.55);
+  background: rgba(59, 130, 246, 0.14);
+  color: var(--text);
+}
+
+.workflow-pipeline-item.is-enabled.is-active .workflow-pipeline-step {
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+}
+
+.workflow-pipeline-step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--text-soft);
+}
+
+.workflow-pipeline-item.is-enabled .workflow-pipeline-step-num {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.workflow-pipeline-step-label {
+  font-weight: 600;
+}
+
+.workflow-pipeline-step-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-soft);
+  opacity: 0.9;
+}
+
+.workflow-pipeline-connector {
+  width: 0.65rem;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.28);
+  margin: 0 0.1rem;
+}
+
+.workflow-pipeline-hint {
+  margin: 0.65rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .workflow-pipeline-list {
+    gap: 0.5rem;
+  }
+
+  .workflow-pipeline-connector {
+    display: none;
+  }
+
+  .workflow-pipeline-item {
+    flex: 1 1 calc(50% - 0.35rem);
+  }
+
+  .workflow-pipeline-step {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .persona-btn:hover {

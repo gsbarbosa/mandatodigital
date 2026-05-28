@@ -2,22 +2,27 @@
 
 import type { ReactNode } from "react";
 
-import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { useInitialProductFeedbackForm, useProductApp } from "./provider";
 import {
   ProductFeedbackCriticalityPill,
   ProductFeedbackPill,
-  dashboardMenuItems,
 } from "./shared";
+import { WorkflowPipelineBar } from "./workflow-pipeline-bar";
 
-function isMenuItemActive(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === "/";
+function formatSessionEmail(email: string) {
+  const trimmed = email.trim();
+  if (trimmed.length <= 36) {
+    return trimmed;
   }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const [local, domain] = trimmed.split("@");
+  if (!domain) {
+    return `${trimmed.slice(0, 33)}...`;
+  }
+  const shortLocal =
+    local.length > 14 ? `${local.slice(0, 11)}...` : local;
+  return `${shortLocal}@${domain}`;
 }
 
 export function ProductShell({ children }: { children: ReactNode }) {
@@ -59,12 +64,35 @@ export function ProductShell({ children }: { children: ReactNode }) {
   return (
     <main className={isCuradorFocusMode ? "app-shell app-shell-persona" : "app-shell"}>
       {sessionUser && (
-        <div className="session-bar">
-          <span className="session-bar-email">{sessionUser.email}</span>
-          <button type="button" className="persona-btn" onClick={() => void signOut()}>
-            Sair
-          </button>
-        </div>
+        <header
+          className={
+            isCuradorFocusMode ? "app-top-bar app-top-bar-focus" : "app-top-bar"
+          }
+        >
+          <div className="session-bar">
+            <div className="session-bar-user">
+              <span className="session-bar-avatar" aria-hidden="true">
+                {sessionUser.email.slice(0, 1).toUpperCase()}
+              </span>
+              <span
+                className="session-bar-email"
+                title={sessionUser.email}
+              >
+                {formatSessionEmail(sessionUser.email)}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="session-bar-logout"
+              onClick={() => void signOut()}
+            >
+              Sair
+            </button>
+          </div>
+          {isCuradorFocusMode ? (
+            <WorkflowPipelineBar showMvpHint />
+          ) : null}
+        </header>
       )}
 
       {isCuradorFocusMode ? null : (
@@ -74,9 +102,8 @@ export function ProductShell({ children }: { children: ReactNode }) {
               <p className="eyebrow">MVP interno em operacao</p>
               <h1>Mandato Digital</h1>
               <p className="hero-copy">
-                Do onboarding politico a revisao final, esta versao agora organiza o
-                processo em fases reais do sistema, com entrada e saida claras por
-                rota.
+                Fluxo em 5 etapas: do radar de temas a publicacao. Nesta fase liberamos
+                apenas o Curador para calibragem de persona e avatar.
               </p>
             </div>
 
@@ -96,29 +123,8 @@ export function ProductShell({ children }: { children: ReactNode }) {
             </div>
           </section>
 
-          <section className="menu-panel">
-            <div>
-              <p className="eyebrow">Menu do sistema</p>
-              <h2>Pipeline por fase e area admin</h2>
-              <p className="menu-copy">
-                Cada rota deixa claro onde o processo comeca, o que ja sai do MVP e
-                quais etapas ainda estao planejadas.
-              </p>
-            </div>
-
-            <div className="menu-button-row">
-              {dashboardMenuItems.map((item) => (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className={
-                    isMenuItemActive(pathname, item.href) ? "menu-button active" : "menu-button"
-                  }
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+          <section className="menu-panel menu-panel-pipeline">
+            <WorkflowPipelineBar showMvpHint />
           </section>
         </>
       )}

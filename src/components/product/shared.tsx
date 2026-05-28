@@ -226,13 +226,37 @@ export function buildEvaluationReportsFromDashboard(
   });
 }
 
+export type PipelineStepId = Exclude<DashboardSectionId, "overview" | "admin">;
+
+export type MvpPipelineStep = {
+  id: PipelineStepId;
+  label: string;
+  href: Route | null;
+  enabled: boolean;
+};
+
+/** Ordem do fluxo completo; no MVP apenas Curador esta habilitado. */
+export const mvpPipelineSteps: MvpPipelineStep[] = [
+  { id: "sentinela", label: "Sentinela", href: "/sentinela", enabled: false },
+  { id: "curador", label: "Curador", href: "/curador-v2", enabled: true },
+  { id: "criativo", label: "Criativo", href: "/criativo", enabled: false },
+  { id: "auditor", label: "Auditor", href: "/auditor", enabled: false },
+  { id: "distribuidor", label: "Distribuidor", href: "/distribuidor", enabled: false },
+];
+
 export const dashboardMenuItems: Array<{
   id: DashboardSectionId;
   label: string;
   href: Route;
-}> = [
-  { id: "curador", label: "Curador", href: "/curador" },
-];
+  enabled: boolean;
+}> = mvpPipelineSteps
+  .filter((step): step is MvpPipelineStep & { href: Route } => Boolean(step.href))
+  .map((step) => ({
+    id: step.id,
+    label: step.label,
+    href: step.href,
+    enabled: step.enabled,
+  }));
 
 export const workflowStages: WorkflowStageDefinition[] = [
   {
@@ -244,7 +268,7 @@ export const workflowStages: WorkflowStageDefinition[] = [
       "Camada de captura de temas, oposicao, perfis e portais monitorados. No MVP ela opera de forma manual/semiassistida, mas ja estrutura o radar do mandato.",
     inputLabel: "Temas de interesse, oposicao, perfis sociais, portais e sinais do time.",
     outputLabel: "Radar priorizado que alimenta Curador e Criativo.",
-    status: "parcial",
+    status: "planejado",
   },
   {
     id: "curador",
@@ -266,7 +290,7 @@ export const workflowStages: WorkflowStageDefinition[] = [
       "O motor criativo gera roteiros curtos e organiza preferencias de avatar digital e edicao para a saida audiovisual do mandato.",
     inputLabel: "Briefing editorial, tema do dia, CTA e preferencias criativas.",
     outputLabel: "Rascunhos de roteiro candidatos para revisao humana.",
-    status: "ativo",
+    status: "planejado",
   },
   {
     id: "auditor",
@@ -277,7 +301,7 @@ export const workflowStages: WorkflowStageDefinition[] = [
       "Fase de lapidacao humana, registro de feedback editorial e conferencias de fonte antes de seguir adiante.",
     inputLabel: "Roteiros gerados, prompt usado, fontes e observacoes do time.",
     outputLabel: "Conteudo aprovado com gate editorial e trilha de revisao.",
-    status: "ativo",
+    status: "planejado",
   },
   {
     id: "distribuidor",
@@ -288,7 +312,7 @@ export const workflowStages: WorkflowStageDefinition[] = [
       "Camada operacional para definir canais, janelas e handoff de publicacao. No MVP a distribuicao ainda e manual, mas ja fica configurada e pronta para operacao.",
     inputLabel: "Conteudo aprovado, canais habilitados e janelas autorizadas.",
     outputLabel: "Pacote manual de distribuicao pronto para publicar.",
-    status: "parcial",
+    status: "planejado",
   },
   {
     id: "admin",

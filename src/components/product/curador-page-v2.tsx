@@ -97,6 +97,7 @@ export function CuradorPageV2() {
     uploadTrainingAssets,
     isUploadingVoiceAudioAsset,
     isUploadingAvatarImageAsset,
+    sessionUser,
   } = useProductApp();
 
   const assetReferenceId = profile?.id ?? profileForm.id ?? null;
@@ -389,6 +390,19 @@ export function CuradorPageV2() {
     });
   }, [videoId, isGenerating]);
 
+  useEffect(() => {
+    const loginEmail = sessionUser?.email?.trim();
+    if (!loginEmail) {
+      return;
+    }
+    setProfileForm((current) => {
+      if (current.notificationEmail?.trim()) {
+        return current;
+      }
+      return { ...current, notificationEmail: loginEmail };
+    });
+  }, [sessionUser?.email, setProfileForm]);
+
   return (
     <section className="persona-page">
       <div className="persona-container">
@@ -558,26 +572,6 @@ export function CuradorPageV2() {
               {isUploadingAvatarImageAsset && <div className="persona-progress" />}
             </label>
 
-            <div className="persona-form-group persona-top-gap">
-              <label className="persona-label">
-                Seu e-mail <span className="persona-badge">Obrigatorio</span>
-              </label>
-              <input
-                className="persona-input-control"
-                value={profileForm.notificationEmail ?? ""}
-                onChange={(event) =>
-                  setProfileForm((current) => ({
-                    ...current,
-                    notificationEmail: event.target.value,
-                  }))
-                }
-                placeholder="Digite seu e-mail para receber status e links..."
-              />
-              <p className="persona-helper-text persona-top-gap">
-                Usamos esse e-mail para notificacoes (quando aplicavel) e para facilitar o
-                acompanhamento do fluxo.
-              </p>
-            </div>
           </div>
 
           <div className="persona-form-group">
@@ -849,9 +843,32 @@ export function CuradorPageV2() {
           </div>
 
           <div className="persona-form-group">
+            <label className="persona-label">
+              Seu e-mail <span className="persona-badge">Obrigatorio</span>
+            </label>
+            <input
+              type="email"
+              className="persona-input-control"
+              value={profileForm.notificationEmail ?? ""}
+              onChange={(event) =>
+                setProfileForm((current) => ({
+                  ...current,
+                  notificationEmail: event.target.value,
+                }))
+              }
+              placeholder="voce@exemplo.com"
+              autoComplete="email"
+            />
+            <p className="persona-helper-text persona-top-gap">
+              Avisos de treino e video (quando disponivel). Preenchemos com o e-mail da sua conta
+              se estiver vazio.
+            </p>
+          </div>
+
+          <div className="persona-form-group">
             <label className="persona-label">Tema do video</label>
             <textarea
-              className="persona-input"
+              className="persona-input-control"
               value={profileForm.avatarVideoTopic}
               onChange={(event) =>
                 setProfileForm((current) => ({
