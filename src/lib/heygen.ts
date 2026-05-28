@@ -71,6 +71,26 @@ async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return (json ?? {}) as T;
 }
 
+export type HeyGenUserMeResponse = {
+  code?: number;
+  message?: string | null;
+  data?: {
+    username?: string;
+    email?: string;
+    billing_type?: string;
+    wallet?: {
+      currency?: string;
+      remaining_balance?: number;
+      auto_reload?: { enabled?: boolean };
+    };
+  };
+};
+
+export async function heygenGetUserMe() {
+  // Docs: GET /v3/users/me (API Key guide)
+  return heygenFetch<HeyGenUserMeResponse>("/v3/users/me", { method: "GET" });
+}
+
 export type HeyGenCreatePhotoAvatarResponse = {
   data?: {
     avatar_item?: { id?: string };
