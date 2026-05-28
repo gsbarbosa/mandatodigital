@@ -9,4 +9,5 @@ test-results
 .env
 .env.local
 .env.*.local
+.env.vercel.*
 data/mandato-digital.json
