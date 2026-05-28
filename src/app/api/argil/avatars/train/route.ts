@@ -13,6 +13,7 @@ import {
   isArgilPlaceholderId,
   isValidArgilUuid,
   getArgilConfig,
+  isArgilAvatarLimitError,
   isArgilAvatarTerminal,
 } from "@/lib/argil";
 import { getRepository } from "@/lib/storage";
@@ -112,6 +113,38 @@ export async function POST(request: Request) {
       dashboard.profile?.fullName?.trim() ||
       "Mandato Digital Avatar";
 
+    const existingAvatarId = dashboard.profile?.argilAvatarId?.trim();
+    if (
+      !config.dryRun &&
+      profileId &&
+      existingAvatarId &&
+      isValidArgilUuid(existingAvatarId)
+    ) {
+      try {
+        const existingAvatar = await argilGetAvatar(existingAvatarId);
+        if (existingAvatar.status === "IDLE") {
+          await syncProfileTrainingState(repository, {
+            profileId,
+            draftProfileId,
+            argilAvatarId: existingAvatarId,
+            argilVoiceId:
+              existingAvatar.voiceId ?? dashboard.profile?.argilVoiceId ?? "",
+            avatarTrainingStatus: "IDLE",
+          });
+
+          return NextResponse.json({
+            avatarReady: true,
+            message:
+              "Voce ja tem um avatar pronto na Argil. Pode gerar videos direto. " +
+              "Para treinar um rosto novo, exclua avatares antigos no painel da Argil (limite de 10).",
+            avatar: existingAvatar,
+          });
+        }
+      } catch {
+        // Avatar salvo invalido ou removido na Argil; segue fluxo de treino novo.
+      }
+    }
+
     const baseUrl = resolveAppBaseUrl(request);
     const datasetImageUrl = config.dryRun
       ? "https://example.com/dry-run-avatar.jpg"
@@ -130,68 +163,136 @@ export async function POST(request: Request) {
       avatarName,
     });
 
-    const voiceResult = await argilCreateVoiceFromAudio({
-      name: `${avatarName} - voz`,
-      audioUrl: voiceAudioUrl,
-    });
+    try {
+      const voiceResult = await argilCreateVoiceFromAudio({
+        name: `${avatarName} - voz`,
+        audioUrl: voiceAudioUrl,
+      });
 
-    const clonedVoiceId = voiceResult.voice.id;
+      const clonedVoiceId = voiceResult.voice.id;
 
-    const result = await argilCreateAvatarFromImage({
-      name: avatarName,
-      datasetImageUrl,
-      voiceId: clonedVoiceId,
-      extras: {
-        source: "mandato-digital",
-        trainingId: training.id,
-        ...(profileId ? { profileId } : {}),
-        ...(draftProfileId ? { draftProfileId } : {}),
-      },
-    });
+      const result = await argilCreateAvatarFromImage({
+        name: avatarName,
+        datasetImageUrl,
+        voiceId: clonedVoiceId,
+        extras: {
+          source: "mandato-digital",
+          trainingId: training.id,
+          ...(profileId ? { profileId } : {}),
+          ...(draftProfileId ? { draftProfileId } : {}),
+        },
+      });
 
-    let updated = await avatarTrainingStorage.update(training.id, {
-      argilAvatarId: result.avatar.id,
-      argilVoiceId: result.avatar.voiceId ?? clonedVoiceId,
-      status: toTrainingStatus(result.avatar.status),
-    });
-
-    if (config.dryRun) {
-      updated = await avatarTrainingStorage.update(training.id, {
+      let updated = await avatarTrainingStorage.update(training.id, {
         argilAvatarId: result.avatar.id,
-        argilVoiceId: clonedVoiceId,
-        status: "IDLE",
+        argilVoiceId: result.avatar.voiceId ?? clonedVoiceId,
+        status: toTrainingStatus(result.avatar.status),
         errorMessage: "",
       });
 
-      await syncProfileTrainingState(repository, {
-        profileId,
-        draftProfileId,
-        argilAvatarId: updated.argilAvatarId ?? result.avatar.id,
-        argilVoiceId: updated.argilVoiceId ?? clonedVoiceId,
-        avatarTrainingStatus: "IDLE",
-      });
-    } else if (profileId) {
-      await syncProfileTrainingState(repository, {
-        profileId,
-        draftProfileId,
-        argilAvatarId: result.avatar.id,
-        argilVoiceId: result.avatar.voiceId ?? clonedVoiceId,
-        avatarTrainingStatus: toTrainingStatus(result.avatar.status),
-      });
-    }
+      if (config.dryRun) {
+        updated = await avatarTrainingStorage.update(training.id, {
+          argilAvatarId: result.avatar.id,
+          argilVoiceId: clonedVoiceId,
+          status: "IDLE",
+          errorMessage: "",
+        });
 
-    return NextResponse.json(
-      {
-        dryRun: result.dryRun,
-        training: updated,
-        avatar: result.avatar,
-        voice: voiceResult.voice,
-        debug: result.dryRun
-          ? { avatarRequest: result.request, voiceRequest: voiceResult.request }
-          : undefined,
-      },
-      { status: 201 },
-    );
+        await syncProfileTrainingState(repository, {
+          profileId,
+          draftProfileId,
+          argilAvatarId: updated.argilAvatarId ?? result.avatar.id,
+          argilVoiceId: updated.argilVoiceId ?? clonedVoiceId,
+          avatarTrainingStatus: "IDLE",
+        });
+      } else if (profileId) {
+        await syncProfileTrainingState(repository, {
+          profileId,
+          draftProfileId,
+          argilAvatarId: result.avatar.id,
+          argilVoiceId: result.avatar.voiceId ?? clonedVoiceId,
+          avatarTrainingStatus: toTrainingStatus(result.avatar.status),
+        });
+      }
+
+      return NextResponse.json(
+        {
+          dryRun: result.dryRun,
+          training: updated,
+          avatar: result.avatar,
+          voice: voiceResult.voice,
+          debug: result.dryRun
+            ? { avatarRequest: result.request, voiceRequest: voiceResult.request }
+            : undefined,
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Treinamento falhou na Argil.";
+
+      if (
+        isArgilAvatarLimitError(message) &&
+        profileId &&
+        existingAvatarId &&
+        isValidArgilUuid(existingAvatarId)
+      ) {
+        try {
+          const existingAvatar = await argilGetAvatar(existingAvatarId);
+          if (existingAvatar.status === "IDLE") {
+            const recovered = await avatarTrainingStorage.update(training.id, {
+              argilAvatarId: existingAvatarId,
+              argilVoiceId:
+                existingAvatar.voiceId ?? dashboard.profile?.argilVoiceId ?? "",
+              status: "IDLE",
+              errorMessage: "",
+            });
+
+            await syncProfileTrainingState(repository, {
+              profileId,
+              draftProfileId,
+              argilAvatarId: existingAvatarId,
+              argilVoiceId: recovered.argilVoiceId ?? "",
+              avatarTrainingStatus: "IDLE",
+            });
+
+            return NextResponse.json({
+              avatarReady: true,
+              training: recovered,
+              avatar: existingAvatar,
+              message:
+                "Limite de 10 avatares na Argil, mas reutilizamos o avatar ja treinado deste perfil. " +
+                "Voce pode gerar videos. Para um rosto novo, exclua avatares antigos em app.argil.ai.",
+            });
+          }
+        } catch {
+          // Sem avatar reutilizavel.
+        }
+      }
+
+      const failed = await avatarTrainingStorage.update(training.id, {
+        status: "TRAINING_FAILED",
+        errorMessage: message,
+      });
+
+      if (profileId) {
+        await syncProfileTrainingState(repository, {
+          profileId,
+          draftProfileId,
+          argilAvatarId: existingAvatarId ?? "",
+          argilVoiceId: dashboard.profile?.argilVoiceId ?? "",
+          avatarTrainingStatus: "TRAINING_FAILED",
+        });
+      }
+
+      return NextResponse.json(
+        {
+          message,
+          training: failed,
+        },
+        { status: 400 },
+      );
+    }
   });
 }
 

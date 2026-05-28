@@ -166,6 +166,45 @@ function buildCreatePayload(
   };
 }
 
+export function formatArgilApiError(path: string, status: number, rawBody: string) {
+  const normalized = rawBody.toLowerCase();
+
+  if (
+    normalized.includes("avatar limit exceeded") ||
+    normalized.includes("maximum allowed: 10")
+  ) {
+    return (
+      "Limite de avatares na Argil atingido (maximo 10). " +
+      "Exclua avatares de teste no painel da Argil (app.argil.ai) ou reutilize o avatar ja treinado deste perfil. " +
+      "Depois clique em Treinar novamente."
+    );
+  }
+
+  try {
+    const parsed = JSON.parse(rawBody) as {
+      error?: { message?: string };
+      message?: string;
+    };
+    const apiMessage = parsed.error?.message ?? parsed.message;
+    if (apiMessage?.trim()) {
+      return `Argil ${path} falhou (${status}): ${apiMessage.trim()}`;
+    }
+  } catch {
+    // Corpo nao-JSON: usa texto bruto abaixo.
+  }
+
+  const compact = rawBody.replace(/\s+/g, " ").trim();
+  if (compact.length > 280) {
+    return `Argil ${path} falhou (${status}): ${compact.slice(0, 280)}...`;
+  }
+
+  return `Argil ${path} falhou (${status}): ${compact || "erro desconhecido"}`;
+}
+
+export function isArgilAvatarLimitError(message: string) {
+  return message.toLowerCase().includes("limite de avatares na argil");
+}
+
 async function argilFetch<T>(
   path: string,
   init?: RequestInit,
@@ -186,7 +225,7 @@ async function argilFetch<T>(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Argil ${path} falhou (${response.status}): ${text}`);
+    throw new Error(formatArgilApiError(path, response.status, text));
   }
 
   return (await response.json()) as T;

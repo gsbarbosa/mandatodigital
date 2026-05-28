@@ -93,6 +93,7 @@ export function CuradorPage() {
   const [isTrainingAvatar, setIsTrainingAvatar] = useState(false);
   const [avatarTrainingStatus, setAvatarTrainingStatus] = useState<string | null>(null);
   const [avatarTrainingError, setAvatarTrainingError] = useState<string | null>(null);
+  const [avatarTrainingInfo, setAvatarTrainingInfo] = useState<string | null>(null);
   const [videoGenerationId, setVideoGenerationId] = useState<string | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [isRefreshingVideoStatus, setIsRefreshingVideoStatus] = useState(false);
@@ -241,6 +242,7 @@ export function CuradorPage() {
   async function handleTrainIa() {
     setTrainingRequested(true);
     setAvatarTrainingError(null);
+    setAvatarTrainingInfo(null);
     setAvatarTrainingStatus(null);
     setIsTrainingAvatar(true);
 
@@ -260,12 +262,33 @@ export function CuradorPage() {
       });
 
       const payload = await parseJsonOrText<{
-        training?: { id?: string; status?: string };
+        avatarReady?: boolean;
+        training?: {
+          id?: string;
+          status?: string;
+          argilAvatarId?: string | null;
+          argilVoiceId?: string | null;
+        };
         message?: string;
       }>(response);
 
       if (!response.ok) {
         throw new Error(payload.message || "Nao foi possivel iniciar o treinamento.");
+      }
+
+      if (payload.avatarReady) {
+        setAvatarTrainingStatus("IDLE");
+        setProfileForm((current) => ({
+          ...current,
+          avatarTrainingStatus: "IDLE",
+          argilAvatarId: payload.training?.argilAvatarId ?? current.argilAvatarId,
+          argilVoiceId: payload.training?.argilVoiceId ?? current.argilVoiceId,
+        }));
+        setAvatarTrainingInfo(
+          payload.message ??
+            "Avatar pronto. Voce ja pode gerar videos com o tema desejado.",
+        );
+        return;
       }
 
       const trainingId = payload.training?.id;
@@ -694,7 +717,16 @@ export function CuradorPage() {
                 {profileForm.argilAvatarId && (
                   <p>Avatar Argil: {profileForm.argilAvatarId}</p>
                 )}
-                {avatarTrainingError && <p>{avatarTrainingError}</p>}
+                {avatarTrainingInfo && (
+                  <p className="persona-helper-text persona-helper-highlight">
+                    {avatarTrainingInfo}
+                  </p>
+                )}
+                {avatarTrainingError && (
+                  <p className="persona-helper-text persona-helper-highlight">
+                    {avatarTrainingError}
+                  </p>
+                )}
               </div>
             )}
             {trainingRequested && !avatarTrainingStatus && !avatarTrainingError && (
