@@ -33,6 +33,17 @@ export function CuradorPageV2() {
   const [trainingMode, setTrainingMode] = useState<"digital_twin" | "photo">(
     "digital_twin",
   );
+  const [isLoadingLooks, setIsLoadingLooks] = useState(false);
+  const [looksError, setLooksError] = useState<string | null>(null);
+  const [privateTwinLooks, setPrivateTwinLooks] = useState<
+    Array<{
+      id: string;
+      name?: string | null;
+      preview_image_url?: string | null;
+      preview_video_url?: string | null;
+      supported_api_engines?: string[];
+    }>
+  >([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -172,6 +183,38 @@ export function CuradorPageV2() {
       setTrainingError(error instanceof Error ? error.message : "Erro ao treinar HeyGen.");
     } finally {
       setIsTraining(false);
+    }
+  }
+
+  async function loadPrivateDigitalTwinLooks() {
+    setLooksError(null);
+    setIsLoadingLooks(true);
+    try {
+      const response = await fetch(
+        "/api/heygen/avatars/looks?ownership=private&avatarType=digital_twin",
+      );
+      const payload = await parseJsonOrText<{
+        looks?: Array<{
+          id: string;
+          name?: string | null;
+          preview_image_url?: string | null;
+          preview_video_url?: string | null;
+          supported_api_engines?: string[];
+        }>;
+        message?: string;
+      }>(response);
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel listar avatares HeyGen.");
+      }
+
+      setPrivateTwinLooks(payload.looks ?? []);
+    } catch (error) {
+      setLooksError(
+        error instanceof Error ? error.message : "Nao foi possivel listar avatares HeyGen.",
+      );
+    } finally {
+      setIsLoadingLooks(false);
     }
   }
 
@@ -361,6 +404,69 @@ export function CuradorPageV2() {
             {isTraining ? "Treinando..." : "Treinar (HeyGen)"}
           </button>
         </div>
+
+        <div className="persona-form-row persona-actions">
+          <button
+            type="button"
+            className="persona-btn persona-btn-secondary"
+            onClick={() => void loadPrivateDigitalTwinLooks()}
+            disabled={isLoadingLooks}
+          >
+            {isLoadingLooks ? "Carregando avatares..." : "Selecionar Digital Twin existente"}
+          </button>
+        </div>
+
+        {looksError && (
+          <p className="persona-helper-text persona-helper-highlight">{looksError}</p>
+        )}
+
+        {privateTwinLooks.length > 0 && (
+          <div className="persona-form-group">
+            <label className="persona-label">Digital Twins (looks privados)</label>
+            <p className="persona-helper-text">
+              Selecione um look para usar como <strong>avatar_id</strong> na geracao.
+            </p>
+            <ul className="persona-video-history">
+              {privateTwinLooks.map((look) => {
+                const isSelected = heygenAvatarId === look.id;
+                const engines = (look.supported_api_engines ?? []).join(", ");
+                return (
+                  <li
+                    key={look.id}
+                    className={
+                      isSelected
+                        ? "persona-video-history-item active"
+                        : "persona-video-history-item"
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="persona-video-history-select"
+                      onClick={() => {
+                        setHeygenAvatarId(look.id);
+                        setTrainingInfo("Digital Twin selecionado. Voce ja pode gerar videos.");
+                      }}
+                    >
+                      <strong>{look.name || "Digital Twin"}</strong>
+                      <span>{look.id}</span>
+                      <span>{engines ? `Engines: ${engines}` : "Engines: (nao informado)"}</span>
+                    </button>
+                    {look.preview_video_url ? (
+                      <a
+                        className="persona-btn persona-btn-secondary"
+                        href={look.preview_video_url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Preview
+                      </a>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {selectedTrainingVideo && (
           <p className="persona-helper-text">

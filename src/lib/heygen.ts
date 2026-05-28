@@ -182,6 +182,42 @@ export async function heygenGetAvatarLook(lookId: string) {
   );
 }
 
+export type HeyGenAvatarLookListItem = {
+  id: string;
+  name?: string | null;
+  avatar_type?: string | null;
+  preview_image_url?: string | null;
+  preview_video_url?: string | null;
+  supported_api_engines?: string[];
+  group_id?: string | null;
+};
+
+export type HeyGenListAvatarLooksResponse = {
+  data?: { avatar_looks?: HeyGenAvatarLookListItem[] };
+  has_more?: boolean;
+  next_token?: string | null;
+};
+
+export async function heygenListAvatarLooks(input?: {
+  ownership?: "public" | "private";
+  avatarType?: "studio_avatar" | "digital_twin" | "photo_avatar";
+  groupId?: string;
+  limit?: number;
+  token?: string;
+}) {
+  const query = new URLSearchParams();
+  if (input?.ownership) query.set("ownership", input.ownership);
+  if (input?.avatarType) query.set("avatar_type", input.avatarType);
+  if (input?.groupId) query.set("group_id", input.groupId);
+  if (input?.limit) query.set("limit", String(input.limit));
+  if (input?.token) query.set("token", input.token);
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return heygenFetch<HeyGenListAvatarLooksResponse>(`/v3/avatars/looks${suffix}`, {
+    method: "GET",
+  });
+}
+
 export type HeyGenVoiceDetailsResponse = {
   data?: {
     voice_id?: string;
