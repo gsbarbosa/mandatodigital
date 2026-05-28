@@ -73,23 +73,39 @@ export async function POST(request: Request) {
       }
 
       try {
-        const supportsMotionPrompt =
-          engine === "avatar_iv" &&
-          (avatarType === "photo_avatar" || avatarType === "image" || avatarType === null);
+        // `motion_prompt`/`expressiveness` nao sao suportados para video avatars (Digital Twin).
+        // Para evitar regressao quando nao conseguimos inferir o avatar_type, so habilitamos
+        // motion_prompt quando o look for explicitamente photo_avatar.
+        const supportsMotionPrompt = engine === "avatar_iv" && avatarType === "photo_avatar";
 
-        const result = await heygenCreateVideo({
+        const baseCreatePayload = {
           avatarId,
           voiceId,
           script: transcript,
           title: name ?? `Curador v2 - ${topic}`,
-          aspectRatio: "9:16",
-          resolution: "1080p",
+          aspectRatio: "9:16" as const,
+          resolution: "1080p" as const,
           callbackUrl,
           engine,
-          ...(supportsMotionPrompt
-            ? { motionPrompt: "nodding gently", expressiveness: "medium" }
-            : null),
-        });
+        };
+
+        let result;
+        try {
+          result = await heygenCreateVideo({
+            ...baseCreatePayload,
+            ...(supportsMotionPrompt
+              ? { motionPrompt: "nodding gently", expressiveness: "medium" }
+              : null),
+          });
+        } catch (error) {
+          const message = formatHeyGenError(error);
+          // Se a HeyGen rejeitar motion_prompt, tenta novamente sem esse campo.
+          if (message.includes("motion_prompt is not supported")) {
+            result = await heygenCreateVideo(baseCreatePayload);
+          } else {
+            throw error;
+          }
+        }
 
         return NextResponse.json(
           {
