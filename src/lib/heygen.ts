@@ -193,7 +193,7 @@ export type HeyGenAvatarLookListItem = {
 };
 
 export type HeyGenListAvatarLooksResponse = {
-  data?: { avatar_looks?: HeyGenAvatarLookListItem[] };
+  data?: HeyGenAvatarLookListItem[];
   has_more?: boolean;
   next_token?: string | null;
 };

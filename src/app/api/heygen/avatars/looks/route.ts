@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       });
 
       return NextResponse.json({
-        looks: response.data?.avatar_looks ?? [],
+        looks: response.data ?? [],
         nextToken: response.next_token ?? null,
         hasMore: Boolean(response.has_more),
       });
