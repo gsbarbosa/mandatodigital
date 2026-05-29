@@ -11,7 +11,10 @@ import {
   heygenGetUserMe,
 } from "@/lib/heygen";
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
-import { pickAvatarImageAndVoiceAudioAssets } from "@/lib/training-asset-urls";
+import {
+  pickAvatarImageAndVoiceAudioAssets,
+  pickCaricatureAsset,
+} from "@/lib/training-asset-urls";
 
 function countWords(text: string) {
   return text
@@ -36,7 +39,10 @@ export async function POST(request: Request) {
         transcript?: string;
         name?: string;
         freePrompt?: string;
+        generateMode?: "avatar" | "caricature";
       };
+
+      const generateMode = body.generateMode === "caricature" ? "caricature" : "avatar";
 
       const topic = String(body.topic ?? "").trim();
       const avatarId = String(body.avatarId ?? "").trim();
@@ -51,6 +57,71 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+
+      const dashboard = await repository.getDashboard();
+
+      if (generateMode === "caricature") {
+        if (!voiceId) {
+          return NextResponse.json(
+            {
+              message:
+                "Modo caricato exige voz clonada. Clique em Preparar voz (HeyGen) antes de gerar o video.",
+            },
+            { status: 400 },
+          );
+        }
+
+        const assets = await repository.listTrainingAssetsForReference(
+          dashboard.profile?.id ?? "",
+        );
+        const caricatureAsset = pickCaricatureAsset(assets);
+        if (!caricatureAsset) {
+          return NextResponse.json(
+            { message: "Gere e aprove a caricatura antes de produzir o video." },
+            { status: 400 },
+          );
+        }
+
+        const baseTranscript = explicitTranscript
+          ? explicitTranscript
+          : await buildAvatarVideoTranscript({
+              topic,
+              profile: dashboard.profile,
+            });
+
+        const transcript = explicitTranscript
+          ? baseTranscript
+          : freePrompt
+            ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
+            : baseTranscript;
+
+        const appBaseUrl = resolveAppBaseUrl(request);
+        const callbackUrl = appBaseUrl.startsWith("https://")
+          ? `${appBaseUrl}/api/heygen/webhooks`
+          : undefined;
+        const { getTrainingAssetPublicUrl } = await import("@/lib/training-asset-urls");
+        const imageUrl = await getTrainingAssetPublicUrl(caricatureAsset, appBaseUrl);
+
+        const result = await heygenCreateVideoFromImage({
+          image: { type: "url", url: imageUrl },
+          voiceId,
+          script: transcript,
+          title: name ?? (topic ? `Curador v2 (caricato) - ${topic}` : "Curador v2 (caricato)"),
+          aspectRatio: "9:16",
+          resolution: "1080p",
+          callbackUrl,
+        });
+
+        return NextResponse.json(
+          {
+            videoId: result.videoId,
+            providerMode: "caricature_image",
+            message: "Video caricato enviado para a HeyGen. Aguarde a renderizacao.",
+          },
+          { status: 201 },
+        );
+      }
+
       if (!avatarId) {
         return NextResponse.json(
           { message: "Avatar HeyGen ausente. Clique em Treinar (HeyGen) primeiro." },
@@ -59,7 +130,6 @@ export async function POST(request: Request) {
       }
       // voiceId e opcional: se omitido, a HeyGen usa a voz padrao do avatar look (quando existir).
 
-      const dashboard = await repository.getDashboard();
       const baseTranscript = explicitTranscript
         ? explicitTranscript
         : await buildAvatarVideoTranscript({

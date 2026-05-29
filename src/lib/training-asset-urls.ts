@@ -135,6 +135,12 @@ export function pickAvatarImageAndVoiceAudioAssets(assets: ProfileTrainingAsset[
   };
 }
 
+export function pickCaricatureAsset(assets: ProfileTrainingAsset[]) {
+  return pickLatestAsset(
+    assets.filter((asset) => asset.trainingRole === "avatar_caricature"),
+  );
+}
+
 /** @deprecated Use pickAvatarImageAndVoiceAudioAssets */
 export function pickAvatarImageAndConsentAssets(assets: ProfileTrainingAsset[]) {
   return pickAvatarImageAndVoiceAudioAssets(assets);

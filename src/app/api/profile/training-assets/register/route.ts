@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
     if (!isAllowedTrainingMime(trainingRole, mimeType)) {
       const expected =
-        trainingRole === "avatar_image"
+        trainingRole === "avatar_image" || trainingRole === "avatar_caricature"
           ? "uma imagem (PNG, JPEG ou WebP)"
           : trainingRole === "voice_audio"
             ? "um audio (MP3, WAV ou M4A)"

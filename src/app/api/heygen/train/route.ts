@@ -15,15 +15,18 @@ import {
 import {
   getTrainingAssetPublicUrl,
   pickAvatarImageAndVoiceAudioAssets,
+  pickCaricatureAsset,
   resolveAppBaseUrl,
 } from "@/lib/training-asset-urls";
+
+type HeyGenTrainMode = "photo" | "digital_twin" | "caricature";
 
 export async function POST(request: Request) {
   try {
     return apiRoute(async (repository) => {
       const body = (await request.json().catch(() => ({}))) as {
         avatarName?: string;
-        mode?: "photo" | "digital_twin";
+        mode?: HeyGenTrainMode;
       };
 
       const dashboard = await repository.getDashboard();
@@ -35,6 +38,7 @@ export async function POST(request: Request) {
       const assets = await repository.listTrainingAssetsForReference(profileId);
       const { avatarImageAsset, voiceAudioAsset } =
         pickAvatarImageAndVoiceAudioAssets(assets);
+      const caricatureAsset = pickCaricatureAsset(assets);
       const latestVideoAsset =
         [...assets]
           .filter(
@@ -44,13 +48,6 @@ export async function POST(request: Request) {
           )
           .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
 
-      if (!avatarImageAsset) {
-        return NextResponse.json(
-          { message: "Envie uma foto do rosto (PNG/JPEG) para criar o avatar." },
-          { status: 400 },
-        );
-      }
-
       if (!voiceAudioAsset) {
         return NextResponse.json(
           { message: "Envie um audio de voz (MP3/WAV) para clonar a voz." },
@@ -58,9 +55,9 @@ export async function POST(request: Request) {
         );
       }
 
+      const mode: HeyGenTrainMode = body.mode ?? "photo";
       const appBaseUrl = resolveAppBaseUrl(request);
       const assetBaseUrl = resolveAppBaseUrl(request);
-      const avatarImageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, assetBaseUrl);
       const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, assetBaseUrl);
       const trainingVideoUrl = latestVideoAsset
         ? await getTrainingAssetPublicUrl(latestVideoAsset, assetBaseUrl)
@@ -70,8 +67,6 @@ export async function POST(request: Request) {
         String(body.avatarName ?? "").trim() ||
         dashboard.profile?.fullName?.trim() ||
         "Mandato Digital Avatar";
-
-      const mode = body.mode ?? "photo";
 
       let avatarId = "";
       let avatarGroupId: string | null = null;
@@ -105,9 +100,6 @@ export async function POST(request: Request) {
           consentUrl = consent.consentUrl;
         } catch (error) {
           const message = formatHeyGenError(error);
-          // HeyGen: o security code do consentimento ja foi "bindado" a este grupo.
-          // Nao ha endpoint documentado para recuperar a URL anterior; entao retornamos
-          // um status para o usuario continuar o consentimento pelo dashboard.
           if (message.toLowerCase().includes("security code already binded")) {
             let groupStatus: unknown = null;
             try {
@@ -122,8 +114,8 @@ export async function POST(request: Request) {
                 avatarGroupId: twin.groupId,
                 voiceId: null,
                 consentUrl: null,
-                consentStatus: (groupStatus as any)?.data?.avatar_group?.consent_status ?? null,
-                avatarGroupStatus: (groupStatus as any)?.data?.avatar_group?.status ?? null,
+                consentStatus: (groupStatus as { data?: { avatar_group?: { consent_status?: string | null; status?: string | null } } })?.data?.avatar_group?.consent_status ?? null,
+                avatarGroupStatus: (groupStatus as { data?: { avatar_group?: { consent_status?: string | null; status?: string | null } } })?.data?.avatar_group?.status ?? null,
                 message:
                   "O consentimento deste Digital Twin ja foi iniciado (security code ja vinculado). " +
                   "Abra o HeyGen e finalize o consentimento do grupo, ou selecione um Digital Twin existente na lista.",
@@ -134,7 +126,25 @@ export async function POST(request: Request) {
 
           throw error;
         }
-      } else {
+      } else if (mode === "caricature") {
+        if (!caricatureAsset) {
+          return NextResponse.json(
+            {
+              message:
+                "Gere a caricatura a partir da foto antes de preparar a voz para o video caricato.",
+            },
+            { status: 400 },
+          );
+        }
+      } else if (!avatarImageAsset) {
+        return NextResponse.json(
+          { message: "Envie uma foto do rosto (PNG/JPEG) para criar o avatar." },
+          { status: 400 },
+        );
+      }
+
+      if (mode === "photo" && avatarImageAsset) {
+        const avatarImageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, assetBaseUrl);
         const photo = await heygenCreatePhotoAvatar({
           name: avatarName,
           file: { type: "url", url: avatarImageUrl },
@@ -148,8 +158,6 @@ export async function POST(request: Request) {
         audio: { type: "url", url: voiceAudioUrl },
       });
 
-      // Best-effort: force a small voice poll so the UI gets a clearer status quickly.
-      // If the voice is not ready yet, the UI can still proceed (HeyGen will queue).
       try {
         void buildAvatarVideoTranscript({
           topic: "Teste",
@@ -163,16 +171,23 @@ export async function POST(request: Request) {
         // ignore
       }
 
+      const messageByMode: Record<HeyGenTrainMode, string> = {
+        digital_twin:
+          "Digital Twin iniciado. Abra o link de consentimento para finalizar. Depois gere videos.",
+        photo: "Avatar e voz HeyGen criados. Agora voce ja pode gerar videos.",
+        caricature:
+          "Voz clonada para o modo caricato. Agora gere o video com a caricatura aprovada.",
+      };
+
       return NextResponse.json(
         {
-          avatarId,
+          avatarId: avatarId || null,
           voiceId,
           avatarGroupId,
           consentUrl,
-          message:
-            mode === "digital_twin"
-              ? "Digital Twin iniciado. Abra o link de consentimento para finalizar. Depois gere videos."
-              : "Avatar e voz HeyGen criados. Agora voce ja pode gerar videos.",
+          mode,
+          caricatureAssetId: caricatureAsset?.id ?? null,
+          message: messageByMode[mode],
         },
         { status: 201 },
       );
@@ -181,4 +196,3 @@ export async function POST(request: Request) {
     return handleRouteError(new Error(formatHeyGenError(error)));
   }
 }
-

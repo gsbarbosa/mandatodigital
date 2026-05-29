@@ -80,6 +80,7 @@ type ProductAppContextValue = {
     files: File[],
     trainingRole: TrainingAssetRole,
   ) => Promise<ProfileTrainingAsset[]>;
+  appendTrainingAssets: (assets: ProfileTrainingAsset[]) => void;
   generateContent: () => Promise<GeneratedContent[]>;
   updateContent: (
     contentId: string,
@@ -474,6 +475,14 @@ export function ProductAppProvider({
     }
   }
 
+  function appendTrainingAssets(assets: ProfileTrainingAsset[]) {
+    if (!assets.length) {
+      return;
+    }
+
+    setTrainingAssets((current) => [...assets, ...current]);
+  }
+
   async function generateContent() {
     if (!profile) {
       setErrorMessage("Salve o perfil do parlamentar antes de gerar conteudo.");
@@ -755,6 +764,7 @@ export function ProductAppProvider({
     setFeedbackWidgetOpen,
     saveProfile,
     uploadTrainingAssets,
+    appendTrainingAssets,
     generateContent,
     updateContent,
     submitFeedback,

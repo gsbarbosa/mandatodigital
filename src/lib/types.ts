@@ -33,6 +33,7 @@ export type TrainingAssetSourceType = (typeof trainingAssetSourceTypes)[number];
 
 export const trainingAssetRoles = [
   "avatar_image",
+  "avatar_caricature",
   "voice_audio",
   "consent",
   "dataset",

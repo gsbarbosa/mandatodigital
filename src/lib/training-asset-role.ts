@@ -2,6 +2,7 @@ import type { TrainingAssetRole } from "@/lib/types";
 
 const TRAINING_ROLES: TrainingAssetRole[] = [
   "avatar_image",
+  "avatar_caricature",
   "voice_audio",
   "consent",
   "dataset",
@@ -19,7 +20,7 @@ export function parseTrainingAssetRole(value: unknown): TrainingAssetRole {
 export function isAllowedTrainingMime(trainingRole: TrainingAssetRole, mimeType: string) {
   const mime = mimeType.trim().toLowerCase();
 
-  if (trainingRole === "avatar_image") {
+  if (trainingRole === "avatar_image" || trainingRole === "avatar_caricature") {
     return mime.startsWith("image/");
   }
 
