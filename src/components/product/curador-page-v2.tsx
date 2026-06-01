@@ -24,6 +24,10 @@ function countWords(text: string) {
     .filter(Boolean).length;
 }
 
+function uploadAreaButtonLabel(hasFile: boolean) {
+  return hasFile ? "Adicionar / Substituir" : "Adicionar";
+}
+
 function avatarTypeToTrack(value: string | undefined): AvatarTrack {
   return value === "Minha Caricatura" ? "caricature" : "realistic";
 }
@@ -149,7 +153,6 @@ export function CuradorPageV2() {
     uploadTrainingAssets,
     isUploadingVoiceAudioAsset,
     isUploadingAvatarImageAsset,
-    sessionUser,
     appendTrainingAssets,
   } = useProductApp();
 
@@ -453,7 +456,7 @@ export function CuradorPageV2() {
 
       if (payload.group?.consent_status === "completed" || payload.group?.status === "completed") {
         setTrainingInfo(
-          "Consentimento concluido. Agora clique em 'Selecionar Digital Twin existente' e escolha o look para gerar videos.",
+          "Consentimento concluido. Selecione o gemeo digital e aprove o roteiro para produzir.",
         );
       }
     } catch (error) {
@@ -518,7 +521,7 @@ export function CuradorPageV2() {
       }
       if (avatarTrack === "realistic" && !heygenAvatarId) {
         throw new Error(
-          "Selecione um Digital Twin existente ou clique em Treinar (HeyGen) antes de gerar o video.",
+          "Selecione um gemeo digital existente ou treine um novo antes de produzir o conteudo.",
         );
       }
       if (avatarTrack === "caricature" && !heygenVoiceId) {
@@ -581,19 +584,6 @@ export function CuradorPageV2() {
       setVideoError(error instanceof Error ? error.message : "Falha ao acompanhar o video.");
     });
   }, [videoId, isGenerating]);
-
-  useEffect(() => {
-    const loginEmail = sessionUser?.email?.trim();
-    if (!loginEmail) {
-      return;
-    }
-    setProfileForm((current) => {
-      if (current.notificationEmail?.trim()) {
-        return current;
-      }
-      return { ...current, notificationEmail: loginEmail };
-    });
-  }, [sessionUser?.email, setProfileForm]);
 
   useEffect(() => {
     if (profile?.avatarType) {
@@ -738,7 +728,7 @@ export function CuradorPageV2() {
                     Enviando...
                   </span>
                 ) : (
-                  "Adicionar / Substituir"
+                  uploadAreaButtonLabel(Boolean(selectedVoiceAudio))
                 )}
               </span>
               {isUploadingVoiceAudioAsset && <div className="persona-progress" />}
@@ -786,7 +776,9 @@ export function CuradorPageV2() {
                     event.target.value = "";
                   }}
                 />
-                <span className="persona-btn persona-btn-upload-label">Adicionar / Substituir</span>
+                <span className="persona-btn persona-btn-upload-label">
+                  {uploadAreaButtonLabel(Boolean(selectedTrainingVideo))}
+                </span>
               </label>
               {selectedTrainingVideo ? (
                 <div className="persona-upload-files">
@@ -837,7 +829,7 @@ export function CuradorPageV2() {
                       Enviando...
                     </span>
                   ) : (
-                    "Adicionar / Substituir"
+                    uploadAreaButtonLabel(Boolean(selectedAvatarImage))
                   )}
                 </span>
                 {isUploadingAvatarImageAsset && <div className="persona-progress" />}
@@ -862,13 +854,40 @@ export function CuradorPageV2() {
                   {isTraining ? (
                     <span className="persona-loading-row">
                       <span className="persona-spinner" aria-hidden="true" />
-                      Treinando Digital Twin...
+                      Treinando gemeo digital...
                     </span>
                   ) : (
-                    "Treinar Digital Twin (HeyGen)"
+                    "Treinar novo Gemeo Digital"
                   )}
                 </button>
               </div>
+
+              <div className="persona-caricature-actions-card">
+                {selectedTwinLook?.preview_image_url ? (
+                  <img
+                    src={selectedTwinLook.preview_image_url}
+                    alt="Preview do gemeo digital"
+                    className="persona-caricature-preview-image"
+                  />
+                ) : selectedTwinLook?.preview_video_url ? (
+                  <video
+                    src={selectedTwinLook.preview_video_url}
+                    className="persona-caricature-preview-image"
+                    muted
+                    playsInline
+                    loop
+                    autoPlay
+                  />
+                ) : (
+                  <span className="persona-twin-preview-placeholder" aria-hidden="true" />
+                )}
+                <p className="persona-helper-text">
+                  {heygenAvatarId
+                    ? "Gemeo digital selecionado. Gere e aprove o roteiro para produzir o conteudo."
+                    : "Treine ou selecione um gemeo digital para visualizar o avatar."}
+                </p>
+              </div>
+
               <div className="persona-cta-row">
                 <button
                   type="button"
@@ -878,32 +897,9 @@ export function CuradorPageV2() {
                 >
                   {isLoadingLooks
                     ? "Carregando avatares..."
-                    : "Selecionar Digital Twin existente"}
+                    : "Produzir conteudo a partir do Gemeo Digital atual"}
                 </button>
               </div>
-
-              {(selectedTwinLook?.preview_image_url || selectedTwinLook?.preview_video_url || heygenAvatarId) && (
-                <div className="persona-twin-preview">
-                  {selectedTwinLook?.preview_image_url ? (
-                    <img
-                      src={selectedTwinLook.preview_image_url}
-                      alt="Preview do gemeo digital"
-                      className="persona-twin-preview-media"
-                    />
-                  ) : selectedTwinLook?.preview_video_url ? (
-                    <video
-                      src={selectedTwinLook.preview_video_url}
-                      className="persona-twin-preview-media"
-                      muted
-                      playsInline
-                      loop
-                      autoPlay
-                    />
-                  ) : (
-                    <span className="persona-twin-preview-placeholder" aria-hidden="true" />
-                  )}
-                </div>
-              )}
 
               {looksError && (
                 <p className="persona-helper-text persona-helper-highlight">{looksError}</p>
@@ -952,11 +948,11 @@ export function CuradorPageV2() {
                           onClick={() => {
                             setHeygenAvatarId(look.id);
                             setTrainingInfo(
-                              "Digital Twin selecionado. Agora gere e aprove o roteiro para produzir.",
+                              "Gemeo digital selecionado. Agora gere e aprove o roteiro para produzir.",
                             );
                           }}
                         >
-                          <strong>{look.name || "Digital Twin"}</strong>
+                          <strong>{look.name || "Gemeo Digital"}</strong>
                           <span>{look.id}</span>
                         </button>
                       </li>
@@ -979,10 +975,8 @@ export function CuradorPageV2() {
                       <span className="persona-spinner" aria-hidden="true" />
                       Gerando caricatura...
                     </span>
-                  ) : selectedCaricature ? (
-                    "Regenerar caricatura (OpenAI)"
                   ) : (
-                    "Gerar caricatura (OpenAI)"
+                    "Treinar nova Caricatura Digital"
                   )}
                 </button>
               </div>
@@ -1042,7 +1036,7 @@ export function CuradorPageV2() {
               O posicionamento ideologico compoe a base da resposta que a IA vai gerar sobre o
               tema.
             </p>
-            <div className="persona-tag-list">
+            <div className="persona-tag-list persona-top-gap">
               {spectrumOptions.map((option) => (
                 <PersonaTag
                   key={option}
@@ -1067,7 +1061,7 @@ export function CuradorPageV2() {
               entendeu, sabe, ta, ok, certo, mano, assim.
             </p>
             <textarea
-              className="persona-input-control"
+              className="persona-input-control persona-top-gap"
               value={profileForm.glossaryTerms ?? ""}
               onChange={(event) =>
                 setProfileForm((current) => ({
@@ -1145,7 +1139,7 @@ export function CuradorPageV2() {
                   notificationEmail: event.target.value,
                 }))
               }
-              placeholder="voce@exemplo.com"
+              placeholder="Digite seu e-mail para receber avisos..."
               autoComplete="email"
             />
           </div>
@@ -1274,10 +1268,8 @@ export function CuradorPageV2() {
                   <span className="persona-spinner" aria-hidden="true" />
                   Gerando...
                 </span>
-              ) : avatarTrack === "caricature" ? (
-                "Produzir conteudo a partir da Caricatura Digital atual"
               ) : (
-                "Produzir conteudo a partir do Gemeo Digital atual"
+                "Gerar Conteudo a partir do Avatar selecionado"
               )}
             </button>
             {isGenerating && <div className="persona-progress" />}

@@ -435,7 +435,7 @@ textarea.persona-input-control {
   object-fit: cover;
 }
 
-.persona-twin-preview-placeholder {
+.persona-caricature-actions-card .persona-twin-preview-placeholder {
   display: block;
   width: min(100%, 240px);
   margin: 0 auto 0.75rem;
@@ -997,15 +997,28 @@ textarea.persona-input-control {
   color: var(--text-muted);
 }
 
-.workflow-pipeline-item.is-enabled.is-active .workflow-pipeline-step,
-.workflow-pipeline-item.is-enabled .workflow-pipeline-step:hover {
-  border-color: rgba(59, 130, 246, 0.55);
-  background: rgba(59, 130, 246, 0.14);
+.workflow-pipeline-item.is-enabled:not(.is-active) .workflow-pipeline-step:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.08);
   color: var(--text);
 }
 
 .workflow-pipeline-item.is-enabled.is-active .workflow-pipeline-step {
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.75);
+  background: rgba(59, 130, 246, 0.22);
+  color: #f8fafc;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.35);
+}
+
+.workflow-pipeline-item.is-enabled.is-active .workflow-pipeline-step:hover {
+  border-color: rgba(59, 130, 246, 0.75);
+  background: rgba(59, 130, 246, 0.22);
+  color: #f8fafc;
+}
+
+.workflow-pipeline-item.is-enabled.is-active .workflow-pipeline-step-num {
+  background: #3b82f6;
+  color: #fff;
 }
 
 .workflow-pipeline-step-num {
@@ -1020,7 +1033,7 @@ textarea.persona-input-control {
   color: var(--text-soft);
 }
 
-.workflow-pipeline-item.is-enabled .workflow-pipeline-step-num {
+.workflow-pipeline-item.is-enabled:not(.is-active) .workflow-pipeline-step-num {
   background: rgba(59, 130, 246, 0.2);
   color: #93c5fd;
 }
