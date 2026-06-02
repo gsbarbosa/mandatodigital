@@ -9,6 +9,8 @@ function isCuradorPath(pathname: string) {
   return (
     pathname === "/curador" ||
     pathname.startsWith("/curador/") ||
+    pathname === "/curador-v1" ||
+    pathname.startsWith("/curador-v1/") ||
     pathname === "/curador-v2" ||
     pathname.startsWith("/curador-v2/")
   );

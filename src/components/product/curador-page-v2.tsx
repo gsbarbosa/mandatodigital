@@ -552,8 +552,8 @@ export function CuradorPageV2() {
           voiceId: heygenVoiceId || undefined,
           generateMode: avatarTrack === "caricature" ? "caricature" : "avatar",
           name: useFreePromptAsTranscript
-            ? `Curador v2 - prompt livre - ${profileForm.fullName || "Politico"}`
-            : `Curador v2 - ${profileForm.fullName || "Politico"} - ${topic || scriptTopicSnapshot}`,
+            ? `Curador - prompt livre - ${profileForm.fullName || "Politico"}`
+            : `Curador - ${profileForm.fullName || "Politico"} - ${topic || scriptTopicSnapshot}`,
           transcript: useFreePromptAsTranscript ? free : scriptDraft.trim(),
           freePrompt: useFreePromptAsTranscript ? undefined : free || undefined,
         }),
@@ -654,7 +654,7 @@ export function CuradorPageV2() {
     <section className="persona-page">
       <div className="persona-container">
         <div className="persona-card">
-          <h2 className="sr-only">Curador v2 — HeyGen</h2>
+          <h2 className="sr-only">Curador — HeyGen</h2>
 
           <div className="persona-section-header">
             <div className="persona-header-icon" aria-hidden="true">

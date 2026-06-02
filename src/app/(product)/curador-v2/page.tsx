@@ -1,6 +1,6 @@
-import { CuradorPageV2 } from "@/components/product/curador-page-v2";
+import { redirect } from "next/navigation";
 
-export default function CuradorV2Route() {
-  return <CuradorPageV2 />;
+/** Rota legada: Curador principal agora e /curador (HeyGen). */
+export default function CuradorV2LegacyRoute() {
+  redirect("/curador");
 }
-

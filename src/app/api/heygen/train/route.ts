@@ -94,7 +94,7 @@ export async function POST(request: Request) {
           const consent = await heygenCreateAvatarConsent({
             groupId: twin.groupId,
             rerouteUrl: appBaseUrl.startsWith("https://")
-              ? `${appBaseUrl}/curador-v2`
+              ? `${appBaseUrl}/curador`
               : undefined,
           });
           consentUrl = consent.consentUrl;

@@ -29,7 +29,9 @@ export function ProductShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isCuradorFocusMode =
-    pathname === "/curador" || pathname === "/curador-v2";
+    pathname === "/curador" ||
+    pathname === "/curador-v1" ||
+    pathname === "/curador-v2";
   const openFeedbackParam = searchParams.get("e2e");
   const isFeedbackForcedOpen = openFeedbackParam === "open-feedback";
   const {

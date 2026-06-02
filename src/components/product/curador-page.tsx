@@ -658,6 +658,7 @@ export function CuradorPage() {
               UC
             </div>
             <h2>Calibragem de Persona</h2>
+            <p className="sr-only">Curador v1 — Argil (legado)</p>
             <p>
               O Agente Curador usa estes dados para garantir que os roteiros tenham a
               sua cara.

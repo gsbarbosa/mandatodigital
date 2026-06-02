@@ -1,5 +1,5 @@
-import { CuradorPage } from "@/components/product/curador-page";
+import { CuradorPageV2 } from "@/components/product/curador-page-v2";
 
 export default function CuradorRoute() {
-  return <CuradorPage />;
+  return <CuradorPageV2 />;
 }

@@ -238,7 +238,7 @@ export type MvpPipelineStep = {
 /** Ordem do fluxo completo; no MVP apenas Curador esta habilitado. */
 export const mvpPipelineSteps: MvpPipelineStep[] = [
   { id: "sentinela", label: "Sentinela", href: "/sentinela", enabled: false },
-  { id: "curador", label: "Curador", href: "/curador-v2", enabled: true },
+  { id: "curador", label: "Curador", href: "/curador", enabled: true },
   { id: "criativo", label: "Criativo", href: "/criativo", enabled: false },
   { id: "auditor", label: "Auditor", href: "/auditor", enabled: false },
   { id: "distribuidor", label: "Distribuidor", href: "/distribuidor", enabled: false },
