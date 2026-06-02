@@ -13,7 +13,7 @@ import type { ProfileTrainingAsset } from "@/lib/types";
 const MAX_SCRIPT_WORDS = 160;
 
 const AVATAR_TYPE_BY_TRACK = {
-  realistic: "Meu Gemeo Digital",
+  realistic: "Meu Gêmeo Digital",
   caricature: "Minha Caricatura",
 } as const;
 
@@ -661,7 +661,7 @@ export function CuradorPageV2() {
                 onClick={() => selectAvatarTrack("realistic")}
                 disabled={isTraining || isGeneratingCaricature}
               >
-                Gemeo Digital
+                Gêmeo Digital
               </button>
               <button
                 type="button"
@@ -678,7 +678,7 @@ export function CuradorPageV2() {
             </div>
             <div className="persona-production-track-hints">
               <p>
-                Para <strong>Gemeo Digital</strong> envie: <strong>video</strong> e{" "}
+                Para <strong>Gêmeo Digital</strong> envie: <strong>video</strong> e{" "}
                 <strong>audio</strong>
               </p>
               <p>
@@ -857,7 +857,7 @@ export function CuradorPageV2() {
                       Treinando gemeo digital...
                     </span>
                   ) : (
-                    "Treinar novo Gemeo Digital"
+                    "Treinar novo Gêmeo Digital"
                   )}
                 </button>
               </div>
@@ -883,7 +883,7 @@ export function CuradorPageV2() {
                 )}
                 <p className="persona-helper-text">
                   {heygenAvatarId
-                    ? "Gemeo digital selecionado. Gere e aprove o roteiro para produzir o conteudo."
+                    ? "Gêmeo digital selecionado. Gere e aprove o roteiro para produzir o conteudo."
                     : "Treine ou selecione um gemeo digital para visualizar o avatar."}
                 </p>
               </div>
@@ -897,7 +897,7 @@ export function CuradorPageV2() {
                 >
                   {isLoadingLooks
                     ? "Carregando avatares..."
-                    : "Produzir conteudo a partir do Gemeo Digital atual"}
+                    : "Produzir conteudo a partir do Gêmeo Digital atual"}
                 </button>
               </div>
 
@@ -948,11 +948,11 @@ export function CuradorPageV2() {
                           onClick={() => {
                             setHeygenAvatarId(look.id);
                             setTrainingInfo(
-                              "Gemeo digital selecionado. Agora gere e aprove o roteiro para produzir.",
+                              "Gêmeo digital selecionado. Agora gere e aprove o roteiro para produzir.",
                             );
                           }}
                         >
-                          <strong>{look.name || "Gemeo Digital"}</strong>
+                          <strong>{look.name || "Gêmeo Digital"}</strong>
                           <span>{look.id}</span>
                         </button>
                       </li>
