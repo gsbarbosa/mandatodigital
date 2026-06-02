@@ -25,7 +25,7 @@ function countWords(text: string) {
 }
 
 function uploadAreaButtonLabel(hasFile: boolean) {
-  return hasFile ? "Adicionar / Substituir" : "Adicionar";
+  return hasFile ? "Substituir" : "Adicionar";
 }
 
 function avatarTypeToTrack(value: string | undefined): AvatarTrack {
