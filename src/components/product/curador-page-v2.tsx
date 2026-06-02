@@ -139,12 +139,11 @@ export function CuradorPageV2() {
   const [heygenVoiceId, setHeygenVoiceId] = useState<string>("");
   const [heygenConsentUrl, setHeygenConsentUrl] = useState<string>("");
   const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>("realistic");
-  const [productionSource, setProductionSource] = useState<ProductionSource | null>(null);
+  const [productionSource, setProductionSource] = useState<ProductionSource>("train_new");
   const [trainingStarted, setTrainingStarted] = useState(false);
   const [trainingBannerState, setTrainingBannerState] = useState<
     "hidden" | "started" | "completed"
   >("hidden");
-  const autoCaricatureVoicePrepRef = useRef(false);
   const [consentInfo, setConsentInfo] = useState<string | null>(null);
   const [isGeneratingCaricature, setIsGeneratingCaricature] = useState(false);
   const [caricatureError, setCaricatureError] = useState<string | null>(null);
@@ -263,11 +262,12 @@ export function CuradorPageV2() {
     privateTwinLooks.find((look) => look.id === heygenAvatarId) ?? null;
 
   function selectAvatarTrack(track: AvatarTrack) {
+    const hasExisting =
+      track === "realistic" ? privateTwinLooks.length > 0 : caricatureAssets.length > 0;
     setAvatarTrack(track);
-    setProductionSource(null);
+    setProductionSource(hasExisting ? "use_existing" : "train_new");
     setTrainingStarted(false);
     setTrainingBannerState("hidden");
-    autoCaricatureVoicePrepRef.current = false;
     setProfileForm((current) => ({
       ...current,
       avatarType: AVATAR_TYPE_BY_TRACK[track],
@@ -285,7 +285,6 @@ export function CuradorPageV2() {
     setTrainingStarted(false);
     setTrainingBannerState("hidden");
     setTrainingError(null);
-    autoCaricatureVoicePrepRef.current = false;
     if (source === "train_new") {
       setHeygenVoiceId("");
       setTrainingInfo(null);
@@ -302,10 +301,7 @@ export function CuradorPageV2() {
     trainNewLabel: string,
     hasExisting: boolean,
   ) {
-    const resolvedSource =
-      productionSource ?? (hasExisting ? "use_existing" : "train_new");
     const useExistingDisabled = !hasExisting;
-    const trainNewDisabled = false;
 
     return (
       <div className="persona-production-subtrack-wrap persona-top-gap">
@@ -313,24 +309,24 @@ export function CuradorPageV2() {
           <button
             type="button"
             className={
-              resolvedSource === "use_existing"
+              productionSource === "use_existing"
                 ? "persona-production-subtrack-btn is-active"
                 : "persona-production-subtrack-btn"
             }
             onClick={() => selectProductionSource("use_existing")}
-            disabled={useExistingDisabled || isTraining || isGeneratingCaricature}
+            disabled={useExistingDisabled}
+            aria-disabled={useExistingDisabled}
           >
             {useExistingLabel}
           </button>
           <button
             type="button"
             className={
-              resolvedSource === "train_new"
+              productionSource === "train_new"
                 ? "persona-production-subtrack-btn is-active"
                 : "persona-production-subtrack-btn"
             }
             onClick={() => selectProductionSource("train_new")}
-            disabled={trainNewDisabled || isTraining || isGeneratingCaricature}
           >
             {trainNewLabel}
           </button>
@@ -487,7 +483,7 @@ export function CuradorPageV2() {
     }
   }
 
-  async function handleTrainHeyGen() {
+  async function handleTrainHeyGen(): Promise<string | undefined> {
     setTrainingError(null);
     setConsentInfo(null);
     setHeygenConsentUrl("");
@@ -532,9 +528,10 @@ export function CuradorPageV2() {
             `Status do grupo: ${payload.avatarGroupStatus ?? "(nao informado)"}`,
         );
       }
+
+      return payload.voiceId?.trim() || undefined;
     } catch (error) {
       setTrainingStarted(false);
-      autoCaricatureVoicePrepRef.current = false;
       setTrainingError(error instanceof Error ? error.message : "Erro ao treinar HeyGen.");
       throw error;
     } finally {
@@ -719,10 +716,16 @@ export function CuradorPageV2() {
           "Selecione um gemeo digital existente ou treine um novo antes de produzir o conteudo.",
         );
       }
-      if (avatarTrack === "caricature" && !heygenVoiceId) {
-        throw new Error(
-          "A voz da caricatura ainda está sendo preparada. Aguarde alguns segundos e tente novamente.",
-        );
+      let resolvedVoiceId = heygenVoiceId;
+      if (avatarTrack === "caricature" && !resolvedVoiceId) {
+        if (productionSource === "use_existing" && hasExistingCaricature) {
+          resolvedVoiceId = (await handleTrainHeyGen()) ?? "";
+        }
+        if (!resolvedVoiceId) {
+          throw new Error(
+            "Prepare a voz da caricatura com Iniciar Treinamento antes de gerar o vídeo.",
+          );
+        }
       }
 
       await saveProfile({ allowDraftDefaults: true, silent: true });
@@ -733,7 +736,7 @@ export function CuradorPageV2() {
         body: JSON.stringify({
           topic: useFreePromptAsTranscript ? undefined : topic || scriptTopicSnapshot,
           avatarId: avatarTrack === "realistic" ? heygenAvatarId : undefined,
-          voiceId: heygenVoiceId || undefined,
+          voiceId: resolvedVoiceId || undefined,
           generateMode: avatarTrack === "caricature" ? "caricature" : "avatar",
           name: useFreePromptAsTranscript
             ? `Curador - prompt livre - ${profileForm.fullName || "Politico"}`
@@ -799,56 +802,11 @@ export function CuradorPageV2() {
   }, [avatarTrack]);
 
   useEffect(() => {
-    setProductionSource(null);
-    setTrainingStarted(false);
-    setTrainingBannerState("hidden");
-    autoCaricatureVoicePrepRef.current = false;
-  }, [avatarTrack]);
-
-  useEffect(() => {
-    if (avatarTrack !== "caricature" || productionSource !== "use_existing") {
-      autoCaricatureVoicePrepRef.current = false;
+    if (avatarTrack !== "realistic" || privateTwinLooks.length === 0) {
       return;
     }
-    if (!hasExistingCaricature || heygenVoiceId || isTraining) {
-      return;
-    }
-    if (autoCaricatureVoicePrepRef.current) {
-      return;
-    }
-    autoCaricatureVoicePrepRef.current = true;
-    void handleTrainHeyGen();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    avatarTrack,
-    productionSource,
-    hasExistingCaricature,
-    heygenVoiceId,
-    isTraining,
-  ]);
-
-  useEffect(() => {
-    if (productionSource !== null) {
-      return;
-    }
-    if (avatarTrack === "realistic" && isLoadingLooks) {
-      return;
-    }
-    const hasExisting =
-      avatarTrack === "realistic" ? hasExistingTwin : hasExistingCaricature;
-    const defaultSource = hasExisting ? "use_existing" : "train_new";
-    setProductionSource(defaultSource);
-    if (avatarTrack === "realistic" && hasExistingTwin && privateTwinLooks[0]) {
-      setHeygenAvatarId((current) => current || privateTwinLooks[0].id);
-    }
-  }, [
-    productionSource,
-    avatarTrack,
-    hasExistingTwin,
-    hasExistingCaricature,
-    isLoadingLooks,
-    privateTwinLooks,
-  ]);
+    setHeygenAvatarId((current) => current || privateTwinLooks[0].id);
+  }, [avatarTrack, privateTwinLooks]);
 
   useEffect(() => {
     const topic = profileForm.avatarVideoTopic.trim();
@@ -914,7 +872,6 @@ export function CuradorPageV2() {
                     : "persona-production-track-btn"
                 }
                 onClick={() => selectAvatarTrack("realistic")}
-                disabled={isTraining || isGeneratingCaricature}
               >
                 Gêmeo Digital
               </button>
@@ -926,7 +883,6 @@ export function CuradorPageV2() {
                     : "persona-production-track-btn"
                 }
                 onClick={() => selectAvatarTrack("caricature")}
-                disabled={isTraining || isGeneratingCaricature}
               >
                 Avatar Caricato
               </button>

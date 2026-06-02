@@ -354,6 +354,8 @@ textarea.persona-input-control {
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
   margin-bottom: 1rem;
+  position: relative;
+  z-index: 2;
 }
 
 .persona-production-track-btn {
@@ -388,6 +390,8 @@ textarea.persona-input-control {
 }
 
 .persona-production-subtrack-wrap {
+  position: relative;
+  z-index: 2;
   margin-top: 0.35rem;
   margin-bottom: 0.15rem;
   padding-left: 0.5rem;
