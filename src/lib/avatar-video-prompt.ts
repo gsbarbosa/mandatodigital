@@ -169,7 +169,7 @@ export function buildAvatarVideoPrompt(
   );
 
   const userParts = [
-    "Redija um roteiro de video magnetico e direto ao ponto, com duracao maxima de 1 minuto (cerca de 140 palavras).",
+    "Redija um roteiro de video magnetico e direto ao ponto, com duracao media de 45 segundos (cerca de 100 palavras).",
     "O objetivo e gerar imediata concordancia no espectador e faze-lo querer compartilhar o video.",
     "",
     "Parametros do Conteudo:",

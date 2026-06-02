@@ -17,8 +17,8 @@ export type {
 } from "@/lib/avatar-video-prompt";
 
 /** ~1 min de fala em PT-BR (alinhado ao limite de 160 palavras do Curador). */
-export const MAX_TRANSCRIPT_WORDS = 160;
-const MAX_TRANSCRIPT_CHARS = 1400;
+export const MAX_TRANSCRIPT_WORDS = 100;
+const MAX_TRANSCRIPT_CHARS = 900;
 
 function clampTranscriptByWords(transcript: string, maxWords = MAX_TRANSCRIPT_WORDS) {
   const words = transcript.trim().split(/\s+/).filter(Boolean);

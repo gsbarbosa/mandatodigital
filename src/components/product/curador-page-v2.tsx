@@ -11,7 +11,7 @@ import { useProductApp } from "@/components/product/provider";
 import { parseTextarea } from "@/components/product/shared";
 import type { ProfileTrainingAsset } from "@/lib/types";
 
-const MAX_SCRIPT_WORDS = 160;
+const MAX_SCRIPT_WORDS = 100;
 
 const AVATAR_TYPE_BY_TRACK = {
   realistic: "Meu Gêmeo Digital",
@@ -141,11 +141,10 @@ export function CuradorPageV2() {
   const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>("realistic");
   const [productionSource, setProductionSource] = useState<ProductionSource | null>(null);
   const [trainingStarted, setTrainingStarted] = useState(false);
-  const [showTrainingBanner, setShowTrainingBanner] = useState(false);
-  const autoTwinTrainRef = useRef(false);
-  const autoCaricaturePipelineRef = useRef(false);
+  const [trainingBannerState, setTrainingBannerState] = useState<
+    "hidden" | "started" | "completed"
+  >("hidden");
   const autoCaricatureVoicePrepRef = useRef(false);
-  const trainNewEpochRef = useRef(0);
   const [consentInfo, setConsentInfo] = useState<string | null>(null);
   const [isGeneratingCaricature, setIsGeneratingCaricature] = useState(false);
   const [caricatureError, setCaricatureError] = useState<string | null>(null);
@@ -240,6 +239,10 @@ export function CuradorPageV2() {
   const hasExistingCaricature = caricatureAssets.length > 0;
   const showTrainingUploads = productionSource === "train_new";
   const canTrainRealistic = Boolean(trainingVideoAssets[0] && voiceAudioAssets[0]);
+  const canStartRealisticTraining = showTrainingUploads && canTrainRealistic;
+  const canStartCaricatureTraining =
+    showTrainingUploads && Boolean(avatarImageAssets[0] && voiceAudioAssets[0]);
+  const isTrainingBusy = isTraining || isGeneratingCaricature;
   const canGenerateCaricature = Boolean(avatarImageAssets[0]);
   const canGenerateVideo =
     avatarTrack === "realistic"
@@ -263,9 +266,7 @@ export function CuradorPageV2() {
     setAvatarTrack(track);
     setProductionSource(null);
     setTrainingStarted(false);
-    setShowTrainingBanner(false);
-    autoTwinTrainRef.current = false;
-    autoCaricaturePipelineRef.current = false;
+    setTrainingBannerState("hidden");
     autoCaricatureVoicePrepRef.current = false;
     setProfileForm((current) => ({
       ...current,
@@ -282,13 +283,10 @@ export function CuradorPageV2() {
     }
     setProductionSource(source);
     setTrainingStarted(false);
-    setShowTrainingBanner(false);
+    setTrainingBannerState("hidden");
     setTrainingError(null);
-    autoTwinTrainRef.current = false;
-    autoCaricaturePipelineRef.current = false;
     autoCaricatureVoicePrepRef.current = false;
     if (source === "train_new") {
-      trainNewEpochRef.current = Date.now();
       setHeygenVoiceId("");
       setTrainingInfo(null);
       setCaricatureInfo(null);
@@ -438,7 +436,7 @@ export function CuradorPageV2() {
       return;
     }
     if (countWords(draft) > MAX_SCRIPT_WORDS) {
-      setScriptError(`O roteiro deve ter no maximo ${MAX_SCRIPT_WORDS} palavras (~1 minuto).`);
+      setScriptError(`O roteiro deve ter no maximo ${MAX_SCRIPT_WORDS} palavras (~45 segundos).`);
       return;
     }
     if (scriptTopicSnapshot !== profileForm.avatarVideoTopic.trim()) {
@@ -480,10 +478,10 @@ export function CuradorPageV2() {
       setHeygenVoiceId("");
       setTrainingInfo(null);
     } catch (error) {
-      autoCaricaturePipelineRef.current = false;
       setCaricatureError(
         error instanceof Error ? error.message : "Erro ao gerar caricatura.",
       );
+      throw error;
     } finally {
       setIsGeneratingCaricature(false);
     }
@@ -495,11 +493,9 @@ export function CuradorPageV2() {
     setHeygenConsentUrl("");
     setIsTraining(true);
     setTrainingStarted(true);
-    setShowTrainingBanner(true);
-    setTrainingInfo("Treinamento iniciado.");
 
     try {
-      void saveProfile({ allowDraftDefaults: true, silent: true });
+      await saveProfile({ allowDraftDefaults: true, silent: true });
       const response = await fetch("/api/heygen/train", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -526,8 +522,6 @@ export function CuradorPageV2() {
       setHeygenAvatarGroupId(String(payload.avatarGroupId ?? "").trim());
       setHeygenVoiceId(payload.voiceId?.trim() || "");
       setHeygenConsentUrl(String(payload.consentUrl ?? "").trim());
-      setTrainingStarted(true);
-      setTrainingInfo("Treinamento iniciado.");
 
       if (
         !String(payload.consentUrl ?? "").trim() &&
@@ -540,13 +534,82 @@ export function CuradorPageV2() {
       }
     } catch (error) {
       setTrainingStarted(false);
-      setShowTrainingBanner(false);
-      autoTwinTrainRef.current = false;
       autoCaricatureVoicePrepRef.current = false;
       setTrainingError(error instanceof Error ? error.message : "Erro ao treinar HeyGen.");
+      throw error;
     } finally {
       setIsTraining(false);
     }
+  }
+
+  async function handleStartRealisticTraining() {
+    if (!canStartRealisticTraining || isTrainingBusy) {
+      return;
+    }
+    setTrainingBannerState("started");
+    setTrainingError(null);
+    try {
+      await handleTrainHeyGen();
+      setTrainingBannerState("completed");
+    } catch {
+      setTrainingBannerState("hidden");
+    }
+  }
+
+  async function handleStartCaricatureTraining() {
+    if (!canStartCaricatureTraining || isTrainingBusy) {
+      return;
+    }
+    setTrainingBannerState("started");
+    setTrainingError(null);
+    setCaricatureError(null);
+    try {
+      await saveProfile({ allowDraftDefaults: true, silent: true });
+      await handleGenerateCaricature();
+      await handleTrainHeyGen();
+      setTrainingBannerState("completed");
+    } catch {
+      setTrainingBannerState("hidden");
+    }
+  }
+
+  function renderTrainingStartControl(
+    canStart: boolean,
+    onStart: () => Promise<void>,
+  ) {
+    if (!showTrainingUploads) {
+      return null;
+    }
+
+    return (
+      <div className="persona-cta-block persona-top-gap">
+        <div className="persona-cta-row">
+          <button
+            type="button"
+            className="persona-btn persona-btn-large"
+            onClick={() => void onStart()}
+            disabled={!canStart || isTrainingBusy}
+          >
+            {isTrainingBusy ? (
+              <span className="persona-loading-row">
+                <span className="persona-spinner" aria-hidden="true" />
+                Treinando...
+              </span>
+            ) : (
+              "Iniciar Treinamento"
+            )}
+          </button>
+        </div>
+        <div className="persona-training-status-banner" aria-live="polite">
+          {trainingBannerState === "started" ? (
+            <p className="persona-script-approved">Treinamento iniciado</p>
+          ) : null}
+          {trainingBannerState === "completed" ? (
+            <p className="persona-script-approved">Treinamento concluído</p>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   async function handleCheckConsent() {
@@ -707,16 +770,6 @@ export function CuradorPageV2() {
   const selectedVoiceAudio = voiceAudioAssets[0] ?? null;
   const selectedTrainingVideo = trainingVideoAssets[0] ?? null;
 
-  function trainingAssetIsFresh(asset: ProfileTrainingAsset | null | undefined) {
-    if (!asset) {
-      return false;
-    }
-    if (trainNewEpochRef.current <= 0) {
-      return true;
-    }
-    return new Date(asset.createdAt).getTime() >= trainNewEpochRef.current;
-  }
-
   useEffect(() => {
     if (!videoId || autoPollStartedRef.current || isGenerating) {
       return;
@@ -748,9 +801,7 @@ export function CuradorPageV2() {
   useEffect(() => {
     setProductionSource(null);
     setTrainingStarted(false);
-    setShowTrainingBanner(false);
-    autoTwinTrainRef.current = false;
-    autoCaricaturePipelineRef.current = false;
+    setTrainingBannerState("hidden");
     autoCaricatureVoicePrepRef.current = false;
   }, [avatarTrack]);
 
@@ -787,9 +838,6 @@ export function CuradorPageV2() {
       avatarTrack === "realistic" ? hasExistingTwin : hasExistingCaricature;
     const defaultSource = hasExisting ? "use_existing" : "train_new";
     setProductionSource(defaultSource);
-    if (defaultSource === "train_new") {
-      trainNewEpochRef.current = Date.now();
-    }
     if (avatarTrack === "realistic" && hasExistingTwin && privateTwinLooks[0]) {
       setHeygenAvatarId((current) => current || privateTwinLooks[0].id);
     }
@@ -800,77 +848,6 @@ export function CuradorPageV2() {
     hasExistingCaricature,
     isLoadingLooks,
     privateTwinLooks,
-  ]);
-
-  useEffect(() => {
-    if (
-      avatarTrack !== "realistic" ||
-      productionSource !== "train_new" ||
-      !canTrainRealistic ||
-      !trainingAssetIsFresh(selectedTrainingVideo) ||
-      !trainingAssetIsFresh(selectedVoiceAudio) ||
-      isTraining ||
-      trainingStarted ||
-      autoTwinTrainRef.current
-    ) {
-      return;
-    }
-    autoTwinTrainRef.current = true;
-    setShowTrainingBanner(true);
-    void handleTrainHeyGen();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    avatarTrack,
-    productionSource,
-    canTrainRealistic,
-    isTraining,
-    trainingStarted,
-    trainingVideoAssets,
-    voiceAudioAssets,
-  ]);
-
-  useEffect(() => {
-    if (
-      avatarTrack !== "caricature" ||
-      productionSource !== "train_new" ||
-      trainingStarted ||
-      isGeneratingCaricature ||
-      isTraining
-    ) {
-      return;
-    }
-    if (
-      !trainingAssetIsFresh(selectedAvatarImage) ||
-      !trainingAssetIsFresh(selectedVoiceAudio)
-    ) {
-      return;
-    }
-    if (!caricatureAssets[0] && !autoCaricaturePipelineRef.current) {
-      autoCaricaturePipelineRef.current = true;
-      setShowTrainingBanner(true);
-      void handleGenerateCaricature();
-      return;
-    }
-    if (
-      trainingAssetIsFresh(selectedCaricature) &&
-      !heygenVoiceId &&
-      !autoTwinTrainRef.current
-    ) {
-      autoTwinTrainRef.current = true;
-      setShowTrainingBanner(true);
-      void handleTrainHeyGen();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    avatarTrack,
-    productionSource,
-    trainingStarted,
-    isGeneratingCaricature,
-    isTraining,
-    avatarImageAssets,
-    voiceAudioAssets,
-    caricatureAssets,
-    heygenVoiceId,
   ]);
 
   useEffect(() => {
@@ -977,14 +954,6 @@ export function CuradorPageV2() {
                 "Treinar Nova Caricatura",
                 hasExistingCaricature,
               )}
-
-          <div className="persona-training-status-banner" aria-live="polite">
-            {showTrainingUploads && showTrainingBanner ? (
-              <p className="persona-script-approved">
-                {isGeneratingCaricature ? "Gerando caricatura..." : "Treinamento iniciado"}
-              </p>
-            ) : null}
-          </div>
 
           {showTrainingUploads ? (
           <div className="persona-form-group">
@@ -1144,6 +1113,13 @@ export function CuradorPageV2() {
             </div>
           ) : null}
 
+          {avatarTrack === "caricature" && showTrainingUploads
+            ? renderTrainingStartControl(
+                canStartCaricatureTraining,
+                handleStartCaricatureTraining,
+              )
+            : null}
+
           {avatarTrack === "realistic" && productionSource === "use_existing" && selectedTwinLook ? (
             <div className="persona-caricature-actions-card persona-top-gap">
               {selectedTwinLook.preview_image_url ? (
@@ -1228,6 +1204,13 @@ export function CuradorPageV2() {
               <p className="persona-helper-text">{trainingInfo}</p>
             ) : null}
           </div>
+
+          {avatarTrack === "realistic" && showTrainingUploads
+            ? renderTrainingStartControl(
+                canStartRealisticTraining,
+                handleStartRealisticTraining,
+              )
+            : null}
 
           <hr className="persona-divider" />
 
@@ -1394,7 +1377,7 @@ export function CuradorPageV2() {
               <label className="persona-label">Aprovação do roteiro</label>
               <p className="persona-helper-text">
                 Veja o roteiro do vídeo que será produzido. Altere-o conforme necessário. Máximo de{" "}
-                {MAX_SCRIPT_WORDS} palavras (ou ~1 minuto).
+                {MAX_SCRIPT_WORDS} palavras (ou ~45 segundos).
               </p>
               <textarea
                 className="persona-input-control persona-top-gap"
@@ -1490,12 +1473,6 @@ export function CuradorPageV2() {
             </button>
             {isGenerating && <div className="persona-progress" />}
           </div>
-
-          {avatarTrack === "realistic" && !heygenVoiceId && heygenAvatarId && (
-            <p className="persona-helper-text">
-              Observação: sem voz clonada/selecionada, a HeyGen pode usar a voz padrão do avatar.
-            </p>
-          )}
 
           {videoError ? (
             <p className="persona-helper-text persona-helper-highlight">{videoError}</p>
