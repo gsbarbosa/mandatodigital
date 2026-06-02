@@ -92,7 +92,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
             </button>
           </div>
           {isCuradorFocusMode ? (
-            <WorkflowPipelineBar showMvpHint />
+            <WorkflowPipelineBar />
           ) : null}
         </header>
       )}
@@ -126,7 +126,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
           </section>
 
           <section className="menu-panel menu-panel-pipeline">
-            <WorkflowPipelineBar showMvpHint />
+            <WorkflowPipelineBar />
           </section>
         </>
       )}

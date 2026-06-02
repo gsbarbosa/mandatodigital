@@ -39,7 +39,7 @@ function formatStatus(status: string | null | undefined) {
     case "processing":
       return "Gerando (HeyGen)";
     case "completed":
-      return "Concluido";
+      return "Concluído";
     case "failed":
       return "Falhou";
     default:
@@ -74,6 +74,7 @@ function PersonaTag({
 }
 
 type AvatarTrack = "realistic" | "caricature";
+type ProductionSource = "use_existing" | "train_new";
 
 function PersonaHeaderIcon() {
   return (
@@ -111,6 +112,11 @@ export function CuradorPageV2() {
   const [heygenVoiceId, setHeygenVoiceId] = useState<string>("");
   const [heygenConsentUrl, setHeygenConsentUrl] = useState<string>("");
   const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>("realistic");
+  const [productionSource, setProductionSource] = useState<ProductionSource | null>(null);
+  const [trainingStarted, setTrainingStarted] = useState(false);
+  const autoTwinTrainRef = useRef(false);
+  const autoCaricaturePipelineRef = useRef(false);
+  const trainNewEpochRef = useRef(0);
   const [consentInfo, setConsentInfo] = useState<string | null>(null);
   const [isGeneratingCaricature, setIsGeneratingCaricature] = useState(false);
   const [caricatureError, setCaricatureError] = useState<string | null>(null);
@@ -201,8 +207,10 @@ export function CuradorPageV2() {
     return `${mb.toFixed(1)} MB`;
   }, []);
 
+  const hasExistingTwin = privateTwinLooks.length > 0;
+  const hasExistingCaricature = caricatureAssets.length > 0;
+  const showTrainingUploads = productionSource === "train_new";
   const canTrainRealistic = Boolean(trainingVideoAssets[0] && voiceAudioAssets[0]);
-  const canTrainCaricature = Boolean(caricatureAssets[0] && voiceAudioAssets[0]);
   const canGenerateCaricature = Boolean(avatarImageAssets[0]);
   const canGenerateVideo =
     avatarTrack === "realistic"
@@ -217,17 +225,85 @@ export function CuradorPageV2() {
       : scriptApproved && scriptDraft.trim().length > 0);
 
   const archetypeHelperText =
-    "Selecione somente se necessario. Caso nao escolha nenhum arquetipo, a IA utilizara a identidade comunicacional do candidato, identificada nas midias que voce enviou.";
+    "Selecione somente se necessário. Caso não escolha nenhum arquétipo, a IA utilizará a identidade comunicacional do candidato, identificada nas mídias que você enviou.";
 
   const selectedTwinLook =
     privateTwinLooks.find((look) => look.id === heygenAvatarId) ?? null;
 
   function selectAvatarTrack(track: AvatarTrack) {
     setAvatarTrack(track);
+    setProductionSource(null);
+    setTrainingStarted(false);
+    autoTwinTrainRef.current = false;
+    autoCaricaturePipelineRef.current = false;
     setProfileForm((current) => ({
       ...current,
       avatarType: AVATAR_TYPE_BY_TRACK[track],
     }));
+  }
+
+  function selectProductionSource(source: ProductionSource) {
+    if (source === "use_existing" && avatarTrack === "realistic" && !hasExistingTwin) {
+      return;
+    }
+    if (source === "use_existing" && avatarTrack === "caricature" && !hasExistingCaricature) {
+      return;
+    }
+    setProductionSource(source);
+    setTrainingStarted(false);
+    setTrainingError(null);
+    autoTwinTrainRef.current = false;
+    autoCaricaturePipelineRef.current = false;
+    if (source === "train_new") {
+      trainNewEpochRef.current = Date.now();
+      setHeygenVoiceId("");
+      setTrainingInfo(null);
+      setCaricatureInfo(null);
+      setCaricatureError(null);
+    }
+    if (source === "use_existing" && avatarTrack === "realistic" && privateTwinLooks[0]) {
+      setHeygenAvatarId(privateTwinLooks[0].id);
+    }
+  }
+
+  function renderProductionSourceButtons(
+    useExistingLabel: string,
+    trainNewLabel: string,
+    hasExisting: boolean,
+  ) {
+    const resolvedSource =
+      productionSource ?? (hasExisting ? "use_existing" : "train_new");
+    const useExistingDisabled = !hasExisting;
+    const trainNewDisabled = false;
+
+    return (
+      <div className="persona-production-track persona-top-gap" role="group" aria-label="Modo de produção">
+        <button
+          type="button"
+          className={
+            resolvedSource === "use_existing"
+              ? "persona-production-track-btn is-active"
+              : "persona-production-track-btn"
+          }
+          onClick={() => selectProductionSource("use_existing")}
+          disabled={useExistingDisabled || isTraining || isGeneratingCaricature}
+        >
+          {useExistingLabel}
+        </button>
+        <button
+          type="button"
+          className={
+            resolvedSource === "train_new"
+              ? "persona-production-track-btn is-active"
+              : "persona-production-track-btn"
+          }
+          onClick={() => selectProductionSource("train_new")}
+          disabled={trainNewDisabled || isTraining || isGeneratingCaricature}
+        >
+          {trainNewLabel}
+        </button>
+      </div>
+    );
   }
 
   function invalidateScriptApproval() {
@@ -366,6 +442,7 @@ export function CuradorPageV2() {
       setHeygenVoiceId("");
       setTrainingInfo(null);
     } catch (error) {
+      autoCaricaturePipelineRef.current = false;
       setCaricatureError(
         error instanceof Error ? error.message : "Erro ao gerar caricatura.",
       );
@@ -380,6 +457,8 @@ export function CuradorPageV2() {
     setConsentInfo(null);
     setHeygenConsentUrl("");
     setIsTraining(true);
+    setTrainingStarted(true);
+    setTrainingInfo("Treinamento iniciado.");
 
     try {
       void saveProfile({ allowDraftDefaults: true, silent: true });
@@ -409,7 +488,8 @@ export function CuradorPageV2() {
       setHeygenAvatarGroupId(String(payload.avatarGroupId ?? "").trim());
       setHeygenVoiceId(payload.voiceId?.trim() || "");
       setHeygenConsentUrl(String(payload.consentUrl ?? "").trim());
-      setTrainingInfo(payload.message || "Treino concluido.");
+      setTrainingStarted(true);
+      setTrainingInfo("Treinamento iniciado.");
 
       if (
         !String(payload.consentUrl ?? "").trim() &&
@@ -421,6 +501,8 @@ export function CuradorPageV2() {
         );
       }
     } catch (error) {
+      setTrainingStarted(false);
+      autoTwinTrainRef.current = false;
       setTrainingError(error instanceof Error ? error.message : "Erro ao treinar HeyGen.");
     } finally {
       setIsTraining(false);
@@ -456,9 +538,7 @@ export function CuradorPageV2() {
       );
 
       if (payload.group?.consent_status === "completed" || payload.group?.status === "completed") {
-        setTrainingInfo(
-          "Consentimento concluido. Selecione o gemeo digital e aprove o roteiro para produzir.",
-        );
+        setTrainingInfo("Consentimento concluído. Gere e aprove o roteiro para produzir.");
       }
     } catch (error) {
       setTrainingError(
@@ -494,11 +574,12 @@ export function CuradorPageV2() {
 
       // UX: se ja existirem looks privados, selecione o primeiro automaticamente
       // (mas respeite uma selecao ja feita manualmente).
-      if (!heygenAvatarId && looks.length > 0) {
+      if (
+        !heygenAvatarId &&
+        looks.length > 0 &&
+        productionSource !== "train_new"
+      ) {
         setHeygenAvatarId(looks[0].id);
-        setTrainingInfo(
-          "Gêmeo digital selecionado automaticamente. Gere e aprove o roteiro para produzir.",
-        );
       }
     } catch (error) {
       setLooksError(
@@ -586,6 +667,16 @@ export function CuradorPageV2() {
   const selectedVoiceAudio = voiceAudioAssets[0] ?? null;
   const selectedTrainingVideo = trainingVideoAssets[0] ?? null;
 
+  function trainingAssetIsFresh(asset: ProfileTrainingAsset | null | undefined) {
+    if (!asset) {
+      return false;
+    }
+    if (trainNewEpochRef.current <= 0) {
+      return true;
+    }
+    return new Date(asset.createdAt).getTime() >= trainNewEpochRef.current;
+  }
+
   useEffect(() => {
     if (!videoId || autoPollStartedRef.current || isGenerating) {
       return;
@@ -613,6 +704,107 @@ export function CuradorPageV2() {
     void loadPrivateDigitalTwinLooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatarTrack]);
+
+  useEffect(() => {
+    setProductionSource(null);
+    setTrainingStarted(false);
+    autoTwinTrainRef.current = false;
+    autoCaricaturePipelineRef.current = false;
+  }, [avatarTrack]);
+
+  useEffect(() => {
+    if (productionSource !== null) {
+      return;
+    }
+    if (avatarTrack === "realistic" && isLoadingLooks) {
+      return;
+    }
+    const hasExisting =
+      avatarTrack === "realistic" ? hasExistingTwin : hasExistingCaricature;
+    const defaultSource = hasExisting ? "use_existing" : "train_new";
+    setProductionSource(defaultSource);
+    if (defaultSource === "train_new") {
+      trainNewEpochRef.current = Date.now();
+    }
+    if (avatarTrack === "realistic" && hasExistingTwin && privateTwinLooks[0]) {
+      setHeygenAvatarId((current) => current || privateTwinLooks[0].id);
+    }
+  }, [
+    productionSource,
+    avatarTrack,
+    hasExistingTwin,
+    hasExistingCaricature,
+    isLoadingLooks,
+    privateTwinLooks,
+  ]);
+
+  useEffect(() => {
+    if (
+      avatarTrack !== "realistic" ||
+      productionSource !== "train_new" ||
+      !canTrainRealistic ||
+      !trainingAssetIsFresh(selectedTrainingVideo) ||
+      !trainingAssetIsFresh(selectedVoiceAudio) ||
+      isTraining ||
+      trainingStarted ||
+      autoTwinTrainRef.current
+    ) {
+      return;
+    }
+    autoTwinTrainRef.current = true;
+    void handleTrainHeyGen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    avatarTrack,
+    productionSource,
+    canTrainRealistic,
+    isTraining,
+    trainingStarted,
+    trainingVideoAssets,
+    voiceAudioAssets,
+  ]);
+
+  useEffect(() => {
+    if (
+      avatarTrack !== "caricature" ||
+      productionSource !== "train_new" ||
+      trainingStarted ||
+      isGeneratingCaricature ||
+      isTraining
+    ) {
+      return;
+    }
+    if (
+      !trainingAssetIsFresh(selectedAvatarImage) ||
+      !trainingAssetIsFresh(selectedVoiceAudio)
+    ) {
+      return;
+    }
+    if (!caricatureAssets[0] && !autoCaricaturePipelineRef.current) {
+      autoCaricaturePipelineRef.current = true;
+      void handleGenerateCaricature();
+      return;
+    }
+    if (
+      trainingAssetIsFresh(selectedCaricature) &&
+      !heygenVoiceId &&
+      !autoTwinTrainRef.current
+    ) {
+      autoTwinTrainRef.current = true;
+      void handleTrainHeyGen();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    avatarTrack,
+    productionSource,
+    trainingStarted,
+    isGeneratingCaricature,
+    isTraining,
+    avatarImageAssets,
+    voiceAudioAssets,
+    caricatureAssets,
+    heygenVoiceId,
+  ]);
 
   useEffect(() => {
     const topic = profileForm.avatarVideoTopic.trim();
@@ -668,10 +860,10 @@ export function CuradorPageV2() {
           </div>
 
           <div className="persona-form-group">
-            <label className="persona-label">Tipo de producao</label>
+            <label className="persona-label">Tipo de produção</label>
             <p className="persona-helper-text persona-top-gap">
-              Escolha entre realismo maximo (seu gemeo digital) ou avatar caricato (sua
-              caricatura). Ambas digitalizadas e prontas para gravacoes em video.
+              Escolha entre realismo máximo (seu gêmeo digital) ou avatar caricato (sua
+              caricatura). Ambas digitalizadas e prontas para gravações em vídeo.
             </p>
             <div className="persona-production-track persona-top-gap">
               <button
@@ -701,19 +893,38 @@ export function CuradorPageV2() {
             </div>
             <div className="persona-production-track-hints">
               <p>
-                Para <strong>Gêmeo Digital</strong> envie: <strong>video</strong> e{" "}
-                <strong>audio</strong>
+                Para <strong>Gêmeo Digital</strong> envie: <strong>vídeo</strong> e{" "}
+                <strong>áudio</strong>
               </p>
               <p>
                 Para <strong>Avatar Caricato</strong> envie: <strong>foto</strong> e{" "}
-                <strong>audio</strong>
+                <strong>áudio</strong>
               </p>
             </div>
           </div>
 
+          {avatarTrack === "realistic"
+            ? renderProductionSourceButtons(
+                "Utilizar Gêmeo Digital atual",
+                "Treinar novo Gêmeo Digital",
+                hasExistingTwin,
+              )
+            : renderProductionSourceButtons(
+                "Utilizar Caricatura atual",
+                "Treinar nova Caricatura",
+                hasExistingCaricature,
+              )}
+
+          {showTrainingUploads && (trainingStarted || isTraining || isGeneratingCaricature) ? (
+            <p className="persona-script-approved persona-top-gap">
+              {isGeneratingCaricature ? "Gerando caricatura..." : "Treinamento iniciado"}
+            </p>
+          ) : null}
+
+          {showTrainingUploads ? (
           <div className="persona-form-group">
             <label className="persona-label">
-              Upload de VOZ <span className="persona-badge">Obrigatorio</span>
+              Upload de VOZ <span className="persona-badge">Obrigatório</span>
             </label>
             <label
               htmlFor={`${uploadInputId}-voice-audio`}
@@ -729,7 +940,7 @@ export function CuradorPageV2() {
               </div>
               <h4 className="persona-upload-block-title">Base de treino — avatares</h4>
               <p>
-                Grave um audio de aproximadamente 30 segundos falando de forma natural (MP3, WAV
+                Grave um áudio de aproximadamente 30 segundos falando de forma natural (MP3, WAV
                 ou M4A).
               </p>
               <input
@@ -762,11 +973,12 @@ export function CuradorPageV2() {
               </div>
             ) : null}
           </div>
+          ) : null}
 
-          {avatarTrack === "realistic" ? (
+          {showTrainingUploads && avatarTrack === "realistic" ? (
             <div className="persona-form-group">
               <label className="persona-label">
-                Upload de video <span className="persona-badge">Obrigatorio</span>
+                Upload de VÍDEO <span className="persona-badge">Obrigatório</span>
               </label>
               <label
                 htmlFor={`${uploadInputId}-training-video`}
@@ -780,10 +992,10 @@ export function CuradorPageV2() {
                     />
                   </svg>
                 </div>
-                <h4 className="persona-upload-block-title">Base de treino — avatar gemeo digital</h4>
+                <h4 className="persona-upload-block-title">Base de treino — avatar gêmeo digital</h4>
                 <p>
-                  Video em boa luz, rosto visivel e audio ok (MP4) com o candidato falando de frente
-                  para a camera de forma natural sobre um tema qualquer. A IA mapeara sua cadencia,
+                  Vídeo em boa luz, rosto visível e áudio ok (MP4) com o candidato falando de frente
+                  para a câmera de forma natural sobre um tema qualquer. A IA mapeará sua cadência,
                   pausas, voz, estilo visual e comunicacional.
                 </p>
                 <input
@@ -808,16 +1020,18 @@ export function CuradorPageV2() {
                   <UploadedFileChip asset={selectedTrainingVideo} formatBytes={formatBytes} />
                   {trainingVideoAssets.length > 1 ? (
                     <span className="persona-helper-text">
-                      +{trainingVideoAssets.length - 1} videos adicionais
+                      +{trainingVideoAssets.length - 1} vídeos adicionais
                     </span>
                   ) : null}
                 </div>
               ) : null}
             </div>
-          ) : (
+          ) : null}
+
+          {showTrainingUploads && avatarTrack === "caricature" ? (
             <div className="persona-form-group">
               <label className="persona-label">
-                Upload de FOTO <span className="persona-badge">Obrigatorio</span>
+                Upload de FOTO <span className="persona-badge">Obrigatório</span>
               </label>
               <label
                 htmlFor={`${uploadInputId}-avatar-image`}
@@ -863,206 +1077,101 @@ export function CuradorPageV2() {
                 </div>
               ) : null}
             </div>
-          )}
+          ) : null}
 
-          {avatarTrack === "realistic" ? (
-            <div className="persona-cta-block">
-              <div className="persona-cta-row">
-                <button
-                  type="button"
-                  className="persona-btn persona-btn-large"
-                  onClick={() => void handleTrainHeyGen()}
-                  disabled={!canTrainRealistic || isTraining || isSavingProfile}
-                >
-                  {isTraining ? (
-                    <span className="persona-loading-row">
-                      <span className="persona-spinner" aria-hidden="true" />
-                      Treinando gemeo digital...
-                    </span>
-                  ) : (
-                    "Treinar novo Gêmeo Digital"
-                  )}
-                </button>
-              </div>
-
-              <div className="persona-caricature-actions-card">
-                {selectedTwinLook?.preview_image_url ? (
-                  <img
-                    src={selectedTwinLook.preview_image_url}
-                    alt="Preview do gemeo digital"
-                    className="persona-caricature-preview-image"
-                  />
-                ) : selectedTwinLook?.preview_video_url ? (
-                  <video
-                    src={selectedTwinLook.preview_video_url}
-                    className="persona-caricature-preview-image"
-                    muted
-                    playsInline
-                    loop
-                    autoPlay
-                  />
-                ) : (
-                  <span className="persona-twin-preview-placeholder" aria-hidden="true" />
-                )}
-                <p className="persona-helper-text">
-                  {heygenAvatarId
-                    ? "Gêmeo digital selecionado. Gere e aprove o roteiro para produzir o conteudo."
-                    : "Treine ou selecione um gemeo digital para visualizar o avatar."}
-                </p>
-              </div>
-
-              <div className="persona-cta-row">
-                <button
-                  type="button"
-                  className="persona-btn persona-btn-secondary persona-twin-action-btn"
-                  onClick={() => void loadPrivateDigitalTwinLooks()}
-                  disabled={isLoadingLooks}
-                >
-                  {isLoadingLooks
-                    ? "Carregando avatares..."
-                    : (
-                        <>
-                          Produzir conteudo a partir do
-                          <br />
-                          Gêmeo Digital atual
-                        </>
-                      )}
-                </button>
-              </div>
-
-              {looksError && (
-                <p className="persona-helper-text persona-helper-highlight">{looksError}</p>
-              )}
-              {trainingError && (
-                <p className="persona-helper-text persona-helper-highlight">{trainingError}</p>
-              )}
-              {trainingInfo && <p className="persona-helper-text">{trainingInfo}</p>}
-              {heygenConsentUrl && (
-                <p className="persona-helper-text persona-helper-highlight">
-                  Consentimento (HeyGen — obrigatorio p/ Digital Twin):{" "}
-                  <a href={heygenConsentUrl} target="_blank" rel="noreferrer">
-                    abrir pagina de consentimento
-                  </a>
-                </p>
-              )}
-              {heygenAvatarGroupId && (
-                <div className="persona-cta-row">
-                  <button
-                    type="button"
-                    className="persona-btn persona-btn-secondary"
-                    onClick={() => void handleCheckConsent()}
-                  >
-                    Verificar status do consentimento
-                  </button>
-                </div>
-              )}
-              {consentInfo && <p className="persona-helper-text">{consentInfo}</p>}
-
-              {privateTwinLooks.length > 0 && (
-                <ul className="persona-video-history">
-                  {privateTwinLooks.map((look) => {
-                    const isSelected = heygenAvatarId === look.id;
-                    return (
-                      <li
-                        key={look.id}
-                        className={
-                          isSelected
-                            ? "persona-video-history-item active"
-                            : "persona-video-history-item"
-                        }
-                      >
-                        <button
-                          type="button"
-                          className="persona-video-history-select"
-                          onClick={() => {
-                            setHeygenAvatarId(look.id);
-                            setTrainingInfo(
-                              "Gêmeo digital selecionado. Agora gere e aprove o roteiro para produzir.",
-                            );
-                          }}
-                        >
-                          <strong>{look.name || "Gêmeo Digital"}</strong>
-                          <span>{look.id}</span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+          {avatarTrack === "realistic" && productionSource === "use_existing" && selectedTwinLook ? (
+            <div className="persona-caricature-actions-card persona-top-gap">
+              {selectedTwinLook.preview_image_url ? (
+                <img
+                  src={selectedTwinLook.preview_image_url}
+                  alt="Preview do gêmeo digital"
+                  className="persona-caricature-preview-image"
+                />
+              ) : selectedTwinLook.preview_video_url ? (
+                <video
+                  src={selectedTwinLook.preview_video_url}
+                  className="persona-caricature-preview-image"
+                  muted
+                  playsInline
+                  loop
+                  autoPlay
+                />
+              ) : (
+                <span className="persona-twin-preview-placeholder" aria-hidden="true" />
               )}
             </div>
-          ) : (
-            <div className="persona-cta-block">
+          ) : null}
+
+          {avatarTrack === "caricature" &&
+          productionSource === "use_existing" &&
+          caricaturePreviewUrl ? (
+            <div className="persona-caricature-actions-card persona-top-gap">
+              <img
+                src={caricaturePreviewUrl}
+                alt="Preview da caricatura"
+                className="persona-caricature-preview-image"
+              />
+            </div>
+          ) : null}
+
+          {avatarTrack === "caricature" &&
+          showTrainingUploads &&
+          caricaturePreviewUrl &&
+          !isGeneratingCaricature ? (
+            <div className="persona-caricature-actions-card persona-top-gap">
+              <img
+                src={caricaturePreviewUrl}
+                alt="Preview da caricatura gerada"
+                className="persona-caricature-preview-image"
+              />
+            </div>
+          ) : null}
+
+          <div className="persona-cta-block">
+            {looksError && (
+              <p className="persona-helper-text persona-helper-highlight">{looksError}</p>
+            )}
+            {caricatureError && (
+              <p className="persona-helper-text persona-helper-highlight">{caricatureError}</p>
+            )}
+            {trainingError && (
+              <p className="persona-helper-text persona-helper-highlight">{trainingError}</p>
+            )}
+            {avatarTrack === "realistic" && heygenConsentUrl && (
+              <p className="persona-helper-text persona-helper-highlight">
+                Consentimento (HeyGen — obrigatório para Digital Twin):{" "}
+                <a href={heygenConsentUrl} target="_blank" rel="noreferrer">
+                  abrir página de consentimento
+                </a>
+              </p>
+            )}
+            {avatarTrack === "realistic" && heygenAvatarGroupId && (
               <div className="persona-cta-row">
                 <button
                   type="button"
                   className="persona-btn persona-btn-secondary"
-                  onClick={() => void handleGenerateCaricature()}
-                  disabled={!canGenerateCaricature || isGeneratingCaricature}
+                  onClick={() => void handleCheckConsent()}
                 >
-                  {isGeneratingCaricature ? (
-                    <span className="persona-loading-row">
-                      <span className="persona-spinner" aria-hidden="true" />
-                      Gerando caricatura...
-                    </span>
-                  ) : (
-                    "Treinar nova Caricatura Digital"
-                  )}
+                  Verificar status do consentimento
                 </button>
               </div>
-
-              {caricatureError && (
-                <p className="persona-helper-text persona-helper-highlight">{caricatureError}</p>
-              )}
-              {caricatureInfo && <p className="persona-helper-text">{caricatureInfo}</p>}
-
-              {caricaturePreviewUrl && (
-                <div className="persona-caricature-actions-card">
-                  <img
-                    src={caricaturePreviewUrl}
-                    alt="Preview da caricatura gerada"
-                    className="persona-caricature-preview-image"
-                  />
-                  <p className="persona-helper-text">
-                    Revise a caricatura antes de preparar a voz e gerar o video.
-                  </p>
-                  <div className="persona-cta-row persona-top-gap">
-                    <button
-                      type="button"
-                      className="persona-btn"
-                      onClick={() => void handleTrainHeyGen()}
-                      disabled={!canTrainCaricature || isTraining || isSavingProfile}
-                    >
-                      {isTraining ? (
-                        <span className="persona-loading-row">
-                          <span className="persona-spinner" aria-hidden="true" />
-                          Preparando voz...
-                        </span>
-                      ) : (
-                        "Preparar voz (HeyGen)"
-                      )}
-                    </button>
-                  </div>
-                  <p className="persona-helper-text persona-top-gap">
-                    Caso necessite ajustar a voz da caricatura, faca novo upload de audio.
-                  </p>
-                </div>
-              )}
-
-              {trainingError && (
-                <p className="persona-helper-text persona-helper-highlight">{trainingError}</p>
-              )}
-              {trainingInfo && <p className="persona-helper-text">{trainingInfo}</p>}
-            </div>
-          )}
+            )}
+            {consentInfo && <p className="persona-helper-text">{consentInfo}</p>}
+            {trainingInfo &&
+            trainingInfo !== "Treinamento iniciado." &&
+            !showTrainingUploads ? (
+              <p className="persona-helper-text">{trainingInfo}</p>
+            ) : null}
+          </div>
 
           <hr className="persona-divider" />
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Posicionamento ideologico <span className="persona-badge">Obrigatorio</span>
+              Posicionamento ideológico <span className="persona-badge">Obrigatório</span>
             </label>
             <p className="persona-helper-text">
-              O posicionamento ideologico compoe a base da resposta que a IA vai gerar sobre o
+              O posicionamento ideológico compõe a base da resposta que a IA vai gerar sobre o
               tema.
             </p>
             <div className="persona-tag-list persona-top-gap">
@@ -1084,7 +1193,7 @@ export function CuradorPageV2() {
           </div>
 
           <div className="persona-form-group">
-            <label className="persona-label">Glossario de expressoes</label>
+            <label className="persona-label">Glossário de expressões</label>
             <p className="persona-helper-text">
               Inclua caracteristicas fundamentais da sua expressao, como por exemplo: ne, tipo,
               entendeu, sabe, ta, ok, certo, mano, assim.
@@ -1098,12 +1207,12 @@ export function CuradorPageV2() {
                   glossaryTerms: event.target.value,
                 }))
               }
-              placeholder="Digite suas expressoes, separadas por virgula..."
+              placeholder="Digite suas expressões, separadas por vírgula..."
             />
           </div>
 
           <div className="persona-form-group">
-            <label className="persona-label">Arquetipos de Persona Politica</label>
+            <label className="persona-label">Arquétipos de Persona Política</label>
             <p className="persona-helper-text">{archetypeHelperText}</p>
             <div className="persona-tag-list persona-top-gap">
               {archetypeOptions.map((option) => (
@@ -1153,7 +1262,7 @@ export function CuradorPageV2() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Seu e-mail <span className="persona-badge">Obrigatorio</span>
+              Seu e-mail <span className="persona-badge">Obrigatório</span>
             </label>
             <p className="persona-helper-text">
               Receba avisos sobre o processo de treinamento dos avatares e producao dos videos.
@@ -1174,7 +1283,7 @@ export function CuradorPageV2() {
           </div>
 
           <div className="persona-form-group">
-            <label className="persona-label">Tema do video</label>
+            <label className="persona-label">Tema do vídeo</label>
             <textarea
               className="persona-input-control"
               value={profileForm.avatarVideoTopic}
@@ -1210,9 +1319,9 @@ export function CuradorPageV2() {
 
           {!useFreePromptAsTranscript && (
             <div className="persona-form-group">
-              <label className="persona-label">Aprovacao do roteiro</label>
+              <label className="persona-label">Aprovação do roteiro</label>
               <p className="persona-helper-text">
-                Veja o roteiro do video que sera produzido. Altere-o conforme necessario. Maximo de{" "}
+                Veja o roteiro do vídeo que será produzido. Altere-o conforme necessário. Máximo de{" "}
                 {MAX_SCRIPT_WORDS} palavras (ou ~1 minuto).
               </p>
               <textarea
@@ -1248,7 +1357,9 @@ export function CuradorPageV2() {
                 </button>
               </div>
               {scriptApproved && (
-                <p className="persona-script-approved">Roteiro aprovado. Voce ja pode produzir o conteudo.</p>
+                <p className="persona-script-approved">
+                  Roteiro aprovado. Você já pode produzir o conteúdo.
+                </p>
               )}
             </div>
           )}
@@ -1298,7 +1409,7 @@ export function CuradorPageV2() {
                   Gerando...
                 </span>
               ) : (
-                "Gerar Conteudo a partir do Avatar selecionado"
+                "Gerar Conteúdo a partir do Avatar selecionado"
               )}
             </button>
             {isGenerating && <div className="persona-progress" />}
@@ -1306,7 +1417,7 @@ export function CuradorPageV2() {
 
           {avatarTrack === "realistic" && !heygenVoiceId && heygenAvatarId && (
             <p className="persona-helper-text">
-              Observacao: sem voz clonada/selecionada, a HeyGen pode usar a voz padrao do avatar.
+              Observação: sem voz clonada/selecionada, a HeyGen pode usar a voz padrão do avatar.
             </p>
           )}
 

@@ -26,7 +26,7 @@ function isStepActive(pathname: string, stepId: PipelineStepId, href: string | n
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function WorkflowPipelineBar({ showMvpHint = false }: { showMvpHint?: boolean }) {
+export function WorkflowPipelineBar() {
   const pathname = usePathname();
 
   return (
@@ -42,9 +42,6 @@ export function WorkflowPipelineBar({ showMvpHint = false }: { showMvpHint?: boo
                 {index + 1}
               </span>
               <span className="workflow-pipeline-step-label">{step.label}</span>
-              {!step.enabled ? (
-                <span className="workflow-pipeline-step-badge">Em breve</span>
-              ) : null}
             </>
           );
 
@@ -77,9 +74,6 @@ export function WorkflowPipelineBar({ showMvpHint = false }: { showMvpHint?: boo
           );
         })}
       </ol>
-      {showMvpHint ? (
-        <p className="workflow-pipeline-hint">MVP: somente a etapa Curador esta liberada.</p>
-      ) : null}
     </nav>
   );
 }
