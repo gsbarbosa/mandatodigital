@@ -6,7 +6,12 @@ import { usePathname } from "next/navigation";
 import { mvpPipelineSteps, type PipelineStepId } from "./shared";
 
 function isCuradorPath(pathname: string) {
-  return pathname === "/curador" || pathname.startsWith("/curador/");
+  return (
+    pathname === "/curador" ||
+    pathname.startsWith("/curador/") ||
+    pathname === "/curador-v2" ||
+    pathname.startsWith("/curador-v2/")
+  );
 }
 
 function isStepActive(pathname: string, stepId: PipelineStepId, href: string | null) {
