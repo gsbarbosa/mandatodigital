@@ -891,13 +891,19 @@ export function CuradorPageV2() {
               <div className="persona-cta-row">
                 <button
                   type="button"
-                  className="persona-btn persona-btn-secondary"
+                  className="persona-btn persona-btn-secondary persona-twin-action-btn"
                   onClick={() => void loadPrivateDigitalTwinLooks()}
                   disabled={isLoadingLooks}
                 >
                   {isLoadingLooks
                     ? "Carregando avatares..."
-                    : "Produzir conteudo a partir do Gêmeo Digital atual"}
+                    : (
+                        <>
+                          Produzir conteudo a partir do
+                          <br />
+                          Gêmeo Digital atual
+                        </>
+                      )}
                 </button>
               </div>
 

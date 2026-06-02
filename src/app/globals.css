@@ -431,6 +431,10 @@ textarea.persona-input-control {
   text-align: center;
 }
 
+.persona-twin-action-btn {
+  margin-top: 0.75rem;
+}
+
 .persona-twin-preview-media {
   display: block;
   width: min(100%, 240px);
