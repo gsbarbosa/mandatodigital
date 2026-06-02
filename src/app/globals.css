@@ -387,6 +387,60 @@ textarea.persona-input-control {
   cursor: not-allowed;
 }
 
+.persona-production-subtrack-wrap {
+  margin-top: 0.35rem;
+  margin-bottom: 0.15rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid rgba(59, 130, 246, 0.35);
+}
+
+.persona-production-subtrack {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.persona-production-subtrack-btn {
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.45rem 0.4rem;
+  background: rgba(30, 41, 59, 0.35);
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.25;
+}
+
+.persona-production-subtrack-btn:hover:not(:disabled) {
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.persona-production-subtrack-btn.is-active {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(59, 130, 246, 0.65);
+  color: #e2e8f0;
+}
+
+.persona-production-subtrack-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.persona-training-status-banner {
+  min-height: 2rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.15rem;
+}
+
+.persona-training-status-banner p {
+  margin: 0;
+}
+
 .persona-production-track-hints {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -8,6 +8,7 @@ import {
   voiceToneOptions,
 } from "@/lib/constants";
 import { useProductApp } from "@/components/product/provider";
+import { parseTextarea } from "@/components/product/shared";
 import type { ProfileTrainingAsset } from "@/lib/types";
 
 const MAX_SCRIPT_WORDS = 160;
@@ -47,10 +48,25 @@ function formatStatus(status: string | null | undefined) {
   }
 }
 
-function toggleValue(values: string[], value: string) {
-  return values.includes(value)
-    ? values.filter((item) => item !== value)
-    : [...values, value];
+function selectSingleTagValue(values: string[] | undefined, value: string) {
+  const current = values ?? [];
+  return current.includes(value) ? [] : [value];
+}
+
+function buildCuradorContextPayload(profileForm: {
+  spectrum: string;
+  glossaryTerms?: string;
+  personaArchetypes?: string[];
+  voiceTones?: string[];
+  avatarType: string;
+}) {
+  return {
+    spectrum: profileForm.spectrum,
+    glossaryTerms: parseTextarea(profileForm.glossaryTerms ?? ""),
+    personaArchetypes: profileForm.personaArchetypes ?? [],
+    voiceTones: profileForm.voiceTones ?? [],
+    avatarType: profileForm.avatarType,
+  };
 }
 
 function PersonaTag({
@@ -87,6 +103,17 @@ function PersonaHeaderIcon() {
   );
 }
 
+function PersonaEditorialIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="persona-header-icon-svg" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 2 5 5h-5V4ZM8 13h8v2H8v-2Zm0 4h5v2H8v-2Z"
+      />
+    </svg>
+  );
+}
+
 function UploadedFileChip({
   asset,
   formatBytes,
@@ -114,8 +141,10 @@ export function CuradorPageV2() {
   const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>("realistic");
   const [productionSource, setProductionSource] = useState<ProductionSource | null>(null);
   const [trainingStarted, setTrainingStarted] = useState(false);
+  const [showTrainingBanner, setShowTrainingBanner] = useState(false);
   const autoTwinTrainRef = useRef(false);
   const autoCaricaturePipelineRef = useRef(false);
+  const autoCaricatureVoicePrepRef = useRef(false);
   const trainNewEpochRef = useRef(0);
   const [consentInfo, setConsentInfo] = useState<string | null>(null);
   const [isGeneratingCaricature, setIsGeneratingCaricature] = useState(false);
@@ -225,7 +254,7 @@ export function CuradorPageV2() {
       : scriptApproved && scriptDraft.trim().length > 0);
 
   const archetypeHelperText =
-    "Selecione somente se necessário. Caso não escolha nenhum arquétipo, a IA utilizará a identidade comunicacional do candidato, identificada nas mídias que você enviou.";
+    "Selecione no máximo um arquétipo e um tom. Se não escolher, a IA utiliza a identidade comunicacional identificada nas mídias enviadas.";
 
   const selectedTwinLook =
     privateTwinLooks.find((look) => look.id === heygenAvatarId) ?? null;
@@ -234,8 +263,10 @@ export function CuradorPageV2() {
     setAvatarTrack(track);
     setProductionSource(null);
     setTrainingStarted(false);
+    setShowTrainingBanner(false);
     autoTwinTrainRef.current = false;
     autoCaricaturePipelineRef.current = false;
+    autoCaricatureVoicePrepRef.current = false;
     setProfileForm((current) => ({
       ...current,
       avatarType: AVATAR_TYPE_BY_TRACK[track],
@@ -251,9 +282,11 @@ export function CuradorPageV2() {
     }
     setProductionSource(source);
     setTrainingStarted(false);
+    setShowTrainingBanner(false);
     setTrainingError(null);
     autoTwinTrainRef.current = false;
     autoCaricaturePipelineRef.current = false;
+    autoCaricatureVoicePrepRef.current = false;
     if (source === "train_new") {
       trainNewEpochRef.current = Date.now();
       setHeygenVoiceId("");
@@ -277,31 +310,33 @@ export function CuradorPageV2() {
     const trainNewDisabled = false;
 
     return (
-      <div className="persona-production-track persona-top-gap" role="group" aria-label="Modo de produção">
-        <button
-          type="button"
-          className={
-            resolvedSource === "use_existing"
-              ? "persona-production-track-btn is-active"
-              : "persona-production-track-btn"
-          }
-          onClick={() => selectProductionSource("use_existing")}
-          disabled={useExistingDisabled || isTraining || isGeneratingCaricature}
-        >
-          {useExistingLabel}
-        </button>
-        <button
-          type="button"
-          className={
-            resolvedSource === "train_new"
-              ? "persona-production-track-btn is-active"
-              : "persona-production-track-btn"
-          }
-          onClick={() => selectProductionSource("train_new")}
-          disabled={trainNewDisabled || isTraining || isGeneratingCaricature}
-        >
-          {trainNewLabel}
-        </button>
+      <div className="persona-production-subtrack-wrap persona-top-gap">
+        <div className="persona-production-subtrack" role="group" aria-label="Modo de produção">
+          <button
+            type="button"
+            className={
+              resolvedSource === "use_existing"
+                ? "persona-production-subtrack-btn is-active"
+                : "persona-production-subtrack-btn"
+            }
+            onClick={() => selectProductionSource("use_existing")}
+            disabled={useExistingDisabled || isTraining || isGeneratingCaricature}
+          >
+            {useExistingLabel}
+          </button>
+          <button
+            type="button"
+            className={
+              resolvedSource === "train_new"
+                ? "persona-production-subtrack-btn is-active"
+                : "persona-production-subtrack-btn"
+            }
+            onClick={() => selectProductionSource("train_new")}
+            disabled={trainNewDisabled || isTraining || isGeneratingCaricature}
+          >
+            {trainNewLabel}
+          </button>
+        </div>
       </div>
     );
   }
@@ -366,11 +401,14 @@ export function CuradorPageV2() {
     invalidateScriptApproval();
 
     try {
-      void saveProfile({ allowDraftDefaults: true, silent: true });
+      await saveProfile({ allowDraftDefaults: true, silent: true });
       const response = await fetch("/api/heygen/transcript", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic }),
+        body: JSON.stringify({
+          topic,
+          curadorContext: buildCuradorContextPayload(profileForm),
+        }),
       });
       const payload = await parseJsonOrText<{ transcript?: string; message?: string }>(response);
 
@@ -453,11 +491,11 @@ export function CuradorPageV2() {
 
   async function handleTrainHeyGen() {
     setTrainingError(null);
-    setTrainingInfo(null);
     setConsentInfo(null);
     setHeygenConsentUrl("");
     setIsTraining(true);
     setTrainingStarted(true);
+    setShowTrainingBanner(true);
     setTrainingInfo("Treinamento iniciado.");
 
     try {
@@ -502,7 +540,9 @@ export function CuradorPageV2() {
       }
     } catch (error) {
       setTrainingStarted(false);
+      setShowTrainingBanner(false);
       autoTwinTrainRef.current = false;
+      autoCaricatureVoicePrepRef.current = false;
       setTrainingError(error instanceof Error ? error.message : "Erro ao treinar HeyGen.");
     } finally {
       setIsTraining(false);
@@ -618,11 +658,11 @@ export function CuradorPageV2() {
       }
       if (avatarTrack === "caricature" && !heygenVoiceId) {
         throw new Error(
-          "Prepare a voz (HeyGen) e gere a caricatura antes de produzir o video caricato.",
+          "A voz da caricatura ainda está sendo preparada. Aguarde alguns segundos e tente novamente.",
         );
       }
 
-      void saveProfile({ allowDraftDefaults: true, silent: true });
+      await saveProfile({ allowDraftDefaults: true, silent: true });
 
       const response = await fetch("/api/heygen/videos", {
         method: "POST",
@@ -708,9 +748,33 @@ export function CuradorPageV2() {
   useEffect(() => {
     setProductionSource(null);
     setTrainingStarted(false);
+    setShowTrainingBanner(false);
     autoTwinTrainRef.current = false;
     autoCaricaturePipelineRef.current = false;
+    autoCaricatureVoicePrepRef.current = false;
   }, [avatarTrack]);
+
+  useEffect(() => {
+    if (avatarTrack !== "caricature" || productionSource !== "use_existing") {
+      autoCaricatureVoicePrepRef.current = false;
+      return;
+    }
+    if (!hasExistingCaricature || heygenVoiceId || isTraining) {
+      return;
+    }
+    if (autoCaricatureVoicePrepRef.current) {
+      return;
+    }
+    autoCaricatureVoicePrepRef.current = true;
+    void handleTrainHeyGen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    avatarTrack,
+    productionSource,
+    hasExistingCaricature,
+    heygenVoiceId,
+    isTraining,
+  ]);
 
   useEffect(() => {
     if (productionSource !== null) {
@@ -752,6 +816,7 @@ export function CuradorPageV2() {
       return;
     }
     autoTwinTrainRef.current = true;
+    setShowTrainingBanner(true);
     void handleTrainHeyGen();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -782,6 +847,7 @@ export function CuradorPageV2() {
     }
     if (!caricatureAssets[0] && !autoCaricaturePipelineRef.current) {
       autoCaricaturePipelineRef.current = true;
+      setShowTrainingBanner(true);
       void handleGenerateCaricature();
       return;
     }
@@ -791,6 +857,7 @@ export function CuradorPageV2() {
       !autoTwinTrainRef.current
     ) {
       autoTwinTrainRef.current = true;
+      setShowTrainingBanner(true);
       void handleTrainHeyGen();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -853,10 +920,6 @@ export function CuradorPageV2() {
               <PersonaHeaderIcon />
             </div>
             <h2>Calibragem de Persona</h2>
-            <p>
-              O Agente Curador usa estes dados para garantir que os roteiros tenham &quot;a sua
-              cara&quot;.
-            </p>
           </div>
 
           <div className="persona-form-group">
@@ -905,21 +968,23 @@ export function CuradorPageV2() {
 
           {avatarTrack === "realistic"
             ? renderProductionSourceButtons(
-                "Utilizar Gêmeo Digital atual",
-                "Treinar novo Gêmeo Digital",
+                "Utilizar Gêmeo Digital Atual",
+                "Treinar Novo Gêmeo Digital",
                 hasExistingTwin,
               )
             : renderProductionSourceButtons(
-                "Utilizar Caricatura atual",
-                "Treinar nova Caricatura",
+                "Utilizar Caricatura Atual",
+                "Treinar Nova Caricatura",
                 hasExistingCaricature,
               )}
 
-          {showTrainingUploads && (trainingStarted || isTraining || isGeneratingCaricature) ? (
-            <p className="persona-script-approved persona-top-gap">
-              {isGeneratingCaricature ? "Gerando caricatura..." : "Treinamento iniciado"}
-            </p>
-          ) : null}
+          <div className="persona-training-status-banner" aria-live="polite">
+            {showTrainingUploads && showTrainingBanner ? (
+              <p className="persona-script-approved">
+                {isGeneratingCaricature ? "Gerando caricatura..." : "Treinamento iniciado"}
+              </p>
+            ) : null}
+          </div>
 
           {showTrainingUploads ? (
           <div className="persona-form-group">
@@ -1166,6 +1231,13 @@ export function CuradorPageV2() {
 
           <hr className="persona-divider" />
 
+          <div className="persona-section-header">
+            <div className="persona-header-icon" aria-hidden="true">
+              <PersonaEditorialIcon />
+            </div>
+            <h2>Calibragem Editorial</h2>
+          </div>
+
           <div className="persona-form-group">
             <label className="persona-label">
               Posicionamento ideológico <span className="persona-badge">Obrigatório</span>
@@ -1195,8 +1267,8 @@ export function CuradorPageV2() {
           <div className="persona-form-group">
             <label className="persona-label">Glossário de expressões</label>
             <p className="persona-helper-text">
-              Inclua caracteristicas fundamentais da sua expressao, como por exemplo: ne, tipo,
-              entendeu, sabe, ta, ok, certo, mano, assim.
+              Inclua características fundamentais da sua expressão, como por exemplo: né, tipo,
+              entendeu, sabe, tá, ok, certo, mano, assim.
             </p>
             <textarea
               className="persona-input-control persona-top-gap"
@@ -1221,14 +1293,14 @@ export function CuradorPageV2() {
                   active={(profileForm.personaArchetypes ?? []).includes(option)}
                   onClick={() =>
                     setProfileForm((current) => {
-                      const personaArchetypes = toggleValue(
-                        current.personaArchetypes ?? [],
+                      const personaArchetypes = selectSingleTagValue(
+                        current.personaArchetypes,
                         option,
                       );
                       return {
                         ...current,
                         personaArchetypes,
-                        archetype: personaArchetypes[0] ?? current.archetype,
+                        archetype: personaArchetypes[0] ?? "",
                       };
                     })
                   }
@@ -1250,7 +1322,7 @@ export function CuradorPageV2() {
                   onClick={() =>
                     setProfileForm((current) => ({
                       ...current,
-                      voiceTones: toggleValue(current.voiceTones ?? [], tone),
+                      voiceTones: selectSingleTagValue(current.voiceTones, tone),
                     }))
                   }
                 >
@@ -1401,7 +1473,11 @@ export function CuradorPageV2() {
               type="button"
               className="persona-btn persona-btn-large"
               onClick={() => void handleGenerate()}
-              disabled={isGenerating || !canProduceContent}
+              disabled={
+                isGenerating ||
+                !canProduceContent ||
+                (avatarTrack === "caricature" && !heygenVoiceId && isTraining)
+              }
             >
               {isGenerating ? (
                 <span className="persona-loading-row">

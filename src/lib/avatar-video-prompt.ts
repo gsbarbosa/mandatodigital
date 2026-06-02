@@ -158,7 +158,7 @@ export function buildAvatarVideoPrompt(
 
   if (context.glossaryTerms?.length) {
     systemParts.push(
-      `Glossario de Expressoes Pessoais: incorpore de forma natural alguma(s) expressao(oes) como: ${context.glossaryTerms.join(", ")}.`,
+      `Glossario de Expressoes Pessoais (OBRIGATORIO — use SOMENTE desta lista, nao invente bordoes nem reutilize expressoes de exemplos anteriores): ${context.glossaryTerms.join(", ")}.`,
     );
   }
 
@@ -178,7 +178,7 @@ export function buildAvatarVideoPrompt(
 
   if (context.glossaryTerms?.length) {
     userParts.push(
-      `Palavras Obrigatorias (insira de forma fluida e natural): ${context.glossaryTerms.join(", ")}`,
+      `Palavras Obrigatorias (insira de forma fluida e natural; use APENAS estas, sem sinonimos nem expressoes fora da lista): ${context.glossaryTerms.join(", ")}`,
     );
   }
 

@@ -50,7 +50,7 @@ describe("buildAvatarVideoTranscriptFallback", () => {
     expect(transcript).not.toContain("Maria Souza");
     expect(transcript).toContain("tempo de espera em consultas");
     expect(transcript.toLowerCase()).toContain("centro-direita");
-    expect(transcript.length).toBeLessThanOrEqual(500);
+    expect(transcript.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(160);
   });
 });
 

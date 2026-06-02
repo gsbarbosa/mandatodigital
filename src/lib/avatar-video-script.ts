@@ -16,7 +16,17 @@ export type {
   CuradorVideoContext,
 } from "@/lib/avatar-video-prompt";
 
-const MAX_TRANSCRIPT_LENGTH = 500;
+/** ~1 min de fala em PT-BR (alinhado ao limite de 160 palavras do Curador). */
+export const MAX_TRANSCRIPT_WORDS = 160;
+const MAX_TRANSCRIPT_CHARS = 1400;
+
+function clampTranscriptByWords(transcript: string, maxWords = MAX_TRANSCRIPT_WORDS) {
+  const words = transcript.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) {
+    return transcript.trim();
+  }
+  return words.slice(0, maxWords).join(" ");
+}
 
 function normalizeSpokenTranscript(raw: string) {
   return raw
@@ -48,20 +58,15 @@ export function buildAvatarVideoTranscriptFallback(input: {
   lines.push("Vou ser direto, claro e trazer uma mensagem objetiva para voce compartilhar.");
 
   const transcript = lines.join(" ").replace(/\s+/g, " ").trim();
-
-  if (transcript.length <= MAX_TRANSCRIPT_LENGTH) {
-    return transcript;
-  }
-
-  return `${transcript.slice(0, MAX_TRANSCRIPT_LENGTH - 3).trim()}...`;
+  return clampTranscriptByWords(transcript);
 }
 
 function clampTranscript(transcript: string) {
-  if (transcript.length <= MAX_TRANSCRIPT_LENGTH) {
-    return transcript;
+  const byWords = clampTranscriptByWords(transcript);
+  if (byWords.length <= MAX_TRANSCRIPT_CHARS) {
+    return byWords;
   }
-
-  return `${transcript.slice(0, MAX_TRANSCRIPT_LENGTH - 3).trim()}...`;
+  return `${byWords.slice(0, MAX_TRANSCRIPT_CHARS - 3).trim()}...`;
 }
 
 /** Gera roteiro com o prompt pai do video 03 + LLM; fallback se API indisponivel. */
@@ -73,7 +78,7 @@ export async function buildAvatarVideoTranscript(input: {
 
   const execution = await requestPlainText(prompt.system, prompt.user, {
     temperature: 0.8,
-    maxTokens: 400,
+    maxTokens: 900,
   });
 
   const spoken = normalizeSpokenTranscript(execution.rawText ?? "");

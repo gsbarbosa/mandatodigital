@@ -70,10 +70,6 @@ export function LoginForm() {
   return (
     <section className="login-card persona-card">
       <h1>Mandato Digital</h1>
-      <p className="persona-helper-text">
-        Cada login mantem seu proprio perfil, uploads e videos. Seus testes nao misturam com
-        os do seu socio.
-      </p>
 
       <div className="persona-crop-aspect-row">
         <button
