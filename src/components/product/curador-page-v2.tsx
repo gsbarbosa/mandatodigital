@@ -118,6 +118,7 @@ export function CuradorPageV2() {
   const [caricaturePreviewUrl, setCaricaturePreviewUrl] = useState<string | null>(null);
   const [isLoadingLooks, setIsLoadingLooks] = useState(false);
   const [looksError, setLooksError] = useState<string | null>(null);
+  const autoLoadedLooksRef = useRef(false);
   const [privateTwinLooks, setPrivateTwinLooks] = useState<
     Array<{
       id: string;
@@ -488,7 +489,17 @@ export function CuradorPageV2() {
         throw new Error(payload.message || "Nao foi possivel listar avatares HeyGen.");
       }
 
-      setPrivateTwinLooks(payload.looks ?? []);
+      const looks = payload.looks ?? [];
+      setPrivateTwinLooks(looks);
+
+      // UX: se ja existirem looks privados, selecione o primeiro automaticamente
+      // (mas respeite uma selecao ja feita manualmente).
+      if (!heygenAvatarId && looks.length > 0) {
+        setHeygenAvatarId(looks[0].id);
+        setTrainingInfo(
+          "Gêmeo digital selecionado automaticamente. Gere e aprove o roteiro para produzir.",
+        );
+      }
     } catch (error) {
       setLooksError(
         error instanceof Error ? error.message : "Nao foi possivel listar avatares HeyGen.",
@@ -590,6 +601,18 @@ export function CuradorPageV2() {
       setAvatarTrack(avatarTypeToTrack(profile.avatarType));
     }
   }, [profile?.avatarType]);
+
+  useEffect(() => {
+    if (autoLoadedLooksRef.current) {
+      return;
+    }
+    if (avatarTrack !== "realistic") {
+      return;
+    }
+    autoLoadedLooksRef.current = true;
+    void loadPrivateDigitalTwinLooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarTrack]);
 
   useEffect(() => {
     const topic = profileForm.avatarVideoTopic.trim();
