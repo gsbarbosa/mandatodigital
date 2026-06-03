@@ -9,6 +9,11 @@ import {
 } from "@/lib/constants";
 import { useProductApp } from "@/components/product/provider";
 import { parseTextarea } from "@/components/product/shared";
+import {
+  isHeyGenDailyLimitMessage,
+  readCuradorHeygenPrefs,
+  writeCuradorHeygenPrefs,
+} from "@/lib/curador-heygen-prefs";
 import type { ProfileTrainingAsset } from "@/lib/types";
 
 const MAX_SCRIPT_WORDS = 100;
@@ -138,8 +143,11 @@ export function CuradorPageV2() {
   const [heygenAvatarGroupId, setHeygenAvatarGroupId] = useState<string>("");
   const [heygenVoiceId, setHeygenVoiceId] = useState<string>("");
   const [heygenConsentUrl, setHeygenConsentUrl] = useState<string>("");
+  const [selectedCaricatureAssetId, setSelectedCaricatureAssetId] = useState<string>("");
+  const [showRecentAvatars, setShowRecentAvatars] = useState(false);
   const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>("realistic");
   const [productionSource, setProductionSource] = useState<ProductionSource>("train_new");
+  const restoredHeygenPrefsRef = useRef(false);
   const [trainingStarted, setTrainingStarted] = useState(false);
   const [trainingBannerState, setTrainingBannerState] = useState<
     "hidden" | "started" | "completed"
@@ -217,6 +225,16 @@ export function CuradorPageV2() {
     () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "avatar_caricature"),
     [visibleTrainingAssets],
   );
+
+  const sortedCaricatureAssets = useMemo(
+    () =>
+      [...caricatureAssets].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [caricatureAssets],
+  );
+
+  const profileIdForPrefs = profile?.id ?? profileForm.id ?? null;
 
   const trainingVideoAssets = useMemo(
     () =>
@@ -339,6 +357,152 @@ export function CuradorPageV2() {
     setScriptApproved(false);
   }
 
+  function persistHeygenPrefs(overrides?: {
+    heygenAvatarId?: string;
+    heygenVoiceId?: string;
+    heygenAvatarGroupId?: string;
+    lastCaricatureAssetId?: string;
+    avatarTrack?: AvatarTrack;
+    productionSource?: ProductionSource;
+  }) {
+    if (!profileIdForPrefs) {
+      return;
+    }
+
+    writeCuradorHeygenPrefs(profileIdForPrefs, {
+      heygenAvatarId: overrides?.heygenAvatarId ?? heygenAvatarId,
+      heygenVoiceId: overrides?.heygenVoiceId ?? heygenVoiceId,
+      heygenAvatarGroupId: overrides?.heygenAvatarGroupId ?? heygenAvatarGroupId,
+      lastCaricatureAssetId:
+        overrides?.lastCaricatureAssetId ??
+        selectedCaricature?.id ??
+        sortedCaricatureAssets[0]?.id,
+      avatarTrack: overrides?.avatarTrack ?? avatarTrack,
+      productionSource: overrides?.productionSource ?? productionSource,
+    });
+  }
+
+  function renderRecentAvatarsPanel() {
+    const hasTwins = privateTwinLooks.length > 0;
+    const hasCaricatures = sortedCaricatureAssets.length > 0;
+    if (!hasTwins && !hasCaricatures) {
+      return null;
+    }
+
+    return (
+      <div className="persona-form-group">
+        <button
+          type="button"
+          className="persona-recent-avatars-toggle"
+          onClick={() => {
+            setShowRecentAvatars((current) => !current);
+            if (!hasTwins && avatarTrack === "realistic") {
+              void loadPrivateDigitalTwinLooks();
+            }
+          }}
+        >
+          {showRecentAvatars ? "Ocultar avatares recentes" : "Ver avatares recentes"}
+        </button>
+        {productionSource === "use_existing" && (heygenAvatarId || selectedCaricature) ? (
+          <p className="persona-last-training-hint">
+            Último treinamento em uso
+            {avatarTrack === "realistic" && heygenAvatarId
+              ? ` · Gêmeo ${heygenAvatarId.slice(0, 8)}…`
+              : ""}
+            {avatarTrack === "caricature" && selectedCaricature
+              ? ` · Caricatura ${selectedCaricature.originalFilename}`
+              : ""}
+          </p>
+        ) : null}
+        {showRecentAvatars ? (
+          <div className="persona-recent-avatars-panel">
+            {hasTwins ? (
+              <>
+                <p className="persona-helper-text">Gêmeos digitais (HeyGen)</p>
+                <ul className="persona-video-history-list">
+                  {privateTwinLooks.map((look) => {
+                    const isSelected =
+                      avatarTrack === "realistic" && heygenAvatarId === look.id;
+                    return (
+                      <li
+                        key={look.id}
+                        className={
+                          isSelected
+                            ? "persona-video-history-item active"
+                            : "persona-video-history-item"
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="persona-video-history-select"
+                          onClick={() => {
+                            setAvatarTrack("realistic");
+                            setProductionSource("use_existing");
+                            setHeygenAvatarId(look.id);
+                            persistHeygenPrefs({
+                              avatarTrack: "realistic",
+                              productionSource: "use_existing",
+                              heygenAvatarId: look.id,
+                            });
+                          }}
+                        >
+                          <strong>{look.name || "Gêmeo Digital"}</strong>
+                          <span>{look.id}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : null}
+            {hasCaricatures ? (
+              <>
+                <p className="persona-helper-text persona-top-gap">Caricaturas geradas</p>
+                <ul className="persona-video-history-list">
+                  {sortedCaricatureAssets.map((asset) => {
+                    const isSelected =
+                      avatarTrack === "caricature" &&
+                      selectedCaricature?.id === asset.id;
+                    return (
+                      <li
+                        key={asset.id}
+                        className={
+                          isSelected
+                            ? "persona-video-history-item active"
+                            : "persona-video-history-item"
+                        }
+                      >
+                        <button
+                          type="button"
+                          className="persona-video-history-select"
+                          onClick={() => {
+                            setAvatarTrack("caricature");
+                            setProductionSource("use_existing");
+                            setSelectedCaricatureAssetId(asset.id);
+                            persistHeygenPrefs({
+                              avatarTrack: "caricature",
+                              productionSource: "use_existing",
+                              lastCaricatureAssetId: asset.id,
+                            });
+                          }}
+                        >
+                          <strong>{asset.originalFilename || "Caricatura"}</strong>
+                          <span>
+                            {new Date(asset.createdAt).toLocaleString("pt-BR")}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   async function parseJsonOrText<T>(response: Response): Promise<T> {
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {
@@ -442,7 +606,7 @@ export function CuradorPageV2() {
     setScriptApproved(true);
   }
 
-  async function handleGenerateCaricature() {
+  async function handleGenerateCaricature(): Promise<string | undefined> {
     setCaricatureError(null);
     setCaricatureInfo(null);
     setIsGeneratingCaricature(true);
@@ -468,11 +632,13 @@ export function CuradorPageV2() {
 
       if (payload.asset) {
         appendTrainingAssets([payload.asset]);
+        setSelectedCaricatureAssetId(payload.asset.id);
       }
       setCaricaturePreviewUrl(payload.previewUrl?.trim() || null);
       setCaricatureInfo(payload.message || "Caricatura gerada.");
       setHeygenVoiceId("");
       setTrainingInfo(null);
+      return payload.asset?.id;
     } catch (error) {
       setCaricatureError(
         error instanceof Error ? error.message : "Erro ao gerar caricatura.",
@@ -529,6 +695,13 @@ export function CuradorPageV2() {
         );
       }
 
+      persistHeygenPrefs({
+        heygenAvatarId: payload.avatarId?.trim() || heygenAvatarId,
+        heygenVoiceId: payload.voiceId?.trim() || heygenVoiceId,
+        heygenAvatarGroupId: String(payload.avatarGroupId ?? "").trim() || heygenAvatarGroupId,
+        lastCaricatureAssetId: sortedCaricatureAssets[0]?.id,
+      });
+
       return payload.voiceId?.trim() || undefined;
     } catch (error) {
       setTrainingStarted(false);
@@ -548,6 +721,7 @@ export function CuradorPageV2() {
     try {
       await handleTrainHeyGen();
       setTrainingBannerState("completed");
+      persistHeygenPrefs({ avatarTrack: "realistic", productionSource: "train_new" });
     } catch {
       setTrainingBannerState("hidden");
     }
@@ -562,9 +736,17 @@ export function CuradorPageV2() {
     setCaricatureError(null);
     try {
       await saveProfile({ allowDraftDefaults: true, silent: true });
-      await handleGenerateCaricature();
+      const latestCaricatureId = await handleGenerateCaricature();
       await handleTrainHeyGen();
       setTrainingBannerState("completed");
+      if (latestCaricatureId) {
+        setSelectedCaricatureAssetId(latestCaricatureId);
+      }
+      persistHeygenPrefs({
+        avatarTrack: "caricature",
+        productionSource: "train_new",
+        lastCaricatureAssetId: latestCaricatureId ?? selectedCaricatureAssetId,
+      });
     } catch {
       setTrainingBannerState("hidden");
     }
@@ -769,7 +951,10 @@ export function CuradorPageV2() {
   }
 
   const selectedAvatarImage = avatarImageAssets[0] ?? null;
-  const selectedCaricature = caricatureAssets[0] ?? null;
+  const selectedCaricature =
+    sortedCaricatureAssets.find((asset) => asset.id === selectedCaricatureAssetId) ??
+    sortedCaricatureAssets[0] ??
+    null;
   const selectedVoiceAudio = voiceAudioAssets[0] ?? null;
   const selectedTrainingVideo = trainingVideoAssets[0] ?? null;
 
@@ -793,20 +978,73 @@ export function CuradorPageV2() {
     if (autoLoadedLooksRef.current) {
       return;
     }
-    if (avatarTrack !== "realistic") {
-      return;
-    }
     autoLoadedLooksRef.current = true;
     void loadPrivateDigitalTwinLooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [avatarTrack]);
+  }, []);
+
+  useEffect(() => {
+    if (!profileIdForPrefs || restoredHeygenPrefsRef.current) {
+      return;
+    }
+    restoredHeygenPrefsRef.current = true;
+    const prefs = readCuradorHeygenPrefs(profileIdForPrefs);
+    if (prefs.heygenAvatarId) {
+      setHeygenAvatarId(prefs.heygenAvatarId);
+    }
+    if (prefs.heygenVoiceId) {
+      setHeygenVoiceId(prefs.heygenVoiceId);
+    }
+    if (prefs.heygenAvatarGroupId) {
+      setHeygenAvatarGroupId(prefs.heygenAvatarGroupId);
+    }
+    if (prefs.lastCaricatureAssetId) {
+      setSelectedCaricatureAssetId(prefs.lastCaricatureAssetId);
+    }
+    if (prefs.avatarTrack) {
+      setAvatarTrack(prefs.avatarTrack);
+    }
+    if (prefs.productionSource) {
+      setProductionSource(prefs.productionSource);
+    }
+  }, [profileIdForPrefs]);
+
+  useEffect(() => {
+    if (!sortedCaricatureAssets.length) {
+      return;
+    }
+    const stillValid = sortedCaricatureAssets.some(
+      (asset) => asset.id === selectedCaricatureAssetId,
+    );
+    if (!stillValid) {
+      setSelectedCaricatureAssetId(sortedCaricatureAssets[0].id);
+    }
+  }, [sortedCaricatureAssets, selectedCaricatureAssetId]);
 
   useEffect(() => {
     if (avatarTrack !== "realistic" || privateTwinLooks.length === 0) {
       return;
     }
-    setHeygenAvatarId((current) => current || privateTwinLooks[0].id);
-  }, [avatarTrack, privateTwinLooks]);
+    if (productionSource === "use_existing") {
+      setHeygenAvatarId((current) => current || privateTwinLooks[0].id);
+    }
+  }, [avatarTrack, privateTwinLooks, productionSource]);
+
+  useEffect(() => {
+    if (!profileIdForPrefs) {
+      return;
+    }
+    persistHeygenPrefs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    profileIdForPrefs,
+    heygenAvatarId,
+    heygenVoiceId,
+    heygenAvatarGroupId,
+    selectedCaricature?.id,
+    avatarTrack,
+    productionSource,
+  ]);
 
   useEffect(() => {
     const topic = profileForm.avatarVideoTopic.trim();
@@ -910,6 +1148,8 @@ export function CuradorPageV2() {
                 "Treinar Nova Caricatura",
                 hasExistingCaricature,
               )}
+
+          {renderRecentAvatarsPanel()}
 
           {showTrainingUploads ? (
           <div className="persona-form-group">
@@ -1132,7 +1372,15 @@ export function CuradorPageV2() {
               <p className="persona-helper-text persona-helper-highlight">{caricatureError}</p>
             )}
             {trainingError && (
-              <p className="persona-helper-text persona-helper-highlight">{trainingError}</p>
+              <>
+                <p className="persona-helper-text persona-helper-highlight">{trainingError}</p>
+                {isHeyGenDailyLimitMessage(trainingError) ? (
+                  <p className="persona-helper-text">
+                    Limite diário da API HeyGen atingido (100 envios/dia no plano atual). Tente
+                    amanhã ou faça upgrade no painel HeyGen.
+                  </p>
+                ) : null}
+              </>
             )}
             {avatarTrack === "realistic" && heygenConsentUrl && (
               <p className="persona-helper-text persona-helper-highlight">
@@ -1431,7 +1679,15 @@ export function CuradorPageV2() {
           </div>
 
           {videoError ? (
-            <p className="persona-helper-text persona-helper-highlight">{videoError}</p>
+            <>
+              <p className="persona-helper-text persona-helper-highlight">{videoError}</p>
+              {isHeyGenDailyLimitMessage(videoError) ? (
+                <p className="persona-helper-text">
+                  Limite diário da API HeyGen atingido. Use &quot;Utilizar … atual&quot; com o
+                  último treinamento ou aguarde a renovação do limite.
+                </p>
+              ) : null}
+            </>
           ) : (
             <>
               {(videoStatus || videoId) && (

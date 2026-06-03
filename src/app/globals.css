@@ -925,6 +925,38 @@ textarea.persona-input-control {
   color: #94a3b8;
 }
 
+.persona-recent-avatars-toggle {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.persona-recent-avatars-toggle:hover {
+  color: #e2e8f0;
+}
+
+.persona-recent-avatars-panel {
+  margin-top: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.persona-last-training-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
 .login-page {
   min-height: 100vh;
   display: flex;
