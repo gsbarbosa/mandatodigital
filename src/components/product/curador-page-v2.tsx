@@ -385,7 +385,10 @@ export function CuradorPageV2() {
   function renderRecentAvatarsPanel() {
     const hasTwins = privateTwinLooks.length > 0;
     const hasCaricatures = sortedCaricatureAssets.length > 0;
-    if (!hasTwins && !hasCaricatures) {
+    const showTwinsSection = avatarTrack === "realistic" && hasTwins;
+    const showCaricaturesSection = avatarTrack === "caricature" && hasCaricatures;
+
+    if (!showTwinsSection && !showCaricaturesSection) {
       return null;
     }
 
@@ -396,14 +399,16 @@ export function CuradorPageV2() {
           className="persona-recent-avatars-toggle"
           onClick={() => {
             setShowRecentAvatars((current) => !current);
-            if (!hasTwins && avatarTrack === "realistic") {
+            if (avatarTrack === "realistic" && !hasTwins) {
               void loadPrivateDigitalTwinLooks();
             }
           }}
         >
           {showRecentAvatars ? "Ocultar avatares recentes" : "Ver avatares recentes"}
         </button>
-        {productionSource === "use_existing" && (heygenAvatarId || selectedCaricature) ? (
+        {productionSource === "use_existing" &&
+        ((avatarTrack === "realistic" && heygenAvatarId) ||
+          (avatarTrack === "caricature" && selectedCaricature)) ? (
           <p className="persona-last-training-hint">
             Último treinamento em uso
             {avatarTrack === "realistic" && heygenAvatarId
@@ -416,7 +421,7 @@ export function CuradorPageV2() {
         ) : null}
         {showRecentAvatars ? (
           <div className="persona-recent-avatars-panel">
-            {hasTwins ? (
+            {showTwinsSection ? (
               <>
                 <p className="persona-helper-text">Gêmeos digitais (HeyGen)</p>
                 <ul className="persona-video-history-list">
@@ -455,9 +460,17 @@ export function CuradorPageV2() {
                 </ul>
               </>
             ) : null}
-            {hasCaricatures ? (
+            {showCaricaturesSection ? (
               <>
-                <p className="persona-helper-text persona-top-gap">Caricaturas geradas</p>
+                <p
+                  className={
+                    showTwinsSection
+                      ? "persona-helper-text persona-top-gap"
+                      : "persona-helper-text"
+                  }
+                >
+                  Caricaturas geradas
+                </p>
                 <ul className="persona-video-history-list">
                   {sortedCaricatureAssets.map((asset) => {
                     const isSelected =
