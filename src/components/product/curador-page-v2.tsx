@@ -673,6 +673,40 @@ export function CuradorPageV2() {
     });
   }
 
+  function renderRealisticTwinPurgeStep() {
+    if (avatarTrack !== "realistic") {
+      return null;
+    }
+
+    return (
+      <div className="persona-form-group persona-twin-purge-step">
+        <label className="persona-label">Etapa 1 — Gêmeo digital na plataforma</label>
+        <p className="persona-helper-text">
+          Remova o gêmeo treinado na plataforma antes de enviar áudio e vídeo. Isso não apaga os
+          arquivos que você enviar neste formulário — só o personagem remoto.
+        </p>
+        <button
+          type="button"
+          className="persona-twin-delete-link persona-twin-delete-link-prominent"
+          onClick={() => void handleDeleteTwinGroup()}
+          disabled={isDeletingTwinGroup || isTrainingBusy}
+        >
+          {isDeletingTwinGroup ? "Removendo gêmeo digital…" : "Remover gêmeo digital"}
+        </button>
+        {deleteTwinError ? (
+          <p className="persona-twin-purge-banner is-error" role="status">
+            {deleteTwinError}
+          </p>
+        ) : null}
+        {deleteTwinInfo ? (
+          <p className="persona-twin-purge-banner is-success" role="status">
+            {deleteTwinInfo}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   function renderRecentAvatarsPanel() {
     const hasTwins = privateTwinLooks.length > 0;
     const hasCaricatures = sortedCaricatureAssets.length > 0;
@@ -1361,14 +1395,24 @@ export function CuradorPageV2() {
       }
 
       const deletedCount = payload.deleted?.length ?? 0;
-      setDeleteTwinInfo(
-        sanitizeProviderFacingMessage(
-          payload.message ||
-            (deletedCount > 0
-              ? `${deletedCount} personagem(ns) removido(s). Envie novo vídeo e inicie o treinamento.`
-              : "Nenhum personagem privado encontrado. Envie o vídeo e inicie o treinamento."),
-        ),
-      );
+      const purgeErrors = payload.errors?.length ?? 0;
+      let successMessage =
+        payload.message?.trim() ||
+        (deletedCount > 0
+          ? `${deletedCount} gêmeo(s) digital(is) removido(s) na plataforma.`
+          : "Nenhum gêmeo digital encontrado na conta — você já pode enviar áudio e vídeo.");
+
+      if (purgeErrors > 0 && deletedCount === 0) {
+        throw new Error(
+          "Não foi possível remover todos os gêmeos na plataforma. Tente novamente em instantes.",
+        );
+      }
+
+      if (deletedCount > 0) {
+        successMessage += " Envie áudio e vídeo abaixo e inicie o treinamento.";
+      }
+
+      setDeleteTwinInfo(sanitizeProviderFacingMessage(successMessage));
       await loadPrivateDigitalTwinLooks();
     } catch (error) {
       showUserError(setDeleteTwinError, error);
@@ -1659,6 +1703,8 @@ export function CuradorPageV2() {
 
           {renderRecentAvatarsPanel()}
 
+          {renderRealisticTwinPurgeStep()}
+
           {showTrainingUploads ? (
           <div className="persona-form-group">
             <label className="persona-label">
@@ -1896,37 +1942,6 @@ export function CuradorPageV2() {
                 </a>
               </p>
             )}
-            {avatarTrack === "realistic" &&
-            (heygenAvatarGroupId ||
-              privateTwinLooks.length > 0 ||
-              heygenConsentUrl) ? (
-              <>
-                <p className="persona-helper-text persona-twin-delete-hint">
-                  Para treinar outro rosto no mesmo slot,{" "}
-                  <button
-                    type="button"
-                    className="persona-twin-delete-link"
-                    onClick={() => void handleDeleteTwinGroup()}
-                    disabled={isDeletingTwinGroup || isTrainingBusy}
-                  >
-                    {isDeletingTwinGroup
-                      ? "removendo gêmeo…"
-                      : "remover gêmeo atual"}
-                  </button>{" "}
-                  (irreversível; exige novo vídeo e consentimento).
-                </p>
-                {deleteTwinError ? (
-                  <p className="persona-helper-text persona-helper-highlight">
-                    {deleteTwinError}
-                  </p>
-                ) : null}
-                {deleteTwinInfo ? (
-                  <p className="persona-helper-text persona-helper-highlight">
-                    {deleteTwinInfo}
-                  </p>
-                ) : null}
-              </>
-            ) : null}
             {trainingInfo &&
             trainingInfo !== "Treinamento iniciado." &&
             !showTrainingUploads ? (

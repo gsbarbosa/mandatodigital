@@ -1278,10 +1278,38 @@ textarea.persona-input-control {
   transform: none;
 }
 
-.persona-twin-delete-hint {
-  margin-top: 0.35rem;
-  font-size: 0.78rem;
-  color: #64748b;
+.persona-twin-purge-step {
+  margin-bottom: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.persona-twin-delete-link-prominent {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.persona-twin-purge-banner {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.persona-twin-purge-banner.is-success {
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.35);
+  border: 1px solid rgba(74, 222, 128, 0.45);
+}
+
+.persona-twin-purge-banner.is-error {
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.35);
+  border: 1px solid rgba(248, 113, 113, 0.45);
 }
 
 .persona-twin-delete-link {
