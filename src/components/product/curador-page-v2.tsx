@@ -620,30 +620,9 @@ export function CuradorPageV2() {
   function renderProductionSourceButtons(
     useExistingLabel: string,
     trainNewLabel: string,
-    hasExisting: boolean,
   ) {
-    if (!hasExisting) {
-      return (
-        <div className="persona-production-subtrack-wrap persona-top-gap">
-          <div
-            className="persona-production-subtrack persona-production-subtrack-single"
-            role="group"
-            aria-label="Modo de produção"
-          >
-            <button
-              type="button"
-              className="persona-production-subtrack-btn is-active"
-              onClick={() => selectProductionSource("train_new")}
-            >
-              {trainNewLabel}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
     return (
-      <div className="persona-production-subtrack-wrap persona-top-gap">
+      <div className="persona-production-subtrack-wrap">
         <div className="persona-production-subtrack" role="group" aria-label="Modo de produção">
           <button
             type="button"
@@ -668,6 +647,50 @@ export function CuradorPageV2() {
             {trainNewLabel}
           </button>
         </div>
+      </div>
+    );
+  }
+
+  function renderProductionModeChooser() {
+    if (avatarTrack === "realistic") {
+      if (!hasExistingTwin) {
+        return (
+          <p className="persona-helper-text persona-first-production-hint persona-top-gap">
+            Envie áudio e vídeo abaixo para treinar seu Gêmeo Digital.
+          </p>
+        );
+      }
+
+      return (
+        <div className="persona-production-mode-block persona-top-gap">
+          {renderProductionSourceButtons(
+            "Utilizar Gêmeo Digital Atual",
+            "Treinar outro Gêmeo Digital",
+          )}
+          {productionSource === "train_new" ? (
+            <p className="persona-helper-text">
+              Para outro rosto, remova o gêmeo atual na <strong>Etapa 1</strong> antes de
+              treinar.
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (!hasExistingCaricature) {
+      return (
+        <p className="persona-helper-text persona-first-production-hint persona-top-gap">
+          Envie foto e áudio abaixo para criar sua caricatura.
+        </p>
+      );
+    }
+
+    return (
+      <div className="persona-production-mode-block persona-top-gap">
+        {renderProductionSourceButtons(
+          "Utilizar Caricatura Atual",
+          "Treinar outra Caricatura",
+        )}
       </div>
     );
   }
@@ -1767,17 +1790,7 @@ export function CuradorPageV2() {
             </div>
           </div>
 
-          {avatarTrack === "realistic"
-            ? renderProductionSourceButtons(
-                "Utilizar Gêmeo Digital Atual",
-                "Treinar Novo Gêmeo Digital",
-                hasExistingTwin,
-              )
-            : renderProductionSourceButtons(
-                "Utilizar Caricatura Atual",
-                "Treinar Nova Caricatura",
-                hasExistingCaricature,
-              )}
+          {renderProductionModeChooser()}
 
           {renderRecentAvatarsPanel()}
 

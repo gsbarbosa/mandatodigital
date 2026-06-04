@@ -404,8 +404,14 @@ textarea.persona-input-control {
   gap: 0.5rem;
 }
 
-.persona-production-subtrack-single {
-  grid-template-columns: 1fr;
+.persona-production-mode-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.persona-first-production-hint {
+  max-width: 36rem;
 }
 
 .persona-production-subtrack-btn {
