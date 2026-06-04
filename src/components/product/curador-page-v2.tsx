@@ -492,8 +492,11 @@ export function CuradorPageV2() {
         voiceAudioAssets[0] &&
         selectedCaricatureAssetId.trim(),
     );
-  const isTrainingBusy = isTraining || isGeneratingCaricature;
   const canGenerateCaricaturePair = Boolean(avatarImageAssets[0]);
+  const showCaricatureTrainingStart =
+    hasCaricaturePairReady &&
+    Boolean(selectedCaricatureAssetId.trim()) &&
+    !caricatureChoicePending;
   const selectedTwinLook =
     usableTwinLooks.find((look) => look.id === heygenAvatarId) ??
     usableTwinLooks[0] ??
@@ -776,7 +779,7 @@ export function CuradorPageV2() {
               type="button"
               className="persona-twin-delete-link persona-twin-delete-link-prominent"
               onClick={() => void handleDeleteAvatarPerson()}
-              disabled={isDeletingTwinGroup || isTrainingBusy}
+              disabled={isDeletingTwinGroup || isTraining || isGeneratingCaricature}
             >
               {isDeletingTwinGroup ? removingLabel : removeLabel}
             </button>
@@ -1115,7 +1118,7 @@ export function CuradorPageV2() {
   }
 
   async function handleGenerateCaricaturePair() {
-    if (!canGenerateCaricaturePair || isTrainingBusy) {
+    if (!canGenerateCaricaturePair || isTraining || isGeneratingCaricature) {
       return;
     }
 
@@ -1238,7 +1241,7 @@ export function CuradorPageV2() {
   }
 
   async function handleStartRealisticTraining() {
-    if (!canStartRealisticTraining || isTrainingBusy) {
+    if (!canStartRealisticTraining || isTraining) {
       return;
     }
     setTrainingBannerState("started");
@@ -1252,7 +1255,7 @@ export function CuradorPageV2() {
   }
 
   async function handleStartCaricatureTraining() {
-    if (!canStartCaricatureTraining || isTrainingBusy) {
+    if (!canStartCaricatureTraining || isTraining) {
       return;
     }
     setTrainingBannerState("started");
@@ -1296,7 +1299,7 @@ export function CuradorPageV2() {
             type="button"
             className="persona-btn persona-btn-secondary"
             onClick={() => void handleGenerateCaricaturePair()}
-            disabled={!canGenerateCaricaturePair || isTrainingBusy}
+            disabled={!canGenerateCaricaturePair || isTraining || isGeneratingCaricature}
           >
             {isGeneratingCaricature ? (
               <span className="persona-loading-row">
@@ -1372,9 +1375,9 @@ export function CuradorPageV2() {
             type="button"
             className="persona-btn persona-btn-large"
             onClick={() => void onStart()}
-            disabled={!canStart || isTrainingBusy || isDeletingTwinGroup}
+            disabled={!canStart || isTraining || isDeletingTwinGroup}
           >
-            {isTrainingBusy ? (
+            {isTraining ? (
               <span className="persona-loading-row">
                 <span className="persona-spinner" aria-hidden="true" />
                 {options?.twinSyncMode ? "Atualizando..." : "Treinando..."}
@@ -2105,10 +2108,12 @@ export function CuradorPageV2() {
           {avatarTrack === "caricature" && showTrainingUploads ? (
             <>
               {renderCaricatureGenerateAndChoose()}
-              {renderTrainingStartControl(
-                canStartCaricatureTraining,
-                handleStartCaricatureTraining,
-              )}
+              {showCaricatureTrainingStart
+                ? renderTrainingStartControl(
+                    canStartCaricatureTraining,
+                    handleStartCaricatureTraining,
+                  )
+                : null}
             </>
           ) : null}
 
