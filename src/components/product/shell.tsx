@@ -9,6 +9,7 @@ import {
   ProductFeedbackCriticalityPill,
   ProductFeedbackPill,
 } from "./shared";
+import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { WorkflowPipelineBar } from "./workflow-pipeline-bar";
 
 function formatSessionEmail(email: string) {
@@ -50,6 +51,11 @@ export function ProductShell({ children }: { children: ReactNode }) {
   } = useProductApp();
   const [productFeedbackForm, setProductFeedbackForm] = useInitialProductFeedbackForm();
   const isDrawerOpen = isFeedbackForcedOpen || isFeedbackWidgetOpen;
+  const {
+    open: heygenDevOpen,
+    setOpen: setHeygenDevOpen,
+    handleSecretClick: handleHeygenDistribuidorSecretClick,
+  } = useHeygenDevPanelReveal();
 
   async function handleSubmitProductFeedback() {
     const result = await submitProductFeedback(productFeedbackForm);
@@ -92,7 +98,15 @@ export function ProductShell({ children }: { children: ReactNode }) {
             </button>
           </div>
           {isCuradorFocusMode ? (
-            <WorkflowPipelineBar />
+            <>
+              <WorkflowPipelineBar
+                onDistribuidorSecretClick={handleHeygenDistribuidorSecretClick}
+              />
+              <HeygenDevKeyPanel
+                open={heygenDevOpen}
+                onClose={() => setHeygenDevOpen(false)}
+              />
+            </>
           ) : null}
         </header>
       )}

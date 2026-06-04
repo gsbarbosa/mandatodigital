@@ -107,8 +107,9 @@ export function HeygenDevKeyPanel({ open, onClose }: HeygenDevKeyPanelProps) {
         </button>
       </div>
       <p className="persona-helper-text">
-        Salva só neste navegador. Troca a conta usada no Curador sem alterar código. Em produção,
-        defina <code>HEYGEN_ALLOW_CLIENT_KEY_OVERRIDE=true</code> no servidor.
+        Comando oculto: 3 cliques no número <strong>5</strong> (Distribuidor) na barra do Curador.
+        Salva só neste navegador. Em produção, defina{" "}
+        <code>HEYGEN_ALLOW_CLIENT_KEY_OVERRIDE=true</code> no servidor.
       </p>
       <label className="persona-label" htmlFor="heygen-dev-api-key">
         API key

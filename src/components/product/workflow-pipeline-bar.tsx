@@ -1,5 +1,6 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -26,8 +27,26 @@ function isStepActive(pathname: string, stepId: PipelineStepId, href: string | n
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function WorkflowPipelineBar() {
+export const HEYGEN_DEV_SECRET_PIPELINE_STEP_ID = "distribuidor" as const;
+
+type WorkflowPipelineBarProps = {
+  /** Triplo clique no número da etapa Distribuidor (comando oculto HeyGen). */
+  onDistribuidorSecretClick?: () => void;
+};
+
+export function WorkflowPipelineBar({
+  onDistribuidorSecretClick,
+}: WorkflowPipelineBarProps = {}) {
   const pathname = usePathname();
+
+  function handleStepNumClick(stepId: string, event: MouseEvent) {
+    if (stepId !== HEYGEN_DEV_SECRET_PIPELINE_STEP_ID || !onDistribuidorSecretClick) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    onDistribuidorSecretClick();
+  }
 
   return (
     <nav className="workflow-pipeline" aria-label="Etapas do mandato digital">
@@ -36,9 +55,37 @@ export function WorkflowPipelineBar() {
           const active = step.enabled && isStepActive(pathname, step.id, step.href);
           const isLast = index === mvpPipelineSteps.length - 1;
 
+          const isHeygenSecretStep = step.id === HEYGEN_DEV_SECRET_PIPELINE_STEP_ID;
           const inner = (
             <>
-              <span className="workflow-pipeline-step-num" aria-hidden="true">
+              <span
+                className={[
+                  "workflow-pipeline-step-num",
+                  isHeygenSecretStep && onDistribuidorSecretClick
+                    ? "is-secret-trigger"
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-hidden={!isHeygenSecretStep}
+                role={isHeygenSecretStep && onDistribuidorSecretClick ? "button" : undefined}
+                tabIndex={isHeygenSecretStep && onDistribuidorSecretClick ? 0 : undefined}
+                onClick={
+                  isHeygenSecretStep && onDistribuidorSecretClick
+                    ? (event) => handleStepNumClick(step.id, event)
+                    : undefined
+                }
+                onKeyDown={
+                  isHeygenSecretStep && onDistribuidorSecretClick
+                    ? (event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          onDistribuidorSecretClick();
+                        }
+                      }
+                    : undefined
+                }
+              >
                 {index + 1}
               </span>
               <span className="workflow-pipeline-step-label">{step.label}</span>

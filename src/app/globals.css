@@ -1385,9 +1385,19 @@ textarea.persona-input-control {
   border: 1px solid rgba(248, 113, 113, 0.45);
 }
 
-.phase-intro-secret-target {
-  cursor: default;
-  user-select: none;
+.workflow-pipeline-step-num.is-secret-trigger {
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.workflow-pipeline-item.is-locked .workflow-pipeline-step-num.is-secret-trigger:hover {
+  background: rgba(148, 163, 184, 0.32);
+  color: var(--text-muted);
+}
+
+.app-top-bar-focus .heygen-dev-panel {
+  margin: 0.65rem 0 0;
 }
 
 .heygen-dev-panel {
