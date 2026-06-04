@@ -1,14 +1,18 @@
+import FormData from "form-data";
+
 import {
   resolveCaricaturePrompt,
   type CaricatureVariant,
 } from "@/lib/openai-caricature-prompts";
 
 const DEFAULT_CARICATURE_MODEL = "gpt-image-1.5";
-const CARICATURE_MODEL_FALLBACKS = ["gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"] as const;
-const VISION_MODEL = process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini";
+
+function sanitizeOpenAiApiKey(raw: string) {
+  return raw.trim().replace(/^Bearer\s+/i, "").replace(/^["']|["']$/g, "");
+}
 
 function getOpenAiApiKey() {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = sanitizeOpenAiApiKey(process.env.OPENAI_API_KEY ?? "");
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY nao configurada.");
   }
@@ -19,14 +23,11 @@ function getCaricatureModel() {
   return process.env.OPENAI_IMAGE_MODEL?.trim() || DEFAULT_CARICATURE_MODEL;
 }
 
-function buildOpenAiHeaders(apiKey: string, json = false): HeadersInit {
+function buildOpenAiHeaders(apiKey: string, extra?: Record<string, string>) {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
+    ...extra,
   };
-
-  if (json) {
-    headers["Content-Type"] = "application/json";
-  }
 
   const organization =
     process.env.OPENAI_ORG_ID?.trim() || process.env.OPENAI_ORGANIZATION?.trim();
@@ -70,18 +71,8 @@ function parseOpenAiImageError(status: number, body: string) {
   return `OpenAI falhou ao gerar caricatura (${status}).`;
 }
 
-function shouldFallbackFromImageEditError(message: string, status: number) {
-  const normalized = message.toLowerCase();
-  return (
-    status === 401 ||
-    status === 403 ||
-    normalized.includes("not authorized") ||
-    normalized.includes("unauthorized") ||
-    normalized.includes("invalid value") ||
-    normalized.includes("must be 'dall-e-2'") ||
-    normalized.includes("does not exist") ||
-    normalized.includes("response_format")
-  );
+function formDataToBuffer(form: FormData) {
+  return form.getBuffer();
 }
 
 function extractImageBuffer(json: {
@@ -94,7 +85,6 @@ function extractImageBuffer(json: {
       mimeType: "image/png",
     };
   }
-
   return null;
 }
 
@@ -108,6 +98,26 @@ async function downloadImageFromUrl(imageUrl: string) {
   return { buffer, mimeType };
 }
 
+async function postOpenAiForm(
+  path: string,
+  apiKey: string,
+  form: FormData,
+) {
+  const body = formDataToBuffer(form);
+  const response = await fetch(`https://api.openai.com${path}`, {
+    method: "POST",
+    headers: buildOpenAiHeaders(apiKey, form.getHeaders() as Record<string, string>),
+    body: new Uint8Array(body),
+  });
+
+  const rawBody = await response.text();
+  if (!response.ok) {
+    throw new Error(parseOpenAiImageError(response.status, rawBody));
+  }
+
+  return rawBody;
+}
+
 async function requestImageEdit(input: {
   apiKey: string;
   model: string;
@@ -115,36 +125,27 @@ async function requestImageEdit(input: {
   mimeType: string;
   prompt: string;
 }) {
-  const extension = extensionForMime(input.mimeType);
-  const formData = new FormData();
-  formData.append("model", input.model);
-  formData.append(
-    "image",
-    new Blob([new Uint8Array(input.imageBuffer)], {
-      type: input.mimeType || "image/jpeg",
-    }),
-    `source.${extension}`,
-  );
-  formData.append("prompt", input.prompt);
-  formData.append("size", "1024x1024");
-
-  const response = await fetch("https://api.openai.com/v1/images/edits", {
-    method: "POST",
-    headers: buildOpenAiHeaders(input.apiKey),
-    body: formData,
-  });
-
-  const rawBody = await response.text();
-  if (!response.ok) {
-    const message = parseOpenAiImageError(response.status, rawBody);
-    const error = new Error(message);
-    (error as Error & { status?: number }).status = response.status;
-    throw error;
+  if (input.imageBuffer.length < 512) {
+    throw new Error("A foto enviada esta vazia ou corrompida. Envie a imagem novamente.");
   }
 
+  const extension = extensionForMime(input.mimeType);
+  const form = new FormData();
+  form.append("model", input.model);
+  form.append("prompt", input.prompt);
+  form.append("size", "1024x1024");
+  form.append("quality", "high");
+  form.append("output_format", "png");
+  form.append("image", input.imageBuffer, {
+    filename: `source.${extension}`,
+    contentType: input.mimeType || "image/jpeg",
+  });
+
+  const rawBody = await postOpenAiForm("/v1/images/edits", input.apiKey, form);
   const json = JSON.parse(rawBody) as {
     data?: Array<{ b64_json?: string; url?: string }>;
   };
+
   const extracted = extractImageBuffer(json);
   if (extracted) {
     return extracted;
@@ -163,13 +164,14 @@ async function describePortraitForCaricature(input: {
   imageBuffer: Buffer;
   mimeType: string;
 }) {
+  const visionModel = process.env.OPENAI_MODEL?.trim() || "gpt-4.1-mini";
   const dataUrl = `data:${input.mimeType || "image/jpeg"};base64,${input.imageBuffer.toString("base64")}`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
-    headers: buildOpenAiHeaders(input.apiKey, true),
+    headers: buildOpenAiHeaders(input.apiKey, { "Content-Type": "application/json" }),
     body: JSON.stringify({
-      model: VISION_MODEL,
+      model: visionModel,
       temperature: 0.2,
       max_tokens: 500,
       messages: [
@@ -180,13 +182,10 @@ async function describePortraitForCaricature(input: {
               type: "text",
               text:
                 "Descreva em portugues os tracos faciais desta pessoa para gerar uma caricatura " +
-                "reconhecivel: formato do rosto, cabelo, barba, oculos, tom de pele, idade aparente " +
-                "e detalhes marcantes. Seja objetivo em 3-5 frases.",
+                "reconhecivel: formato do rosto, cabelo, barba, oculos, tom de pele e detalhes " +
+                "marcantes. Seja objetivo em 3-5 frases.",
             },
-            {
-              type: "image_url",
-              image_url: { url: dataUrl },
-            },
+            { type: "image_url", image_url: { url: dataUrl } },
           ],
         },
       ],
@@ -217,7 +216,7 @@ async function requestImageGeneration(input: {
 }) {
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
-    headers: buildOpenAiHeaders(input.apiKey, true),
+    headers: buildOpenAiHeaders(input.apiKey, { "Content-Type": "application/json" }),
     body: JSON.stringify({
       model: input.model,
       prompt: input.prompt,
@@ -248,111 +247,15 @@ async function requestImageGeneration(input: {
   throw new Error("OpenAI nao retornou imagem de caricatura.");
 }
 
-async function generateCaricatureViaGenerationFallback(input: {
-  apiKey: string;
-  imageBuffer: Buffer;
-  mimeType: string;
-  prompt: string;
-}) {
-  const portraitDescription = await describePortraitForCaricature({
-    apiKey: input.apiKey,
-    imageBuffer: input.imageBuffer,
-    mimeType: input.mimeType,
-  });
-
-  const generationPrompt =
-    `${input.prompt} Retrato baseado nesta pessoa: ${portraitDescription}`;
-
-  const preferred = getCaricatureModel();
-  const models = [
-    preferred,
-    ...CARICATURE_MODEL_FALLBACKS.filter((model) => model !== preferred),
-  ];
-
-  let lastError: Error | null = null;
-
-  for (const model of models) {
-    try {
-      const result = await requestImageGeneration({
-        apiKey: input.apiKey,
-        model,
-        prompt: generationPrompt,
-      });
-      return { ...result, model };
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  throw (
-    lastError ??
-    new Error(
-      "Nao foi possivel gerar caricatura. Verifique OPENAI_API_KEY e o acesso aos modelos GPT Image no painel OpenAI.",
-    )
+function shouldUseGenerationFallback(message: string) {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("not authorized") ||
+    normalized.includes("unauthorized") ||
+    normalized.includes("invalid value") ||
+    normalized.includes("must be 'dall-e-2'") ||
+    normalized.includes("does not exist")
   );
-}
-
-export async function generateCaricatureFromPhoto(input: {
-  imageBuffer: Buffer;
-  mimeType: string;
-  variant?: CaricatureVariant;
-  styleHint?: string;
-}) {
-  const apiKey = getOpenAiApiKey();
-  const prompt = resolveCaricaturePrompt({
-    variant: input.variant,
-    styleHint: input.styleHint,
-  });
-
-  const preferred = getCaricatureModel();
-  const editModels = [
-    preferred,
-    ...CARICATURE_MODEL_FALLBACKS.filter((model) => model !== preferred),
-  ];
-
-  let lastEditError: (Error & { status?: number }) | null = null;
-
-  for (const model of editModels) {
-    try {
-      const result = await requestImageEdit({
-        apiKey,
-        model,
-        imageBuffer: input.imageBuffer,
-        mimeType: input.mimeType,
-        prompt,
-      });
-      return { ...result, model };
-    } catch (error) {
-      const normalized =
-        error instanceof Error
-          ? (error as Error & { status?: number })
-          : new Error(String(error));
-      lastEditError = normalized;
-      const status = normalized.status ?? 400;
-      if (!shouldFallbackFromImageEditError(normalized.message, status)) {
-        throw normalized;
-      }
-    }
-  }
-
-  if (lastEditError) {
-    try {
-      return await generateCaricatureViaGenerationFallback({
-        apiKey,
-        imageBuffer: input.imageBuffer,
-        mimeType: input.mimeType,
-        prompt,
-      });
-    } catch (fallbackError) {
-      const fallbackMessage =
-        fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-      throw new Error(
-        `Edicao de imagem indisponivel (${lastEditError.message}). Fallback tambem falhou: ${fallbackMessage}`,
-      );
-    }
-  }
-
-  throw new Error("Nao foi possivel gerar caricatura.");
 }
 
 export function isOpenAiImageAuthorizationError(message: string) {
@@ -364,4 +267,52 @@ export function isOpenAiImageAuthorizationError(message: string) {
     normalized.includes("invalid_api_key") ||
     normalized.includes("openai_api_key")
   );
+}
+
+export async function generateCaricatureFromPhoto(input: {
+  imageBuffer: Buffer;
+  mimeType: string;
+  variant?: CaricatureVariant;
+  styleHint?: string;
+}) {
+  const apiKey = getOpenAiApiKey();
+  const model = getCaricatureModel();
+  const prompt = resolveCaricaturePrompt({
+    variant: input.variant,
+    styleHint: input.styleHint,
+  });
+
+  try {
+    const result = await requestImageEdit({
+      apiKey,
+      model,
+      imageBuffer: input.imageBuffer,
+      mimeType: input.mimeType,
+      prompt,
+    });
+    return { ...result, model };
+  } catch (editError) {
+    const editMessage =
+      editError instanceof Error ? editError.message : String(editError);
+
+    if (!shouldUseGenerationFallback(editMessage)) {
+      throw editError;
+    }
+
+    const portraitDescription = await describePortraitForCaricature({
+      apiKey,
+      imageBuffer: input.imageBuffer,
+      mimeType: input.mimeType,
+    });
+
+    const generationPrompt =
+      `${prompt} Retrato baseado nesta pessoa: ${portraitDescription}`;
+
+    const result = await requestImageGeneration({
+      apiKey,
+      model,
+      prompt: generationPrompt,
+    });
+    return { ...result, model };
+  }
 }
