@@ -451,6 +451,10 @@ export function CuradorPageV2() {
   }, []);
 
   const hasExistingTwin = privateTwinLooks.length > 0;
+  const hasTwinOnPlatform =
+    hasExistingTwin ||
+    Boolean(heygenAvatarGroupId.trim()) ||
+    Boolean(heygenConsentUrl.trim());
   const hasExistingCaricature = caricatureAssets.length > 0;
   const showTrainingUploads = productionSource === "train_new";
   const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
@@ -678,21 +682,30 @@ export function CuradorPageV2() {
       return null;
     }
 
+    const showPurgeFeedback = Boolean(deleteTwinInfo || deleteTwinError);
+    if (!hasTwinOnPlatform && !showPurgeFeedback) {
+      return null;
+    }
+
     return (
       <div className="persona-form-group persona-twin-purge-step">
-        <label className="persona-label">Etapa 1 — Gêmeo digital na plataforma</label>
-        <p className="persona-helper-text">
-          Remova o gêmeo treinado na plataforma antes de enviar áudio e vídeo. Isso não apaga os
-          arquivos que você enviar neste formulário — só o personagem remoto.
-        </p>
-        <button
-          type="button"
-          className="persona-twin-delete-link persona-twin-delete-link-prominent"
-          onClick={() => void handleDeleteTwinGroup()}
-          disabled={isDeletingTwinGroup || isTrainingBusy}
-        >
-          {isDeletingTwinGroup ? "Removendo gêmeo digital…" : "Remover gêmeo digital"}
-        </button>
+        {hasTwinOnPlatform ? (
+          <>
+            <label className="persona-label">Etapa 1 — Gêmeo digital na plataforma</label>
+            <p className="persona-helper-text">
+              Remova o gêmeo treinado na plataforma antes de enviar áudio e vídeo. Isso não apaga
+              os arquivos que você enviar neste formulário — só o personagem remoto.
+            </p>
+            <button
+              type="button"
+              className="persona-twin-delete-link persona-twin-delete-link-prominent"
+              onClick={() => void handleDeleteTwinGroup()}
+              disabled={isDeletingTwinGroup || isTrainingBusy}
+            >
+              {isDeletingTwinGroup ? "Removendo gêmeo digital…" : "Remover gêmeo digital"}
+            </button>
+          </>
+        ) : null}
         {deleteTwinError ? (
           <p className="persona-twin-purge-banner is-error" role="status">
             {deleteTwinError}
