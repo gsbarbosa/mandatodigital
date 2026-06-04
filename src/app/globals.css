@@ -324,6 +324,10 @@ textarea.persona-input-control {
   line-height: 1.5;
 }
 
+.persona-card .persona-helper-text + .persona-helper-text {
+  margin-top: 0.65rem;
+}
+
 .persona-helper-highlight {
   color: #93c5fd;
 }
@@ -587,6 +591,17 @@ textarea.persona-input-control {
   background: rgba(2, 6, 23, 0.35);
 }
 
+.persona-caricature-actions-card .persona-helper-text + .persona-helper-text {
+  margin-top: 0.5rem;
+}
+
+.persona-caricature-actions-card .persona-caricature-preview-image + .persona-helper-text,
+.persona-caricature-actions-card .persona-twin-preview-media + .persona-helper-text,
+.persona-caricature-actions-card video + .persona-helper-text,
+.persona-caricature-actions-card img + .persona-helper-text {
+  margin-top: 0.75rem;
+}
+
 .persona-script-meta {
   margin-top: 0.5rem;
   font-size: 0.85rem;
@@ -600,7 +615,7 @@ textarea.persona-input-control {
 .persona-script-approved {
   color: #86efac;
   font-size: 0.9rem;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
 }
 
 @media (max-width: 640px) {
@@ -845,7 +860,7 @@ textarea.persona-input-control {
 }
 
 .persona-upload-area .persona-btn {
-  margin-top: 0.25rem;
+  margin-top: 1rem;
   pointer-events: none;
 }
 
@@ -1008,8 +1023,40 @@ textarea.persona-input-control {
   display: block;
 }
 
+.persona-production-avatar-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .persona-production-avatar-preview .persona-caricature-actions-card {
-  margin-top: 0.5rem;
+  margin-top: 0;
+}
+
+.persona-production-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.persona-production-actions > .persona-top-gap {
+  margin-top: 0;
+}
+
+.persona-production-actions .persona-generate-row {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.persona-production-actions + .persona-helper-text,
+.persona-production-actions + p.persona-helper-text {
+  margin-top: 1rem;
+}
+
+.persona-generate-row .persona-progress {
+  margin-top: 1rem;
 }
 
 .persona-video-ready-row {
@@ -1289,7 +1336,7 @@ textarea.persona-input-control {
 }
 
 .persona-twin-purge-step {
-  margin-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
   padding: 1rem;
   border: 1px solid #1e293b;
   border-radius: 12px;
@@ -1298,8 +1345,12 @@ textarea.persona-input-control {
 
 .persona-twin-delete-link-prominent {
   display: inline-block;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   font-size: 0.85rem;
+}
+
+.persona-twin-purge-step > .persona-helper-text + .persona-twin-delete-link-prominent {
+  margin-top: 1rem;
 }
 
 .persona-twin-purge-banner {
@@ -1396,13 +1447,40 @@ textarea.persona-input-control {
 }
 
 .persona-cta-block {
-  margin: 3rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.persona-cta-block .persona-cta-row {
+  margin: 0;
 }
 
 .persona-cta-row,
 .persona-generate-row {
   text-align: center;
+  margin-top: 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+.persona-form-group > .persona-helper-text + .persona-input-control,
+.persona-form-group > .persona-helper-text + textarea.persona-input-control {
+  margin-top: 0.75rem;
+}
+
+.persona-form-group > .persona-input-control + .persona-cta-row,
+.persona-form-group > textarea.persona-input-control + .persona-cta-row {
+  margin-top: 1.25rem;
+}
+
+.persona-form-group .persona-script-meta + .persona-helper-text,
+.persona-form-group .persona-script-meta + .persona-cta-row {
+  margin-top: 1rem;
+}
+
+.persona-form-group .persona-helper-highlight + .persona-cta-row {
+  margin-top: 1rem;
 }
 
 .persona-divider {

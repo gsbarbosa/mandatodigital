@@ -10,7 +10,10 @@ export async function POST(request: Request) {
       const body = (await request.json().catch(() => ({}))) as { confirm?: boolean };
       if (!body.confirm) {
         return NextResponse.json(
-          { message: 'Envie { "confirm": true } para remover todos os gêmeos privados.' },
+          {
+            message:
+              'Envie { "confirm": true } para remover todos os personagens privados (gêmeo digital e avatares na conta).',
+          },
           { status: 400 },
         );
       }
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
         ...result,
         message:
           result.deleted.length > 0
-            ? `${result.deleted.length} personagem(ns) removido(s). Envie novo vídeo e refaça o treinamento.`
+            ? `${result.deleted.length} personagem(ns) removido(s). Refaça o treinamento no Curador.`
             : "Nenhum personagem privado encontrado na conta.",
       });
     });

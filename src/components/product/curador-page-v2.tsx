@@ -462,6 +462,10 @@ export function CuradorPageV2() {
       Boolean(heygenAvatarGroupId.trim()) ||
       Boolean(heygenConsentUrl.trim()));
   const hasExistingCaricature = caricatureAssets.length > 0;
+  const hasCaricaturePersonOnPlatform =
+    Boolean(heygenVoiceId.trim()) ||
+    hasExistingCaricature ||
+    hasAnyTwinOnPlatform;
   const showTrainingUploads = productionSource === "train_new";
   const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
   const canStartRealisticTraining = showTrainingUploads && canTrainRealistic;
@@ -691,6 +695,12 @@ export function CuradorPageV2() {
           "Utilizar Caricatura Atual",
           "Treinar outra Caricatura",
         )}
+        {productionSource === "train_new" ? (
+          <p className="persona-helper-text">
+            Para outra caricatura ou nova voz na plataforma, remova o personagem na{" "}
+            <strong>Etapa 1</strong> antes de treinar.
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -724,32 +734,43 @@ export function CuradorPageV2() {
     });
   }
 
-  function renderRealisticTwinPurgeStep() {
-    if (avatarTrack !== "realistic") {
+  function renderAvatarPurgeStep() {
+    const isCaricatureTrack = avatarTrack === "caricature";
+    const hasRemovableOnPlatform = isCaricatureTrack
+      ? hasCaricaturePersonOnPlatform
+      : hasAnyTwinOnPlatform;
+    const showPurgeFeedback = Boolean(deleteTwinInfo || deleteTwinError);
+
+    if (!hasRemovableOnPlatform && !showPurgeFeedback) {
       return null;
     }
 
-    const showPurgeFeedback = Boolean(deleteTwinInfo || deleteTwinError);
-    if (!hasAnyTwinOnPlatform && !showPurgeFeedback) {
-      return null;
-    }
+    const stepTitle = isCaricatureTrack
+      ? "Etapa 1 — Avatar caricato na plataforma"
+      : "Etapa 1 — Gêmeo digital na plataforma";
+    const stepHelp = isCaricatureTrack
+      ? "Remova a voz/personagem treinado na plataforma antes de enviar foto e áudio de novo. Isso não apaga os arquivos que você enviar neste formulário — só o personagem remoto (voz e avatares privados na conta)."
+      : "Remova o gêmeo treinado na plataforma antes de enviar áudio e vídeo. Isso não apaga os arquivos que você enviar neste formulário — só o personagem remoto.";
+    const removeLabel = isCaricatureTrack
+      ? "Remover personagem caricato"
+      : "Remover gêmeo digital";
+    const removingLabel = isCaricatureTrack
+      ? "Removendo personagem caricato…"
+      : "Removendo gêmeo digital…";
 
     return (
       <div className="persona-form-group persona-twin-purge-step">
-        {hasAnyTwinOnPlatform ? (
+        {hasRemovableOnPlatform ? (
           <>
-            <label className="persona-label">Etapa 1 — Gêmeo digital na plataforma</label>
-            <p className="persona-helper-text">
-              Remova o gêmeo treinado na plataforma antes de enviar áudio e vídeo. Isso não apaga
-              os arquivos que você enviar neste formulário — só o personagem remoto.
-            </p>
+            <label className="persona-label">{stepTitle}</label>
+            <p className="persona-helper-text">{stepHelp}</p>
             <button
               type="button"
               className="persona-twin-delete-link persona-twin-delete-link-prominent"
-              onClick={() => void handleDeleteTwinGroup()}
+              onClick={() => void handleDeleteAvatarPerson()}
               disabled={isDeletingTwinGroup || isTrainingBusy}
             >
-              {isDeletingTwinGroup ? "Removendo gêmeo digital…" : "Remover gêmeo digital"}
+              {isDeletingTwinGroup ? removingLabel : removeLabel}
             </button>
           </>
         ) : null}
@@ -1419,23 +1440,33 @@ export function CuradorPageV2() {
     }
   }
 
-  async function handleDeleteTwinGroup() {
+  async function handleDeleteAvatarPerson() {
     if (isDeletingTwinGroup) {
       return;
     }
+
+    const isCaricatureTrack = avatarTrack === "caricature";
 
     setDeleteTwinError(null);
     setDeleteTwinInfo(null);
 
     const confirmed = window.confirm(
-      "Remover todos os Gêmeos Digitais da plataforma?\n\n" +
-        "Isso apaga todos os personagens privados da conta (incluindo testes antigos). " +
-        "Depois envie novo vídeo e refaça o consentimento.\n\n" +
-        "Esta ação não pode ser desfeita.",
+      isCaricatureTrack
+        ? "Remover o personagem caricato da plataforma?\n\n" +
+            "Isso apaga avatares privados na conta e desvincula a voz clonada usada nos vídeos. " +
+            "As caricaturas geradas neste formulário permanecem nos arquivos enviados — gere novas versões se quiser outro visual.\n\n" +
+            "Depois envie foto e áudio e inicie o treinamento novamente.\n\n" +
+            "Esta ação não pode ser desfeita."
+        : "Remover todos os Gêmeos Digitais da plataforma?\n\n" +
+            "Isso apaga todos os personagens privados da conta (incluindo testes antigos). " +
+            "Depois envie novo vídeo e refaça o consentimento.\n\n" +
+            "Esta ação não pode ser desfeita.",
     );
     if (!confirmed) {
       return;
     }
+
+    const hadLinkedVoice = Boolean(heygenVoiceId.trim());
 
     setIsDeletingTwinGroup(true);
     try {
@@ -1464,13 +1495,21 @@ export function CuradorPageV2() {
       setProductionSource("train_new");
       setTrainingError(null);
       setTrainingInfo(null);
+      setCaricatureError(null);
+      setCaricatureInfo(null);
+
+      if (isCaricatureTrack) {
+        setSelectedCaricatureAssetId("");
+        setCaricaturePreviewUrl(null);
+      }
 
       if (profileIdForPrefs) {
         writeCuradorHeygenPrefs(profileIdForPrefs, {
           heygenAvatarId: "",
           heygenVoiceId: "",
           heygenAvatarGroupId: "",
-          avatarTrack: "realistic",
+          lastCaricatureAssetId: isCaricatureTrack ? "" : undefined,
+          avatarTrack: isCaricatureTrack ? "caricature" : "realistic",
           productionSource: "train_new",
         });
       }
@@ -1480,21 +1519,35 @@ export function CuradorPageV2() {
       let successMessage =
         payload.message?.trim() ||
         (deletedCount > 0
-          ? `${deletedCount} gêmeo(s) digital(is) removido(s) na plataforma.`
-          : "Nenhum gêmeo digital encontrado na conta — você já pode enviar áudio e vídeo.");
+          ? isCaricatureTrack
+            ? `${deletedCount} personagem(ns) removido(s) na plataforma.`
+            : `${deletedCount} gêmeo(s) digital(is) removido(s) na plataforma.`
+          : isCaricatureTrack
+            ? "Nenhum personagem privado encontrado na conta — você já pode enviar foto e áudio."
+            : "Nenhum gêmeo digital encontrado na conta — você já pode enviar áudio e vídeo.");
 
       if (purgeErrors > 0 && deletedCount === 0) {
         throw new Error(
-          "Não foi possível remover todos os gêmeos na plataforma. Tente novamente em instantes.",
+          isCaricatureTrack
+            ? "Não foi possível remover o personagem na plataforma. Tente novamente em instantes."
+            : "Não foi possível remover todos os gêmeos na plataforma. Tente novamente em instantes.",
         );
       }
 
       if (deletedCount > 0) {
-        successMessage += " Envie áudio e vídeo abaixo e inicie o treinamento.";
+        successMessage += isCaricatureTrack
+          ? " Envie foto e áudio abaixo, escolha a caricatura e inicie o treinamento."
+          : " Envie áudio e vídeo abaixo e inicie o treinamento.";
+      } else if (isCaricatureTrack && hadLinkedVoice) {
+        successMessage +=
+          " A voz clonada foi desvinculada deste perfil. Envie foto e áudio e inicie o treinamento.";
       }
 
       setDeleteTwinInfo(sanitizeProviderFacingMessage(successMessage));
-      await loadPrivateDigitalTwinLooks();
+
+      if (!isCaricatureTrack) {
+        await loadPrivateDigitalTwinLooks();
+      }
     } catch (error) {
       showUserError(setDeleteTwinError, error);
     } finally {
@@ -1794,7 +1847,7 @@ export function CuradorPageV2() {
 
           {renderRecentAvatarsPanel()}
 
-          {renderRealisticTwinPurgeStep()}
+          {renderAvatarPurgeStep()}
 
           {showTrainingUploads ? (
           <div className="persona-form-group">
@@ -2287,36 +2340,38 @@ export function CuradorPageV2() {
             )}
           </div>
 
-          {renderProductionAvatarPreview()}
+          <div className="persona-production-actions">
+            {renderProductionAvatarPreview()}
 
-          {avatarTrack === "realistic" && heygenAvatarId && !twinReadyForVideo ? (
-            <p className="persona-helper-text persona-helper-highlight persona-top-gap">
-              Finalize o consentimento e clique em &quot;Atualizar status do treino&quot; antes de
-              gerar o vídeo. O avatar ainda não está pronto na plataforma.
-            </p>
-          ) : null}
+            {avatarTrack === "realistic" && heygenAvatarId && !twinReadyForVideo ? (
+              <p className="persona-helper-text persona-helper-highlight">
+                Finalize o consentimento e clique em &quot;Atualizar status do treino&quot; antes de
+                gerar o vídeo. O avatar ainda não está pronto na plataforma.
+              </p>
+            ) : null}
 
-          <div className="persona-generate-row">
-            <button
-              type="button"
-              className="persona-btn persona-btn-large"
-              onClick={() => void handleGenerate()}
-              disabled={
-                isGenerating ||
-                !canProduceContent ||
-                (avatarTrack === "caricature" && !heygenVoiceId && isTraining)
-              }
-            >
-              {isGenerating ? (
-                <span className="persona-loading-row">
-                  <span className="persona-spinner" aria-hidden="true" />
-                  Gerando...
-                </span>
-              ) : (
-                "Gerar Conteúdo a partir do Avatar selecionado"
-              )}
-            </button>
-            {isGenerating && <div className="persona-progress" />}
+            <div className="persona-generate-row">
+              <button
+                type="button"
+                className="persona-btn persona-btn-large"
+                onClick={() => void handleGenerate()}
+                disabled={
+                  isGenerating ||
+                  !canProduceContent ||
+                  (avatarTrack === "caricature" && !heygenVoiceId && isTraining)
+                }
+              >
+                {isGenerating ? (
+                  <span className="persona-loading-row">
+                    <span className="persona-spinner" aria-hidden="true" />
+                    Gerando...
+                  </span>
+                ) : (
+                  "Gerar Conteúdo a partir do Avatar selecionado"
+                )}
+              </button>
+              {isGenerating && <div className="persona-progress" />}
+            </div>
           </div>
 
           {videoError ? (
