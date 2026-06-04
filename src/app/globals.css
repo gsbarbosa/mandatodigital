@@ -404,6 +404,10 @@ textarea.persona-input-control {
   gap: 0.5rem;
 }
 
+.persona-production-subtrack-single {
+  grid-template-columns: 1fr;
+}
+
 .persona-production-subtrack-btn {
   border: 1px solid #334155;
   border-radius: 8px;

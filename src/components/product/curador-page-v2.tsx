@@ -614,7 +614,25 @@ export function CuradorPageV2() {
     trainNewLabel: string,
     hasExisting: boolean,
   ) {
-    const useExistingDisabled = !hasExisting;
+    if (!hasExisting) {
+      return (
+        <div className="persona-production-subtrack-wrap persona-top-gap">
+          <div
+            className="persona-production-subtrack persona-production-subtrack-single"
+            role="group"
+            aria-label="Modo de produção"
+          >
+            <button
+              type="button"
+              className="persona-production-subtrack-btn is-active"
+              onClick={() => selectProductionSource("train_new")}
+            >
+              {trainNewLabel}
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="persona-production-subtrack-wrap persona-top-gap">
@@ -627,8 +645,6 @@ export function CuradorPageV2() {
                 : "persona-production-subtrack-btn"
             }
             onClick={() => selectProductionSource("use_existing")}
-            disabled={useExistingDisabled}
-            aria-disabled={useExistingDisabled}
           >
             {useExistingLabel}
           </button>
@@ -1303,6 +1319,22 @@ export function CuradorPageV2() {
 
       setPrivateTwinLooks(enriched);
 
+      if (enriched.length === 0) {
+        if (productionSource === "use_existing") {
+          setProductionSource("train_new");
+        }
+      } else if (profileIdForPrefs) {
+        const prefs = readCuradorHeygenPrefs(profileIdForPrefs);
+        const preferredFromPrefs = prefs.heygenAvatarId?.trim() ?? "";
+        if (
+          prefs.productionSource === "use_existing" &&
+          preferredFromPrefs &&
+          enriched.some((look) => look.id === preferredFromPrefs)
+        ) {
+          setProductionSource("use_existing");
+        }
+      }
+
       const preferredAvatarId =
         options?.preferredAvatarId?.trim() ||
         heygenAvatarId.trim() ||
@@ -1568,10 +1600,30 @@ export function CuradorPageV2() {
     if (prefs.avatarTrack) {
       setAvatarTrack(prefs.avatarTrack);
     }
-    if (prefs.productionSource) {
-      setProductionSource(prefs.productionSource);
+    if (prefs.productionSource === "train_new") {
+      setProductionSource("train_new");
     }
+    // use_existing só é restaurado após validar looks em loadPrivateDigitalTwinLooks
   }, [profileIdForPrefs]);
+
+  useEffect(() => {
+    if (avatarTrack === "realistic" && !isLoadingLooks && !hasExistingTwin) {
+      if (productionSource === "use_existing") {
+        setProductionSource("train_new");
+      }
+    }
+    if (avatarTrack === "caricature" && !hasExistingCaricature) {
+      if (productionSource === "use_existing") {
+        setProductionSource("train_new");
+      }
+    }
+  }, [
+    avatarTrack,
+    isLoadingLooks,
+    hasExistingTwin,
+    hasExistingCaricature,
+    productionSource,
+  ]);
 
   useEffect(() => {
     if (!sortedCaricatureAssets.length) {
