@@ -186,6 +186,49 @@ export async function heygenGetAvatarGroup(groupId: string) {
   );
 }
 
+export type HeyGenAvatarGroupListItem = {
+  id: string;
+  name?: string | null;
+  status?: string | null;
+  consent_status?: string | null;
+  looks_count?: number;
+  preview_image_url?: string | null;
+  created_at?: number;
+};
+
+export type HeyGenListAvatarGroupsResponse = {
+  data?: HeyGenAvatarGroupListItem[];
+  has_more?: boolean;
+  next_token?: string | null;
+};
+
+export async function heygenListAvatarGroups(input?: {
+  ownership?: "public" | "private";
+  limit?: number;
+  token?: string;
+}) {
+  const query = new URLSearchParams();
+  if (input?.ownership) query.set("ownership", input.ownership);
+  if (input?.limit) query.set("limit", String(input.limit));
+  if (input?.token) query.set("token", input.token);
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return heygenFetch<HeyGenListAvatarGroupsResponse>(`/v3/avatars${suffix}`, {
+    method: "GET",
+  });
+}
+
+export type HeyGenDeleteAvatarGroupResponse = {
+  data?: { id?: string };
+};
+
+export async function heygenDeleteAvatarGroup(groupId: string) {
+  return heygenFetch<HeyGenDeleteAvatarGroupResponse>(
+    `/v3/avatars/${encodeURIComponent(groupId)}`,
+    { method: "DELETE" },
+  );
+}
+
 export type HeyGenAvatarLookDetailsResponse = {
   data?: {
     avatar_look?: {

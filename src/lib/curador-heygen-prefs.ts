@@ -69,7 +69,8 @@ export function formatProviderLimitHint(message: string): string | null {
   if (normalized.includes("verified avatar group")) {
     hints.push(
       "Limite de Gêmeo Digital verificado: no plano atual só é permitido 1 slot ativo. " +
-        "Finalize o consentimento do treino em andamento ou use \"Utilizar Gêmeo Digital Atual\".",
+        "Finalize o consentimento do treino em andamento, use \"Utilizar Gêmeo Digital Atual\" " +
+        "ou remova o personagem na plataforma para treinar outro.",
     );
   }
 

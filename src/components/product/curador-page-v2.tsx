@@ -214,11 +214,15 @@ export function CuradorPageV2() {
   const [caricatureInfo, setCaricatureInfo] = useState<string | null>(null);
   const [caricaturePreviewUrl, setCaricaturePreviewUrl] = useState<string | null>(null);
   const [isLoadingLooks, setIsLoadingLooks] = useState(false);
+  const [isDeletingTwinGroup, setIsDeletingTwinGroup] = useState(false);
+  const [deleteTwinError, setDeleteTwinError] = useState<string | null>(null);
+  const [deleteTwinInfo, setDeleteTwinInfo] = useState<string | null>(null);
   const [looksError, setLooksError] = useState<string | null>(null);
   const autoLoadedLooksRef = useRef(false);
   const [privateTwinLooks, setPrivateTwinLooks] = useState<
     Array<{
       id: string;
+      group_id?: string | null;
       name?: string | null;
       preview_image_url?: string | null;
       preview_video_url?: string | null;
@@ -588,13 +592,18 @@ export function CuradorPageV2() {
                           type="button"
                           className="persona-video-history-select"
                           onClick={() => {
+                            const groupId = String(look.group_id ?? "").trim();
                             setAvatarTrack("realistic");
                             setProductionSource("use_existing");
                             setHeygenAvatarId(look.id);
+                            if (groupId) {
+                              setHeygenAvatarGroupId(groupId);
+                            }
                             persistHeygenPrefs({
                               avatarTrack: "realistic",
                               productionSource: "use_existing",
                               heygenAvatarId: look.id,
+                              heygenAvatarGroupId: groupId || heygenAvatarGroupId,
                             });
                           }}
                         >
@@ -946,6 +955,7 @@ export function CuradorPageV2() {
       const payload = await parseJsonOrText<{
         looks?: Array<{
           id: string;
+          group_id?: string | null;
           name?: string | null;
           preview_image_url?: string | null;
           preview_video_url?: string | null;
@@ -961,6 +971,11 @@ export function CuradorPageV2() {
       const looks = payload.looks ?? [];
       setPrivateTwinLooks(looks);
 
+      const groupFromLooks = String(looks[0]?.group_id ?? "").trim();
+      if (groupFromLooks && !heygenAvatarGroupId) {
+        setHeygenAvatarGroupId(groupFromLooks);
+      }
+
       // UX: se ja existirem looks privados, selecione o primeiro automaticamente
       // (mas respeite uma selecao ja feita manualmente).
       if (
@@ -969,6 +984,12 @@ export function CuradorPageV2() {
         productionSource !== "train_new"
       ) {
         setHeygenAvatarId(looks[0].id);
+        if (groupFromLooks) {
+          persistHeygenPrefs({
+            heygenAvatarId: looks[0].id,
+            heygenAvatarGroupId: groupFromLooks,
+          });
+        }
       }
     } catch (error) {
       setLooksError(
@@ -976,6 +997,112 @@ export function CuradorPageV2() {
       );
     } finally {
       setIsLoadingLooks(false);
+    }
+  }
+
+  async function resolveTwinGroupIdForDelete(): Promise<string> {
+    const fromState = heygenAvatarGroupId.trim();
+    if (fromState) {
+      return fromState;
+    }
+
+    const fromSelectedLook = String(selectedTwinLook?.group_id ?? "").trim();
+    if (fromSelectedLook) {
+      return fromSelectedLook;
+    }
+
+    const fromLooksList = String(privateTwinLooks[0]?.group_id ?? "").trim();
+    if (fromLooksList) {
+      return fromLooksList;
+    }
+
+    const response = await fetch("/api/heygen/avatars/groups?ownership=private");
+    const payload = await parseJsonOrText<{
+      groups?: Array<{ id: string }>;
+      message?: string;
+    }>(response);
+
+    if (!response.ok) {
+      throw new Error(payload.message || "Nao foi possivel listar personagens.");
+    }
+
+    const groups = payload.groups ?? [];
+    if (groups.length === 1) {
+      return groups[0].id.trim();
+    }
+
+    if (groups.length > 1) {
+      throw new Error(
+        "Ha mais de um personagem na conta. Selecione um gêmeo em \"Ver avatares recentes\" e tente novamente.",
+      );
+    }
+
+    throw new Error("Nenhum Gêmeo Digital encontrado na conta para remover.");
+  }
+
+  async function handleDeleteTwinGroup() {
+    setDeleteTwinError(null);
+    setDeleteTwinInfo(null);
+
+    const confirmed = window.confirm(
+      "Remover o Gêmeo Digital inteiro da plataforma?\n\n" +
+        "Isso apaga o personagem e todas as variações. Depois você poderá enviar novo vídeo de treino " +
+        "e gravar o consentimento outra vez.\n\n" +
+        "Esta ação não pode ser desfeita.",
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeletingTwinGroup(true);
+    try {
+      const groupId = await resolveTwinGroupIdForDelete();
+      const response = await fetch(
+        `/api/heygen/avatars/groups/${encodeURIComponent(groupId)}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ confirm: true }),
+        },
+      );
+      const payload = await parseJsonOrText<{ message?: string }>(response);
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel remover o personagem.");
+      }
+
+      setHeygenAvatarId("");
+      setHeygenAvatarGroupId("");
+      setHeygenVoiceId("");
+      setHeygenConsentUrl("");
+      setPrivateTwinLooks([]);
+      setTrainingStarted(false);
+      setTrainingBannerState("hidden");
+      setProductionSource("train_new");
+      setTrainingError(null);
+      setTrainingInfo(null);
+
+      if (profileIdForPrefs) {
+        writeCuradorHeygenPrefs(profileIdForPrefs, {
+          heygenAvatarId: "",
+          heygenVoiceId: "",
+          heygenAvatarGroupId: "",
+          avatarTrack: "realistic",
+          productionSource: "train_new",
+        });
+      }
+
+      setDeleteTwinInfo(
+        sanitizeProviderFacingMessage(
+          payload.message ||
+            "Personagem removido. Envie novo vídeo de treino e inicie o treinamento.",
+        ),
+      );
+      void loadPrivateDigitalTwinLooks();
+    } catch (error) {
+      showUserError(setDeleteTwinError, error);
+    } finally {
+      setIsDeletingTwinGroup(false);
     }
   }
 
@@ -1497,6 +1624,43 @@ export function CuradorPageV2() {
                 </a>
               </p>
             )}
+            {avatarTrack === "realistic" &&
+            (heygenAvatarGroupId ||
+              privateTwinLooks.length > 0 ||
+              heygenConsentUrl) ? (
+              <div className="persona-twin-delete-block persona-top-gap">
+                <p className="persona-helper-text">
+                  Para treinar outro rosto no mesmo slot, remova o personagem atual na
+                  plataforma (irreversível). Depois envie novo vídeo e refaça o
+                  consentimento.
+                </p>
+                {deleteTwinError ? (
+                  <p className="persona-helper-text persona-helper-highlight">
+                    {deleteTwinError}
+                  </p>
+                ) : null}
+                {deleteTwinInfo ? (
+                  <p className="persona-helper-text persona-helper-highlight">
+                    {deleteTwinInfo}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  className="persona-btn persona-btn-danger"
+                  onClick={() => void handleDeleteTwinGroup()}
+                  disabled={isDeletingTwinGroup || isTrainingBusy}
+                >
+                  {isDeletingTwinGroup ? (
+                    <span className="persona-loading-row">
+                      <span className="persona-spinner" aria-hidden="true" />
+                      Removendo personagem...
+                    </span>
+                  ) : (
+                    "Remover Gêmeo Digital da plataforma"
+                  )}
+                </button>
+              </div>
+            ) : null}
             {trainingInfo &&
             trainingInfo !== "Treinamento iniciado." &&
             !showTrainingUploads ? (

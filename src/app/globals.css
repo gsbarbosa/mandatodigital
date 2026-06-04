@@ -1222,6 +1222,21 @@ textarea.persona-input-control {
   transform: none;
 }
 
+.persona-twin-delete-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 36rem;
+}
+
+.persona-btn-danger {
+  background-color: #dc2626;
+}
+
+.persona-btn-danger:hover:not(:disabled) {
+  background-color: #b91c1c;
+}
+
 .persona-btn-large {
   padding: 1rem 2.5rem;
   font-size: 1.1rem;
