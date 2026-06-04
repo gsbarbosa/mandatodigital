@@ -1628,11 +1628,20 @@ export function CuradorPageV2() {
             (heygenAvatarGroupId ||
               privateTwinLooks.length > 0 ||
               heygenConsentUrl) ? (
-              <div className="persona-twin-delete-block persona-top-gap">
-                <p className="persona-helper-text">
-                  Para treinar outro rosto no mesmo slot, remova o personagem atual na
-                  plataforma (irreversível). Depois envie novo vídeo e refaça o
-                  consentimento.
+              <>
+                <p className="persona-helper-text persona-twin-delete-hint">
+                  Para treinar outro rosto no mesmo slot,{" "}
+                  <button
+                    type="button"
+                    className="persona-twin-delete-link"
+                    onClick={() => void handleDeleteTwinGroup()}
+                    disabled={isDeletingTwinGroup || isTrainingBusy}
+                  >
+                    {isDeletingTwinGroup
+                      ? "removendo gêmeo…"
+                      : "remover gêmeo atual"}
+                  </button>{" "}
+                  (irreversível; exige novo vídeo e consentimento).
                 </p>
                 {deleteTwinError ? (
                   <p className="persona-helper-text persona-helper-highlight">
@@ -1644,22 +1653,7 @@ export function CuradorPageV2() {
                     {deleteTwinInfo}
                   </p>
                 ) : null}
-                <button
-                  type="button"
-                  className="persona-btn persona-btn-danger"
-                  onClick={() => void handleDeleteTwinGroup()}
-                  disabled={isDeletingTwinGroup || isTrainingBusy}
-                >
-                  {isDeletingTwinGroup ? (
-                    <span className="persona-loading-row">
-                      <span className="persona-spinner" aria-hidden="true" />
-                      Removendo personagem...
-                    </span>
-                  ) : (
-                    "Remover Gêmeo Digital da plataforma"
-                  )}
-                </button>
-              </div>
+              </>
             ) : null}
             {trainingInfo &&
             trainingInfo !== "Treinamento iniciado." &&

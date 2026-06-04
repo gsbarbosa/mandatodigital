@@ -1222,19 +1222,35 @@ textarea.persona-input-control {
   transform: none;
 }
 
-.persona-twin-delete-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  max-width: 36rem;
+.persona-twin-delete-hint {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #64748b;
 }
 
-.persona-btn-danger {
-  background-color: #dc2626;
+.persona-twin-delete-link {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  vertical-align: baseline;
 }
 
-.persona-btn-danger:hover:not(:disabled) {
-  background-color: #b91c1c;
+.persona-twin-delete-link:hover:not(:disabled) {
+  color: #cbd5e1;
+}
+
+.persona-twin-delete-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .persona-btn-large {
