@@ -1040,14 +1040,43 @@ export function CuradorPageV2() {
     setScriptApproved(true);
   }
 
+  function formatCaricatureRequestError(
+    response: Response,
+    payload: { message?: string },
+  ) {
+    const message = payload.message?.trim();
+    if (response.status === 401) {
+      return (
+        message ||
+        "Sessao expirada ou sem permissao. Faca login novamente e tente gerar a caricatura."
+      );
+    }
+    if (response.status === 503) {
+      return (
+        message ||
+        "Servico de geracao de caricatura indisponivel. Verifique OPENAI_API_KEY no servidor."
+      );
+    }
+    if (message) {
+      return message;
+    }
+    return `Nao foi possivel gerar a caricatura (${response.status}).`;
+  }
+
   async function requestCaricatureVariant(
     variant: CaricatureVariant,
   ): Promise<{ assetId: string; previewUrl: string | null }> {
+    if (!assetReferenceId) {
+      throw new Error("Salve o perfil antes de gerar a caricatura.");
+    }
+
     const response = await fetch("/api/openai/caricature", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sourceAssetId: selectedAvatarImage?.id,
+        referenceId: assetReferenceId,
         variant,
       }),
     });
@@ -1058,7 +1087,7 @@ export function CuradorPageV2() {
     }>(response);
 
     if (!response.ok) {
-      throw new Error(payload.message || "Nao foi possivel gerar a caricatura.");
+      throw new Error(formatCaricatureRequestError(response, payload));
     }
 
     if (payload.asset) {
@@ -1099,7 +1128,10 @@ export function CuradorPageV2() {
     setCaricatureChoicePending(true);
 
     try {
-      await saveProfile({ allowDraftDefaults: true, silent: true });
+      await saveProfile({ allowDraftDefaults: true, silent: true, throwOnError: true });
+      if (!assetReferenceId) {
+        throw new Error("Salve o perfil antes de gerar a caricatura.");
+      }
       await requestCaricatureVariant("editorial");
       setCaricatureGenerateStep("mascot_3d");
       await requestCaricatureVariant("mascot_3d");

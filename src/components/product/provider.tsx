@@ -76,6 +76,7 @@ type ProductAppContextValue = {
   saveProfile: (options?: {
     allowDraftDefaults?: boolean;
     silent?: boolean;
+    throwOnError?: boolean;
   }) => Promise<void>;
   uploadTrainingAssets: (
     files: File[],
@@ -218,7 +219,10 @@ export function ProductAppProvider({
 
   async function handleApi<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
     setErrorMessage(null);
-    const response = await fetch(input, init);
+    const response = await fetch(input, {
+      credentials: "same-origin",
+      ...init,
+    });
     const contentType = response.headers.get("content-type") ?? "";
 
     // Alguns erros (ex: Request Entity Too Large) podem vir como texto/HTML.
@@ -249,6 +253,7 @@ export function ProductAppProvider({
   async function saveProfile(options?: {
     allowDraftDefaults?: boolean;
     silent?: boolean;
+    throwOnError?: boolean;
   }) {
     setIsSavingProfile(true);
     setStatusMessage(null);
@@ -344,9 +349,12 @@ export function ProductAppProvider({
         );
       }
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel salvar o perfil.",
-      );
+      const message =
+        error instanceof Error ? error.message : "Nao foi possivel salvar o perfil.";
+      setErrorMessage(message);
+      if (options?.throwOnError) {
+        throw error instanceof Error ? error : new Error(message);
+      }
     } finally {
       setIsSavingProfile(false);
     }
