@@ -101,8 +101,8 @@ export async function POST(request: Request) {
           variant,
           message:
             variant === "mascot_3d"
-              ? "Versão mascote 3D gerada. Escolha qual caricatura usar no treinamento."
-              : "Versão editorial gerada. Gere a segunda versão ou escolha qual usar no treinamento.",
+              ? "Modelo mascote 3D gerado."
+              : "Modelo editorial gerado.",
         },
         { status: 201 },
       );

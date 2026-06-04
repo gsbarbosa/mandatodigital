@@ -527,6 +527,18 @@ textarea.persona-input-control {
   border: 1px solid rgba(59, 130, 246, 0.4);
 }
 
+.persona-caricature-workflow .persona-cta-row {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.persona-caricature-choice-title {
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
 .persona-caricature-variant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
