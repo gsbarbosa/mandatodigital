@@ -18,6 +18,30 @@ export function formatHeyGenUnixTimestamp(seconds?: number | null) {
   });
 }
 
+/** Gêmeo existente na conta (gravado), excluindo falha ou consentimento ainda pendente. */
+export function isUsableRecordedDigitalTwin(look: TwinLookDisplayMeta) {
+  const status = String(look.groupStatus ?? "").trim().toLowerCase();
+  const consent = String(look.consentStatus ?? "").trim().toLowerCase();
+
+  if (status.includes("fail")) {
+    return false;
+  }
+
+  if (status === "pending_consent") {
+    return false;
+  }
+
+  if (
+    consent === "pending" ||
+    consent === "waiting" ||
+    consent === "incomplete"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 export function formatTwinLookCaption(look: TwinLookDisplayMeta) {
   const created = formatHeyGenUnixTimestamp(look.groupCreatedAt ?? null);
   const shortId = look.id ? look.id.slice(0, 8) : "—";

@@ -21,6 +21,7 @@ import {
 } from "@/lib/caricature-asset-variant";
 import {
   formatTwinLookCaption,
+  isUsableRecordedDigitalTwin,
   trainingPhaseMessage,
   type HeyGenTrainingPhase,
   type TwinLookDisplayMeta,
@@ -450,11 +451,16 @@ export function CuradorPageV2() {
     return `${mb.toFixed(1)} MB`;
   }, []);
 
-  const hasExistingTwin = privateTwinLooks.length > 0;
-  const hasTwinOnPlatform =
-    hasExistingTwin ||
-    Boolean(heygenAvatarGroupId.trim()) ||
-    Boolean(heygenConsentUrl.trim());
+  const usableTwinLooks = useMemo(
+    () => privateTwinLooks.filter(isUsableRecordedDigitalTwin),
+    [privateTwinLooks],
+  );
+  const hasExistingTwin = !isLoadingLooks && usableTwinLooks.length > 0;
+  const hasAnyTwinOnPlatform =
+    !isLoadingLooks &&
+    (privateTwinLooks.length > 0 ||
+      Boolean(heygenAvatarGroupId.trim()) ||
+      Boolean(heygenConsentUrl.trim()));
   const hasExistingCaricature = caricatureAssets.length > 0;
   const showTrainingUploads = productionSource === "train_new";
   const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
@@ -477,7 +483,9 @@ export function CuradorPageV2() {
   const isTrainingBusy = isTraining || isGeneratingCaricature;
   const canGenerateCaricaturePair = Boolean(avatarImageAssets[0]);
   const selectedTwinLook =
-    privateTwinLooks.find((look) => look.id === heygenAvatarId) ?? null;
+    usableTwinLooks.find((look) => look.id === heygenAvatarId) ??
+    usableTwinLooks[0] ??
+    null;
   const twinReadyForVideo =
     avatarTrack !== "realistic" ||
     trainingBannerState === "ready" ||
@@ -502,7 +510,7 @@ export function CuradorPageV2() {
 
   function selectAvatarTrack(track: AvatarTrack) {
     const hasExisting =
-      track === "realistic" ? privateTwinLooks.length > 0 : caricatureAssets.length > 0;
+      track === "realistic" ? hasExistingTwin : caricatureAssets.length > 0;
     setAvatarTrack(track);
     setProductionSource(hasExisting ? "use_existing" : "train_new");
     setTrainingStarted(false);
@@ -530,8 +538,8 @@ export function CuradorPageV2() {
       setCaricatureInfo(null);
       setCaricatureError(null);
     }
-    if (source === "use_existing" && avatarTrack === "realistic" && privateTwinLooks[0]) {
-      const newest = privateTwinLooks[0];
+    if (source === "use_existing" && avatarTrack === "realistic" && usableTwinLooks[0]) {
+      const newest = usableTwinLooks[0];
       setHeygenAvatarId(newest.id);
       if (newest.group_id) {
         setHeygenAvatarGroupId(String(newest.group_id));
@@ -699,13 +707,13 @@ export function CuradorPageV2() {
     }
 
     const showPurgeFeedback = Boolean(deleteTwinInfo || deleteTwinError);
-    if (!hasTwinOnPlatform && !showPurgeFeedback) {
+    if (!hasAnyTwinOnPlatform && !showPurgeFeedback) {
       return null;
     }
 
     return (
       <div className="persona-form-group persona-twin-purge-step">
-        {hasTwinOnPlatform ? (
+        {hasAnyTwinOnPlatform ? (
           <>
             <label className="persona-label">Etapa 1 — Gêmeo digital na plataforma</label>
             <p className="persona-helper-text">
@@ -737,7 +745,7 @@ export function CuradorPageV2() {
   }
 
   function renderRecentAvatarsPanel() {
-    const hasTwins = privateTwinLooks.length > 0;
+    const hasTwins = usableTwinLooks.length > 0;
     const hasCaricatures = sortedCaricatureAssets.length > 0;
     const showTwinsSection = avatarTrack === "realistic" && hasTwins;
     const showCaricaturesSection = avatarTrack === "caricature" && hasCaricatures;
@@ -779,7 +787,7 @@ export function CuradorPageV2() {
               <>
                 <p className="persona-helper-text">Gêmeos digitais</p>
                 <ul className="persona-video-history-list">
-                  {privateTwinLooks.map((look) => {
+                  {usableTwinLooks.map((look) => {
                     const isSelected =
                       avatarTrack === "realistic" && heygenAvatarId === look.id;
                     return (
@@ -1329,7 +1337,10 @@ export function CuradorPageV2() {
         if (
           prefs.productionSource === "use_existing" &&
           preferredFromPrefs &&
-          enriched.some((look) => look.id === preferredFromPrefs)
+          enriched.some(
+            (look) =>
+              look.id === preferredFromPrefs && isUsableRecordedDigitalTwin(look),
+          )
         ) {
           setProductionSource("use_existing");
         }
@@ -1352,8 +1363,10 @@ export function CuradorPageV2() {
           enriched.find((look) => look.group_id === preferredGroupId) ?? null;
       }
 
+      const usableEnriched = enriched.filter(isUsableRecordedDigitalTwin);
+
       if (!resolved && productionSource === "use_existing") {
-        resolved = enriched[0] ?? null;
+        resolved = usableEnriched[0] ?? null;
       }
 
       if (resolved) {
@@ -1638,13 +1651,13 @@ export function CuradorPageV2() {
   }, [sortedCaricatureAssets, selectedCaricatureAssetId]);
 
   useEffect(() => {
-    if (avatarTrack !== "realistic" || privateTwinLooks.length === 0) {
+    if (avatarTrack !== "realistic" || usableTwinLooks.length === 0) {
       return;
     }
     if (productionSource === "use_existing") {
-      setHeygenAvatarId((current) => current || privateTwinLooks[0].id);
+      setHeygenAvatarId((current) => current || usableTwinLooks[0].id);
     }
-  }, [avatarTrack, privateTwinLooks, productionSource]);
+  }, [avatarTrack, usableTwinLooks, productionSource]);
 
   useEffect(() => {
     if (!profileIdForPrefs) {
