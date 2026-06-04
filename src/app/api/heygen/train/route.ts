@@ -15,8 +15,8 @@ import {
 import {
   getTrainingAssetPublicUrl,
   pickAvatarImageAndVoiceAudioAssets,
-  pickCaricatureAsset,
   resolveAppBaseUrl,
+  resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
 
 type HeyGenTrainMode = "photo" | "digital_twin" | "caricature";
@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       const body = (await request.json().catch(() => ({}))) as {
         avatarName?: string;
         mode?: HeyGenTrainMode;
+        caricatureAssetId?: string;
       };
 
       const dashboard = await repository.getDashboard();
@@ -38,7 +39,10 @@ export async function POST(request: Request) {
       const assets = await repository.listTrainingAssetsForReference(profileId);
       const { avatarImageAsset, voiceAudioAsset } =
         pickAvatarImageAndVoiceAudioAssets(assets);
-      const caricatureAsset = pickCaricatureAsset(assets);
+      const caricatureAsset = resolveCaricatureAsset(
+        assets,
+        body.caricatureAssetId,
+      );
       const latestVideoAsset =
         [...assets]
           .filter(

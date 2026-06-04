@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
+import {
+  CARICATURE_VARIANT_FILENAMES,
+  type CaricatureVariant,
+} from "@/lib/openai-caricature-prompts";
 import { generateCaricatureFromPhoto } from "@/lib/openai-image";
 import {
   downloadTrainingAsset,
@@ -19,7 +23,12 @@ export async function POST(request: Request) {
       const body = (await request.json().catch(() => ({}))) as {
         sourceAssetId?: string;
         styleHint?: string;
+        variant?: CaricatureVariant | string;
       };
+
+      const variantRaw = String(body.variant ?? "editorial").trim();
+      const variant: CaricatureVariant =
+        variantRaw === "mascot_3d" ? "mascot_3d" : "editorial";
 
       const dashboard = await repository.getDashboard();
       const profileId = dashboard.profile?.id ?? null;
@@ -46,6 +55,7 @@ export async function POST(request: Request) {
       const caricature = await generateCaricatureFromPhoto({
         imageBuffer: buffer,
         mimeType,
+        variant,
         styleHint: body.styleHint,
       });
 
@@ -65,7 +75,7 @@ export async function POST(request: Request) {
           storageProvider: uploaded.storageProvider,
           storageBucket: uploaded.storageBucket,
           storagePath: uploaded.storagePath,
-          originalFilename: "caricatura-openai.png",
+          originalFilename: CARICATURE_VARIANT_FILENAMES[variant],
           mimeType: caricature.mimeType,
           sizeBytes: uploaded.sizeBytes,
           status: "uploaded",
@@ -88,7 +98,11 @@ export async function POST(request: Request) {
           asset,
           previewUrl,
           model: caricature.model,
-          message: "Caricatura gerada. Revise o preview antes de gerar o video.",
+          variant,
+          message:
+            variant === "mascot_3d"
+              ? "Versão mascote 3D gerada. Escolha qual caricatura usar no treinamento."
+              : "Versão editorial gerada. Gere a segunda versão ou escolha qual usar no treinamento.",
         },
         { status: 201 },
       );

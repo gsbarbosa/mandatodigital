@@ -141,6 +141,23 @@ export function pickCaricatureAsset(assets: ProfileTrainingAsset[]) {
   );
 }
 
+export function resolveCaricatureAsset(
+  assets: ProfileTrainingAsset[],
+  preferredAssetId?: string | null,
+) {
+  const assetId = String(preferredAssetId ?? "").trim();
+  if (assetId) {
+    const match = assets.find(
+      (asset) => asset.id === assetId && asset.trainingRole === "avatar_caricature",
+    );
+    if (match) {
+      return match;
+    }
+  }
+
+  return pickCaricatureAsset(assets);
+}
+
 /** @deprecated Use pickAvatarImageAndVoiceAudioAssets */
 export function pickAvatarImageAndConsentAssets(assets: ProfileTrainingAsset[]) {
   return pickAvatarImageAndVoiceAudioAssets(assets);

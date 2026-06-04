@@ -15,6 +15,11 @@ import {
   sanitizeProviderFacingMessage,
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
+import {
+  caricatureVariantLabel,
+  pickLatestCaricatureForVariant,
+} from "@/lib/caricature-asset-variant";
+import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
 import type { ProfileTrainingAsset } from "@/lib/types";
 
 const MAX_SCRIPT_WORDS = 100;
@@ -117,6 +122,66 @@ function PersonaEditorialIcon() {
         d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm-1 2 5 5h-5V4ZM8 13h8v2H8v-2Zm0 4h5v2H8v-2Z"
       />
     </svg>
+  );
+}
+
+function CaricatureVariantOption({
+  asset,
+  variant,
+  isSelected,
+  onSelect,
+}: {
+  asset: ProfileTrainingAsset;
+  variant: CaricatureVariant;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(
+      `/api/profile/training-assets/${encodeURIComponent(asset.id)}/preview-url`,
+    )
+      .then(async (response) => {
+        const payload = (await response.json()) as { previewUrl?: string };
+        if (!response.ok || cancelled) {
+          return;
+        }
+        setPreviewUrl(payload.previewUrl?.trim() || null);
+      })
+      .catch(() => {
+        // ignore
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [asset.id]);
+
+  return (
+    <button
+      type="button"
+      className={
+        isSelected
+          ? "persona-caricature-variant-card active"
+          : "persona-caricature-variant-card"
+      }
+      onClick={onSelect}
+    >
+      <div className="persona-caricature-variant-thumb" aria-hidden="true">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt=""
+            className="persona-caricature-preview-image"
+          />
+        ) : (
+          <span className="persona-twin-preview-placeholder" />
+        )}
+      </div>
+      <strong>{caricatureVariantLabel(variant)}</strong>
+      <span>Usar no treinamento</span>
+    </button>
   );
 }
 
@@ -326,14 +391,27 @@ export function CuradorPageV2() {
   const showTrainingUploads = productionSource === "train_new";
   const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
   const canStartRealisticTraining = showTrainingUploads && canTrainRealistic;
+  const editorialCaricature = useMemo(
+    () => pickLatestCaricatureForVariant(visibleTrainingAssets, "editorial"),
+    [visibleTrainingAssets],
+  );
+  const mascotCaricature = useMemo(
+    () => pickLatestCaricatureForVariant(visibleTrainingAssets, "mascot_3d"),
+    [visibleTrainingAssets],
+  );
   const canStartCaricatureTraining =
-    showTrainingUploads && Boolean(avatarImageAssets[0] && voiceAudioAssets[0]);
+    showTrainingUploads &&
+    Boolean(
+      avatarImageAssets[0] &&
+        voiceAudioAssets[0] &&
+        selectedCaricatureAssetId.trim(),
+    );
   const isTrainingBusy = isTraining || isGeneratingCaricature;
-  const canGenerateCaricature = Boolean(avatarImageAssets[0]);
+  const canGenerateCaricaturePair = Boolean(avatarImageAssets[0]);
   const canGenerateVideo =
     avatarTrack === "realistic"
       ? Boolean(heygenAvatarId)
-      : Boolean(heygenVoiceId && caricatureAssets[0]);
+      : Boolean(heygenVoiceId && selectedCaricatureAssetId.trim());
 
   const scriptWordCount = countWords(scriptDraft);
   const canProduceContent =
@@ -767,42 +845,72 @@ export function CuradorPageV2() {
     setScriptApproved(true);
   }
 
-  async function handleGenerateCaricature(): Promise<string | undefined> {
+  async function requestCaricatureVariant(
+    variant: CaricatureVariant,
+  ): Promise<{ assetId: string; previewUrl: string | null }> {
+    const response = await fetch("/api/openai/caricature", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceAssetId: selectedAvatarImage?.id,
+        variant,
+      }),
+    });
+    const payload = await parseJsonOrText<{
+      asset?: ProfileTrainingAsset;
+      previewUrl?: string;
+      message?: string;
+    }>(response);
+
+    if (!response.ok) {
+      throw new Error(payload.message || "Nao foi possivel gerar a caricatura.");
+    }
+
+    if (payload.asset) {
+      appendTrainingAssets([payload.asset]);
+    }
+
+    const assetId = payload.asset?.id?.trim() ?? "";
+    if (!assetId) {
+      throw new Error("Resposta invalida: caricatura sem identificador.");
+    }
+
+    return {
+      assetId,
+      previewUrl: payload.previewUrl?.trim() || null,
+    };
+  }
+
+  function selectCaricatureForTraining(assetId: string, previewUrl?: string | null) {
+    setSelectedCaricatureAssetId(assetId);
+    if (previewUrl) {
+      setCaricaturePreviewUrl(previewUrl);
+    }
+    persistHeygenPrefs({ lastCaricatureAssetId: assetId });
+  }
+
+  async function handleGenerateBothCaricatures() {
+    if (!canGenerateCaricaturePair || isTrainingBusy) {
+      return;
+    }
+
     setCaricatureError(null);
     setCaricatureInfo(null);
     setIsGeneratingCaricature(true);
 
     try {
-      void saveProfile({ allowDraftDefaults: true, silent: true });
-      const response = await fetch("/api/openai/caricature", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceAssetId: selectedAvatarImage?.id,
-        }),
-      });
-      const payload = await parseJsonOrText<{
-        asset?: ProfileTrainingAsset;
-        previewUrl?: string;
-        message?: string;
-      }>(response);
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel gerar a caricatura.");
-      }
-
-      if (payload.asset) {
-        appendTrainingAssets([payload.asset]);
-        setSelectedCaricatureAssetId(payload.asset.id);
-      }
-      setCaricaturePreviewUrl(payload.previewUrl?.trim() || null);
-      setCaricatureInfo(payload.message || "Caricatura gerada.");
+      await saveProfile({ allowDraftDefaults: true, silent: true });
+      const editorial = await requestCaricatureVariant("editorial");
+      const mascot = await requestCaricatureVariant("mascot_3d");
+      selectCaricatureForTraining(editorial.assetId, editorial.previewUrl);
       setHeygenVoiceId("");
       setTrainingInfo(null);
-      return payload.asset?.id;
+      setCaricatureInfo(
+        "Duas versões geradas. Escolha qual caricatura enviar ao treinamento do avatar.",
+      );
     } catch (error) {
       setCaricatureError(
-        error instanceof Error ? error.message : "Erro ao gerar caricatura.",
+        error instanceof Error ? error.message : "Erro ao gerar caricaturas.",
       );
       throw error;
     } finally {
@@ -824,6 +932,8 @@ export function CuradorPageV2() {
         body: JSON.stringify({
           avatarName: profileForm.fullName || "Mandato Digital Avatar",
           mode: avatarTrack === "realistic" ? "digital_twin" : "caricature",
+          caricatureAssetId:
+            avatarTrack === "caricature" ? selectedCaricatureAssetId : undefined,
         }),
       });
       const payload = await parseJsonOrText<{
@@ -853,7 +963,7 @@ export function CuradorPageV2() {
         heygenAvatarId: payload.avatarId?.trim() || heygenAvatarId,
         heygenVoiceId: payload.voiceId?.trim() || heygenVoiceId,
         heygenAvatarGroupId: String(payload.avatarGroupId ?? "").trim() || heygenAvatarGroupId,
-        lastCaricatureAssetId: sortedCaricatureAssets[0]?.id,
+        lastCaricatureAssetId: selectedCaricatureAssetId || sortedCaricatureAssets[0]?.id,
       });
 
       return payload.voiceId?.trim() || undefined;
@@ -890,20 +1000,51 @@ export function CuradorPageV2() {
     setCaricatureError(null);
     try {
       await saveProfile({ allowDraftDefaults: true, silent: true });
-      const latestCaricatureId = await handleGenerateCaricature();
       await handleTrainHeyGen();
       setTrainingBannerState("completed");
-      if (latestCaricatureId) {
-        setSelectedCaricatureAssetId(latestCaricatureId);
-      }
       persistHeygenPrefs({
         avatarTrack: "caricature",
         productionSource: "train_new",
-        lastCaricatureAssetId: latestCaricatureId ?? selectedCaricatureAssetId,
+        lastCaricatureAssetId: selectedCaricatureAssetId,
       });
     } catch {
       setTrainingBannerState("hidden");
     }
+  }
+
+  function renderCaricatureVariantPicker() {
+    if (avatarTrack !== "caricature" || !showTrainingUploads) {
+      return null;
+    }
+    if (!editorialCaricature && !mascotCaricature) {
+      return null;
+    }
+
+    return (
+      <div className="persona-form-group persona-top-gap">
+        <p className="persona-helper-text">
+          Escolha a caricatura para o treinamento e para gerar vídeos
+        </p>
+        <div className="persona-caricature-variant-grid">
+          {editorialCaricature ? (
+            <CaricatureVariantOption
+              asset={editorialCaricature}
+              variant="editorial"
+              isSelected={selectedCaricatureAssetId === editorialCaricature.id}
+              onSelect={() => selectCaricatureForTraining(editorialCaricature.id)}
+            />
+          ) : null}
+          {mascotCaricature ? (
+            <CaricatureVariantOption
+              asset={mascotCaricature}
+              variant="mascot_3d"
+              isSelected={selectedCaricatureAssetId === mascotCaricature.id}
+              onSelect={() => selectCaricatureForTraining(mascotCaricature.id)}
+            />
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   function renderTrainingStartControl(
@@ -1154,6 +1295,8 @@ export function CuradorPageV2() {
           avatarId: avatarTrack === "realistic" ? heygenAvatarId : undefined,
           voiceId: resolvedVoiceId || undefined,
           generateMode: avatarTrack === "caricature" ? "caricature" : "avatar",
+          caricatureAssetId:
+            avatarTrack === "caricature" ? selectedCaricatureAssetId : undefined,
           name: useFreePromptAsTranscript
             ? `Curador - prompt livre - ${profileForm.fullName || "Politico"}`
             : `Curador - ${profileForm.fullName || "Politico"} - ${topic || scriptTopicSnapshot}`,
@@ -1546,12 +1689,38 @@ export function CuradorPageV2() {
             </div>
           ) : null}
 
-          {avatarTrack === "caricature" && showTrainingUploads
-            ? renderTrainingStartControl(
+          {avatarTrack === "caricature" && showTrainingUploads ? (
+            <>
+              <div className="persona-cta-block persona-top-gap">
+                <div className="persona-cta-row">
+                  <button
+                    type="button"
+                    className="persona-btn persona-btn-secondary"
+                    onClick={() => void handleGenerateBothCaricatures()}
+                    disabled={!canGenerateCaricaturePair || isTrainingBusy}
+                  >
+                    {isGeneratingCaricature ? (
+                      <span className="persona-loading-row">
+                        <span className="persona-spinner" aria-hidden="true" />
+                        Gerando caricaturas…
+                      </span>
+                    ) : (
+                      "Gerar caricaturas (2 versões)"
+                    )}
+                  </button>
+                </div>
+                <p className="persona-helper-text">
+                  Versão 1: editorial política (fluxo atual). Versão 2: mascote 3D
+                  estilo animação. Depois escolha qual usar no treinamento.
+                </p>
+              </div>
+              {renderCaricatureVariantPicker()}
+              {renderTrainingStartControl(
                 canStartCaricatureTraining,
                 handleStartCaricatureTraining,
-              )
-            : null}
+              )}
+            </>
+          ) : null}
 
           {avatarTrack === "realistic" && productionSource === "use_existing" && selectedTwinLook ? (
             <div className="persona-caricature-actions-card persona-top-gap">
@@ -1583,19 +1752,6 @@ export function CuradorPageV2() {
               <img
                 src={caricaturePreviewUrl}
                 alt="Preview da caricatura"
-                className="persona-caricature-preview-image"
-              />
-            </div>
-          ) : null}
-
-          {avatarTrack === "caricature" &&
-          showTrainingUploads &&
-          caricaturePreviewUrl &&
-          !isGeneratingCaricature ? (
-            <div className="persona-caricature-actions-card persona-top-gap">
-              <img
-                src={caricaturePreviewUrl}
-                alt="Preview da caricatura gerada"
                 className="persona-caricature-preview-image"
               />
             </div>

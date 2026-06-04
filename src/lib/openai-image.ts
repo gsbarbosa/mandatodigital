@@ -1,10 +1,9 @@
-const DEFAULT_CARICATURE_MODEL = "gpt-image-1.5";
+import {
+  resolveCaricaturePrompt,
+  type CaricatureVariant,
+} from "@/lib/openai-caricature-prompts";
 
-const DEFAULT_CARICATURE_PROMPT =
-  "Transform this portrait into a polished editorial political caricature illustration. " +
-  "Exaggerate distinctive facial features while keeping the person clearly recognizable. " +
-  "Bold clean outlines, warm colors, neutral simple background, front-facing bust, " +
-  "suitable as a talking avatar. No text, no logos, no weapons, no extra people.";
+const DEFAULT_CARICATURE_MODEL = "gpt-image-1.5";
 
 function getOpenAiApiKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -44,13 +43,15 @@ function parseOpenAiImageError(status: number, body: string) {
 export async function generateCaricatureFromPhoto(input: {
   imageBuffer: Buffer;
   mimeType: string;
+  variant?: CaricatureVariant;
   styleHint?: string;
 }) {
   const apiKey = getOpenAiApiKey();
   const model = getCaricatureModel();
-  const prompt = input.styleHint?.trim()
-    ? `${DEFAULT_CARICATURE_PROMPT} Additional style notes: ${input.styleHint.trim()}`
-    : DEFAULT_CARICATURE_PROMPT;
+  const prompt = resolveCaricaturePrompt({
+    variant: input.variant,
+    styleHint: input.styleHint,
+  });
 
   const extension = extensionForMime(input.mimeType);
   const formData = new FormData();

@@ -13,7 +13,7 @@ import {
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
 import {
   pickAvatarImageAndVoiceAudioAssets,
-  pickCaricatureAsset,
+  resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
 
 function countWords(text: string) {
@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         name?: string;
         freePrompt?: string;
         generateMode?: "avatar" | "caricature";
+        caricatureAssetId?: string;
       };
 
       const generateMode = body.generateMode === "caricature" ? "caricature" : "avatar";
@@ -74,7 +75,10 @@ export async function POST(request: Request) {
         const assets = await repository.listTrainingAssetsForReference(
           dashboard.profile?.id ?? "",
         );
-        const caricatureAsset = pickCaricatureAsset(assets);
+        const caricatureAsset = resolveCaricatureAsset(
+          assets,
+          body.caricatureAssetId,
+        );
         if (!caricatureAsset) {
           return NextResponse.json(
             { message: "Gere e aprove a caricatura antes de produzir o video." },
