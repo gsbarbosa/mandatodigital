@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { apiRoute } from "@/lib/auth/api-route";
+import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
 import {
@@ -31,7 +31,7 @@ function estimateSecondsFromWords(words: number) {
 
 export async function POST(request: Request) {
   try {
-    return apiRoute(async (repository) => {
+    return heygenApiRoute(request, async (repository) => {
       const body = (await request.json()) as {
         topic?: string;
         avatarId?: string;

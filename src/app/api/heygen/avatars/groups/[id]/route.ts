@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { apiRoute } from "@/lib/auth/api-route";
+import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import {
   formatHeyGenError,
@@ -9,11 +9,11 @@ import {
 } from "@/lib/heygen";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    return apiRoute(async () => {
+    return heygenApiRoute(request, async () => {
       const params = await context.params;
       const id = String(params.id ?? "").trim();
       if (!id) {
@@ -36,7 +36,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    return apiRoute(async () => {
+    return heygenApiRoute(request, async () => {
       const body = (await request.json().catch(() => ({}))) as { confirm?: boolean };
       if (!body.confirm) {
         return NextResponse.json(

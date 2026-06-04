@@ -8,10 +8,13 @@ import {
 } from "@/lib/constants";
 
 import { ToggleGridField, updateToggleValues } from "./config-controls";
+import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { useProductApp } from "./provider";
 import { PhaseSectionIntro, SectionCard, workflowStageById } from "./shared";
 
 export function DistribuidorPage() {
+  const { open: heygenDevOpen, setOpen: setHeygenDevOpen, handleSecretClick } =
+    useHeygenDevPanelReveal();
   const {
     latestApprovedContent,
     profileForm,
@@ -22,7 +25,10 @@ export function DistribuidorPage() {
 
   return (
     <section className="phase-section">
-      <PhaseSectionIntro stage={workflowStageById.distribuidor} />
+      <div className="phase-intro-secret-target" onClick={handleSecretClick}>
+        <PhaseSectionIntro stage={workflowStageById.distribuidor} />
+      </div>
+      <HeygenDevKeyPanel open={heygenDevOpen} onClose={() => setHeygenDevOpen(false)} />
 
       <div className="grid-main">
         <div className="column-main">

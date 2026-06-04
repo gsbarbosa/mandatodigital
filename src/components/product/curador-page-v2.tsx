@@ -26,6 +26,7 @@ import {
   type HeyGenTrainingPhase,
   type TwinLookDisplayMeta,
 } from "@/lib/heygen-twin-display";
+import { fetchHeygenApi } from "@/lib/heygen-client-override";
 import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
 import type { ProfileTrainingAsset } from "@/lib/types";
 
@@ -760,7 +761,7 @@ export function CuradorPageV2() {
       ? "Etapa 1 — Avatar caricato na plataforma"
       : "Etapa 1 — Gêmeo digital na plataforma";
     const stepHelp = isCaricatureTrack
-      ? "Remova a voz/personagem treinado na plataforma antes de enviar foto e áudio de novo. Isso não apaga os arquivos que você enviar neste formulário — só o personagem remoto (voz e avatares privados na conta)."
+      ? "Remove avatares privados na conta antes de um treino novo. Os clones de voz (limite 10) ficam na biblioteca de vozes do painel HeyGen — apague os que não usa lá se aparecer erro de limite. Os arquivos deste formulário (foto, áudio, caricaturas) não são apagados."
       : "Remova o gêmeo treinado na plataforma antes de enviar áudio e vídeo. Isso não apaga os arquivos que você enviar neste formulário — só o personagem remoto.";
     const removeLabel = isCaricatureTrack
       ? "Remover personagem caricato"
@@ -949,7 +950,7 @@ export function CuradorPageV2() {
     const maxAttempts = 180;
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const response = await fetch(`/api/heygen/videos/${encodeURIComponent(id)}`);
+      const response = await fetchHeygenApi(`/api/heygen/videos/${encodeURIComponent(id)}`);
       const payload = await parseJsonOrText<{
         status?: string;
         videoUrl?: string;
@@ -997,7 +998,7 @@ export function CuradorPageV2() {
 
     try {
       await saveProfile({ allowDraftDefaults: true, silent: true });
-      const response = await fetch("/api/heygen/transcript", {
+      const response = await fetchHeygenApi("/api/heygen/transcript", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1169,7 +1170,7 @@ export function CuradorPageV2() {
 
     try {
       await saveProfile({ allowDraftDefaults: true, silent: true });
-      const response = await fetch("/api/heygen/train", {
+      const response = await fetchHeygenApi("/api/heygen/train", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1178,7 +1179,7 @@ export function CuradorPageV2() {
           action: isTwinSync ? "sync" : "create",
           avatarGroupId: isTwinSync ? heygenAvatarGroupId : undefined,
           avatarLookId: isTwinSync ? heygenAvatarId : undefined,
-          voiceId: isTwinSync ? heygenVoiceId || undefined : undefined,
+          voiceId: heygenVoiceId.trim() || undefined,
           caricatureAssetId:
             avatarTrack === "caricature" ? selectedCaricatureAssetId : undefined,
         }),
@@ -1422,8 +1423,8 @@ export function CuradorPageV2() {
     setIsLoadingLooks(true);
     try {
       const [looksResponse, groupsResponse] = await Promise.all([
-        fetch("/api/heygen/avatars/looks?ownership=private&avatarType=digital_twin"),
-        fetch("/api/heygen/avatars/groups?ownership=private"),
+        fetchHeygenApi("/api/heygen/avatars/looks?ownership=private&avatarType=digital_twin"),
+        fetchHeygenApi("/api/heygen/avatars/groups?ownership=private"),
       ]);
 
       const looksPayload = await parseJsonOrText<{
@@ -1566,7 +1567,7 @@ export function CuradorPageV2() {
 
     setIsDeletingTwinGroup(true);
     try {
-      const response = await fetch("/api/heygen/avatars/groups/purge", {
+      const response = await fetchHeygenApi("/api/heygen/avatars/groups/purge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: true }),
@@ -1691,7 +1692,7 @@ export function CuradorPageV2() {
 
       await saveProfile({ allowDraftDefaults: true, silent: true });
 
-      const response = await fetch("/api/heygen/videos", {
+      const response = await fetchHeygenApi("/api/heygen/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

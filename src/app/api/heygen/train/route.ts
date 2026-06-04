@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { apiRoute } from "@/lib/auth/api-route";
+import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
 import {
@@ -12,6 +12,7 @@ import {
   heygenGetAvatarGroup,
   heygenGetVoice,
   heygenListAvatarLooks,
+  heygenVoiceExists,
 } from "@/lib/heygen";
 import {
   resolveHeyGenTrainingPhase,
@@ -28,7 +29,7 @@ type HeyGenTrainMode = "photo" | "digital_twin" | "caricature";
 
 export async function POST(request: Request) {
   try {
-    return apiRoute(async (repository) => {
+    return heygenApiRoute(request, async (repository) => {
       const body = (await request.json().catch(() => ({}))) as {
         avatarName?: string;
         mode?: HeyGenTrainMode;
@@ -244,6 +245,13 @@ export async function POST(request: Request) {
           file: { type: "url", url: avatarImageUrl },
         });
         avatarId = photo.avatarId;
+      }
+
+      if (voiceId) {
+        const stillExists = await heygenVoiceExists(voiceId);
+        if (!stillExists) {
+          voiceId = "";
+        }
       }
 
       if (!voiceId) {

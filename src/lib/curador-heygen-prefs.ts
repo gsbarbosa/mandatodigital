@@ -45,6 +45,7 @@ export function isProviderLimitMessage(message: string) {
     normalized.includes("100 submissions") ||
     normalized.includes("submissions per day") ||
     normalized.includes("verified avatar group") ||
+    normalized.includes("voice clone limit") ||
     normalized.includes("reached the limit")
   );
 }
@@ -81,6 +82,14 @@ export function formatProviderLimitHint(message: string): string | null {
     hints.push(
       "Limite de operações diárias: no plano atual há até 100 envios por dia. " +
         "Tente novamente amanhã.",
+    );
+  }
+
+  if (normalized.includes("voice clone limit")) {
+    hints.push(
+      "Limite de clones de voz (10 na conta): a API da plataforma não permite apagar vozes por aqui. " +
+        "Abra o painel HeyGen → Voice Library, exclua clones antigos que não usa e volte ao treinamento. " +
+        "Depois use \"Remover personagem caricato\" e treine de novo, ou reutilize a voz já vinculada sem gerar outra caricatura do zero.",
     );
   }
 

@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 
-import { apiRoute } from "@/lib/auth/api-route";
+import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { formatHeyGenError, heygenGetVideo } from "@/lib/heygen";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    return apiRoute(async () => {
+    return heygenApiRoute(request, async () => {
       const { id } = await context.params;
       const videoId = String(id ?? "").trim();
 

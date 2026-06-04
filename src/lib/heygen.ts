@@ -1,6 +1,23 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 export type HeyGenAssetInput =
   | { type: "url"; url: string }
   | { type: "asset_id"; asset_id: string };
+
+const heygenApiKeyOverrideStore = new AsyncLocalStorage<string | undefined>();
+
+/** Usa API key de teste (header do Distribuidor) nas chamadas HeyGen deste handler. */
+export function runWithHeyGenApiKey<T>(apiKey: string, fn: () => T): T {
+  return heygenApiKeyOverrideStore.run(apiKey.trim(), fn);
+}
+
+function resolveHeyGenApiKeyForFetch() {
+  const override = heygenApiKeyOverrideStore.getStore()?.trim();
+  if (override) {
+    return override;
+  }
+  return getHeyGenConfig().apiKey;
+}
 
 type HeyGenStandardError = {
   error?: {
@@ -36,7 +53,8 @@ export function formatHeyGenError(error: unknown) {
 
 async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const config = getHeyGenConfig();
-  if (!config.apiKey) {
+  const apiKey = resolveHeyGenApiKeyForFetch();
+  if (!apiKey) {
     throw new Error(
       "HEYGEN_API_KEY nao configurada no servidor. Configure na Vercel e/ou .env.local.",
     );
@@ -46,7 +64,7 @@ async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": config.apiKey,
+      "x-api-key": apiKey,
       ...(init?.headers ?? {}),
     },
   });
@@ -322,9 +340,81 @@ export async function heygenCloneVoice(input: { voiceName: string; audio: HeyGen
 }
 
 export async function heygenGetVoice(voiceId: string) {
-  return heygenFetch<HeyGenVoiceDetailsResponse>(`/v3/voices/${voiceId}`, {
+  return heygenFetch<HeyGenVoiceDetailsResponse>(
+    `/v3/voices/${encodeURIComponent(voiceId)}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export type HeyGenVoiceListItem = {
+  voice_id?: string;
+  name?: string;
+  language?: string;
+  gender?: string;
+  type?: string;
+};
+
+export type HeyGenListVoicesResponse = {
+  data?: HeyGenVoiceListItem[];
+  has_more?: boolean;
+  next_token?: string | null;
+};
+
+export async function heygenListVoices(input?: {
+  type?: "public" | "private";
+  limit?: number;
+  token?: string;
+}) {
+  const query = new URLSearchParams();
+  if (input?.type) query.set("type", input.type);
+  if (input?.limit) query.set("limit", String(input.limit));
+  if (input?.token) query.set("token", input.token);
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  return heygenFetch<HeyGenListVoicesResponse>(`/v3/voices${suffix}`, {
     method: "GET",
   });
+}
+
+/** Lista todos os clones privados (paginado). A API HeyGen nao expoe DELETE de voz. */
+export async function heygenListAllPrivateVoices() {
+  const voices: HeyGenVoiceListItem[] = [];
+  let token: string | undefined;
+
+  for (let page = 0; page < 20; page += 1) {
+    const response = await heygenListVoices({
+      type: "private",
+      limit: 100,
+      token,
+    });
+    voices.push(...(response.data ?? []));
+    if (!response.has_more || !response.next_token) {
+      break;
+    }
+    token = String(response.next_token);
+  }
+
+  return voices;
+}
+
+export async function heygenVoiceExists(voiceId: string) {
+  const id = voiceId.trim();
+  if (!id) {
+    return false;
+  }
+
+  try {
+    await heygenGetVoice(id);
+    return true;
+  } catch (error) {
+    const message = formatHeyGenError(error).toLowerCase();
+    if (message.includes("not found") || message.includes("voice_not_found")) {
+      return false;
+    }
+    throw error;
+  }
 }
 
 export type HeyGenCreateVideoResponse = {

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { apiRoute } from "@/lib/auth/api-route";
+import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import {
   buildAvatarVideoTranscript,
@@ -32,7 +32,7 @@ function mergeProfileWithCuradorContext(
 
 export async function POST(request: Request) {
   try {
-    return apiRoute(async (repository) => {
+    return heygenApiRoute(request, async (repository) => {
       const body = (await request.json().catch(() => ({}))) as {
         topic?: string;
         curadorContext?: Partial<CuradorVideoContext>;
