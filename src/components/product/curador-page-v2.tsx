@@ -10,8 +10,9 @@ import {
 import { useProductApp } from "@/components/product/provider";
 import { parseTextarea } from "@/components/product/shared";
 import {
-  isHeyGenDailyLimitMessage,
+  formatProviderLimitHint,
   readCuradorHeygenPrefs,
+  sanitizeProviderFacingMessage,
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
 import type { ProfileTrainingAsset } from "@/lib/types";
@@ -43,7 +44,7 @@ function formatStatus(status: string | null | undefined) {
     case "pending":
       return "Aguardando";
     case "processing":
-      return "Gerando (HeyGen)";
+      return "Gerando";
     case "completed":
       return "Concluído";
     case "failed":
@@ -119,6 +120,62 @@ function PersonaEditorialIcon() {
   );
 }
 
+function CaricatureHistoryListItem({
+  asset,
+  isSelected,
+  onSelect,
+}: {
+  asset: ProfileTrainingAsset;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(
+      `/api/profile/training-assets/${encodeURIComponent(asset.id)}/preview-url`,
+    )
+      .then(async (response) => {
+        const payload = (await response.json()) as { previewUrl?: string };
+        if (!response.ok || cancelled) {
+          return;
+        }
+        setThumbUrl(payload.previewUrl?.trim() || null);
+      })
+      .catch(() => {
+        // ignore
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [asset.id]);
+
+  return (
+    <li
+      className={
+        isSelected ? "persona-video-history-item active" : "persona-video-history-item"
+      }
+    >
+      <div className="persona-video-history-thumb" aria-hidden="true">
+        {thumbUrl ? (
+          <img
+            src={thumbUrl}
+            alt=""
+            className="persona-video-history-thumb-media"
+          />
+        ) : (
+          <span className="persona-twin-preview-placeholder" />
+        )}
+      </div>
+      <button type="button" className="persona-video-history-select" onClick={onSelect}>
+        <strong>{asset.originalFilename || "Caricatura"}</strong>
+        <span>{new Date(asset.createdAt).toLocaleString("pt-BR")}</span>
+      </button>
+    </li>
+  );
+}
+
 function UploadedFileChip({
   asset,
   formatBytes,
@@ -152,7 +209,6 @@ export function CuradorPageV2() {
   const [trainingBannerState, setTrainingBannerState] = useState<
     "hidden" | "started" | "completed"
   >("hidden");
-  const [consentInfo, setConsentInfo] = useState<string | null>(null);
   const [isGeneratingCaricature, setIsGeneratingCaricature] = useState(false);
   const [caricatureError, setCaricatureError] = useState<string | null>(null);
   const [caricatureInfo, setCaricatureInfo] = useState<string | null>(null);
@@ -195,6 +251,7 @@ export function CuradorPageV2() {
     uploadTrainingAssets,
     isUploadingVoiceAudioAsset,
     isUploadingAvatarImageAsset,
+    isUploadingTrainingVideoAsset,
     appendTrainingAssets,
   } = useProductApp();
 
@@ -246,6 +303,14 @@ export function CuradorPageV2() {
     [visibleTrainingAssets],
   );
 
+  const latestTrainingVideo = useMemo(
+    () =>
+      [...trainingVideoAssets].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )[0] ?? null,
+    [trainingVideoAssets],
+  );
+
   const formatBytes = useCallback((bytes: number) => {
     if (!Number.isFinite(bytes) || bytes <= 0) return "";
     const mb = bytes / 1024 / 1024;
@@ -255,7 +320,7 @@ export function CuradorPageV2() {
   const hasExistingTwin = privateTwinLooks.length > 0;
   const hasExistingCaricature = caricatureAssets.length > 0;
   const showTrainingUploads = productionSource === "train_new";
-  const canTrainRealistic = Boolean(trainingVideoAssets[0] && voiceAudioAssets[0]);
+  const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
   const canStartRealisticTraining = showTrainingUploads && canTrainRealistic;
   const canStartCaricatureTraining =
     showTrainingUploads && Boolean(avatarImageAssets[0] && voiceAudioAssets[0]);
@@ -312,6 +377,81 @@ export function CuradorPageV2() {
     if (source === "use_existing" && avatarTrack === "realistic" && privateTwinLooks[0]) {
       setHeygenAvatarId(privateTwinLooks[0].id);
     }
+    if (source === "use_existing" && avatarTrack === "caricature" && sortedCaricatureAssets[0]) {
+      setSelectedCaricatureAssetId(sortedCaricatureAssets[0].id);
+      setCaricaturePreviewUrl(null);
+    }
+  }
+
+  function showUserError(setter: (value: string | null) => void, error: unknown) {
+    const raw = error instanceof Error ? error.message : "Ocorreu um erro inesperado.";
+    setter(sanitizeProviderFacingMessage(raw));
+  }
+
+  function renderTwinPreviewMedia(
+    look: {
+      preview_image_url?: string | null;
+      preview_video_url?: string | null;
+    },
+    alt: string,
+    className = "persona-caricature-preview-image",
+  ) {
+    if (look.preview_image_url) {
+      return (
+        <img src={look.preview_image_url} alt={alt} className={className} />
+      );
+    }
+    if (look.preview_video_url) {
+      return (
+        <video
+          src={look.preview_video_url}
+          className={className}
+          muted
+          playsInline
+          loop
+          autoPlay
+        />
+      );
+    }
+    return <span className="persona-twin-preview-placeholder" aria-hidden="true" />;
+  }
+
+  function renderProductionAvatarPreview() {
+    if (avatarTrack === "realistic" && heygenAvatarId && selectedTwinLook) {
+      return (
+        <div className="persona-production-avatar-preview persona-top-gap">
+          <p className="persona-helper-text">Avatar selecionado para gerar o conteúdo</p>
+          <div className="persona-caricature-actions-card">
+            {renderTwinPreviewMedia(selectedTwinLook, "Preview do gêmeo digital em uso")}
+            <p className="persona-helper-text">
+              {selectedTwinLook.name || "Gêmeo Digital"}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (avatarTrack === "caricature" && selectedCaricature && caricaturePreviewUrl) {
+      return (
+        <div className="persona-production-avatar-preview persona-top-gap">
+          <p className="persona-helper-text">Avatar selecionado para gerar o conteúdo</p>
+          <div className="persona-caricature-actions-card">
+            <img
+              src={caricaturePreviewUrl}
+              alt="Preview da caricatura em uso"
+              className="persona-caricature-preview-image"
+            />
+            <p className="persona-helper-text">{selectedCaricature.originalFilename}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <p className="persona-helper-text persona-helper-highlight persona-top-gap">
+        Selecione ou treine um avatar antes de gerar o conteúdo.
+      </p>
+    );
   }
 
   function renderProductionSourceButtons(
@@ -423,7 +563,7 @@ export function CuradorPageV2() {
           <div className="persona-recent-avatars-panel">
             {showTwinsSection ? (
               <>
-                <p className="persona-helper-text">Gêmeos digitais (HeyGen)</p>
+                <p className="persona-helper-text">Gêmeos digitais</p>
                 <ul className="persona-video-history-list">
                   {privateTwinLooks.map((look) => {
                     const isSelected =
@@ -437,6 +577,13 @@ export function CuradorPageV2() {
                             : "persona-video-history-item"
                         }
                       >
+                        <div className="persona-video-history-thumb" aria-hidden="true">
+                          {renderTwinPreviewMedia(
+                            look,
+                            "Miniatura do gêmeo digital",
+                            "persona-video-history-thumb-media",
+                          )}
+                        </div>
                         <button
                           type="button"
                           className="persona-video-history-select"
@@ -477,34 +624,22 @@ export function CuradorPageV2() {
                       avatarTrack === "caricature" &&
                       selectedCaricature?.id === asset.id;
                     return (
-                      <li
+                      <CaricatureHistoryListItem
                         key={asset.id}
-                        className={
-                          isSelected
-                            ? "persona-video-history-item active"
-                            : "persona-video-history-item"
-                        }
-                      >
-                        <button
-                          type="button"
-                          className="persona-video-history-select"
-                          onClick={() => {
-                            setAvatarTrack("caricature");
-                            setProductionSource("use_existing");
-                            setSelectedCaricatureAssetId(asset.id);
-                            persistHeygenPrefs({
-                              avatarTrack: "caricature",
-                              productionSource: "use_existing",
-                              lastCaricatureAssetId: asset.id,
-                            });
-                          }}
-                        >
-                          <strong>{asset.originalFilename || "Caricatura"}</strong>
-                          <span>
-                            {new Date(asset.createdAt).toLocaleString("pt-BR")}
-                          </span>
-                        </button>
-                      </li>
+                        asset={asset}
+                        isSelected={isSelected}
+                        onSelect={() => {
+                          setAvatarTrack("caricature");
+                          setProductionSource("use_existing");
+                          setSelectedCaricatureAssetId(asset.id);
+                          setCaricaturePreviewUrl(null);
+                          persistHeygenPrefs({
+                            avatarTrack: "caricature",
+                            productionSource: "use_existing",
+                            lastCaricatureAssetId: asset.id,
+                          });
+                        }}
+                      />
                     );
                   })}
                 </ul>
@@ -547,7 +682,11 @@ export function CuradorPageV2() {
       setCaptionUrl(payload.captionUrl?.trim() || null);
 
       if (payload.status === "failed") {
-        throw new Error(payload.errorMessage || "A geracao do video falhou na HeyGen.");
+        throw new Error(
+          sanitizeProviderFacingMessage(
+            payload.errorMessage || "A geracao do video falhou.",
+          ),
+        );
       }
 
       if (payload.status === "completed" && payload.videoUrl?.trim()) {
@@ -557,7 +696,7 @@ export function CuradorPageV2() {
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
 
-    throw new Error("A HeyGen ainda esta processando. Atualize a pagina em alguns minutos.");
+    throw new Error("O video ainda esta em processamento. Atualize a pagina em alguns minutos.");
   }
 
   async function handleGenerateScript() {
@@ -664,7 +803,6 @@ export function CuradorPageV2() {
 
   async function handleTrainHeyGen(): Promise<string | undefined> {
     setTrainingError(null);
-    setConsentInfo(null);
     setHeygenConsentUrl("");
     setIsTraining(true);
     setTrainingStarted(true);
@@ -690,7 +828,7 @@ export function CuradorPageV2() {
       }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel treinar no HeyGen.");
+        throw new Error(payload.message || "Nao foi possivel treinar o avatar.");
       }
 
       setHeygenAvatarId(payload.avatarId?.trim() || "");
@@ -698,14 +836,8 @@ export function CuradorPageV2() {
       setHeygenVoiceId(payload.voiceId?.trim() || "");
       setHeygenConsentUrl(String(payload.consentUrl ?? "").trim());
 
-      if (
-        !String(payload.consentUrl ?? "").trim() &&
-        (payload.consentStatus || payload.avatarGroupStatus)
-      ) {
-        setConsentInfo(
-          `Status do consentimento: ${payload.consentStatus ?? "(nao informado)"} | ` +
-            `Status do grupo: ${payload.avatarGroupStatus ?? "(nao informado)"}`,
-        );
+      if (avatarTrack === "realistic") {
+        void loadPrivateDigitalTwinLooks();
       }
 
       persistHeygenPrefs({
@@ -718,7 +850,7 @@ export function CuradorPageV2() {
       return payload.voiceId?.trim() || undefined;
     } catch (error) {
       setTrainingStarted(false);
-      setTrainingError(error instanceof Error ? error.message : "Erro ao treinar HeyGen.");
+      showUserError(setTrainingError, error);
       throw error;
     } finally {
       setIsTraining(false);
@@ -804,44 +936,6 @@ export function CuradorPageV2() {
     );
   }
 
-  async function handleCheckConsent() {
-    setConsentInfo(null);
-    setTrainingError(null);
-
-    if (!heygenAvatarGroupId) {
-      setConsentInfo("Group ID ausente. Treine um Digital Twin para gerar o link de consentimento.");
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `/api/heygen/avatars/groups/${encodeURIComponent(heygenAvatarGroupId)}`,
-      );
-      const payload = await parseJsonOrText<{
-        group?: { status?: string | null; consent_status?: string | null; name?: string | null };
-        message?: string;
-      }>(response);
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel consultar o status do consentimento.");
-      }
-
-      setConsentInfo(
-        `Grupo: ${payload.group?.name ?? heygenAvatarGroupId} | ` +
-          `Status: ${payload.group?.status ?? "(nao informado)"} | ` +
-          `Consentimento: ${payload.group?.consent_status ?? "(nao informado)"}`,
-      );
-
-      if (payload.group?.consent_status === "completed" || payload.group?.status === "completed") {
-        setTrainingInfo("Consentimento concluído. Gere e aprove o roteiro para produzir.");
-      }
-    } catch (error) {
-      setTrainingError(
-        error instanceof Error ? error.message : "Nao foi possivel consultar o status.",
-      );
-    }
-  }
-
   async function loadPrivateDigitalTwinLooks() {
     setLooksError(null);
     setIsLoadingLooks(true);
@@ -861,7 +955,7 @@ export function CuradorPageV2() {
       }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel listar avatares HeyGen.");
+        throw new Error(payload.message || "Nao foi possivel listar avatares.");
       }
 
       const looks = payload.looks ?? [];
@@ -878,7 +972,7 @@ export function CuradorPageV2() {
       }
     } catch (error) {
       setLooksError(
-        error instanceof Error ? error.message : "Nao foi possivel listar avatares HeyGen.",
+        error instanceof Error ? error.message : "Nao foi possivel listar avatares.",
       );
     } finally {
       setIsLoadingLooks(false);
@@ -957,7 +1051,7 @@ export function CuradorPageV2() {
       setVideoStatus("pending");
       await pollVideo(id);
     } catch (error) {
-      setVideoError(error instanceof Error ? error.message : "Falha ao gerar o video.");
+      showUserError(setVideoError, error);
     } finally {
       setIsGenerating(false);
     }
@@ -969,7 +1063,7 @@ export function CuradorPageV2() {
     sortedCaricatureAssets[0] ??
     null;
   const selectedVoiceAudio = voiceAudioAssets[0] ?? null;
-  const selectedTrainingVideo = trainingVideoAssets[0] ?? null;
+  const selectedTrainingVideo = latestTrainingVideo;
 
   useEffect(() => {
     if (!videoId || autoPollStartedRef.current || isGenerating) {
@@ -977,7 +1071,7 @@ export function CuradorPageV2() {
     }
     autoPollStartedRef.current = true;
     void pollVideo(videoId).catch((error) => {
-      setVideoError(error instanceof Error ? error.message : "Falha ao acompanhar o video.");
+      showUserError(setVideoError, error);
     });
   }, [videoId, isGenerating]);
 
@@ -1072,6 +1166,7 @@ export function CuradorPageV2() {
       return;
     }
 
+    setCaricaturePreviewUrl(null);
     let cancelled = false;
     void fetch(
       `/api/profile/training-assets/${encodeURIComponent(selectedCaricature.id)}/preview-url`,
@@ -1099,7 +1194,7 @@ export function CuradorPageV2() {
     <section className="persona-page">
       <div className="persona-container">
         <div className="persona-card">
-          <h2 className="sr-only">Curador — HeyGen</h2>
+          <h2 className="sr-only">Curador</h2>
 
           <div className="persona-section-header">
             <div className="persona-header-icon" aria-hidden="true">
@@ -1225,7 +1320,7 @@ export function CuradorPageV2() {
               </label>
               <label
                 htmlFor={`${uploadInputId}-training-video`}
-                className="upload-area persona-upload-area"
+                className={`upload-area persona-upload-area ${isUploadingTrainingVideoAsset ? "persona-upload-area-loading" : ""}`}
               >
                 <div className="persona-upload-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" className="persona-upload-svg">
@@ -1246,26 +1341,28 @@ export function CuradorPageV2() {
                   type="file"
                   accept="video/*"
                   hidden
-                  multiple
                   onChange={(event) => {
-                    const files = Array.from(event.target.files ?? []);
-                    if (!files.length) return;
-                    void uploadTrainingAssets(files, "dataset");
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    void uploadTrainingAssets([file], "dataset");
                     event.target.value = "";
                   }}
                 />
                 <span className="persona-btn persona-btn-upload-label">
-                  {uploadAreaButtonLabel(Boolean(selectedTrainingVideo))}
+                  {isUploadingTrainingVideoAsset ? (
+                    <span className="persona-loading-row">
+                      <span className="persona-spinner" aria-hidden="true" />
+                      Enviando...
+                    </span>
+                  ) : (
+                    uploadAreaButtonLabel(Boolean(selectedTrainingVideo))
+                  )}
                 </span>
+                {isUploadingTrainingVideoAsset && <div className="persona-progress" />}
               </label>
               {selectedTrainingVideo ? (
                 <div className="persona-upload-files">
                   <UploadedFileChip asset={selectedTrainingVideo} formatBytes={formatBytes} />
-                  {trainingVideoAssets.length > 1 ? (
-                    <span className="persona-helper-text">
-                      +{trainingVideoAssets.length - 1} vídeos adicionais
-                    </span>
-                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -1387,34 +1484,19 @@ export function CuradorPageV2() {
             {trainingError && (
               <>
                 <p className="persona-helper-text persona-helper-highlight">{trainingError}</p>
-                {isHeyGenDailyLimitMessage(trainingError) ? (
-                  <p className="persona-helper-text">
-                    Limite diário da API HeyGen atingido (100 envios/dia no plano atual). Tente
-                    amanhã ou faça upgrade no painel HeyGen.
-                  </p>
+                {formatProviderLimitHint(trainingError) ? (
+                  <p className="persona-helper-text">{formatProviderLimitHint(trainingError)}</p>
                 ) : null}
               </>
             )}
             {avatarTrack === "realistic" && heygenConsentUrl && (
               <p className="persona-helper-text persona-helper-highlight">
-                Consentimento (HeyGen — obrigatório para Digital Twin):{" "}
+                Consentimento (obrigatório para Digital Twin):{" "}
                 <a href={heygenConsentUrl} target="_blank" rel="noreferrer">
                   abrir página de consentimento
                 </a>
               </p>
             )}
-            {avatarTrack === "realistic" && heygenAvatarGroupId && (
-              <div className="persona-cta-row">
-                <button
-                  type="button"
-                  className="persona-btn persona-btn-secondary"
-                  onClick={() => void handleCheckConsent()}
-                >
-                  Verificar status do consentimento
-                </button>
-              </div>
-            )}
-            {consentInfo && <p className="persona-helper-text">{consentInfo}</p>}
             {trainingInfo &&
             trainingInfo !== "Treinamento iniciado." &&
             !showTrainingUploads ? (
@@ -1668,6 +1750,8 @@ export function CuradorPageV2() {
             )}
           </div>
 
+          {renderProductionAvatarPreview()}
+
           <div className="persona-generate-row">
             <button
               type="button"
@@ -1694,11 +1778,8 @@ export function CuradorPageV2() {
           {videoError ? (
             <>
               <p className="persona-helper-text persona-helper-highlight">{videoError}</p>
-              {isHeyGenDailyLimitMessage(videoError) ? (
-                <p className="persona-helper-text">
-                  Limite diário da API HeyGen atingido. Use &quot;Utilizar … atual&quot; com o
-                  último treinamento ou aguarde a renovação do limite.
-                </p>
+              {formatProviderLimitHint(videoError) ? (
+                <p className="persona-helper-text">{formatProviderLimitHint(videoError)}</p>
               ) : null}
             </>
           ) : (
@@ -1709,12 +1790,16 @@ export function CuradorPageV2() {
                 </p>
               )}
               {videoUrl && (
-                <p className="persona-helper-text persona-helper-highlight">
-                  Video pronto:{" "}
-                  <a href={videoUrl} target="_blank" rel="noreferrer">
-                    abrir MP4
+                <div className="persona-video-ready-row">
+                  <a
+                    href={videoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="persona-btn persona-btn-large"
+                  >
+                    Ver vídeo
                   </a>
-                </p>
+                </div>
               )}
               {captionUrl && (
                 <p className="persona-helper-text">

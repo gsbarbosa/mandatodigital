@@ -68,6 +68,7 @@ type ProductAppContextValue = {
   isUploadingTrainingAssets: boolean;
   isUploadingVoiceAudioAsset: boolean;
   isUploadingAvatarImageAsset: boolean;
+  isUploadingTrainingVideoAsset: boolean;
   isLoadingEvaluations: boolean;
   isFeedbackWidgetOpen: boolean;
   isEvaluatingContentRequestId: string | null;
@@ -163,6 +164,7 @@ export function ProductAppProvider({
     uploadingTrainingRoles.includes("voice_audio");
   const isUploadingAvatarImageAsset =
     uploadingTrainingRoles.includes("avatar_image");
+  const isUploadingTrainingVideoAsset = uploadingTrainingRoles.includes("dataset");
 
   const latestApprovedContent = useMemo(
     () => contents.find((item) => item.status === "aprovado") ?? null,
@@ -758,6 +760,7 @@ export function ProductAppProvider({
     isUploadingTrainingAssets,
     isUploadingVoiceAudioAsset,
     isUploadingAvatarImageAsset,
+    isUploadingTrainingVideoAsset,
     isLoadingEvaluations,
     isFeedbackWidgetOpen,
     isEvaluatingContentRequestId,

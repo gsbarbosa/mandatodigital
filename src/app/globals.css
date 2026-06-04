@@ -894,9 +894,9 @@ textarea.persona-input-control {
 
 .persona-video-history-item {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.65rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid #1e293b;
   border-radius: 10px;
@@ -923,6 +923,33 @@ textarea.persona-input-control {
 .persona-video-history-select span {
   font-size: 0.85rem;
   color: #94a3b8;
+}
+
+.persona-video-history-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #334155;
+  background: #020617;
+}
+
+.persona-video-history-thumb-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.persona-production-avatar-preview .persona-caricature-actions-card {
+  margin-top: 0.5rem;
+}
+
+.persona-video-ready-row {
+  display: flex;
+  justify-content: center;
+  margin: 1.25rem 0 0.5rem;
 }
 
 .persona-recent-avatars-toggle {
