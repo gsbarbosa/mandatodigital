@@ -1309,6 +1309,48 @@ textarea.persona-input-control {
   cursor: not-allowed;
 }
 
+.persona-twin-look-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  min-height: 100%;
+  padding: 0.65rem;
+  text-align: center;
+  background: rgba(2, 6, 23, 0.55);
+  border-radius: 8px;
+}
+
+.persona-twin-look-meta.compact {
+  padding: 0.35rem;
+  min-height: 4.5rem;
+}
+
+.persona-twin-look-meta-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.persona-twin-look-meta-date {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #94a3b8;
+}
+
+.persona-twin-look-caption {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.persona-training-phase-hint {
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .persona-btn-large {
   padding: 1rem 2.5rem;
   font-size: 1.1rem;

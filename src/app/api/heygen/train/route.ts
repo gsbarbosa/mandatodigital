@@ -11,7 +11,12 @@ import {
   heygenCreatePhotoAvatar,
   heygenGetAvatarGroup,
   heygenGetVoice,
+  heygenListAvatarLooks,
 } from "@/lib/heygen";
+import {
+  resolveHeyGenTrainingPhase,
+  trainingPhaseMessage,
+} from "@/lib/heygen-twin-display";
 import {
   getTrainingAssetPublicUrl,
   pickAvatarImageAndVoiceAudioAssets,
@@ -28,6 +33,10 @@ export async function POST(request: Request) {
         avatarName?: string;
         mode?: HeyGenTrainMode;
         caricatureAssetId?: string;
+        action?: "create" | "sync";
+        avatarGroupId?: string;
+        avatarLookId?: string;
+        voiceId?: string;
       };
 
       const dashboard = await repository.getDashboard();
@@ -75,8 +84,81 @@ export async function POST(request: Request) {
       let avatarId = "";
       let avatarGroupId: string | null = null;
       let consentUrl: string | null = null;
+      let consentStatus: string | null = null;
+      let avatarGroupStatus: string | null = null;
+      let voiceId = String(body.voiceId ?? "").trim();
 
-      if (mode === "digital_twin") {
+      const trainAction = body.action === "sync" ? "sync" : "create";
+
+      if (mode === "digital_twin" && trainAction === "sync") {
+        const groupId = String(body.avatarGroupId ?? "").trim();
+        if (!groupId) {
+          return NextResponse.json(
+            { message: "avatarGroupId ausente para sincronizar o treino." },
+            { status: 400 },
+          );
+        }
+
+        const groupResponse = await heygenGetAvatarGroup(groupId);
+        const group = groupResponse.data?.avatar_group;
+        consentStatus = group?.consent_status ?? null;
+        avatarGroupStatus = group?.status ?? null;
+        avatarGroupId = groupId;
+
+        const preferredLookId = String(body.avatarLookId ?? "").trim();
+        const looksResponse = await heygenListAvatarLooks({
+          ownership: "private",
+          avatarType: "digital_twin",
+          groupId,
+          limit: 50,
+        });
+        const looks = looksResponse.data ?? [];
+        avatarId =
+          preferredLookId && looks.some((look) => look.id === preferredLookId)
+            ? preferredLookId
+            : String(looks[0]?.id ?? "").trim();
+
+        if (!avatarId) {
+          return NextResponse.json(
+            {
+              message:
+                "Nenhum look encontrado para este gêmeo. Remova o personagem e inicie um treino novo.",
+            },
+            { status: 404 },
+          );
+        }
+
+        const consentNormalized = String(consentStatus ?? "").toLowerCase();
+        if (
+          consentNormalized &&
+          consentNormalized !== "completed" &&
+          consentNormalized !== "approved"
+        ) {
+          try {
+            const consent = await heygenCreateAvatarConsent({
+              groupId,
+              rerouteUrl: appBaseUrl.startsWith("https://")
+                ? `${appBaseUrl}/curador`
+                : undefined,
+            });
+            consentUrl = consent.consentUrl;
+          } catch (error) {
+            const message = formatHeyGenError(error);
+            if (!message.toLowerCase().includes("security code already binded")) {
+              throw error;
+            }
+          }
+        }
+
+        if (!voiceId && voiceAudioAsset) {
+          const voiceName = `${avatarName} (clone)`;
+          const cloned = await heygenCloneVoice({
+            voiceName,
+            audio: { type: "url", url: voiceAudioUrl },
+          });
+          voiceId = cloned.voiceId;
+        }
+      } else if (mode === "digital_twin") {
         if (!trainingVideoUrl) {
           return NextResponse.json(
             {
@@ -112,23 +194,31 @@ export async function POST(request: Request) {
               groupStatus = null;
             }
 
-            return NextResponse.json(
-              {
-                avatarId,
-                avatarGroupId: twin.groupId,
-                voiceId: null,
-                consentUrl: null,
-                consentStatus: (groupStatus as { data?: { avatar_group?: { consent_status?: string | null; status?: string | null } } })?.data?.avatar_group?.consent_status ?? null,
-                avatarGroupStatus: (groupStatus as { data?: { avatar_group?: { consent_status?: string | null; status?: string | null } } })?.data?.avatar_group?.status ?? null,
-                message:
-                  "O consentimento deste Digital Twin ja foi iniciado (security code ja vinculado). " +
-                  "Abra o HeyGen e finalize o consentimento do grupo, ou selecione um Digital Twin existente na lista.",
-              },
-              { status: 202 },
-            );
-          }
+            const avatar_group = (
+              groupStatus as {
+                data?: {
+                  avatar_group?: {
+                    consent_status?: string | null;
+                    status?: string | null;
+                  };
+                };
+              }
+            )?.data?.avatar_group;
 
-          throw error;
+            consentStatus = avatar_group?.consent_status ?? null;
+            avatarGroupStatus = avatar_group?.status ?? null;
+          } else {
+            throw error;
+          }
+        }
+
+        try {
+          const groupStatus = await heygenGetAvatarGroup(twin.groupId);
+          consentStatus =
+            groupStatus.data?.avatar_group?.consent_status ?? consentStatus;
+          avatarGroupStatus = groupStatus.data?.avatar_group?.status ?? avatarGroupStatus;
+        } catch {
+          // ignore
         }
       } else if (mode === "caricature") {
         if (!caricatureAsset) {
@@ -156,11 +246,14 @@ export async function POST(request: Request) {
         avatarId = photo.avatarId;
       }
 
-      const voiceName = `${avatarName} (clone)`;
-      const { voiceId } = await heygenCloneVoice({
-        voiceName,
-        audio: { type: "url", url: voiceAudioUrl },
-      });
+      if (!voiceId) {
+        const voiceName = `${avatarName} (clone)`;
+        const cloned = await heygenCloneVoice({
+          voiceName,
+          audio: { type: "url", url: voiceAudioUrl },
+        });
+        voiceId = cloned.voiceId;
+      }
 
       try {
         void buildAvatarVideoTranscript({
@@ -175,10 +268,16 @@ export async function POST(request: Request) {
         // ignore
       }
 
+      const trainingPhase = resolveHeyGenTrainingPhase({
+        mode,
+        consentStatus,
+        groupStatus: avatarGroupStatus,
+        consentUrl,
+      });
+
       const messageByMode: Record<HeyGenTrainMode, string> = {
-        digital_twin:
-          "Digital Twin iniciado. Abra o link de consentimento para finalizar. Depois gere videos.",
-        photo: "Avatar e voz HeyGen criados. Agora voce ja pode gerar videos.",
+        digital_twin: trainingPhaseMessage(trainingPhase),
+        photo: "Avatar e voz criados. Agora voce ja pode gerar videos.",
         caricature:
           "Voz clonada para o modo caricato. Agora gere o video com a caricatura aprovada.",
       };
@@ -189,7 +288,11 @@ export async function POST(request: Request) {
           voiceId,
           avatarGroupId,
           consentUrl,
+          consentStatus,
+          avatarGroupStatus,
+          trainingPhase,
           mode,
+          action: trainAction,
           caricatureAssetId: caricatureAsset?.id ?? null,
           message: messageByMode[mode],
         },
