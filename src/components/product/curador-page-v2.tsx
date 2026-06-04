@@ -461,11 +461,13 @@ export function CuradorPageV2() {
     (privateTwinLooks.length > 0 ||
       Boolean(heygenAvatarGroupId.trim()) ||
       Boolean(heygenConsentUrl.trim()));
-  const hasExistingCaricature = caricatureAssets.length > 0;
+  const hasCaricatureAssets = caricatureAssets.length > 0;
+  /** Caricato pronto para produção: voz clonada na plataforma + imagem caricata no perfil. */
+  const hasUsableCaricaturePerson =
+    Boolean(heygenVoiceId.trim()) && hasCaricatureAssets;
+  /** Algo remoto a apagar (voz vinculada ou gêmeos/avatares privados na conta). */
   const hasCaricaturePersonOnPlatform =
-    Boolean(heygenVoiceId.trim()) ||
-    hasExistingCaricature ||
-    hasAnyTwinOnPlatform;
+    Boolean(heygenVoiceId.trim()) || hasAnyTwinOnPlatform;
   const showTrainingUploads = productionSource === "train_new";
   const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
   const canStartRealisticTraining = showTrainingUploads && canTrainRealistic;
@@ -514,7 +516,7 @@ export function CuradorPageV2() {
 
   function selectAvatarTrack(track: AvatarTrack) {
     const hasExisting =
-      track === "realistic" ? hasExistingTwin : caricatureAssets.length > 0;
+      track === "realistic" ? hasExistingTwin : hasUsableCaricaturePerson;
     setAvatarTrack(track);
     setProductionSource(hasExisting ? "use_existing" : "train_new");
     setTrainingStarted(false);
@@ -529,7 +531,7 @@ export function CuradorPageV2() {
     if (source === "use_existing" && avatarTrack === "realistic" && !hasExistingTwin) {
       return;
     }
-    if (source === "use_existing" && avatarTrack === "caricature" && !hasExistingCaricature) {
+    if (source === "use_existing" && avatarTrack === "caricature" && !hasUsableCaricaturePerson) {
       return;
     }
     setProductionSource(source);
@@ -681,7 +683,7 @@ export function CuradorPageV2() {
       );
     }
 
-    if (!hasExistingCaricature) {
+    if (!hasUsableCaricaturePerson) {
       return (
         <p className="persona-helper-text persona-first-production-hint persona-top-gap">
           Envie foto e áudio abaixo para criar sua caricatura.
@@ -695,7 +697,7 @@ export function CuradorPageV2() {
           "Utilizar Caricatura Atual",
           "Treinar outra Caricatura",
         )}
-        {productionSource === "train_new" ? (
+        {productionSource === "train_new" && hasCaricaturePersonOnPlatform ? (
           <p className="persona-helper-text">
             Para outra caricatura ou nova voz na plataforma, remova o personagem na{" "}
             <strong>Etapa 1</strong> antes de treinar.
@@ -1583,7 +1585,7 @@ export function CuradorPageV2() {
       }
       let resolvedVoiceId = heygenVoiceId;
       if (avatarTrack === "caricature" && !resolvedVoiceId) {
-        if (productionSource === "use_existing" && hasExistingCaricature) {
+        if (productionSource === "use_existing" && hasUsableCaricaturePerson) {
           resolvedVoiceId = (await handleTrainHeyGen()) ?? "";
         }
         if (!resolvedVoiceId) {
@@ -1701,7 +1703,7 @@ export function CuradorPageV2() {
         setProductionSource("train_new");
       }
     }
-    if (avatarTrack === "caricature" && !hasExistingCaricature) {
+    if (avatarTrack === "caricature" && !hasUsableCaricaturePerson) {
       if (productionSource === "use_existing") {
         setProductionSource("train_new");
       }
@@ -1710,7 +1712,7 @@ export function CuradorPageV2() {
     avatarTrack,
     isLoadingLooks,
     hasExistingTwin,
-    hasExistingCaricature,
+    hasUsableCaricaturePerson,
     productionSource,
   ]);
 
