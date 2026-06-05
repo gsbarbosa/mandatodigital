@@ -21,7 +21,10 @@ import {
 } from "@/lib/caricature-asset-variant";
 import {
   formatTwinLookCaption,
+  isConsentApproved,
+  isTwinLookReadyForVideo,
   isUsableRecordedDigitalTwin,
+  trainingPhaseFromTwinLook,
   trainingPhaseMessage,
   type HeyGenTrainingPhase,
   type TwinLookDisplayMeta,
@@ -379,6 +382,9 @@ export function CuradorPageV2() {
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
   const autoPollStartedRef = useRef(false);
+  const twinPollActiveRef = useRef(false);
+  const autoSyncTwinOnLoadRef = useRef(false);
+  const [isPollingTwinTraining, setIsPollingTwinTraining] = useState(false);
 
   const {
     profile,
@@ -502,12 +508,33 @@ export function CuradorPageV2() {
     usableTwinLooks.find((look) => look.id === heygenAvatarId) ??
     usableTwinLooks[0] ??
     null;
+  const linkedTwinLook = useMemo(() => {
+    const preferredId = heygenAvatarId.trim();
+    const preferredGroupId = heygenAvatarGroupId.trim();
+    return (
+      privateTwinLooks.find((look) => look.id === preferredId) ??
+      (preferredGroupId
+        ? privateTwinLooks.find(
+            (look) => String(look.group_id ?? "").trim() === preferredGroupId,
+          )
+        : null) ??
+      selectedTwinLook
+    );
+  }, [privateTwinLooks, heygenAvatarId, heygenAvatarGroupId, selectedTwinLook]);
+  const productionTwinLook = selectedTwinLook ?? linkedTwinLook;
   const twinReadyForVideo =
     avatarTrack !== "realistic" ||
-    trainingBannerState === "ready" ||
     (productionSource === "use_existing" &&
-      (selectedTwinLook?.groupStatus === "completed" ||
-        selectedTwinLook?.consentStatus === "completed"));
+      Boolean(heygenAvatarId.trim()) &&
+      Boolean(productionTwinLook)) ||
+    trainingBannerState === "ready" ||
+    isTwinLookReadyForVideo(productionTwinLook) ||
+    isTwinLookReadyForVideo(linkedTwinLook) ||
+    (Boolean(heygenAvatarId.trim()) &&
+      isConsentApproved(
+        productionTwinLook?.consentStatus ?? linkedTwinLook?.consentStatus,
+      ) &&
+      trainingBannerState !== "awaiting_consent");
 
   const canGenerateVideo =
     avatarTrack === "realistic"
@@ -520,6 +547,39 @@ export function CuradorPageV2() {
     (useFreePromptAsTranscript
       ? freePrompt.trim().length > 0
       : scriptApproved && scriptDraft.trim().length > 0);
+
+  function getGenerateDisabledReason(): string | null {
+    if (isGenerating) {
+      return null;
+    }
+    if (isPollingTwinTraining && !twinReadyForVideo) {
+      return "Sincronizando com a HeyGen. Aguarde ou clique em Sincronizar com HeyGen.";
+    }
+    if (avatarTrack === "realistic" && !heygenAvatarId.trim()) {
+      return "Selecione um gêmeo digital em Ver avatares recentes.";
+    }
+    if (avatarTrack === "realistic" && !twinReadyForVideo) {
+      return "O gêmeo selecionado ainda não está liberado para vídeo nesta sessão.";
+    }
+    if (avatarTrack === "caricature" && !selectedCaricatureAssetId.trim()) {
+      return "Selecione uma caricatura para gerar o vídeo.";
+    }
+    if (avatarTrack === "caricature" && !heygenVoiceId.trim() && isTraining) {
+      return "Aguarde o treinamento da voz da caricatura.";
+    }
+    if (useFreePromptAsTranscript) {
+      return freePrompt.trim() ? null : "Preencha o Prompt livre (modo teste) ou desmarque a opção.";
+    }
+    if (!scriptDraft.trim()) {
+      return "Gere ou escreva um roteiro na seção de aprovação.";
+    }
+    if (!scriptApproved) {
+      return "Clique em Aprovar Roteiro antes de gerar o conteúdo.";
+    }
+    return null;
+  }
+
+  const generateDisabledReason = getGenerateDisabledReason();
 
   const archetypeHelperText =
     "Selecione no máximo um arquétipo e um tom. Se não escolher, a IA utiliza a identidade comunicacional identificada nas mídias enviadas.";
@@ -546,9 +606,9 @@ export function CuradorPageV2() {
     }
     setProductionSource(source);
     setTrainingStarted(false);
-    setTrainingBannerState("hidden");
     setTrainingError(null);
     if (source === "train_new") {
+      setTrainingBannerState("hidden");
       setHeygenVoiceId("");
       setTrainingInfo(null);
       setCaricatureInfo(null);
@@ -560,6 +620,11 @@ export function CuradorPageV2() {
       if (newest.group_id) {
         setHeygenAvatarGroupId(String(newest.group_id));
       }
+      setTrainingBannerState("ready");
+    } else if (source === "use_existing") {
+      setTrainingBannerState("ready");
+    } else {
+      setTrainingBannerState("hidden");
     }
     if (source === "use_existing" && avatarTrack === "caricature" && sortedCaricatureAssets[0]) {
       setSelectedCaricatureAssetId(sortedCaricatureAssets[0].id);
@@ -570,6 +635,25 @@ export function CuradorPageV2() {
   function showUserError(setter: (value: string | null) => void, error: unknown) {
     const raw = error instanceof Error ? error.message : "Ocorreu um erro inesperado.";
     setter(sanitizeProviderFacingMessage(raw));
+  }
+
+  function syncTrainingBannerFromTwinLook(look: TwinLookDisplayMeta | null) {
+    if (!look) {
+      return;
+    }
+    if (isTwinLookReadyForVideo(look)) {
+      setTrainingBannerState("ready");
+      setHeygenConsentUrl("");
+      return;
+    }
+    const phase = trainingPhaseFromTwinLook(look);
+    if (!phase) {
+      return;
+    }
+    applyTrainingPhase(phase);
+    if (phase === "ready") {
+      setHeygenConsentUrl("");
+    }
   }
 
   function applyTrainingPhase(phase: HeyGenTrainingPhase | "completed") {
@@ -593,17 +677,17 @@ export function CuradorPageV2() {
   }
 
   function renderProductionAvatarPreview() {
-    if (avatarTrack === "realistic" && heygenAvatarId && selectedTwinLook) {
+    if (avatarTrack === "realistic" && heygenAvatarId && productionTwinLook) {
       return (
         <div className="persona-production-avatar-preview persona-top-gap">
           <p className="persona-helper-text">Avatar selecionado para gerar o conteúdo</p>
           <div className="persona-caricature-actions-card">
-            <TwinLookMedia look={selectedTwinLook} />
+            <TwinLookMedia look={productionTwinLook} />
             <p className="persona-helper-text">
-              {selectedTwinLook.name || "Gêmeo Digital"}
+              {productionTwinLook.name || "Gêmeo Digital"}
             </p>
             <p className="persona-helper-text persona-twin-look-caption">
-              {formatTwinLookCaption(selectedTwinLook)}
+              {formatTwinLookCaption(productionTwinLook)}
             </p>
           </div>
         </div>
@@ -870,12 +954,12 @@ export function CuradorPageV2() {
                             setAvatarTrack("realistic");
                             setProductionSource("use_existing");
                             setHeygenAvatarId(look.id);
-                            setTrainingBannerState(
-                              look.groupStatus === "completed" ? "ready" : "processing",
-                            );
+                            setTrainingError(null);
+                            setTrainingBannerState("ready");
                             if (groupId) {
                               setHeygenAvatarGroupId(groupId);
                             }
+                            syncTrainingBannerFromTwinLook(look);
                             persistHeygenPrefs({
                               avatarTrack: "realistic",
                               productionSource: "use_existing",
@@ -1156,6 +1240,171 @@ export function CuradorPageV2() {
     }
   }
 
+  type HeyGenTrainPayload = {
+    avatarId?: string;
+    avatarGroupId?: string | null;
+    voiceId?: string;
+    consentUrl?: string | null;
+    consentStatus?: string | null;
+    avatarGroupStatus?: string | null;
+    trainingPhase?: HeyGenTrainingPhase;
+    message?: string;
+  };
+
+  async function requestHeyGenTrain(input?: {
+    action?: "create" | "sync";
+    persistProfile?: boolean;
+  }): Promise<HeyGenTrainPayload> {
+    const trainAction =
+      input?.action ??
+      (avatarTrack === "realistic" && heygenAvatarGroupId.trim() ? "sync" : "create");
+    const isTwinSync = trainAction === "sync";
+
+    if (input?.persistProfile !== false) {
+      await saveProfile({ allowDraftDefaults: true, silent: true });
+    }
+
+    const response = await fetchHeygenApi("/api/heygen/train", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        avatarName: profileForm.fullName || "Mandato Digital Avatar",
+        mode: avatarTrack === "realistic" ? "digital_twin" : "caricature",
+        action: trainAction,
+        avatarGroupId: isTwinSync ? heygenAvatarGroupId : undefined,
+        avatarLookId: isTwinSync ? heygenAvatarId : undefined,
+        voiceId: heygenVoiceId.trim() || undefined,
+        caricatureAssetId:
+          avatarTrack === "caricature" ? selectedCaricatureAssetId : undefined,
+      }),
+    });
+    const payload = await parseJsonOrText<HeyGenTrainPayload & { message?: string }>(
+      response,
+    );
+
+    if (!response.ok) {
+      throw new Error(payload.message || "Nao foi possivel treinar o avatar.");
+    }
+
+    return payload;
+  }
+
+  function applyHeyGenTrainPayload(payload: HeyGenTrainPayload) {
+    const nextAvatarId = payload.avatarId?.trim() || "";
+    const nextGroupId = String(payload.avatarGroupId ?? "").trim();
+    if (nextAvatarId) {
+      setHeygenAvatarId(nextAvatarId);
+    }
+    if (nextGroupId) {
+      setHeygenAvatarGroupId(nextGroupId);
+    }
+    setHeygenVoiceId(payload.voiceId?.trim() || heygenVoiceId);
+    setHeygenConsentUrl(String(payload.consentUrl ?? "").trim());
+    setTrainingInfo(payload.message?.trim() || null);
+
+    if (payload.trainingPhase) {
+      applyTrainingPhase(payload.trainingPhase);
+    } else if (avatarTrack === "caricature") {
+      applyTrainingPhase("ready");
+    }
+
+    persistHeygenPrefs({
+      heygenAvatarId: nextAvatarId || heygenAvatarId,
+      heygenVoiceId: payload.voiceId?.trim() || heygenVoiceId,
+      heygenAvatarGroupId: nextGroupId || heygenAvatarGroupId,
+      lastCaricatureAssetId: selectedCaricatureAssetId || sortedCaricatureAssets[0]?.id,
+    });
+
+    return { nextAvatarId, nextGroupId };
+  }
+
+  function shouldAutoPollTwinTraining(phase?: HeyGenTrainingPhase) {
+    return (
+      avatarTrack === "realistic" &&
+      Boolean(heygenAvatarGroupId.trim()) &&
+      phase === "processing" &&
+      !isTwinLookReadyForVideo(linkedTwinLook)
+    );
+  }
+
+  async function pollHeyGenTwinUntilReady() {
+    if (twinPollActiveRef.current || avatarTrack !== "realistic") {
+      return;
+    }
+    if (!heygenAvatarGroupId.trim()) {
+      return;
+    }
+
+    twinPollActiveRef.current = true;
+    setIsPollingTwinTraining(true);
+    setTrainingError(null);
+
+    const pollIntervalMs = 5000;
+    const maxAttempts = 120;
+
+    try {
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const payload = await requestHeyGenTrain({
+          action: "sync",
+          persistProfile: false,
+        });
+        const { nextAvatarId, nextGroupId } = applyHeyGenTrainPayload(payload);
+        const phase = payload.trainingPhase;
+
+        if (phase === "ready") {
+          setTrainingBannerState("ready");
+          await loadPrivateDigitalTwinLooks({
+            preferredAvatarId: nextAvatarId || heygenAvatarId,
+            preferredGroupId: nextGroupId || heygenAvatarGroupId,
+          });
+          return;
+        }
+
+        if (
+          isTwinLookReadyForVideo(
+            {
+              id: nextAvatarId || heygenAvatarId,
+              consentStatus: payload.consentStatus,
+              groupStatus: payload.avatarGroupStatus,
+            },
+            {
+              consentStatus: payload.consentStatus,
+              groupStatus: payload.avatarGroupStatus,
+            },
+          )
+        ) {
+          setTrainingBannerState("ready");
+          await loadPrivateDigitalTwinLooks({
+            preferredAvatarId: nextAvatarId || heygenAvatarId,
+            preferredGroupId: nextGroupId || heygenAvatarGroupId,
+          });
+          return;
+        }
+
+        if (phase === "failed") {
+          throw new Error(trainingPhaseMessage("failed"));
+        }
+
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+      }
+
+      throw new Error(
+        "O treinamento do gêmeo ainda está em processamento. Aguarde alguns minutos e atualize a página.",
+      );
+    } catch (error) {
+      showUserError(setTrainingError, error);
+      await loadPrivateDigitalTwinLooks({
+        preferredAvatarId: heygenAvatarId,
+        preferredGroupId: heygenAvatarGroupId,
+      });
+    } finally {
+      twinPollActiveRef.current = false;
+      setIsPollingTwinTraining(false);
+    }
+  }
+
   async function handleTrainHeyGen(): Promise<string | undefined> {
     setTrainingError(null);
     setIsTraining(true);
@@ -1169,53 +1418,10 @@ export function CuradorPageV2() {
     }
 
     try {
-      await saveProfile({ allowDraftDefaults: true, silent: true });
-      const response = await fetchHeygenApi("/api/heygen/train", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          avatarName: profileForm.fullName || "Mandato Digital Avatar",
-          mode: avatarTrack === "realistic" ? "digital_twin" : "caricature",
-          action: isTwinSync ? "sync" : "create",
-          avatarGroupId: isTwinSync ? heygenAvatarGroupId : undefined,
-          avatarLookId: isTwinSync ? heygenAvatarId : undefined,
-          voiceId: heygenVoiceId.trim() || undefined,
-          caricatureAssetId:
-            avatarTrack === "caricature" ? selectedCaricatureAssetId : undefined,
-        }),
+      const payload = await requestHeyGenTrain({
+        action: isTwinSync ? "sync" : "create",
       });
-      const payload = await parseJsonOrText<{
-        avatarId?: string;
-        avatarGroupId?: string | null;
-        voiceId?: string;
-        consentUrl?: string | null;
-        consentStatus?: string | null;
-        avatarGroupStatus?: string | null;
-        trainingPhase?: HeyGenTrainingPhase;
-        message?: string;
-      }>(response);
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel treinar o avatar.");
-      }
-
-      const nextAvatarId = payload.avatarId?.trim() || "";
-      const nextGroupId = String(payload.avatarGroupId ?? "").trim();
-      if (nextAvatarId) {
-        setHeygenAvatarId(nextAvatarId);
-      }
-      if (nextGroupId) {
-        setHeygenAvatarGroupId(nextGroupId);
-      }
-      setHeygenVoiceId(payload.voiceId?.trim() || heygenVoiceId);
-      setHeygenConsentUrl(String(payload.consentUrl ?? "").trim());
-      setTrainingInfo(payload.message?.trim() || null);
-
-      if (payload.trainingPhase) {
-        applyTrainingPhase(payload.trainingPhase);
-      } else if (avatarTrack === "caricature") {
-        applyTrainingPhase("ready");
-      }
+      const { nextAvatarId, nextGroupId } = applyHeyGenTrainPayload(payload);
 
       if (avatarTrack === "realistic") {
         await loadPrivateDigitalTwinLooks({
@@ -1224,12 +1430,9 @@ export function CuradorPageV2() {
         });
       }
 
-      persistHeygenPrefs({
-        heygenAvatarId: nextAvatarId || heygenAvatarId,
-        heygenVoiceId: payload.voiceId?.trim() || heygenVoiceId,
-        heygenAvatarGroupId: nextGroupId || heygenAvatarGroupId,
-        lastCaricatureAssetId: selectedCaricatureAssetId || sortedCaricatureAssets[0]?.id,
-      });
+      if (shouldAutoPollTwinTraining(payload.trainingPhase)) {
+        void pollHeyGenTwinUntilReady();
+      }
 
       return payload.voiceId?.trim() || undefined;
     } catch (error) {
@@ -1376,12 +1579,18 @@ export function CuradorPageV2() {
             type="button"
             className="persona-btn persona-btn-large"
             onClick={() => void onStart()}
-            disabled={!canStart || isTraining || isDeletingTwinGroup}
+            disabled={
+              !canStart || isTraining || isDeletingTwinGroup || isPollingTwinTraining
+            }
           >
-            {isTraining ? (
+            {isTraining || isPollingTwinTraining ? (
               <span className="persona-loading-row">
                 <span className="persona-spinner" aria-hidden="true" />
-                {options?.twinSyncMode ? "Atualizando..." : "Treinando..."}
+                {isPollingTwinTraining
+                  ? "Finalizando gêmeo digital…"
+                  : options?.twinSyncMode
+                    ? "Atualizando..."
+                    : "Treinando..."}
               </span>
             ) : (
               trainButtonLabel
@@ -1392,14 +1601,20 @@ export function CuradorPageV2() {
           {trainingBannerState === "started" ? (
             <p className="persona-script-approved">Enviando treino para a plataforma…</p>
           ) : null}
-          {trainingBannerState === "awaiting_consent" ? (
+          {trainingBannerState === "awaiting_consent" && !isPollingTwinTraining ? (
             <p className="persona-script-approved persona-training-phase-hint">
               {trainingPhaseMessage("awaiting_consent")}
             </p>
           ) : null}
-          {trainingBannerState === "processing" ? (
+          {isPollingTwinTraining ||
+          trainingBannerState === "processing" ? (
             <p className="persona-script-approved persona-training-phase-hint">
-              {trainingPhaseMessage("processing")}
+              <span className="persona-loading-row">
+                {isPollingTwinTraining ? (
+                  <span className="persona-spinner" aria-hidden="true" />
+                ) : null}
+                {trainingPhaseMessage("processing")}
+              </span>
             </p>
           ) : null}
           {trainingBannerState === "ready" ? (
@@ -1413,6 +1628,54 @@ export function CuradorPageV2() {
         </div>
       </div>
     );
+  }
+
+  async function fetchHeyGenGroupDetail(groupId: string) {
+    const response = await fetchHeygenApi(
+      `/api/heygen/avatars/groups/${encodeURIComponent(groupId)}`,
+    );
+    const payload = await parseJsonOrText<{
+      group?: {
+        id?: string;
+        created_at?: number;
+        status?: string | null;
+        consent_status?: string | null;
+      };
+      message?: string;
+    }>(response);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return payload.group ?? null;
+  }
+
+  async function patchTwinLookWithGroupDetail(look: PrivateTwinLook) {
+    const groupId = String(look.group_id ?? "").trim();
+    if (!groupId) {
+      return look;
+    }
+
+    const needsDetail =
+      look.groupStatus == null ||
+      look.consentStatus == null ||
+      look.groupCreatedAt == null;
+    if (!needsDetail) {
+      return look;
+    }
+
+    const group = await fetchHeyGenGroupDetail(groupId);
+    if (!group) {
+      return look;
+    }
+
+    return {
+      ...look,
+      groupCreatedAt: group.created_at ?? look.groupCreatedAt ?? null,
+      groupStatus: group.status ?? look.groupStatus ?? null,
+      consentStatus: group.consent_status ?? look.consentStatus ?? null,
+    };
   }
 
   async function loadPrivateDigitalTwinLooks(options?: {
@@ -1452,7 +1715,7 @@ export function CuradorPageV2() {
         (groupsPayload.groups ?? []).map((group) => [group.id, group]),
       );
 
-      const enriched = [...(looksPayload.looks ?? [])]
+      const enriched: PrivateTwinLook[] = [...(looksPayload.looks ?? [])]
         .map((look) => {
           const group = groupsById.get(String(look.group_id ?? "").trim());
           return {
@@ -1460,31 +1723,20 @@ export function CuradorPageV2() {
             groupCreatedAt: group?.created_at ?? null,
             groupStatus: group?.status ?? null,
             consentStatus: group?.consent_status ?? null,
-          } satisfies PrivateTwinLook;
+          };
         })
         .sort(
           (a, b) => (b.groupCreatedAt ?? 0) - (a.groupCreatedAt ?? 0),
         );
 
-      setPrivateTwinLooks(enriched);
+      const usableEnriched = enriched.filter(isUsableRecordedDigitalTwin);
 
       if (enriched.length === 0) {
         if (productionSource === "use_existing") {
           setProductionSource("train_new");
         }
-      } else if (profileIdForPrefs) {
-        const prefs = readCuradorHeygenPrefs(profileIdForPrefs);
-        const preferredFromPrefs = prefs.heygenAvatarId?.trim() ?? "";
-        if (
-          prefs.productionSource === "use_existing" &&
-          preferredFromPrefs &&
-          enriched.some(
-            (look) =>
-              look.id === preferredFromPrefs && isUsableRecordedDigitalTwin(look),
-          )
-        ) {
-          setProductionSource("use_existing");
-        }
+      } else if (usableEnriched.length > 0 && productionSource !== "train_new") {
+        setProductionSource("use_existing");
       }
 
       const preferredAvatarId =
@@ -1496,7 +1748,7 @@ export function CuradorPageV2() {
         heygenAvatarGroupId.trim() ||
         "";
 
-      let resolved =
+      let resolved: PrivateTwinLook | null =
         enriched.find((look) => look.id === preferredAvatarId) ?? null;
 
       if (!resolved && preferredGroupId) {
@@ -1504,11 +1756,20 @@ export function CuradorPageV2() {
           enriched.find((look) => look.group_id === preferredGroupId) ?? null;
       }
 
-      const usableEnriched = enriched.filter(isUsableRecordedDigitalTwin);
-
-      if (!resolved && productionSource === "use_existing") {
+      if (!resolved && usableEnriched.length > 0) {
         resolved = usableEnriched[0] ?? null;
       }
+
+      let finalEnriched: PrivateTwinLook[] = enriched;
+      if (resolved) {
+        const patchedResolved = await patchTwinLookWithGroupDetail(resolved);
+        finalEnriched = enriched.map((look) =>
+          look.id === patchedResolved.id ? patchedResolved : look,
+        );
+        resolved = patchedResolved;
+      }
+
+      setPrivateTwinLooks(finalEnriched);
 
       if (resolved) {
         setHeygenAvatarId(resolved.id);
@@ -1518,7 +1779,17 @@ export function CuradorPageV2() {
         persistHeygenPrefs({
           heygenAvatarId: resolved.id,
           heygenAvatarGroupId: String(resolved.group_id ?? ""),
+          productionSource: "use_existing",
         });
+        if (!isPollingTwinTraining) {
+          if (productionSource === "use_existing") {
+            setTrainingBannerState("ready");
+            setTrainingInfo(null);
+            setHeygenConsentUrl("");
+          } else {
+            syncTrainingBannerFromTwinLook(resolved);
+          }
+        }
       } else if (enriched.length === 0) {
         setHeygenAvatarId("");
         setHeygenAvatarGroupId("");
@@ -1751,6 +2022,142 @@ export function CuradorPageV2() {
   }, [videoId, isGenerating]);
 
   useEffect(() => {
+    if (avatarTrack !== "realistic" || !heygenAvatarGroupId.trim()) {
+      return;
+    }
+    if (trainingBannerState !== "awaiting_consent" && trainingBannerState !== "processing") {
+      return;
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void pollHeyGenTwinUntilReady();
+      }
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [avatarTrack, heygenAvatarGroupId, trainingBannerState]);
+
+  useEffect(() => {
+    if (
+      avatarTrack !== "realistic" ||
+      productionSource === "use_existing" ||
+      !heygenAvatarGroupId.trim() ||
+      isLoadingLooks ||
+      trainingBannerState !== "hidden" ||
+      isPollingTwinTraining
+    ) {
+      return;
+    }
+
+    const linkedLook =
+      privateTwinLooks.find(
+        (look) => String(look.group_id ?? "").trim() === heygenAvatarGroupId.trim(),
+      ) ??
+      privateTwinLooks.find((look) => look.id === heygenAvatarId) ??
+      null;
+
+    if (!linkedLook || isTwinLookReadyForVideo(linkedLook)) {
+      if (linkedLook && isTwinLookReadyForVideo(linkedLook)) {
+        syncTrainingBannerFromTwinLook(linkedLook);
+      }
+      return;
+    }
+
+    const phase = trainingPhaseFromTwinLook(linkedLook);
+    if (!phase || phase === "failed") {
+      return;
+    }
+
+    setTrainingStarted(true);
+    syncTrainingBannerFromTwinLook(linkedLook);
+
+    if (phase === "processing" || phase === "awaiting_consent") {
+      void pollHeyGenTwinUntilReady();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    avatarTrack,
+    heygenAvatarGroupId,
+    heygenAvatarId,
+    isLoadingLooks,
+    privateTwinLooks,
+    trainingBannerState,
+    isPollingTwinTraining,
+  ]);
+
+  useEffect(() => {
+    if (avatarTrack !== "realistic" || isPollingTwinTraining || !linkedTwinLook) {
+      return;
+    }
+    if (productionSource === "use_existing" && trainingBannerState !== "ready") {
+      setTrainingBannerState("ready");
+      setTrainingInfo(null);
+      setHeygenConsentUrl("");
+      return;
+    }
+    if (isTwinLookReadyForVideo(linkedTwinLook) && trainingBannerState !== "ready") {
+      syncTrainingBannerFromTwinLook(linkedTwinLook);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    avatarTrack,
+    linkedTwinLook,
+    isPollingTwinTraining,
+    trainingBannerState,
+    productionSource,
+  ]);
+
+  useEffect(() => {
+    if (
+      avatarTrack !== "realistic" ||
+      productionSource === "use_existing" ||
+      !heygenAvatarId.trim() ||
+      twinReadyForVideo ||
+      isPollingTwinTraining ||
+      isTraining ||
+      isLoadingLooks ||
+      autoSyncTwinOnLoadRef.current
+    ) {
+      return;
+    }
+
+    autoSyncTwinOnLoadRef.current = true;
+
+    if (isTwinLookReadyForVideo(linkedTwinLook)) {
+      syncTrainingBannerFromTwinLook(linkedTwinLook);
+      return;
+    }
+
+    const groupId =
+      heygenAvatarGroupId.trim() || String(linkedTwinLook?.group_id ?? "").trim();
+    if (groupId) {
+      if (!heygenAvatarGroupId.trim()) {
+        setHeygenAvatarGroupId(groupId);
+      }
+      void pollHeyGenTwinUntilReady();
+      return;
+    }
+
+    void loadPrivateDigitalTwinLooks({
+      preferredAvatarId: heygenAvatarId,
+      preferredGroupId: heygenAvatarGroupId,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    avatarTrack,
+    heygenAvatarId,
+    heygenAvatarGroupId,
+    linkedTwinLook,
+    twinReadyForVideo,
+    isPollingTwinTraining,
+    isTraining,
+    isLoadingLooks,
+  ]);
+
+  useEffect(() => {
     if (profile?.avatarType) {
       setAvatarTrack(avatarTypeToTrack(profile.avatarType));
     }
@@ -1786,10 +2193,14 @@ export function CuradorPageV2() {
     if (prefs.avatarTrack) {
       setAvatarTrack(prefs.avatarTrack);
     }
-    if (prefs.productionSource === "train_new") {
+    const hasPriorTwinTraining = Boolean(
+      prefs.heygenAvatarGroupId?.trim() && prefs.heygenAvatarId?.trim(),
+    );
+    if (hasPriorTwinTraining || prefs.productionSource === "use_existing") {
+      setProductionSource("use_existing");
+    } else if (prefs.productionSource === "train_new") {
       setProductionSource("train_new");
     }
-    // use_existing só é restaurado após validar looks em loadPrivateDigitalTwinLooks
   }, [profileIdForPrefs]);
 
   useEffect(() => {
@@ -2164,7 +2575,8 @@ export function CuradorPageV2() {
             )}
             {trainingInfo &&
             trainingInfo !== "Treinamento iniciado." &&
-            !showTrainingUploads ? (
+            productionSource === "train_new" &&
+            showTrainingUploads ? (
               <p className="persona-helper-text">{trainingInfo}</p>
             ) : null}
           </div>
@@ -2419,11 +2831,34 @@ export function CuradorPageV2() {
           <div className="persona-production-actions">
             {renderProductionAvatarPreview()}
 
-            {avatarTrack === "realistic" && heygenAvatarId && !twinReadyForVideo ? (
-              <p className="persona-helper-text persona-helper-highlight">
-                Finalize o consentimento e clique em &quot;Atualizar status do treino&quot; antes de
-                gerar o vídeo. O avatar ainda não está pronto na plataforma.
-              </p>
+            {avatarTrack === "realistic" &&
+            productionSource === "train_new" &&
+            heygenAvatarId &&
+            !twinReadyForVideo ? (
+              <div className="persona-top-gap">
+                <p className="persona-helper-text persona-helper-highlight">
+                  {isPollingTwinTraining
+                    ? "Sincronizando com a HeyGen e finalizando o treinamento do gêmeo digital…"
+                    : trainingBannerState === "awaiting_consent"
+                      ? "Finalize o consentimento no link da seção de treino; em seguida a sincronização continua automaticamente."
+                      : "O gêmeo ainda não foi reconhecido como pronto nesta sessão. Sincronize com a HeyGen para atualizar o status local."}
+                </p>
+                {!isPollingTwinTraining ? (
+                  <div className="persona-cta-row persona-top-gap">
+                    <button
+                      type="button"
+                      className="persona-btn persona-btn-secondary"
+                      onClick={() => {
+                        autoSyncTwinOnLoadRef.current = false;
+                        void pollHeyGenTwinUntilReady();
+                      }}
+                      disabled={isTraining || isDeletingTwinGroup}
+                    >
+                      Sincronizar com HeyGen
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             ) : null}
 
             <div className="persona-generate-row">
@@ -2433,6 +2868,7 @@ export function CuradorPageV2() {
                 onClick={() => void handleGenerate()}
                 disabled={
                   isGenerating ||
+                  (isPollingTwinTraining && !twinReadyForVideo) ||
                   !canProduceContent ||
                   (avatarTrack === "caricature" && !heygenVoiceId && isTraining)
                 }
@@ -2446,6 +2882,11 @@ export function CuradorPageV2() {
                   "Gerar Conteúdo a partir do Avatar selecionado"
                 )}
               </button>
+              {generateDisabledReason && !isGenerating ? (
+                <p className="persona-helper-text persona-helper-highlight persona-top-gap">
+                  {generateDisabledReason}
+                </p>
+              ) : null}
               {isGenerating && <div className="persona-progress" />}
             </div>
           </div>

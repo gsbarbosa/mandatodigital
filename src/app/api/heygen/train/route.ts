@@ -15,9 +15,11 @@ import {
   heygenVoiceExists,
 } from "@/lib/heygen";
 import {
+  resolveDigitalTwinTrainingPhase,
   resolveHeyGenTrainingPhase,
   trainingPhaseMessage,
 } from "@/lib/heygen-twin-display";
+import type { HeyGenAvatarLookListItem } from "@/lib/heygen";
 import {
   getTrainingAssetPublicUrl,
   pickAvatarImageAndVoiceAudioAssets,
@@ -88,6 +90,7 @@ export async function POST(request: Request) {
       let consentStatus: string | null = null;
       let avatarGroupStatus: string | null = null;
       let voiceId = String(body.voiceId ?? "").trim();
+      let digitalTwinLookForPhase: HeyGenAvatarLookListItem | null = null;
 
       const trainAction = body.action === "sync" ? "sync" : "create";
 
@@ -114,10 +117,11 @@ export async function POST(request: Request) {
           limit: 50,
         });
         const looks = looksResponse.data ?? [];
-        avatarId =
-          preferredLookId && looks.some((look) => look.id === preferredLookId)
-            ? preferredLookId
-            : String(looks[0]?.id ?? "").trim();
+        digitalTwinLookForPhase =
+          (preferredLookId
+            ? looks.find((look) => look.id === preferredLookId)
+            : null) ?? looks[0] ?? null;
+        avatarId = String(digitalTwinLookForPhase?.id ?? "").trim();
 
         if (!avatarId) {
           return NextResponse.json(
@@ -276,12 +280,20 @@ export async function POST(request: Request) {
         // ignore
       }
 
-      const trainingPhase = resolveHeyGenTrainingPhase({
-        mode,
-        consentStatus,
-        groupStatus: avatarGroupStatus,
-        consentUrl,
-      });
+      const trainingPhase =
+        mode === "digital_twin"
+          ? resolveDigitalTwinTrainingPhase({
+              consentStatus,
+              groupStatus: avatarGroupStatus,
+              consentUrl,
+              look: digitalTwinLookForPhase,
+            })
+          : resolveHeyGenTrainingPhase({
+              mode,
+              consentStatus,
+              groupStatus: avatarGroupStatus,
+              consentUrl,
+            });
 
       const messageByMode: Record<HeyGenTrainMode, string> = {
         digital_twin: trainingPhaseMessage(trainingPhase),

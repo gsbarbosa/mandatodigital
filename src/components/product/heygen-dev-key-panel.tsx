@@ -101,7 +101,7 @@ export function HeygenDevKeyPanel({ open, onClose }: HeygenDevKeyPanelProps) {
   return (
     <div className="heygen-dev-panel" role="region" aria-label="Configuração HeyGen (teste)">
       <div className="heygen-dev-panel-head">
-        <strong>HeyGen — conta de teste</strong>
+        <strong>Conta de teste</strong>
         <button type="button" className="heygen-dev-panel-close" onClick={onClose}>
           Fechar
         </button>
@@ -109,7 +109,7 @@ export function HeygenDevKeyPanel({ open, onClose }: HeygenDevKeyPanelProps) {
       <p className="persona-helper-text">
         Comando oculto: 3 cliques no número <strong>5</strong> (Distribuidor) na barra do Curador.
         Salva só neste navegador. Em produção, defina{" "}
-        <code>HEYGEN_ALLOW_CLIENT_KEY_OVERRIDE=true</code> no servidor.
+        <code>ALLOW_CLIENT_KEY_OVERRIDE=true</code> no servidor.
       </p>
       <label className="persona-label" htmlFor="heygen-dev-api-key">
         API key
