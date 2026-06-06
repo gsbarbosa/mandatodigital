@@ -62,10 +62,52 @@ export function sanitizeProviderFacingMessage(message: string) {
     .trim();
 }
 
+/** Bloqueio temporário da HeyGen em gêmeos verificados (não permite delete até uma data). */
+export function formatHeyGenAvatarGroupLockMessage(message: string): string | null {
+  const match = message.match(
+    /cannot modify this avatar group until\s+(\d{4})-(\d{2})-(\d{2})/i,
+  );
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day] = match;
+  const datePt = `${day}/${month}/${year}`;
+  return (
+    `Este gêmeo digital está bloqueado pela plataforma até ${datePt}. ` +
+    "Não é possível remover ou substituir o personagem antes dessa data " +
+    "(política comum em gêmeos verificados). Até lá, use \"Utilizar Gêmeo Digital Atual\" para gerar vídeos."
+  );
+}
+
+export function formatHeyGenPurgeFailureMessage(
+  errors?: Array<{ groupId: string; message: string }>,
+  fallback?: string,
+): string {
+  const first = errors?.[0]?.message?.trim();
+  if (first) {
+    const lockMessage = formatHeyGenAvatarGroupLockMessage(first);
+    if (lockMessage) {
+      return lockMessage;
+    }
+    return sanitizeProviderFacingMessage(first);
+  }
+
+  return (
+    sanitizeProviderFacingMessage(fallback ?? "") ||
+    "Não foi possível remover o personagem na plataforma."
+  );
+}
+
 /** Explica qual limite da plataforma foi atingido (pode haver mais de um na mesma resposta). */
 export function formatProviderLimitHint(message: string): string | null {
   const normalized = message.toLowerCase();
   const hints: string[] = [];
+
+  const lockHint = formatHeyGenAvatarGroupLockMessage(message);
+  if (lockHint) {
+    hints.push(lockHint);
+  }
 
   if (normalized.includes("verified avatar group")) {
     hints.push(

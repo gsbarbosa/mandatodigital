@@ -6,9 +6,19 @@ import { createClient } from "@supabase/supabase-js";
 import {
   assertLocalFilesystemAllowed,
   canUseLocalFilesystem,
+  formatSupabaseQueryError,
   SUPABASE_REQUIRED_IN_PRODUCTION_MESSAGE,
   supabaseSchemaOutdatedMessage,
 } from "@/lib/server-runtime";
+import { getSupabaseStorageApiKey } from "@/lib/supabase/env";
+import {
+  buildResumableUploadEndpoint,
+  formatStorageUploadError,
+  SUPABASE_FREE_TIER_MAX_BYTES,
+  SUPABASE_STANDARD_UPLOAD_MAX_BYTES,
+  uploadTrainingBufferViaSignedUrl,
+  uploadTrainingBufferViaTus,
+} from "@/lib/training-asset-upload-client";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 
 import type {
@@ -145,6 +155,15 @@ function isMissingSchemaFieldError(error: unknown) {
       "code" in error &&
       (error.code === "PGRST204" || error.code === "42703" || error.code === "42P01"),
   );
+}
+
+function throwSupabaseQueryError(error: unknown): never {
+  const message = formatSupabaseQueryError(error);
+  if (message) {
+    throw new Error(message);
+  }
+
+  throw error;
 }
 
 function isSchemaCompatibilityError(error: unknown) {
@@ -1016,7 +1035,7 @@ async function fetchProfileForStorageContext(client: ReturnType<typeof getSupaba
       .maybeSingle();
 
     if (error && !isMissingSchemaFieldError(error)) {
-      throw error;
+      throwSupabaseQueryError(error);
     }
 
     return data ? mapProfileRow(data) : null;
@@ -1055,7 +1074,7 @@ const supabaseRepository: Repository = {
 
     const profileRes = await profileRowPromise;
 
-    if (profileRes.error) throw profileRes.error;
+    if (profileRes.error) throwSupabaseQueryError(profileRes.error);
 
     const baseProfile = profileRes.data ? mapProfileRow(profileRes.data) : null;
     const workflowConfigRes = baseProfile
@@ -1251,7 +1270,7 @@ const supabaseRepository: Repository = {
           .limit(1)
           .maybeSingle();
 
-    if (existing.error) throw existing.error;
+    if (existing.error) throwSupabaseQueryError(existing.error);
 
     if (ownerUserId && input.id && existing.data?.id && input.id !== existing.data.id) {
       throw new Error("Nao e permitido salvar o perfil de outro usuario.");
@@ -1282,7 +1301,7 @@ const supabaseRepository: Repository = {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) throwSupabaseQueryError(error);
     const baseProfile = mapProfileRow(data);
     const workflowPayload = {
       profile_id: baseProfile.id,
@@ -1948,38 +1967,79 @@ export function getRepository(): Repository {
   return localRepository;
 }
 
-export async function storeTrainingAssetFile(input: {
+export async function storeTrainingAssetBytes(input: {
   referenceId: string;
-  file: File;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  buffer: Buffer;
 }): Promise<StoredTrainingAssetFile> {
-  const storagePath = buildTrainingAssetStoragePath(input.referenceId, input.file.name);
-  const mimeType = input.file.type || "application/octet-stream";
-  const arrayBuffer = await input.file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  const storagePath = buildTrainingAssetStoragePath(input.referenceId, input.filename);
+  const mimeType = input.mimeType || "application/octet-stream";
 
   if (isSupabaseConfigured()) {
     const client = getSupabaseClient();
     const bucketName = getTrainingAssetBucketName();
-    const uploadResult = await client.storage
-      .from(bucketName)
-      .upload(storagePath, buffer, {
-        contentType: mimeType,
-        upsert: false,
-      });
+    const supabaseUrl = process.env.SUPABASE_URL?.trim() ?? "";
 
-    if (uploadResult.error) {
+    if (input.sizeBytes > SUPABASE_FREE_TIER_MAX_BYTES) {
       throw new Error(
-        `Nao foi possivel enviar o arquivo para o Supabase Storage: ${uploadResult.error.message}`,
+        formatStorageUploadError("Payload too large", input.sizeBytes),
       );
+    }
+
+    if (input.buffer.byteLength <= SUPABASE_STANDARD_UPLOAD_MAX_BYTES) {
+      const uploadResult = await client.storage
+        .from(bucketName)
+        .upload(storagePath, input.buffer, {
+          contentType: mimeType,
+          upsert: false,
+        });
+
+      if (uploadResult.error) {
+        throw new Error(
+          formatStorageUploadError(uploadResult.error.message, input.sizeBytes),
+        );
+      }
+    } else {
+      const signedUpload = await client.storage
+        .from(bucketName)
+        .createSignedUploadUrl(storagePath, { upsert: false });
+
+      if (signedUpload.error || !signedUpload.data?.signedUrl || !signedUpload.data.token) {
+        throw new Error(
+          `Nao foi possivel preparar upload no Supabase Storage: ${signedUpload.error?.message ?? "URL vazia"}`,
+        );
+      }
+
+      const storageApiKey = getSupabaseStorageApiKey();
+      if (storageApiKey) {
+        await uploadTrainingBufferViaTus({
+          buffer: input.buffer,
+          mimeType,
+          bucketName,
+          storagePath,
+          token: signedUpload.data.token,
+          resumableEndpoint: buildResumableUploadEndpoint(supabaseUrl),
+          apiKey: storageApiKey,
+        });
+      } else {
+        await uploadTrainingBufferViaSignedUrl({
+          signedUrl: signedUpload.data.signedUrl,
+          token: signedUpload.data.token,
+          buffer: input.buffer,
+          mimeType,
+        });
+      }
     }
 
     return {
       storageProvider: "supabase",
       storageBucket: bucketName,
       storagePath,
-      originalFilename: input.file.name,
+      originalFilename: input.filename,
       mimeType,
-      sizeBytes: input.file.size,
+      sizeBytes: input.sizeBytes,
     };
   }
 
@@ -1987,16 +2047,32 @@ export async function storeTrainingAssetFile(input: {
   await ensureLocalTrainingAssetDir();
   const absolutePath = path.join(LOCAL_TRAINING_ASSET_DIR, storagePath);
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fs.writeFile(absolutePath, buffer);
+  await fs.writeFile(absolutePath, input.buffer);
 
   return {
     storageProvider: "local",
     storageBucket: null,
     storagePath,
-    originalFilename: input.file.name,
+    originalFilename: input.filename,
+    mimeType,
+    sizeBytes: input.sizeBytes,
+  };
+}
+
+export async function storeTrainingAssetFile(input: {
+  referenceId: string;
+  file: File;
+}): Promise<StoredTrainingAssetFile> {
+  const mimeType = input.file.type || "application/octet-stream";
+  const arrayBuffer = await input.file.arrayBuffer();
+
+  return storeTrainingAssetBytes({
+    referenceId: input.referenceId,
+    filename: input.file.name,
     mimeType,
     sizeBytes: input.file.size,
-  };
+    buffer: Buffer.from(arrayBuffer),
+  });
 }
 
 export async function deleteTrainingAssetFile(input: {

@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { mergeProfileInputForSave } from "@/lib/profile-save";
+import { SUPABASE_STANDARD_UPLOAD_MAX_BYTES } from "@/lib/training-asset-upload-client";
 import {
   contentRequestInputSchema,
   productFeedbackInputSchema,
@@ -384,79 +385,92 @@ export function ProductAppProvider({
       const uploadedAssets: ProfileTrainingAsset[] = [];
 
       for (const file of files) {
-        const signed = await handleApi<{
-          signedUrl?: string;
-          token?: string;
-          resumableEndpoint?: string;
-          storageProvider?: "supabase";
-          storageBucket?: string;
-          storagePath?: string;
-          message?: string;
-        }>("/api/profile/training-assets/signed-upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            profileId,
-            draftProfileId,
-            trainingRole,
-            filename: file.name,
-          }),
-        }).catch(() => null);
+        const useServerUpload = file.size > SUPABASE_STANDARD_UPLOAD_MAX_BYTES;
 
-        if (
-          signed?.signedUrl &&
-          signed?.token &&
-          signed.storagePath &&
-          signed.storageBucket &&
-          signed.resumableEndpoint
-        ) {
-          await uploadTrainingFileToSupabase({
-            signedUrl: signed.signedUrl,
-            token: signed.token,
-            storageBucket: signed.storageBucket,
-            storagePath: signed.storagePath,
-            resumableEndpoint: signed.resumableEndpoint,
-            file,
-          });
-
-          const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
-            "/api/profile/training-assets/register",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                profileId,
-                draftProfileId,
-                trainingRole,
-                storageProvider: "supabase",
-                storageBucket: signed.storageBucket ?? null,
-                storagePath: signed.storagePath,
-                originalFilename: file.name,
-                mimeType: file.type,
-                sizeBytes: file.size,
-              }),
+        if (!useServerUpload) {
+          const signed = await handleApi<{
+            signedUrl?: string;
+            token?: string;
+            resumableEndpoint?: string;
+            storageApiKey?: string;
+            storageProvider?: "supabase";
+            storageBucket?: string;
+            storagePath?: string;
+            message?: string;
+          }>("/api/profile/training-assets/signed-upload", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          );
+            body: JSON.stringify({
+              profileId,
+              draftProfileId,
+              trainingRole,
+              filename: file.name,
+            }),
+          }).catch(() => null);
 
-          uploadedAssets.push(...registered.assets);
-          continue;
+          if (
+            signed?.signedUrl &&
+            signed?.token &&
+            signed.storagePath &&
+            signed.storageBucket &&
+            signed.resumableEndpoint
+          ) {
+            await uploadTrainingFileToSupabase({
+              signedUrl: signed.signedUrl,
+              token: signed.token,
+              storageBucket: signed.storageBucket,
+              storagePath: signed.storagePath,
+              resumableEndpoint: signed.resumableEndpoint,
+              storageApiKey: signed.storageApiKey,
+              file,
+            });
+
+            const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
+              "/api/profile/training-assets/register",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  profileId,
+                  draftProfileId,
+                  trainingRole,
+                  storageProvider: "supabase",
+                  storageBucket: signed.storageBucket ?? null,
+                  storagePath: signed.storagePath,
+                  originalFilename: file.name,
+                  mimeType: file.type,
+                  sizeBytes: file.size,
+                }),
+              },
+            );
+
+            uploadedAssets.push(...registered.assets);
+            continue;
+          }
         }
 
-        // Fallback (dev/teste local): upload via API tradicional (multipart).
-        const formData = new FormData();
-        formData.append(isPersistedProfile ? "profileId" : "draftProfileId", profileReferenceId);
-        formData.append("trainingRole", trainingRole);
-        formData.append("files", file);
+        const uploadParams = new URLSearchParams({
+          trainingRole,
+          filename: file.name,
+        });
+        if (isPersistedProfile) {
+          uploadParams.set("profileId", profileReferenceId);
+        } else {
+          uploadParams.set("draftProfileId", profileReferenceId);
+        }
 
         const result = await handleApi<{ assets: ProfileTrainingAsset[] }>(
-          "/api/profile/training-assets",
+          `/api/profile/training-assets/binary?${uploadParams.toString()}`,
           {
-            method: "POST",
-            body: formData,
+            method: "PUT",
+            headers: {
+              "Content-Type": file.type || "application/octet-stream",
+            },
+            body: file,
           },
         );
 

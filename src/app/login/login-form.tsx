@@ -1,10 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 
-import { getAuthCallbackUrl } from "@/lib/auth/redirect-url";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { getFirebaseAuth } from "@/lib/firebase/client";
+import {
+  formatAuthClientError,
+  persistFirebaseSession,
+} from "@/lib/firebase/session-client";
+import {
+  completeSocialRedirectSignIn,
+  signInWithGoogle,
+} from "@/lib/firebase/social-auth";
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="login-social-icon">
+      <path
+        fill="#EA4335"
+        d="M12 10.2v3.6h5.1c-.2 1.2-1.5 3.6-5.1 3.6-3.1 0-5.6-2.5-5.6-5.6S8.9 6.2 12 6.2c1.8 0 3 .8 3.7 1.5l2.5-2.4C16.5 3.9 14.4 3 12 3 7 3 3 7 3 12s4 9 9 9c5.2 0 8.6-3.7 8.6-8.9 0-.6-.1-1-.2-1.4H12z"
+      />
+    </svg>
+  );
+}
 
 export function LoginForm() {
   const router = useRouter();
@@ -17,6 +39,56 @@ export function LoginForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("setup") === "firebase-auth") {
+      setErrorMessage(
+        "Login ainda nao esta completo no servidor. Configure FIREBASE_SERVICE_ACCOUNT_JSON na Vercel.",
+      );
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function handleRedirectResult() {
+      try {
+        const auth = getFirebaseAuth();
+        const result = await completeSocialRedirectSignIn(auth);
+        if (!result?.user || cancelled) {
+          return;
+        }
+
+        setIsGoogleLoading(true);
+        await persistFirebaseSession();
+        router.replace(nextPath as "/curador");
+        router.refresh();
+      } catch (error) {
+        if (!cancelled) {
+          const rawMessage =
+            error instanceof Error ? error.message : "Nao foi possivel autenticar.";
+          setErrorMessage(formatAuthClientError(rawMessage));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsGoogleLoading(false);
+        }
+      }
+    }
+
+    void handleRedirectResult();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nextPath, router]);
+
+  async function finishAuth() {
+    await persistFirebaseSession();
+    router.replace(nextPath as "/curador");
+    router.refresh();
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -25,51 +97,69 @@ export function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      const supabase = createSupabaseBrowserClient();
+      const auth = getFirebaseAuth();
 
       if (mode === "signup") {
-        const emailRedirectTo = getAuthCallbackUrl(window.location.origin);
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: emailRedirectTo
-            ? {
-                emailRedirectTo: `${emailRedirectTo}?next=${encodeURIComponent(nextPath)}`,
-              }
-            : undefined,
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        setStatusMessage(
-          "Conta criada. Se o projeto exigir confirmacao por e-mail, confira sua caixa de entrada.",
-        );
-        setMode("login");
-        return;
+        await createUserWithEmailAndPassword(auth, email, password);
+        setStatusMessage("Conta criada. Entrando...");
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
       }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        throw error;
-      }
-
-      router.replace(nextPath as "/curador");
-      router.refresh();
+      await finishAuth();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel autenticar.",
-      );
+      const rawMessage =
+        error instanceof Error ? error.message : "Nao foi possivel autenticar.";
+      setErrorMessage(formatAuthClientError(rawMessage));
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  async function handleGoogleSignIn() {
+    setErrorMessage(null);
+    setStatusMessage(null);
+    setIsGoogleLoading(true);
+
+    try {
+      const auth = getFirebaseAuth();
+      const result = await signInWithGoogle(auth);
+
+      if (!result) {
+        return;
+      }
+
+      await finishAuth();
+    } catch (error) {
+      const rawMessage =
+        error instanceof Error ? error.message : "Nao foi possivel autenticar.";
+      setErrorMessage(formatAuthClientError(rawMessage));
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  }
+
+  const isBusy = isSubmitting || isGoogleLoading;
+
   return (
     <section className="login-card persona-card">
       <h1>Mandato Digital</h1>
+
+      <div className="login-social-group">
+        <button
+          type="button"
+          className="login-social-btn"
+          disabled={isBusy}
+          onClick={() => void handleGoogleSignIn()}
+        >
+          <GoogleIcon />
+          {isGoogleLoading ? "Conectando..." : "Continuar com Google"}
+        </button>
+      </div>
+
+      <p className="login-divider">
+        <span>ou use e-mail</span>
+      </p>
 
       <div className="persona-crop-aspect-row">
         <button
@@ -121,7 +211,7 @@ export function LoginForm() {
         )}
         {statusMessage && <p className="persona-helper-text">{statusMessage}</p>}
 
-        <button type="submit" className="persona-btn persona-btn-large" disabled={isSubmitting}>
+        <button type="submit" className="persona-btn persona-btn-large" disabled={isBusy}>
           {isSubmitting ? "Aguarde..." : mode === "signup" ? "Criar conta" : "Entrar"}
         </button>
       </form>

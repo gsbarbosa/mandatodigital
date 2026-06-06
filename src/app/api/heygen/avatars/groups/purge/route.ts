@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { handleRouteError } from "@/lib/api";
+import { formatHeyGenPurgeFailureMessage } from "@/lib/curador-heygen-prefs";
 import { heygenListAllPrivateVoices } from "@/lib/heygen";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { purgePrivateHeyGenAvatarGroups } from "@/lib/heygen-purge-private-groups";
@@ -30,7 +31,10 @@ export async function POST(request: Request) {
       if (result.deleted.length === 0 && result.errors.length > 0) {
         return NextResponse.json(
           {
-            message: "Nao foi possivel remover os personagens na plataforma.",
+            message: formatHeyGenPurgeFailureMessage(
+              result.errors,
+              "Nao foi possivel remover os personagens na plataforma.",
+            ),
             ...result,
           },
           { status: 502 },

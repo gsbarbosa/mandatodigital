@@ -1,7 +1,9 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
+import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
+import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
+import { FIREBASE_SESSION_COOKIE } from "@/lib/firebase/session";
 
 export type SessionUser = {
   id: string;
@@ -9,23 +11,27 @@ export type SessionUser = {
 };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  if (!isSupabaseAuthConfigured()) {
+  if (!isFirebaseAuthConfigured()) {
     return null;
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get(FIREBASE_SESSION_COOKIE)?.value;
 
-  if (!user) {
+  if (!sessionCookie) {
     return null;
   }
 
-  return {
-    id: user.id,
-    email: user.email ?? "",
-  };
+  try {
+    const decoded = await getFirebaseAdminAuth().verifySessionCookie(sessionCookie, true);
+
+    return {
+      id: decoded.uid,
+      email: decoded.email ?? "",
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function requireSessionUser(): Promise<SessionUser> {

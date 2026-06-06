@@ -15,7 +15,35 @@ export const SUPABASE_REQUIRED_IN_PRODUCTION_MESSAGE =
   "Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente de producao (ex.: Vercel). " +
   "O armazenamento local em data/ nao funciona em serverless.";
 
+export function formatSupabaseQueryError(error: unknown): string | null {
+  const details =
+    error && typeof error === "object" && "message" in error
+      ? String(error.message)
+      : "";
+  const code =
+    error && typeof error === "object" && "code" in error ? String(error.code) : "";
+  const normalized = `${code} ${details}`.toLowerCase();
+
+  if (
+    code === "22P02" &&
+    (normalized.includes("uuid") || normalized.includes("owner_user_id"))
+  ) {
+    return (
+      "O banco ainda trata owner_user_id como UUID, mas o login Firebase usa outro formato de ID. " +
+      "No Supabase (SQL Editor), execute: " +
+      "alter table politician_profiles alter column owner_user_id type text using owner_user_id::text;"
+    );
+  }
+
+  return null;
+}
+
 export function supabaseSchemaOutdatedMessage(error: unknown) {
+  const specific = formatSupabaseQueryError(error);
+  if (specific) {
+    return specific;
+  }
+
   const details =
     error && typeof error === "object" && "message" in error
       ? String(error.message)

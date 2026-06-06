@@ -12,12 +12,3 @@ export function getPublicAppBaseUrl(fallbackOrigin?: string) {
   return "";
 }
 
-/** Destino do link de confirmacao de e-mail (cadastro / magic link). */
-export function getAuthCallbackUrl(fallbackOrigin?: string) {
-  const base = getPublicAppBaseUrl(fallbackOrigin);
-  if (!base) {
-    return "";
-  }
-
-  return `${base}/auth/callback`;
-}

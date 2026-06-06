@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { handleRouteError } from "@/lib/api";
+import { apiRoute } from "@/lib/auth/api-route";
 import {
   deleteTrainingAssetFile,
-  getRepository,
   storeTrainingAssetFile,
 } from "@/lib/storage";
 import {
@@ -14,7 +13,7 @@ import {
 const MAX_TRAINING_FILES = 5;
 
 export async function POST(request: Request) {
-  try {
+  return apiRoute(async (repository) => {
     const formData = await request.formData();
     const profileId = String(formData.get("profileId") ?? "").trim() || null;
     const draftProfileId = String(formData.get("draftProfileId") ?? "").trim() || null;
@@ -64,7 +63,7 @@ export async function POST(request: Request) {
     let assets;
 
     try {
-      assets = await getRepository().createTrainingAssets(
+      assets = await repository.createTrainingAssets(
         uploadedFiles.map((item) => ({
           profileId,
           draftProfileId: profileId ? null : draftProfileId,
@@ -94,7 +93,5 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ assets }, { status: 201 });
-  } catch (error) {
-    return handleRouteError(error);
-  }
+  });
 }

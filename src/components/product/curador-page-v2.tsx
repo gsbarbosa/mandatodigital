@@ -10,6 +10,7 @@ import {
 import { useProductApp } from "@/components/product/provider";
 import { parseTextarea } from "@/components/product/shared";
 import {
+  formatHeyGenPurgeFailureMessage,
   formatProviderLimitHint,
   readCuradorHeygenPrefs,
   sanitizeProviderFacingMessage,
@@ -871,9 +872,16 @@ export function CuradorPageV2() {
           </>
         ) : null}
         {deleteTwinError ? (
-          <p className="persona-twin-purge-banner is-error" role="status">
-            {deleteTwinError}
-          </p>
+          <>
+            <p className="persona-twin-purge-banner is-error" role="status">
+              {deleteTwinError}
+            </p>
+            {formatProviderLimitHint(deleteTwinError) ? (
+              <p className="persona-helper-text persona-top-gap">
+                {formatProviderLimitHint(deleteTwinError)}
+              </p>
+            ) : null}
+          </>
         ) : null}
         {deleteTwinInfo ? (
           <p className="persona-twin-purge-banner is-success" role="status">
@@ -1850,7 +1858,12 @@ export function CuradorPageV2() {
       }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel remover os personagens.");
+        throw new Error(
+          formatHeyGenPurgeFailureMessage(
+            payload.errors,
+            payload.message || "Nao foi possivel remover os personagens.",
+          ),
+        );
       }
 
       setHeygenAvatarId("");
@@ -1896,9 +1909,12 @@ export function CuradorPageV2() {
 
       if (purgeErrors > 0 && deletedCount === 0) {
         throw new Error(
-          isCaricatureTrack
-            ? "Não foi possível remover o personagem na plataforma. Tente novamente em instantes."
-            : "Não foi possível remover todos os gêmeos na plataforma. Tente novamente em instantes.",
+          formatHeyGenPurgeFailureMessage(
+            payload.errors,
+            isCaricatureTrack
+              ? "Não foi possível remover o personagem na plataforma."
+              : "Não foi possível remover todos os gêmeos na plataforma.",
+          ),
         );
       }
 

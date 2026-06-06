@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
+import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 
 export async function requireApiUser(): Promise<SessionUser | NextResponse> {
-  if (!isSupabaseAuthConfigured()) {
+  if (!isFirebaseAuthConfigured()) {
     return NextResponse.json(
       {
         message:
-          "Login nao configurado. Defina NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+          "Login nao configurado. Defina variaveis NEXT_PUBLIC_FIREBASE_* e FIREBASE_SERVICE_ACCOUNT_JSON.",
       },
       { status: 501 },
     );

@@ -2,12 +2,12 @@ import { isApiUser, requireApiUser } from "@/lib/auth/api";
 import { getSessionUser, requireSessionUser } from "@/lib/auth/session";
 import { getRepository, type Repository } from "@/lib/storage";
 import { runWithStorageOwner } from "@/lib/storage-context";
-import { isSupabaseAuthConfigured } from "@/lib/supabase/env";
+import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 
 export async function runWithSessionRepository<T>(
   fn: (repository: Repository) => Promise<T>,
 ): Promise<T> {
-  if (!isSupabaseAuthConfigured()) {
+  if (!isFirebaseAuthConfigured()) {
     return fn(getRepository());
   }
 
@@ -18,7 +18,7 @@ export async function runWithSessionRepository<T>(
 export async function runWithOptionalSessionRepository<T>(
   fn: (repository: Repository) => Promise<T>,
 ): Promise<T> {
-  if (!isSupabaseAuthConfigured()) {
+  if (!isFirebaseAuthConfigured()) {
     return fn(getRepository());
   }
 
@@ -34,7 +34,7 @@ export async function runWithOptionalSessionRepository<T>(
 export async function runWithApiRepository<T>(
   fn: (repository: Repository) => Promise<T>,
 ): Promise<T | Response> {
-  if (!isSupabaseAuthConfigured()) {
+  if (!isFirebaseAuthConfigured()) {
     return fn(getRepository());
   }
 

@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { handleRouteError } from "@/lib/api";
 import { parseTrainingAssetRole } from "@/lib/training-asset-role";
 import { buildResumableUploadEndpoint } from "@/lib/training-asset-upload-client";
+import { getSupabaseAnonKey } from "@/lib/supabase/env";
 
 function getEnv(name: string) {
   return (process.env[name] ?? "").trim();
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
       throw new Error(`Nao foi possivel criar URL assinada: ${error?.message ?? "URL vazia"}`);
     }
 
+    const storageApiKey = getSupabaseAnonKey();
+
     return NextResponse.json(
       {
         trainingRole,
@@ -88,6 +91,7 @@ export async function POST(request: Request) {
         signedUrl: data.signedUrl,
         token: data.token,
         resumableEndpoint: buildResumableUploadEndpoint(url),
+        storageApiKey: storageApiKey || undefined,
       },
       { status: 201 },
     );

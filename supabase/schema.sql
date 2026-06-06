@@ -2,7 +2,7 @@ create extension if not exists pgcrypto;
 
 create table if not exists politician_profiles (
   id uuid primary key default gen_random_uuid(),
-  owner_user_id uuid unique,
+  owner_user_id text unique,
   full_name text not null,
   role text not null,
   city text not null,
@@ -229,7 +229,7 @@ alter table if exists profile_avatar_trainings
   add column if not exists voice_audio_asset_id uuid null;
 
 alter table if exists politician_profiles
-  add column if not exists owner_user_id uuid unique;
+  add column if not exists owner_user_id text unique;
 
 alter table if exists content_requests
   add column if not exists profile_id uuid null references politician_profiles(id) on delete cascade;

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { getAuthSetupMessage } from "@/lib/supabase/env";
+import { getAuthSetupMessage } from "@/lib/firebase/env";
 
 import { LoginForm } from "./login-form";
 

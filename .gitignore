@@ -11,3 +11,4 @@ test-results
 .env.*.local
 .env.vercel.*
 data/mandato-digital.json
+*-firebase-adminsdk-*.json
