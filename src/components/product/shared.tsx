@@ -239,7 +239,7 @@ export type MvpPipelineStep = {
 export const mvpPipelineSteps: MvpPipelineStep[] = [
   { id: "sentinela", label: "Sentinela", href: "/sentinela", enabled: false },
   { id: "curador", label: "Curador", href: "/curador", enabled: true },
-  { id: "criativo", label: "Criativo", href: "/criativo", enabled: false },
+  { id: "criativo", label: "Criativo", href: "/criativo", enabled: true },
   { id: "auditor", label: "Auditor", href: "/auditor", enabled: false },
   { id: "distribuidor", label: "Distribuidor", href: "/distribuidor", enabled: false },
 ];
@@ -290,7 +290,7 @@ export const workflowStages: WorkflowStageDefinition[] = [
       "O motor criativo gera roteiros curtos e organiza preferencias de avatar digital e edicao para a saida audiovisual do mandato.",
     inputLabel: "Briefing editorial, tema do dia, CTA e preferencias criativas.",
     outputLabel: "Rascunhos de roteiro candidatos para revisao humana.",
-    status: "planejado",
+    status: "ativo",
   },
   {
     id: "auditor",

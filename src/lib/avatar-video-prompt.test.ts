@@ -83,12 +83,13 @@ describe("buildAvatarVideoPrompt", () => {
     });
 
     expect(prompt.system).not.toContain("posicionamento ideologico");
-    expect(prompt.system).not.toContain("Glossario de Expressoes");
+    expect(prompt.system).not.toContain("incorporar de forma natural");
     expect(prompt.user).not.toContain("Palavras Obrigatorias");
     expect(prompt.user).toContain("Tema Central: Transparencia");
+    expect(prompt.user).toContain("140 palavras");
   });
 
-  it("inclui blocos apenas com dados do Curador", () => {
+  it("inclui contexto politico no system e regra de centro", () => {
     const prompt = buildAvatarVideoPrompt({
       topic: "Transparencia",
       profile: {
@@ -97,10 +98,17 @@ describe("buildAvatarVideoPrompt", () => {
         glossaryTerms: ["ne"],
         voiceTones: ["Indignado"],
       },
+      curadorContext: {
+        politicalContext: "1. O FATO\n- Exemplo.",
+      },
     });
 
     expect(prompt.system).toContain("posicionamento ideologico de: Centro");
+    expect(prompt.system).toContain("rejeite a polarizacao extrema");
+    expect(prompt.system).toContain("INTELIGENCIA DE CENARIO");
+    expect(prompt.system).toContain("1. O FATO");
     expect(prompt.system).toContain("Tom: Indignado");
+    expect(prompt.system).toContain("HeyGen");
     expect(prompt.user).toContain("Palavras Obrigatorias");
   });
 });

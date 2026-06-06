@@ -8,7 +8,23 @@ export const spectrumOptions = [
   "Centro-Direita",
   "Direita",
   "Extrema-Direita",
-];
+] as const;
+
+export type SpectrumOption = (typeof spectrumOptions)[number];
+
+export const SPECTRUM_CENTER_INDEX = 3;
+
+export const SPECTRUM_DEFAULT: SpectrumOption = spectrumOptions[SPECTRUM_CENTER_INDEX];
+
+export function spectrumToIndex(value: string | undefined | null) {
+  const index = spectrumOptions.indexOf(value as SpectrumOption);
+  return index >= 0 ? index : SPECTRUM_CENTER_INDEX;
+}
+
+export function indexToSpectrum(index: number): SpectrumOption {
+  const clamped = Math.min(Math.max(Math.round(index), 0), spectrumOptions.length - 1);
+  return spectrumOptions[clamped];
+}
 
 export const archetypeOptions = [
   "O Estadista (Serio, Longo prazo)",

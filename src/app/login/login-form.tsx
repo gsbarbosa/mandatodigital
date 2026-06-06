@@ -28,6 +28,15 @@ function GoogleIcon() {
   );
 }
 
+function LoginLoading({ message }: { message: string }) {
+  return (
+    <div className="login-loading" role="status" aria-live="polite">
+      <span className="persona-spinner login-loading-spinner" aria-hidden="true" />
+      <p>{message}</p>
+    </div>
+  );
+}
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,11 +49,13 @@ export function LoginForm() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
+  const [isFinishingAuth, setIsFinishingAuth] = useState(false);
 
   useEffect(() => {
     if (searchParams.get("setup") === "firebase-auth") {
       setErrorMessage(
-        "Login ainda nao esta completo no servidor. Configure FIREBASE_SERVICE_ACCOUNT_JSON na Vercel.",
+        "Login ainda nao esta completo no servidor. Configure FIREBASE_SERVICE_ACCOUNT_JSON no ambiente.",
       );
     }
   }, [searchParams]);
@@ -60,7 +71,8 @@ export function LoginForm() {
           return;
         }
 
-        setIsGoogleLoading(true);
+        setIsCheckingRedirect(false);
+        setIsFinishingAuth(true);
         await persistFirebaseSession();
         router.replace(nextPath as "/curador");
         router.refresh();
@@ -69,10 +81,11 @@ export function LoginForm() {
           const rawMessage =
             error instanceof Error ? error.message : "Nao foi possivel autenticar.";
           setErrorMessage(formatAuthClientError(rawMessage));
+          setIsFinishingAuth(false);
         }
       } finally {
         if (!cancelled) {
-          setIsGoogleLoading(false);
+          setIsCheckingRedirect(false);
         }
       }
     }
@@ -85,9 +98,16 @@ export function LoginForm() {
   }, [nextPath, router]);
 
   async function finishAuth() {
-    await persistFirebaseSession();
-    router.replace(nextPath as "/curador");
-    router.refresh();
+    setIsFinishingAuth(true);
+
+    try {
+      await persistFirebaseSession();
+      router.replace(nextPath as "/curador");
+      router.refresh();
+    } catch (error) {
+      setIsFinishingAuth(false);
+      throw error;
+    }
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -139,10 +159,24 @@ export function LoginForm() {
     }
   }
 
-  const isBusy = isSubmitting || isGoogleLoading;
+  const isBusy = isSubmitting || isGoogleLoading || isFinishingAuth;
+
+  if (isCheckingRedirect) {
+    return (
+      <section className="login-card persona-card">
+        <LoginLoading message="Verificando sessao..." />
+      </section>
+    );
+  }
 
   return (
-    <section className="login-card persona-card">
+    <section className={`login-card persona-card${isFinishingAuth ? " login-card-busy" : ""}`}>
+      {isFinishingAuth && (
+        <div className="login-card-overlay" aria-hidden="true">
+          <LoginLoading message="Entrando..." />
+        </div>
+      )}
+
       <h1>Mandato Digital</h1>
 
       <div className="login-social-group">
@@ -152,8 +186,17 @@ export function LoginForm() {
           disabled={isBusy}
           onClick={() => void handleGoogleSignIn()}
         >
-          <GoogleIcon />
-          {isGoogleLoading ? "Conectando..." : "Continuar com Google"}
+          {isGoogleLoading ? (
+            <span className="persona-loading-row">
+              <span className="persona-spinner" aria-hidden="true" />
+              Conectando...
+            </span>
+          ) : (
+            <>
+              <GoogleIcon />
+              Continuar com Google
+            </>
+          )}
         </button>
       </div>
 
@@ -212,7 +255,16 @@ export function LoginForm() {
         {statusMessage && <p className="persona-helper-text">{statusMessage}</p>}
 
         <button type="submit" className="persona-btn persona-btn-large" disabled={isBusy}>
-          {isSubmitting ? "Aguarde..." : mode === "signup" ? "Criar conta" : "Entrar"}
+          {isSubmitting ? (
+            <span className="persona-loading-row">
+              <span className="persona-spinner" aria-hidden="true" />
+              Aguarde...
+            </span>
+          ) : mode === "signup" ? (
+            "Criar conta"
+          ) : (
+            "Entrar"
+          )}
         </button>
       </form>
     </section>

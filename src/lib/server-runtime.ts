@@ -1,7 +1,8 @@
-/** Ambientes serverless (Vercel/Lambda) nao tem disco gravavel em `data/`. */
+/** Ambientes serverless (Firebase App Hosting / Cloud Run / Lambda) nao tem disco gravavel em `data/`. */
 export function isServerlessRuntime() {
   return Boolean(
-    process.env.VERCEL ||
+    process.env.K_SERVICE ||
+      process.env.VERCEL ||
       process.env.AWS_LAMBDA_FUNCTION_NAME ||
       process.env.LAMBDA_TASK_ROOT,
   );
@@ -12,7 +13,7 @@ export function canUseLocalFilesystem() {
 }
 
 export const SUPABASE_REQUIRED_IN_PRODUCTION_MESSAGE =
-  "Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente de producao (ex.: Vercel). " +
+  "Configure SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente de producao (ex.: Firebase App Hosting). " +
   "O armazenamento local em data/ nao funciona em serverless.";
 
 export function formatSupabaseQueryError(error: unknown): string | null {

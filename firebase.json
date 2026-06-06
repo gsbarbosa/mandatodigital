@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/firebase/firebase-tools/master/schema/firebase-config.json",
+  "apphosting": [
+    {
+      "backendId": "mandatodigital",
+      "rootDir": ".",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**",
+        "playwright-report/**",
+        "test-results/**",
+        "data/**",
+        "*-firebase-adminsdk-*.json",
+        ".env*"
+      ],
+      "alwaysDeployFromSource": true
+    }
+  ]
+}

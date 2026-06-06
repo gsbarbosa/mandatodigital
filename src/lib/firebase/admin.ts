@@ -22,13 +22,18 @@ export function getFirebaseAdminApp(): App {
   }
 
   const serviceAccount = parseServiceAccount();
-  if (!serviceAccount) {
-    throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON nao configurado.");
+  if (serviceAccount) {
+    return initializeApp({
+      credential: cert(serviceAccount),
+    });
   }
 
-  return initializeApp({
-    credential: cert(serviceAccount),
-  });
+  // Firebase App Hosting injeta FIREBASE_CONFIG; Admin SDK inicializa sem credencial explicita.
+  if (process.env.FIREBASE_CONFIG || process.env.K_SERVICE) {
+    return initializeApp();
+  }
+
+  throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON nao configurado.");
 }
 
 export function getFirebaseAdminAuth(): Auth {

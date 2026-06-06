@@ -9,6 +9,7 @@ truncate table
   generated_contents,
   content_requests,
   product_feedback,
+  creative_projects,
   avatar_video_generations,
   profile_avatar_trainings,
   profile_training_assets,

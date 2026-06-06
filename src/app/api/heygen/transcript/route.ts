@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       const transcript = await buildAvatarVideoTranscript({
         topic,
         profile,
+        curadorContext: body.curadorContext,
       });
 
       return NextResponse.json({ transcript }, { status: 200 });

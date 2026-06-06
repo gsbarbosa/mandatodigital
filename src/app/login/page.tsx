@@ -14,7 +14,16 @@ export default function LoginPage() {
           {setupMessage}
         </p>
       )}
-      <Suspense fallback={<p className="persona-helper-text">Carregando...</p>}>
+      <Suspense
+        fallback={
+          <section className="login-card persona-card">
+            <div className="login-loading" role="status" aria-live="polite">
+              <span className="persona-spinner login-loading-spinner" aria-hidden="true" />
+              <p>Carregando...</p>
+            </div>
+          </section>
+        }
+      >
         <LoginForm />
       </Suspense>
     </main>

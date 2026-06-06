@@ -28,6 +28,65 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
+## Deploy no Firebase App Hosting
+
+O app usa **Firebase App Hosting** (Next.js com SSR e API routes no Cloud Run).
+O projeto Firebase e `madatodigital`.
+
+### Pre-requisitos
+
+1. Upgrade do projeto para plano **Blaze** (pay-as-you-go):
+   https://console.firebase.google.com/project/madatodigital/usage/details
+2. Firebase CLI logado: `firebase login`
+
+### Primeiro deploy
+
+```bash
+# 1. Criar backend (regiao proxima ao Brasil)
+firebase apphosting:backends:create \
+  --project madatodigital \
+  --primary-region us-central1 \
+  --backend mandatodigital \
+  --app 1:1075554159914:web:4566a2948db6df56f52253 \
+  --root-dir .
+
+# 2. Cadastrar secrets a partir do .env.local
+npm run firebase:secrets:guide
+# ou aplicar automaticamente:
+npm run firebase:secrets:apply
+
+# 3. Liberar secrets para o backend
+firebase apphosting:secrets:grantaccess \
+  --backend mandatodigital \
+  --project madatodigital
+
+# 4. Deploy
+npm run deploy:firebase
+```
+
+A URL inicial fica no formato `mandatodigital--madatodigital.us-central1.hosted.app`.
+Depois conecte o dominio `madatodigital.web.app` no console (Hosting & Serverless → App Hosting → Domains).
+
+### Deploy automatico via GitHub
+
+No Firebase console: **Hosting & Serverless → App Hosting → Create backend** (se ainda nao existir),
+conecte o repositorio GitHub, branch `main`, root directory `/` e habilite rollouts automaticos.
+
+### Firebase Auth — dominios autorizados
+
+Em **Authentication → Settings → Authorized domains**, inclua:
+
+- `localhost`
+- `madatodigital.web.app`
+- `madatodigital.firebaseapp.com`
+- dominio `*.hosted.app` gerado pelo App Hosting (se usar antes do custom domain)
+
+### Migrar variaveis da Vercel
+
+Copie as variaveis de `.env.vercel.production` para secrets (`npm run firebase:secrets:apply`)
+ou para o console em **App Hosting → Settings → Environment**.
+Atualize `APP_BASE_URL` em `apphosting.yaml` para a URL final do Firebase.
+
 ## Variaveis de ambiente
 
 Copie `.env.example` para `.env.local` e preencha conforme necessario:
@@ -79,7 +138,7 @@ npm run test:e2e
 ### Rodar contra a URL publicada
 
 ```bash
-APP_BASE_URL=https://seu-app.vercel.app npm run test:e2e
+APP_BASE_URL=https://madatodigital.web.app npm run test:e2e
 ```
 
 ### Cenarios cobertos

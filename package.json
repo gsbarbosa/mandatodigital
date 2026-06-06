@@ -15,7 +15,10 @@
     "playwright:install": "playwright install --with-deps chromium",
     "db:reset": "node scripts/reset-database.mjs",
     "db:reset:confirm": "node scripts/reset-database.mjs --confirm",
-    "db:migrate:owner-user-id": "node scripts/apply-owner-user-id-migration.mjs"
+    "db:migrate:owner-user-id": "node scripts/apply-owner-user-id-migration.mjs",
+    "deploy:firebase": "firebase deploy --only apphosting",
+    "firebase:secrets:guide": "node scripts/firebase-secrets-guide.mjs",
+    "firebase:secrets:apply": "node scripts/firebase-secrets-guide.mjs --apply"
   },
   "keywords": [
     "nextjs",

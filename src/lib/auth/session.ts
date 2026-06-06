@@ -34,10 +34,26 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   }
 }
 
+export async function clearSessionCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set(FIREBASE_SESSION_COOKIE, "", {
+    maxAge: 0,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
+}
+
 export async function requireSessionUser(): Promise<SessionUser> {
+  const cookieStore = await cookies();
+  const hadSessionCookie = Boolean(cookieStore.get(FIREBASE_SESSION_COOKIE)?.value);
   const user = await getSessionUser();
 
   if (!user) {
+    if (hadSessionCookie) {
+      redirect("/api/auth/clear-session?next=/login");
+    }
     redirect("/login");
   }
 

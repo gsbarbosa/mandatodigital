@@ -248,6 +248,35 @@ export type ProfileAvatarTraining = {
   updatedAt: string;
 };
 
+export const creativeProjectStatuses = [
+  "draft",
+  "generating",
+  "ready",
+  "failed",
+] as const;
+export type CreativeProjectStatus = (typeof creativeProjectStatuses)[number];
+
+export type CreativeProject = {
+  id: string;
+  profileId: string | null;
+  topic: string;
+  personaArchetypes: string[];
+  voiceTones: string[];
+  scriptDraft: string;
+  scriptApproved: boolean;
+  freePrompt: string;
+  useFreePrompt: boolean;
+  avatarTrack: "realistic" | "caricature";
+  caricatureAssetId: string;
+  heygenVideoId: string | null;
+  videoUrl: string;
+  captionUrl: string;
+  status: CreativeProjectStatus;
+  errorMessage: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type AvatarVideoGeneration = {
   id: string;
   profileId: string | null;

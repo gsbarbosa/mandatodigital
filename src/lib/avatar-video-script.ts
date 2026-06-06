@@ -1,11 +1,15 @@
 import {
+  AVATAR_VIDEO_TARGET_WORDS,
   buildAvatarVideoPrompt,
   pickCuradorVideoContext,
+  type CuradorVideoContext,
 } from "@/lib/avatar-video-prompt";
+import { buildPoliticalContext } from "@/lib/political-context-prompt";
 import { requestPlainText } from "@/lib/llm";
 import type { PoliticianProfile } from "@/lib/types";
 
 export {
+  AVATAR_VIDEO_TARGET_WORDS,
   buildAvatarVideoPrompt,
   pickCuradorVideoContext,
   hasNonCuradorProfileData,
@@ -15,10 +19,11 @@ export type {
   AvatarVideoPromptInput,
   CuradorVideoContext,
 } from "@/lib/avatar-video-prompt";
+export { buildPoliticalContextPrompt } from "@/lib/political-context-prompt";
 
-/** ~1 min de fala em PT-BR (alinhado ao limite de 160 palavras do Curador). */
-export const MAX_TRANSCRIPT_WORDS = 100;
-const MAX_TRANSCRIPT_CHARS = 900;
+/** ~1 min de fala em PT-BR (alinhado ao prompt de redacao). */
+export const MAX_TRANSCRIPT_WORDS = AVATAR_VIDEO_TARGET_WORDS;
+const MAX_TRANSCRIPT_CHARS = 1200;
 
 function clampTranscriptByWords(transcript: string, maxWords = MAX_TRANSCRIPT_WORDS) {
   const words = transcript.trim().split(/\s+/).filter(Boolean);
@@ -69,16 +74,47 @@ function clampTranscript(transcript: string) {
   return `${byWords.slice(0, MAX_TRANSCRIPT_CHARS - 3).trim()}...`;
 }
 
-/** Gera roteiro com o prompt pai do video 03 + LLM; fallback se API indisponivel. */
+async function resolvePoliticalContext(
+  topic: string,
+  curadorContext?: Partial<CuradorVideoContext>,
+) {
+  const precomputed = curadorContext?.politicalContext?.trim();
+  if (precomputed) {
+    return precomputed;
+  }
+
+  return buildPoliticalContext({
+    topic,
+    fieldIntelligence: curadorContext?.sentinelBriefing,
+  });
+}
+
+/**
+ * Gera roteiro em duas etapas:
+ * 1) Analista imparcial — raio-x do cenario (contexto_politico)
+ * 2) Redator partidario — roteiro falado para o avatar
+ */
 export async function buildAvatarVideoTranscript(input: {
   topic: string;
   profile?: PoliticianProfile | null;
+  curadorContext?: Partial<CuradorVideoContext>;
 }) {
-  const prompt = buildAvatarVideoPrompt(input);
+  const topic = input.topic.trim();
+  const politicalContext = await resolvePoliticalContext(topic, input.curadorContext);
+
+  const prompt = buildAvatarVideoPrompt({
+    topic,
+    profile: input.profile,
+    curadorContext: {
+      ...input.curadorContext,
+      politicalContext,
+      sentinelBriefing: undefined,
+    },
+  });
 
   const execution = await requestPlainText(prompt.system, prompt.user, {
     temperature: 0.8,
-    maxTokens: 900,
+    maxTokens: 1100,
   });
 
   const spoken = normalizeSpokenTranscript(execution.rawText ?? "");

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { CriativoListPage } from "@/components/product/criativo-list-page";
 
 export default function CriativoRoute() {
-  redirect("/curador");
+  return <CriativoListPage />;
 }

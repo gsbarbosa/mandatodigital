@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
+import { clearSessionCookie } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import { FIREBASE_SESSION_COOKIE } from "@/lib/firebase/session";
 
@@ -18,13 +19,7 @@ export async function POST() {
     }
   }
 
-  cookieStore.set(FIREBASE_SESSION_COOKIE, "", {
-    maxAge: 0,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-  });
+  await clearSessionCookie();
 
   return NextResponse.json({ ok: true });
 }

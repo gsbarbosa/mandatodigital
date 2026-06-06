@@ -7,7 +7,42 @@ export type FirebaseClientConfig = {
   appId: string;
 };
 
+function getFirebaseClientConfigFromWebAppEnv(): FirebaseClientConfig | null {
+  const raw = process.env.FIREBASE_WEBAPP_CONFIG?.trim();
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<FirebaseClientConfig>;
+    const apiKey = parsed.apiKey?.trim();
+    const authDomain = parsed.authDomain?.trim();
+    const projectId = parsed.projectId?.trim();
+    const appId = parsed.appId?.trim();
+
+    if (!apiKey || !authDomain || !projectId || !appId) {
+      return null;
+    }
+
+    return {
+      apiKey,
+      authDomain,
+      projectId,
+      storageBucket: parsed.storageBucket?.trim() ?? "",
+      messagingSenderId: parsed.messagingSenderId?.trim() ?? "",
+      appId,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function getFirebaseClientConfig(): FirebaseClientConfig | null {
+  const fromWebAppConfig = getFirebaseClientConfigFromWebAppEnv();
+  if (fromWebAppConfig) {
+    return fromWebAppConfig;
+  }
+
   const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim();
   const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?.trim();
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
@@ -34,7 +69,11 @@ export function isFirebaseClientConfigured() {
 }
 
 export function hasFirebaseServiceAccount() {
-  return Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim());
+  return Boolean(
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
+      process.env.FIREBASE_CONFIG?.trim() ||
+      process.env.K_SERVICE,
+  );
 }
 
 export function isFirebaseAuthConfigured() {
@@ -54,8 +93,8 @@ export function getAuthSetupMessage(): string | null {
 
   if (!hasFirebaseServiceAccount()) {
     return (
-      "Login incompleto: falta FIREBASE_SERVICE_ACCOUNT_JSON no servidor. " +
-      "No Firebase (Project settings → Service accounts), gere a chave privada e adicione na Vercel."
+      "Login incompleto: falta FIREBASE_SERVICE_ACCOUNT_JSON no servidor (dev local). " +
+      "No Firebase App Hosting o Admin SDK usa FIREBASE_CONFIG automaticamente."
     );
   }
 

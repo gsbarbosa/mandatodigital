@@ -55,7 +55,7 @@ const viaApi = process.argv.includes("--via-api");
 const appBaseUrl = (
   process.env.APP_BASE_URL ||
   process.env.NEXT_PUBLIC_APP_BASE_URL ||
-  "https://mandatodigital.vercel.app"
+  "https://madatodigital.web.app"
 ).replace(/\/$/, "");
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");

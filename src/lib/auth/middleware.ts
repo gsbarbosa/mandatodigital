@@ -13,7 +13,8 @@ export async function updateSession(request: NextRequest) {
     pathname === "/login" ||
     pathname.startsWith("/auth/") ||
     pathname === "/api/argil/webhooks" ||
-    pathname === "/api/auth/session";
+    pathname === "/api/auth/session" ||
+    pathname === "/api/auth/clear-session";
   const isApiRoute = pathname.startsWith("/api/");
 
   if (!isFirebaseAuthConfigured()) {
@@ -41,13 +42,6 @@ export async function updateSession(request: NextRequest) {
     loginUrl.pathname = "/login";
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
-  }
-
-  if (hasSession && pathname === "/login") {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = "/curador";
-    homeUrl.search = "";
-    return NextResponse.redirect(homeUrl);
   }
 
   return NextResponse.next({ request });

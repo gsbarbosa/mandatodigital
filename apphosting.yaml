@@ -1,0 +1,110 @@
+# Firebase App Hosting — Mandato Digital
+# Docs: https://firebase.google.com/docs/app-hosting/configure
+#
+# Antes do primeiro deploy:
+# 1. Upgrade do projeto madatodigital para plano Blaze (pay-as-you-go)
+# 2. Criar backend: firebase apphosting:backends:create --project madatodigital --primary-region us-central1
+# 3. Cadastrar secrets: npm run firebase:secrets:guide
+# 4. Deploy: npm run deploy:firebase
+
+runConfig:
+  cpu: 2
+  memoryMiB: 2048
+  concurrency: 40
+  minInstances: 0
+  maxInstances: 10
+
+env:
+  - variable: APP_BASE_URL
+    value: https://mandatodigital--madatodigital.us-central1.hosted.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_APP_BASE_URL
+    value: https://mandatodigital--madatodigital.us-central1.hosted.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Firebase Auth (client SDK — publico, precisa estar no BUILD)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyD9TCFBa0OU3Z17DCH_khL86DrCQCyz9nA
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: madatodigital.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: madatodigital
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: madatodigital.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "1075554159914"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:1075554159914:web:4566a2948db6df56f52253
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: ARGIL_DRY_RUN
+    value: "false"
+    availability:
+      - RUNTIME
+
+  - variable: EVAL_JUDGE_ENABLED
+    value: "true"
+    availability:
+      - RUNTIME
+
+  - variable: OPENAI_MODEL
+    value: gpt-4.1-mini
+    availability:
+      - RUNTIME
+
+  - variable: OPENAI_API_KEY
+    secret: openai-api-key
+
+  - variable: SUPABASE_URL
+    secret: supabase-url
+
+  - variable: SUPABASE_SERVICE_ROLE_KEY
+    secret: supabase-service-role-key
+
+  - variable: NEXT_PUBLIC_SUPABASE_URL
+    secret: supabase-url
+
+  - variable: HEYGEN_API_KEY
+    secret: heygen-api-key
+
+  # Opcional — descomente apos cadastrar com npm run firebase:secrets:apply:
+  # - variable: ANTHROPIC_API_KEY
+  #   secret: anthropic-api-key
+  # - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
+  #   secret: supabase-anon-key
+  # - variable: ARGIL_API_KEY
+  #   secret: argil-api-key
+  # - variable: TRAINING_ASSET_ACCESS_SECRET
+  #   secret: training-asset-access-secret
+
+  # Opcional: necessario apenas fora do App Hosting (dev local / emulador).
+  # No App Hosting o Admin SDK usa FIREBASE_CONFIG automaticamente.
+  - variable: FIREBASE_SERVICE_ACCOUNT_JSON
+    secret: firebase-service-account-json

@@ -34,6 +34,23 @@ export function formatAuthClientError(message: string) {
     return "Este provedor social ainda nao esta habilitado no Firebase (Authentication → Sign-in method).";
   }
 
+  if (normalized.includes("redirect_uri_mismatch")) {
+    return (
+      "Login Google mal configurado (redirect_uri_mismatch). No Google Cloud Console " +
+      "(projeto madatodigital → Credentials → Web client do Firebase), adicione em " +
+      "Authorized redirect URIs: https://madatodigital.firebaseapp.com/__/auth/handler " +
+      "e https://madatodigital.web.app/__/auth/handler. " +
+      "No Firebase → Authentication → Settings → Authorized domains, inclua madatodigital.web.app, madatodigital.firebaseapp.com e localhost."
+    );
+  }
+
+  if (normalized.includes("unauthorized-domain")) {
+    return (
+      "Dominio nao autorizado no Firebase. Em Authentication → Settings → Authorized domains, " +
+      "adicione o host em que voce abriu o app (ex.: madatodigital.web.app ou localhost)."
+    );
+  }
+
   return message;
 }
 

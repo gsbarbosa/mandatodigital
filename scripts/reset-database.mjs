@@ -21,6 +21,7 @@ const APP_TABLES = [
   "generated_contents",
   "content_requests",
   "product_feedback",
+  "creative_projects",
   "avatar_video_generations",
   "profile_avatar_trainings",
   "profile_training_assets",
@@ -90,9 +91,9 @@ function parseArgs(argv) {
       const envName = arg.slice("--env=".length).trim();
       args.envFile =
         envName === "production"
-          ? ".env.vercel.production"
+          ? ".env.production"
           : envName === "preview"
-            ? ".env.vercel.preview"
+            ? ".env.preview"
             : ".env.local";
     }
   }
