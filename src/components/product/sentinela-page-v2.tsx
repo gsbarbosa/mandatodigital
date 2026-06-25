@@ -2,49 +2,82 @@
 
 import { useState } from "react";
 
+import { updateToggleValues } from "@/components/product/config-controls";
 import {
   MockAgentPill,
   MockAgentTabs,
-  MockDemoBanner,
   MockDidacticBox,
   MockSaveRow,
   MockSiteList,
   MockSocialProfileList,
   MockToggleSection,
-  useMockSaveFeedback,
 } from "@/components/product/mock-agent-ui";
 import { PersonaSentinelaIcon } from "@/components/product/persona-shared";
-import {
-  MOCK_OPPOSITION_THEMES_DEFAULT,
-  MOCK_SENTINEL_THEMES_DEFAULT,
-  oppositionThemeGroups,
-  sentinelThemeGroups,
-  toggleMockValue,
-} from "@/lib/mock-agent-defaults";
+import { useProductApp } from "@/components/product/provider";
+import { oppositionThemeGroups, sentinelThemeGroups } from "@/lib/constants";
 
 type SentinelaTab = "temas" | "adversarios";
 
 export function SentinelaPageV2() {
+  const { profileForm, setProfileForm, saveProfile, isSavingProfile } = useProductApp();
   const [activeTab, setActiveTab] = useState<SentinelaTab>("temas");
-  const [sentinelThemes, setSentinelThemes] = useState(MOCK_SENTINEL_THEMES_DEFAULT);
-  const [oppositionThemes, setOppositionThemes] = useState(MOCK_OPPOSITION_THEMES_DEFAULT);
-  const [customThemes, setCustomThemes] = useState(["", "", ""]);
-  const [interestProfiles, setInterestProfiles] = useState([
-    { network: "Instagram", handle: "@portal_regional" },
-  ]);
-  const [interestSites, setInterestSites] = useState(["www.portalregional.com"]);
-  const [oppositionProfiles, setOppositionProfiles] = useState([
-    { network: "X / Twitter", handle: "@adversario_oficial" },
-  ]);
-  const [oppositionSites, setOppositionSites] = useState(["www.blog_oposicao.com.br"]);
-  const { message, triggerMockSave } = useMockSaveFeedback();
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+
+  const customThemes = Array.from({ length: 3 }, (_, index) => profileForm.customRadarThemes[index] ?? "");
+
+  async function handleSave() {
+    setSaveMessage(null);
+
+    try {
+      await saveProfile({ allowDraftDefaults: true, throwOnError: true });
+      setSaveMessage("Radar do Sentinela salvo com sucesso.");
+      window.setTimeout(() => setSaveMessage(null), 3200);
+    } catch {
+      // Erro exibido pelo provider.
+    }
+  }
+
+  async function handleRefreshSignals() {
+    setIsRefreshing(true);
+    setRefreshMessage(null);
+
+    try {
+      const response = await fetch("/api/sentinel/refresh", { method: "POST" });
+      const payload = (await response.json()) as {
+        message?: string;
+        suggestions?: unknown[];
+        meta?: { emptyReason?: string };
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel atualizar os sinais do Sentinela.");
+      }
+
+      const count = payload.suggestions?.length ?? 0;
+      if (count > 0) {
+        setRefreshMessage(`${count} sinal(is) atualizado(s). Veja no Criativo.`);
+      } else {
+        setRefreshMessage(
+          payload.meta?.emptyReason || "Nenhum sinal novo encontrado para o radar atual.",
+        );
+      }
+      window.setTimeout(() => setRefreshMessage(null), 4200);
+    } catch (error) {
+      setRefreshMessage(
+        error instanceof Error ? error.message : "Nao foi possivel atualizar os sinais.",
+      );
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
 
   return (
     <section className="persona-page agent-theme-sentinela">
       <div className="persona-container">
         <div className="persona-card">
           <h2 className="sr-only">Sentinela</h2>
-          <MockDemoBanner />
 
           <div className="persona-section-header">
             <div className="persona-header-icon" aria-hidden="true">
@@ -54,8 +87,8 @@ export function SentinelaPageV2() {
               <MockAgentPill>Setup: 01 · Sentinela</MockAgentPill>
               <h2>Mapeamento de Radar</h2>
               <p>
-                Varredura 24h em temas, perfis e portais. A expansão semântica amplia cada
-                marcador para capturar oportunidades antes da saturação.
+                Monitoramento via Google News e RSS dos portais cadastrados. Sinônimos por tema
+                ampliam o match sem depender de API externa.
               </p>
             </div>
           </div>
@@ -72,9 +105,8 @@ export function SentinelaPageV2() {
           {activeTab === "temas" ? (
             <>
               <MockDidacticBox>
-                Selecione as vertentes monitoradas na web. Cada termo ganha expansão
-                contextual automática (ex.: &quot;Reforma Tributária&quot; → IVA, CBS, PEC 45,
-                carga tributária).
+                Selecione as vertentes monitoradas na web. O Sentinela busca materias recentes
+                no Google News combinando cada tema com sua cidade e estado.
               </MockDidacticBox>
 
               {sentinelThemeGroups.map((group) => (
@@ -82,9 +114,12 @@ export function SentinelaPageV2() {
                   key={group.title}
                   title={group.title}
                   options={group.options}
-                  values={sentinelThemes}
+                  values={profileForm.sentinelThemes}
                   onToggle={(value) =>
-                    setSentinelThemes((current) => toggleMockValue(current, value))
+                    setProfileForm((current) => ({
+                      ...current,
+                      sentinelThemes: updateToggleValues(current.sentinelThemes, value),
+                    }))
                   }
                 />
               ))}
@@ -101,11 +136,14 @@ export function SentinelaPageV2() {
                       className="persona-input-control"
                       value={theme}
                       onChange={(event) =>
-                        setCustomThemes((current) =>
-                          current.map((item, itemIndex) =>
-                            itemIndex === index ? event.target.value : item,
+                        setProfileForm((current) => ({
+                          ...current,
+                          customRadarThemes: Array.from({ length: 3 }, (_, itemIndex) =>
+                            itemIndex === index
+                              ? event.target.value
+                              : current.customRadarThemes[itemIndex] ?? "",
                           ),
-                        )
+                        }))
                       }
                       placeholder={`Tema ${index + 1}...`}
                     />
@@ -116,28 +154,32 @@ export function SentinelaPageV2() {
               <div className="persona-mock-two-column persona-top-gap">
                 <MockSocialProfileList
                   label="Perfis de interesse (@)"
-                  values={interestProfiles}
-                  onChange={setInterestProfiles}
+                  values={profileForm.interestProfiles}
+                  onChange={(interestProfiles) =>
+                    setProfileForm((current) => ({ ...current, interestProfiles }))
+                  }
                 />
                 <MockSiteList
                   label="Portais e sites de interesse"
-                  values={interestSites}
-                  onChange={setInterestSites}
+                  values={profileForm.interestSites}
+                  onChange={(interestSites) =>
+                    setProfileForm((current) => ({ ...current, interestSites }))
+                  }
                   placeholder="www.portalregional.com"
                 />
               </div>
 
               <MockDidacticBox>
-                Perfis e sites também entram no radar de popularidade para sugerir
-                posicionamentos alinhados à persona calibrada no Curador.
+                Perfis ficam registrados para evolucao futura. Portais cadastrados entram no
+                radar via RSS (feed do site ou busca no Google News por dominio).
               </MockDidacticBox>
             </>
           ) : (
             <>
               <MockDidacticBox>
                 <>
-                  Mapeamento focado na <strong>oposição</strong>. Assuntos em ascensão nos
-                  perfis adversários disparam respostas alinhadas à sua persona.
+                  Mapeamento focado na <strong>oposição</strong>. Temas adversarios recebem
+                  prioridade quando aparecem em materias recentes.
                 </>
               </MockDidacticBox>
 
@@ -146,9 +188,12 @@ export function SentinelaPageV2() {
                   key={group.title}
                   title={group.title}
                   options={group.options}
-                  values={oppositionThemes}
+                  values={profileForm.oppositionThemes}
                   onToggle={(value) =>
-                    setOppositionThemes((current) => toggleMockValue(current, value))
+                    setProfileForm((current) => ({
+                      ...current,
+                      oppositionThemes: updateToggleValues(current.oppositionThemes, value),
+                    }))
                   }
                 />
               ))}
@@ -156,24 +201,53 @@ export function SentinelaPageV2() {
               <div className="persona-mock-two-column persona-top-gap">
                 <MockSocialProfileList
                   label="Perfis dos adversários diretos (@)"
-                  values={oppositionProfiles}
-                  onChange={setOppositionProfiles}
+                  values={profileForm.oppositionProfiles}
+                  onChange={(oppositionProfiles) =>
+                    setProfileForm((current) => ({ ...current, oppositionProfiles }))
+                  }
                 />
                 <MockSiteList
                   label="Blogs e portais de oposição"
-                  values={oppositionSites}
-                  onChange={setOppositionSites}
+                  values={profileForm.oppositionSites}
+                  onChange={(oppositionSites) =>
+                    setProfileForm((current) => ({ ...current, oppositionSites }))
+                  }
                   placeholder="www.blog_oposicao.com.br"
                 />
               </div>
             </>
           )}
 
-          <MockSaveRow
-            label="Salvar radar (demo)"
-            feedback={message}
-            onSave={() => triggerMockSave("Radar do Sentinela")}
-          />
+          <div className="persona-cta-block persona-top-gap">
+            <div className="persona-cta-row">
+              <button
+                type="button"
+                className="persona-btn persona-btn-large"
+                onClick={() => void handleSave()}
+                disabled={isSavingProfile}
+              >
+                {isSavingProfile ? "Salvando radar..." : "Salvar radar"}
+              </button>
+              <button
+                type="button"
+                className="persona-btn persona-btn-secondary"
+                onClick={() => void handleRefreshSignals()}
+                disabled={isRefreshing || isSavingProfile}
+              >
+                {isRefreshing ? "Atualizando sinais..." : "Atualizar sinais"}
+              </button>
+            </div>
+            {saveMessage ? (
+              <p className="persona-script-approved" role="status">
+                {saveMessage}
+              </p>
+            ) : null}
+            {refreshMessage ? (
+              <p className="persona-helper-text persona-top-gap" role="status">
+                {refreshMessage}
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </section>

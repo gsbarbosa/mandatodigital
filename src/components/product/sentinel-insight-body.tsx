@@ -20,6 +20,11 @@ export function SentinelInsightBody({
               {theme}
             </span>
           ))}
+          {evidence.outletCount && evidence.outletCount > 1 ? (
+            <span className="persona-sentinel-source-badge is-interest">
+              {evidence.outletCount} veículos
+            </span>
+          ) : null}
         </div>
       ) : null}
 
@@ -27,6 +32,24 @@ export function SentinelInsightBody({
         <div className="persona-sentinel-evidence-block">
           <p className="persona-sentinel-section-label">Engajamento por rede</p>
           <SentinelNetworkMetrics byNetwork={evidence.byNetwork} />
+        </div>
+      ) : null}
+
+      {(evidence.articles ?? []).length > 0 ? (
+        <div className="persona-sentinel-evidence-block">
+          <p className="persona-sentinel-section-label">Matérias detectadas</p>
+          <ul className="persona-sentinel-article-list">
+            {(evidence.articles ?? []).map((article) => (
+              <li key={article.url}>
+                <a href={article.url} target="_blank" rel="noreferrer">
+                  {article.title}
+                </a>
+                {article.sourceName ? (
+                  <span className="persona-sentinel-article-source"> · {article.sourceName}</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
     </div>

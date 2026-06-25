@@ -7,8 +7,10 @@ import {
   formatStatus,
   parseJsonOrText,
 } from "@/components/product/persona-shared";
-import { SentinelThemesSketch } from "@/components/product/sentinel-suggestion-row";
+import { SentinelSuggestionsList } from "@/components/product/sentinel-suggestion-row";
 import { formatCreativeProjectTitle } from "@/lib/creative-project-display";
+import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
+import type { SentinelSuggestionsMeta } from "@/lib/sentinel-suggestions";
 import type { CreativeProject } from "@/lib/types";
 
 function formatProjectDate(value: string) {
@@ -39,6 +41,10 @@ export function CriativoListPage() {
   const [projects, setProjects] = useState<CreativeProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [sentinelSuggestions, setSentinelSuggestions] = useState<MockSentinelSuggestion[]>([]);
+  const [sentinelMeta, setSentinelMeta] = useState<SentinelSuggestionsMeta | null>(null);
+  const [isLoadingSentinel, setIsLoadingSentinel] = useState(true);
+  const [sentinelLoadError, setSentinelLoadError] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -65,9 +71,39 @@ export function CriativoListPage() {
     }
   }, []);
 
+  const loadSentinelSuggestions = useCallback(async () => {
+    setIsLoadingSentinel(true);
+    setSentinelLoadError(null);
+
+    try {
+      const response = await fetch("/api/sentinel/suggestions");
+      const payload = await parseJsonOrText<{
+        suggestions?: MockSentinelSuggestion[];
+        meta?: SentinelSuggestionsMeta;
+        message?: string;
+      }>(response);
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel carregar os sinais do Sentinela.");
+      }
+
+      setSentinelSuggestions(payload.suggestions ?? []);
+      setSentinelMeta(payload.meta ?? null);
+    } catch (error) {
+      setSentinelLoadError(
+        error instanceof Error ? error.message : "Nao foi possivel carregar os sinais do Sentinela.",
+      );
+      setSentinelSuggestions([]);
+      setSentinelMeta(null);
+    } finally {
+      setIsLoadingSentinel(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadProjects();
-  }, [loadProjects]);
+    void loadSentinelSuggestions();
+  }, [loadProjects, loadSentinelSuggestions]);
 
   return (
     <section className="persona-page agent-theme-criativo">
@@ -89,10 +125,15 @@ export function CriativoListPage() {
           <div className="persona-form-group persona-top-gap">
             <label className="persona-label">Sinais do Sentinela</label>
             <p className="persona-helper-text">
-              Temas sugeridos pelo Sentinela com engajamento por rede. Clique em Gerar
-              criativo para abrir o formulário com o tema já preenchido.
+              Temas sugeridos pelo Sentinela com base no Google News e no seu radar. Clique em
+              Gerar criativo para abrir o formulário com o tema já preenchido.
             </p>
-            <SentinelThemesSketch />
+            <SentinelSuggestionsList
+              suggestions={sentinelSuggestions}
+              isLoading={isLoadingSentinel}
+              loadError={sentinelLoadError}
+              meta={sentinelMeta}
+            />
           </div>
 
           <div className="persona-section-header persona-top-gap">

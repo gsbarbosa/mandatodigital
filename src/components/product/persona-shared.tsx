@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import {
   useEffect,
   useRef,
@@ -505,7 +506,7 @@ export function ProductionTemplateOption({
           <span className="persona-production-template-description">{description}</span>
         </div>
         <Link
-          href={curadorHref}
+          href={curadorHref as Route}
           className="persona-production-template-curador-link"
         >
           {unavailableHint ?? "Configurar no Curador"}

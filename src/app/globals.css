@@ -3390,6 +3390,27 @@ textarea.persona-input-control {
   width: 100%;
 }
 
+.persona-sentinel-article-list {
+  margin: 0.35rem 0 0;
+  padding-left: 1rem;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.persona-sentinel-article-list a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.persona-sentinel-article-list a:hover {
+  text-decoration: underline;
+}
+
+.persona-sentinel-article-source {
+  color: #94a3b8;
+}
+
 .persona-checkbox-row {
   margin-top: 0.9rem;
 }

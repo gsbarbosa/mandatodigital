@@ -68,7 +68,6 @@ import { fetchHeygenApi } from "@/lib/heygen-client-override";
 import { SentinelContextPreview } from "@/components/product/sentinel-suggestion-row";
 import {
   buildSentinelBriefingForCriativo,
-  getMockSentinelSuggestionById,
   type MockSentinelSuggestion,
 } from "@/lib/sentinel-mock-suggestions";
 import type { ProfileTrainingAsset } from "@/lib/types";
@@ -1878,18 +1877,43 @@ export function CriativoPageV2() {
       return;
     }
 
-    const suggestion = getMockSentinelSuggestionById(suggestionId);
-    if (!suggestion) {
-      router.replace("/criativo");
-      return;
-    }
+    let cancelled = false;
 
-    setSentinelSuggestion(suggestion);
-    setCreativeForm((current) => ({
-      ...current,
-      topic: suggestion.topic,
-    }));
-    invalidateScriptApproval();
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/sentinel/suggestions/${encodeURIComponent(suggestionId)}`,
+        );
+        const payload = await parseJsonOrText<{
+          suggestion?: MockSentinelSuggestion;
+          message?: string;
+        }>(response);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!response.ok || !payload.suggestion) {
+          router.replace("/criativo");
+          return;
+        }
+
+        setSentinelSuggestion(payload.suggestion);
+        setCreativeForm((current) => ({
+          ...current,
+          topic: payload.suggestion!.topic,
+        }));
+        invalidateScriptApproval();
+      } catch {
+        if (!cancelled) {
+          router.replace("/criativo");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, router]);
 

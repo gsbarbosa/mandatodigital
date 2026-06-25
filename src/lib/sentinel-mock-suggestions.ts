@@ -16,6 +16,13 @@ export type SentinelVerifiedActor = {
   sourceList: "interest" | "opposition";
 };
 
+export type SentinelNewsArticle = {
+  title: string;
+  url: string;
+  sourceName?: string;
+  publishedAt?: string;
+};
+
 /** Tendência de busca via Google Trends API (quando disponível). */
 export type SentinelSearchTrend = {
   keyword: string;
@@ -27,7 +34,9 @@ export type SentinelSearchTrend = {
 export type SentinelVerifiedEvidence = {
   byNetwork: SentinelNetworkEngagement[];
   actors: SentinelVerifiedActor[];
+  articles?: SentinelNewsArticle[];
   postsAnalyzed: number;
+  outletCount?: number;
   engagementTrendPercent: number;
   searchTrend?: SentinelSearchTrend;
 };
@@ -301,9 +310,18 @@ export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggest
   const parts = [
     `Tema do radar: ${suggestion.themeLabel}`,
     `Temas correspondentes: ${matchedThemes.join(", ")}`,
-    `Posts analisados: ${evidence.postsAnalyzed}`,
-    `Variacao de engajamento: ${evidence.engagementTrendPercent >= 0 ? "+" : ""}${evidence.engagementTrendPercent}% vs periodo anterior`,
+    `Materias analisadas: ${evidence.postsAnalyzed}`,
   ];
+
+  if (evidence.outletCount && evidence.outletCount > 1) {
+    parts.push(`Cobertura editorial: ${evidence.outletCount} veiculos distintos`);
+  }
+
+  if (evidence.engagementTrendPercent !== 0) {
+    parts.push(
+      `Variacao de engajamento: ${evidence.engagementTrendPercent >= 0 ? "+" : ""}${evidence.engagementTrendPercent}% vs periodo anterior`,
+    );
+  }
 
   if (evidence.searchTrend) {
     parts.push(`Google Trends: ${formatSentinelSearchTrend(evidence.searchTrend)}`);
@@ -322,6 +340,14 @@ export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggest
   });
   if (actorLines.length) {
     parts.push(`Perfis com posts detectados: ${actorLines.join("; ")}`);
+  }
+
+  const articleLines = (evidence.articles ?? []).map((article) => {
+    const source = article.sourceName ? ` (${article.sourceName})` : "";
+    return `${article.title}${source}: ${article.url}`;
+  });
+  if (articleLines.length) {
+    parts.push(`Materias detectadas: ${articleLines.join("; ")}`);
   }
 
   return parts.join("\n");
