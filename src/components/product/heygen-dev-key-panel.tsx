@@ -69,7 +69,11 @@ export function HeygenDevKeyPanel({ open, onClose }: HeygenDevKeyPanelProps) {
       const response = await fetchHeygenApi("/api/heygen/me");
       const payload = (await response.json().catch(() => ({}))) as {
         message?: string;
-        data?: { email?: string; username?: string };
+        data?: {
+          email?: string;
+          username?: string;
+          wallet?: { remaining_balance?: number; currency?: string };
+        };
         error?: { message?: string };
       };
 
@@ -83,11 +87,15 @@ export function HeygenDevKeyPanel({ open, onClose }: HeygenDevKeyPanelProps) {
 
       const email = payload.data?.email?.trim();
       const username = payload.data?.username?.trim();
+      const balance = Number(payload.data?.wallet?.remaining_balance ?? NaN);
+      const balanceLabel = Number.isFinite(balance)
+        ? ` — carteira API: US$ ${balance.toFixed(2)}`
+        : "";
       setSavedMasked(maskHeygenApiKey(readHeygenApiKeyOverride()));
       setStatus(
         email || username
-          ? `Conectado: ${email || username}`
-          : "Chave aceita pela API.",
+          ? `Conectado: ${email || username}${balanceLabel}`
+          : `Chave aceita pela API${balanceLabel}.`,
       );
     } catch (testError) {
       setError(

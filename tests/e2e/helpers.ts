@@ -21,7 +21,9 @@ async function gotoPath(
       page.getByRole("heading", { name: "Calibragem de Persona" }),
     ).toBeVisible();
   } else {
-    await expect(page.getByRole("heading", { name: "Mandato Digital" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /tropa de ia|mandato digital/i }),
+    ).toBeVisible();
   }
   await page.waitForLoadState("networkidle");
 }
@@ -110,7 +112,7 @@ export async function openFeedbackDrawer(
   page: Page,
   options?: { path?: "/" | "/curador" | "/criativo" | "/auditor" | "/admin" },
 ) {
-  await gotoPath(page, options?.path ?? "/", { openFeedback: true });
+  await gotoPath(page, options?.path ?? "/curador", { openFeedback: true });
 
   await expect(page.getByTestId("feedback-drawer")).toHaveAttribute(
     "aria-hidden",

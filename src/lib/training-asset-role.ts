@@ -17,6 +17,22 @@ export function parseTrainingAssetRole(value: unknown): TrainingAssetRole {
   return "dataset";
 }
 
+export function trainingAssetUploadRequirementMessage(trainingRole: TrainingAssetRole) {
+  switch (trainingRole) {
+    case "avatar_image":
+      return "Envie uma imagem PNG, JPEG ou WebP.";
+    case "avatar_caricature":
+      return "Envie uma imagem PNG, JPEG ou WebP.";
+    case "voice_audio":
+      return "Envie um áudio MP3, WAV ou M4A.";
+    case "consent":
+    case "dataset":
+      return "Envie um vídeo MP4, MOV ou WebM (até 50 MB). O servidor comprime automaticamente para o treino.";
+    default:
+      return "Formato de arquivo não suportado.";
+  }
+}
+
 export function isAllowedTrainingMime(trainingRole: TrainingAssetRole, mimeType: string) {
   const mime = mimeType.trim().toLowerCase();
 

@@ -1,11 +1,12 @@
 import {
   caricatureVariantFromFilename,
+  caricatureVariantGeneratingLabel,
   caricatureVariantLabel,
   type CaricatureVariant,
 } from "@/lib/openai-caricature-prompts";
 import type { ProfileTrainingAsset } from "@/lib/types";
 
-export { caricatureVariantLabel };
+export { caricatureVariantGeneratingLabel, caricatureVariantLabel };
 
 export function caricatureAssetMatchesVariant(
   asset: ProfileTrainingAsset,

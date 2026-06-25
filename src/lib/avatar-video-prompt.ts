@@ -226,7 +226,7 @@ export function buildAvatarVideoPrompt(
   }
 
   systemParts.push(
-    "Formato: O texto sera lido por um avatar de IA (HeyGen). Escreva APENAS o que sera falado, sem marcacoes de cenario, sem emojis e sem introducoes como \"Aqui esta o roteiro\".",
+    "Formato: O texto sera lido por um avatar de IA. Escreva APENAS o que sera falado, sem marcacoes de cenario, sem emojis e sem introducoes como \"Aqui esta o roteiro\".",
     "Nao use palavras excessivamente complexas ou rebuscadas; a fala deve soar como um ser humano conversando de frente para a camera.",
     "Pausas: Onde for necessaria uma pausa dramatica para respiracao, insira o simbolo \"...\" (reticencias).",
   );

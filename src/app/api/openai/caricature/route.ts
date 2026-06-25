@@ -20,6 +20,8 @@ import {
   resolveAppBaseUrl,
 } from "@/lib/training-asset-urls";
 
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   if (!process.env.OPENAI_API_KEY?.trim()) {
     return NextResponse.json(
@@ -127,8 +129,8 @@ export async function POST(request: Request) {
             variant,
             message:
               variant === "mascot_3d"
-                ? "Modelo mascote 3D gerado."
-                : "Modelo editorial gerado.",
+                ? "Mascote 3D gerado."
+                : "Caricatura gerada.",
           },
           { status: 201 },
         );
@@ -140,9 +142,7 @@ export async function POST(request: Request) {
           return NextResponse.json(
             {
               message:
-                "A OpenAI recusou o envio da imagem (401). Isso costuma ser falha no upload " +
-                "no servidor, nao a chave em si. O deploy mais recente corrige o multipart. " +
-                "Se persistir, confira OPENAI_API_KEY na Vercel (sem aspas extras).",
+                "Não foi possível processar a imagem enviada. Tente outra foto ou tente novamente mais tarde.",
             },
             { status: 503 },
           );

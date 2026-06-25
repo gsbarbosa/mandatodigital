@@ -9,6 +9,8 @@ import {
   ProductFeedbackCriticalityPill,
   ProductFeedbackPill,
 } from "./shared";
+import { agentThemeClassName, resolveAgentThemeFromPathname } from "@/lib/agent-theme";
+
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { WorkflowPipelineBar } from "./workflow-pipeline-bar";
 
@@ -30,10 +32,15 @@ export function ProductShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isCuradorFocusMode =
+    pathname === "/sentinela" ||
     pathname === "/curador" ||
     pathname === "/curador-v1" ||
     pathname === "/curador-v2" ||
-    pathname === "/criativo" || pathname.startsWith("/criativo/");
+    pathname === "/criativo" ||
+    pathname.startsWith("/criativo/") ||
+    pathname === "/auditor" ||
+    pathname.startsWith("/auditor/") ||
+    pathname === "/distribuidor";
   const openFeedbackParam = searchParams.get("e2e");
   const isFeedbackForcedOpen = openFeedbackParam === "open-feedback";
   const {
@@ -70,8 +77,16 @@ export function ProductShell({ children }: { children: ReactNode }) {
     }
   }
 
+  const agentTheme = resolveAgentThemeFromPathname(pathname);
+
   return (
-    <main className={isCuradorFocusMode ? "app-shell app-shell-persona" : "app-shell"}>
+    <main
+      className={
+        isCuradorFocusMode
+          ? `app-shell app-shell-persona ${agentThemeClassName(agentTheme)}`
+          : "app-shell"
+      }
+    >
       {sessionUser && (
         <header
           className={

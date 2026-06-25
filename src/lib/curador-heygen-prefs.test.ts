@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatHeyGenAvatarGroupLockMessage,
   formatHeyGenPurgeFailureMessage,
+  sanitizeProviderFacingMessage,
 } from "./curador-heygen-prefs";
 
 describe("formatHeyGenAvatarGroupLockMessage", () => {
@@ -17,6 +18,19 @@ describe("formatHeyGenAvatarGroupLockMessage", () => {
 
   it("retorna null para mensagens sem bloqueio", () => {
     expect(formatHeyGenAvatarGroupLockMessage("Something else")).toBeNull();
+  });
+});
+
+describe("sanitizeProviderFacingMessage", () => {
+  it("remove fornecedores e CTAs obsoletos", () => {
+    const message = sanitizeProviderFacingMessage(
+      'Use "Utilizar Gêmeo Digital Atual" ou abra o painel HeyGen → Voice Library. OpenAI falhou.',
+    );
+
+    expect(message).not.toContain("HeyGen");
+    expect(message).not.toContain("OpenAI");
+    expect(message).toContain("use o gêmeo já treinado no Curador");
+    expect(message).toContain("biblioteca de vozes do painel");
   });
 });
 

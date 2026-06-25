@@ -10,6 +10,7 @@ test-results
 .env
 .env.local
 .env.*.local
+meta-app-review-credentials.txt
 .env.vercel.*
 data/mandato-digital.json
 *-firebase-adminsdk-*.json

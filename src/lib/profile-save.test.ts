@@ -56,6 +56,57 @@ describe("mergeProfileInputForSave", () => {
     expect(merged.keyIssues.length).toBeGreaterThanOrEqual(1);
   });
 
+  it("substitui campos parciais invalidos por defaults no save silencioso", () => {
+    const merged = mergeProfileInputForSave(
+      {
+        fullName: "Jo",
+        role: "V",
+        city: "R",
+        state: "P",
+        audience: "AB",
+        spectrum: "",
+        archetype: "AB",
+        voiceTones: [],
+        keyIssues: [" "],
+        slogans: [],
+        redLines: [],
+        referenceExamples: [],
+        bio: "curta",
+        personaArchetypes: [],
+        sentinelThemes: [],
+        oppositionThemes: [],
+        customRadarThemes: [],
+        interestProfiles: [],
+        interestSites: [],
+        oppositionProfiles: [],
+        oppositionSites: [],
+        glossaryTerms: [],
+        trainingReferenceLinks: [],
+        youtubeVideoUrl: "",
+        avatarType: "",
+        avatarVideoTopic: "",
+        argilAvatarId: "",
+        argilVoiceId: "",
+        avatarTrainingStatus: "",
+        notificationEmail: "",
+        avatarEmotions: [],
+        voicePace: "Manter velocidade original",
+        editingStyles: [],
+        factCheckingSources: [],
+        hardDataSources: [],
+        distributionChannels: [],
+        distributionWindows: [],
+        autoPublish: false,
+      },
+      null,
+      { allowDraftDefaults: true },
+    );
+
+    expect(profileInputSchema.safeParse(merged).success).toBe(true);
+    expect(merged.fullName).toBe("Perfil em configuracao");
+    expect(merged.keyIssues).toEqual(["Comunicacao politica"]);
+  });
+
   it("mantem espectro vazio quando o usuario nao selecionou", () => {
     const merged = mergeProfileInputForSave(
       {

@@ -4,6 +4,37 @@ import {
   heygenListAvatarGroups,
 } from "@/lib/heygen";
 
+export async function deletePrivateHeyGenAvatarGroup(groupId: string) {
+  const normalizedGroupId = String(groupId ?? "").trim();
+  if (!normalizedGroupId) {
+    return {
+      deleted: [] as string[],
+      errors: [{ groupId: "", message: "group_id ausente." }],
+      totalBefore: 0,
+    };
+  }
+
+  try {
+    await heygenDeleteAvatarGroup(normalizedGroupId);
+    return {
+      deleted: [normalizedGroupId],
+      errors: [] as Array<{ groupId: string; message: string }>,
+      totalBefore: 1,
+    };
+  } catch (error) {
+    return {
+      deleted: [] as string[],
+      errors: [
+        {
+          groupId: normalizedGroupId,
+          message: formatHeyGenError(error),
+        },
+      ],
+      totalBefore: 1,
+    };
+  }
+}
+
 export async function purgePrivateHeyGenAvatarGroups() {
   const response = await heygenListAvatarGroups({
     ownership: "private",

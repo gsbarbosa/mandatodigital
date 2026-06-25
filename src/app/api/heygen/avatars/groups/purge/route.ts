@@ -4,23 +4,32 @@ import { handleRouteError } from "@/lib/api";
 import { formatHeyGenPurgeFailureMessage } from "@/lib/curador-heygen-prefs";
 import { heygenListAllPrivateVoices } from "@/lib/heygen";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
-import { purgePrivateHeyGenAvatarGroups } from "@/lib/heygen-purge-private-groups";
+import {
+  deletePrivateHeyGenAvatarGroup,
+  purgePrivateHeyGenAvatarGroups,
+} from "@/lib/heygen-purge-private-groups";
 
 export async function POST(request: Request) {
   try {
     return heygenApiRoute(request, async () => {
-      const body = (await request.json().catch(() => ({}))) as { confirm?: boolean };
+      const body = (await request.json().catch(() => ({}))) as {
+        confirm?: boolean;
+        groupId?: string;
+      };
       if (!body.confirm) {
         return NextResponse.json(
           {
             message:
-              'Envie { "confirm": true } para remover todos os personagens privados (gêmeo digital e avatares na conta).',
+              'Envie { "confirm": true } para remover personagens privados. Opcional: "groupId" para remover apenas um.',
           },
           { status: 400 },
         );
       }
 
-      const result = await purgePrivateHeyGenAvatarGroups();
+      const scopedGroupId = String(body.groupId ?? "").trim();
+      const result = scopedGroupId
+        ? await deletePrivateHeyGenAvatarGroup(scopedGroupId)
+        : await purgePrivateHeyGenAvatarGroups();
       let privateVoiceCount = 0;
       try {
         privateVoiceCount = (await heygenListAllPrivateVoices()).length;
@@ -45,16 +54,22 @@ export async function POST(request: Request) {
         privateVoiceCount < 0
           ? ""
           : privateVoiceCount > 0
-            ? ` Ainda ha ${privateVoiceCount} clone(s) de voz na conta — apague na Voice Library do painel HeyGen se precisar liberar slot (limite 10).`
+            ? ` Ainda há ${privateVoiceCount} clone(s) de voz na conta — remova na biblioteca de vozes do painel se precisar liberar slot (limite 10).`
             : "";
+
+      const baseMessage =
+        result.deleted.length > 0
+          ? scopedGroupId
+            ? "Personagem removido. Refaça o treinamento no Curador."
+            : `${result.deleted.length} personagem(ns) removido(s). Refaça o treinamento no Curador.`
+          : scopedGroupId
+            ? "Nenhum personagem remoto encontrado para remover."
+            : "Nenhum personagem privado encontrado na conta.";
 
       return NextResponse.json({
         ...result,
         privateVoiceCount: privateVoiceCount >= 0 ? privateVoiceCount : undefined,
-        message:
-          (result.deleted.length > 0
-            ? `${result.deleted.length} personagem(ns) removido(s). Refaça o treinamento no Curador.`
-            : "Nenhum personagem privado encontrado na conta.") + voiceNote,
+        message: baseMessage + voiceNote,
       });
     });
   } catch (error) {

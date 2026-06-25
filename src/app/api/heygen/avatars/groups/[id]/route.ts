@@ -53,9 +53,10 @@ export async function DELETE(
 
       const response = await heygenDeleteAvatarGroup(id);
       return NextResponse.json({
+        deleted: [response.data?.id?.trim() || id],
         deletedGroupId: response.data?.id?.trim() || id,
         message:
-          "Personagem removido. Voce pode enviar novo video de treino e refazer o consentimento.",
+          'Personagem removido. Clique em "Gerar Gêmeo Digital" para treinar o novo Gêmeo.',
       });
     });
   } catch (error) {

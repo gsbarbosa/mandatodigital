@@ -39,10 +39,34 @@ export function formatSupabaseQueryError(error: unknown): string | null {
   return null;
 }
 
+function formatMissingTableHint(error: unknown) {
+  const details =
+    error && typeof error === "object" && "message" in error
+      ? String(error.message)
+      : "";
+  const normalized = details.toLowerCase();
+
+  if (normalized.includes("creative_projects")) {
+    return (
+      "Falta a tabela creative_projects no Supabase. " +
+      "No SQL Editor, execute o arquivo supabase/migrations/20260606_creative_projects.sql " +
+      "(ou rode: npm run db:migrate:creative-projects). " +
+      "Detalhe: PGRST205 — Could not find the table 'public.creative_projects' in the schema cache"
+    );
+  }
+
+  return null;
+}
+
 export function supabaseSchemaOutdatedMessage(error: unknown) {
   const specific = formatSupabaseQueryError(error);
   if (specific) {
     return specific;
+  }
+
+  const missingTable = formatMissingTableHint(error);
+  if (missingTable) {
+    return missingTable;
   }
 
   const details =

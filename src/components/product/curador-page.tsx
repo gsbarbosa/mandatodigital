@@ -667,7 +667,7 @@ export function CuradorPage() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Materiais para o clone <span className="persona-badge">Obrigatorio</span>
+              Materiais para o clone <span className="persona-badge persona-badge--required">Obrigatorio</span>
             </label>
 
             <div className="persona-upload-files">
@@ -827,7 +827,7 @@ export function CuradorPage() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Posicionamento ideologico <span className="persona-badge">Obrigatorio</span>
+              Posicionamento ideologico <span className="persona-badge persona-badge--required">Obrigatorio</span>
             </label>
             <p className="persona-helper-text">
               O posicionamento ideologico compoe a base da resposta que a IA vai gerar
@@ -944,7 +944,7 @@ export function CuradorPage() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Tema do video <span className="persona-badge">Obrigatorio</span>
+              Tema do video <span className="persona-badge persona-badge--required">Obrigatorio</span>
             </label>
             <input
               type="text"
@@ -963,7 +963,7 @@ export function CuradorPage() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Seu e-mail <span className="persona-badge">Obrigatorio</span>
+              Seu e-mail <span className="persona-badge persona-badge--required">Obrigatorio</span>
             </label>
             <input
               type="email"

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { apiRoute } from "@/lib/auth/api-route";
+import { handleRouteError } from "@/lib/api";
+import { mergeProfileInputForSave } from "@/lib/profile-save";
 import { profileInputSchema } from "@/lib/schemas";
 
 export async function GET() {
@@ -11,10 +13,29 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  return apiRoute(async (repository) => {
-    const payload = profileInputSchema.parse(await request.json());
-    const profile = await repository.saveProfile(payload);
+  try {
+    return apiRoute(async (repository) => {
+      const body = (await request.json()) as Record<string, unknown> & {
+        draftSave?: boolean;
+      };
+      const draftSave = body.draftSave === true;
+      delete body.draftSave;
 
-    return NextResponse.json({ profile });
-  });
+      const dashboard = await repository.getDashboard();
+      const merged = draftSave
+        ? mergeProfileInputForSave(
+            body as Parameters<typeof mergeProfileInputForSave>[0],
+            dashboard.profile,
+            { allowDraftDefaults: true },
+          )
+        : (body as Parameters<typeof mergeProfileInputForSave>[0]);
+
+      const payload = profileInputSchema.parse(merged);
+      const profile = await repository.saveProfile(payload);
+
+      return NextResponse.json({ profile });
+    });
+  } catch (error) {
+    return handleRouteError(error);
+  }
 }

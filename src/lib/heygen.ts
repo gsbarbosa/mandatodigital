@@ -56,7 +56,7 @@ async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const apiKey = resolveHeyGenApiKeyForFetch();
   if (!apiKey) {
     throw new Error(
-      "HEYGEN_API_KEY nao configurada no servidor. Configure na Vercel e/ou .env.local.",
+      "Serviço de geração de vídeo indisponível. Tente novamente mais tarde.",
     );
   }
 
@@ -82,7 +82,7 @@ async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const message =
       payload.error?.message ||
       payload.message ||
-      `HeyGen falhou (${response.status}).`;
+      `A plataforma retornou um erro (${response.status}).`;
     throw new Error(message);
   }
 
@@ -107,6 +107,75 @@ export type HeyGenUserMeResponse = {
 export async function heygenGetUserMe() {
   // Docs: GET /v3/users/me (API Key guide)
   return heygenFetch<HeyGenUserMeResponse>("/v3/users/me", { method: "GET" });
+}
+
+export type HeyGenUploadAssetResponse = {
+  data?: {
+    asset_id?: string;
+    id?: string;
+    url?: string;
+    mime_type?: string;
+    size_bytes?: number;
+  };
+};
+
+export async function heygenUploadAsset(input: {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+}) {
+  const config = getHeyGenConfig();
+  const apiKey = resolveHeyGenApiKeyForFetch();
+  if (!apiKey) {
+    throw new Error(
+      "Servico de geracao de video indisponivel. Tente novamente mais tarde.",
+    );
+  }
+
+  const form = new FormData();
+  const blob = new Blob([new Uint8Array(input.buffer)], { type: input.mimeType });
+  form.append("file", blob, input.filename);
+
+  const response = await fetch(`${config.baseUrl}/v3/assets`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+    },
+    body: form,
+  });
+
+  const text = await response.text();
+  let json: unknown = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null;
+  }
+
+  if (!response.ok) {
+    const payload = (json ?? {}) as HeyGenStandardError;
+    const message =
+      payload.error?.message ||
+      payload.message ||
+      `A plataforma retornou um erro (${response.status}).`;
+    throw new Error(message);
+  }
+
+  const payload = (json ?? {}) as HeyGenUploadAssetResponse;
+  const assetId =
+    payload.data?.asset_id?.trim() || payload.data?.id?.trim() || "";
+
+  if (!assetId) {
+    throw new Error("Resposta invalida da HeyGen: asset_id ausente.");
+  }
+
+  return {
+    assetId,
+    url: payload.data?.url?.trim() || null,
+    mimeType: payload.data?.mime_type?.trim() || input.mimeType,
+    sizeBytes: Number(payload.data?.size_bytes ?? input.buffer.length),
+    raw: payload,
+  };
 }
 
 export type HeyGenCreatePhotoAvatarResponse = {
@@ -399,22 +468,108 @@ export async function heygenListAllPrivateVoices() {
   return voices;
 }
 
-export async function heygenVoiceExists(voiceId: string) {
+function isHeyGenVoiceLookupFailure(message: string) {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes("not found") ||
+    lower.includes("voice_not_found") ||
+    lower.includes("invalid voice_id")
+  );
+}
+
+export type HeyGenVoiceReadiness = "ready" | "processing" | "missing" | "failed";
+
+function mapHeyGenVoiceStatus(status: string): HeyGenVoiceReadiness {
+  const normalized = status.trim().toLowerCase();
+  if (!normalized || normalized === "complete" || normalized === "ready") {
+    return "ready";
+  }
+  if (normalized === "processing" || normalized === "pending") {
+    return "processing";
+  }
+  if (normalized === "failed" || normalized === "error") {
+    return "failed";
+  }
+  return "ready";
+}
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+export async function heygenGetVoiceReadiness(voiceId: string): Promise<HeyGenVoiceReadiness> {
   const id = voiceId.trim();
   if (!id) {
-    return false;
+    return "missing";
   }
 
   try {
-    await heygenGetVoice(id);
-    return true;
+    const detail = await heygenGetVoice(id);
+    const resolvedId = String(detail.data?.voice_id ?? detail.data?.id ?? "").trim();
+    if (!resolvedId) {
+      return "missing";
+    }
+
+    return mapHeyGenVoiceStatus(String(detail.data?.status ?? ""));
   } catch (error) {
-    const message = formatHeyGenError(error).toLowerCase();
-    if (message.includes("not found") || message.includes("voice_not_found")) {
-      return false;
+    const message = formatHeyGenError(error);
+    if (isHeyGenVoiceLookupFailure(message)) {
+      return "missing";
+    }
+    if (message.toLowerCase().includes("unauthorized")) {
+      throw new Error(
+        "Chave da API invalida para esta conta. Remova a chave de teste no painel ou atualize-a.",
+      );
     }
     throw error;
   }
+}
+
+export async function heygenWaitForVoiceReady(
+  voiceId: string,
+  options?: { timeoutMs?: number; intervalMs?: number },
+) {
+  const id = voiceId.trim();
+  if (!id) {
+    throw new Error("Voz clonada ausente.");
+  }
+
+  const timeoutMs = options?.timeoutMs ?? 120_000;
+  const intervalMs = options?.intervalMs ?? 2_000;
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    const readiness = await heygenGetVoiceReadiness(id);
+    if (readiness === "ready") {
+      return id;
+    }
+    if (readiness === "failed") {
+      throw new Error(
+        "O clone de voz falhou na plataforma. Envie outro audio e tente novamente.",
+      );
+    }
+    if (readiness === "missing") {
+      throw new Error("A voz clonada nao foi encontrada na plataforma.");
+    }
+
+    await sleep(intervalMs);
+  }
+
+  throw new Error(
+    "A voz clonada ainda esta sendo processada. Aguarde alguns segundos e tente gerar o video novamente.",
+  );
+}
+
+export async function heygenVoiceExists(voiceId: string) {
+  const readiness = await heygenGetVoiceReadiness(voiceId);
+  return readiness === "ready";
+}
+
+export function isHeyGenVoiceGenerationError(error: unknown) {
+  const message = formatHeyGenError(error).toLowerCase();
+  return isHeyGenVoiceLookupFailure(message);
 }
 
 export type HeyGenCreateVideoResponse = {

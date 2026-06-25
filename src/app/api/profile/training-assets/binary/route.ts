@@ -8,7 +8,9 @@ import {
 import {
   isAllowedTrainingMime,
   parseTrainingAssetRole,
+  trainingAssetUploadRequirementMessage,
 } from "@/lib/training-asset-role";
+import { normalizeTrainingVideoBuffer } from "@/lib/training-video-transcode";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -30,12 +32,13 @@ export async function PUT(request: Request) {
     }
 
     if (!isAllowedTrainingMime(trainingRole, mimeType)) {
-      const expected =
-        trainingRole === "avatar_image"
-          ? "uma imagem (PNG, JPEG ou WebP)"
-          : "um video";
       return NextResponse.json(
-        { message: `O arquivo ${filename} deve ser ${expected}.` },
+        {
+          message:
+            trainingRole === "avatar_image"
+              ? "Envie uma imagem PNG, JPEG ou WebP."
+              : trainingAssetUploadRequirementMessage(trainingRole),
+        },
         { status: 400 },
       );
     }
@@ -46,16 +49,30 @@ export async function PUT(request: Request) {
     }
 
     const referenceId = profileId ?? draftProfileId!;
-    const buffer = Buffer.from(arrayBuffer);
+    let uploadBuffer = Buffer.from(arrayBuffer);
+    let uploadFilename = filename;
+    let uploadMimeType = mimeType;
+
+    if (trainingRole === "dataset") {
+      const normalized = await normalizeTrainingVideoBuffer({
+        buffer: uploadBuffer,
+        mimeType,
+        filename,
+      });
+      uploadBuffer = Buffer.from(normalized.buffer);
+      uploadFilename = normalized.filename;
+      uploadMimeType = normalized.mimeType;
+    }
+
     let stored;
 
     try {
       stored = await storeTrainingAssetBytes({
         referenceId,
-        filename,
-        mimeType,
-        sizeBytes: buffer.byteLength,
-        buffer,
+        filename: uploadFilename,
+        mimeType: uploadMimeType,
+        sizeBytes: uploadBuffer.byteLength,
+        buffer: uploadBuffer,
       });
     } catch (error) {
       throw error;

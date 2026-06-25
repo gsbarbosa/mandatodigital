@@ -8,26 +8,20 @@ import {
   heygenCreateVideo,
   heygenCreateVideoFromImage,
   heygenGetAvatarLook,
-  heygenGetUserMe,
 } from "@/lib/heygen";
-import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
+import { resolveHeyGenClonedVoiceIdWithRetry } from "@/lib/heygen-voice-resolve";
+import { resolveAvatarTrainingName } from "@/lib/heygen-twin-display";
 import {
+  checkHeyGenWalletForVideo,
+  HEYGEN_DIGITAL_TWIN_VIDEO_RATE_PER_SECOND,
+  HEYGEN_PHOTO_IMAGE_VIDEO_RATE_PER_SECOND,
+} from "@/lib/heygen-credit-preflight";
+import {
+  getTrainingAssetPublicUrl,
   pickAvatarImageAndVoiceAudioAssets,
+  resolveAppBaseUrl,
   resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
-
-function countWords(text: string) {
-  return text
-    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length;
-}
-
-function estimateSecondsFromWords(words: number) {
-  // Aproximacao: 150 wpm ~ 2.5 w/s para voz PT-BR.
-  return words / 2.5;
-}
 
 export async function POST(request: Request) {
   try {
@@ -39,11 +33,16 @@ export async function POST(request: Request) {
         transcript?: string;
         name?: string;
         freePrompt?: string;
-        generateMode?: "avatar" | "caricature";
+        generateMode?: "avatar" | "caricature" | "photo_real";
         caricatureAssetId?: string;
       };
 
-      const generateMode = body.generateMode === "caricature" ? "caricature" : "avatar";
+      const generateMode =
+        body.generateMode === "caricature"
+          ? "caricature"
+          : body.generateMode === "photo_real"
+            ? "photo_real"
+            : "avatar";
 
       const topic = String(body.topic ?? "").trim();
       const avatarId = String(body.avatarId ?? "").trim();
@@ -61,27 +60,35 @@ export async function POST(request: Request) {
 
       const dashboard = await repository.getDashboard();
 
-      if (generateMode === "caricature") {
-        if (!voiceId) {
+      if (generateMode === "caricature" || generateMode === "photo_real") {
+        const assets = await repository.listTrainingAssetsForReference(
+          dashboard.profile?.id ?? "",
+        );
+        const { voiceAudioAsset, avatarImageAsset } =
+          pickAvatarImageAndVoiceAudioAssets(assets);
+        if (!voiceAudioAsset) {
           return NextResponse.json(
             {
               message:
-                "Modo caricato exige voz clonada. Clique em Preparar voz (HeyGen) antes de gerar o video.",
+                "Modo por foto exige áudio de voz. Envie um MP3/WAV no Curador antes de gerar o vídeo.",
             },
             { status: 400 },
           );
         }
 
-        const assets = await repository.listTrainingAssetsForReference(
-          dashboard.profile?.id ?? "",
-        );
-        const caricatureAsset = resolveCaricatureAsset(
-          assets,
-          body.caricatureAssetId,
-        );
-        if (!caricatureAsset) {
+        const imageAsset =
+          generateMode === "photo_real"
+            ? avatarImageAsset
+            : resolveCaricatureAsset(assets, body.caricatureAssetId);
+
+        if (!imageAsset) {
           return NextResponse.json(
-            { message: "Gere e aprove a caricatura antes de produzir o video." },
+            {
+              message:
+                generateMode === "photo_real"
+                  ? "Envie a foto do rosto no Curador antes de produzir o vídeo."
+                  : "Gere e aprove a caricatura antes de produzir o video.",
+            },
             { status: 400 },
           );
         }
@@ -99,28 +106,64 @@ export async function POST(request: Request) {
             ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
             : baseTranscript;
 
+        const walletCheck = await checkHeyGenWalletForVideo({
+          transcript,
+          ratePerSecond: HEYGEN_PHOTO_IMAGE_VIDEO_RATE_PER_SECOND,
+          modeLabel:
+            generateMode === "photo_real"
+              ? "foto real (imagem 1080p)"
+              : "caricatura (imagem 1080p)",
+        });
+        if (!walletCheck.ok) {
+          return NextResponse.json({ message: walletCheck.message }, { status: 402 });
+        }
+
         const appBaseUrl = resolveAppBaseUrl(request);
         const callbackUrl = appBaseUrl.startsWith("https://")
           ? `${appBaseUrl}/api/heygen/webhooks`
           : undefined;
-        const { getTrainingAssetPublicUrl } = await import("@/lib/training-asset-urls");
-        const imageUrl = await getTrainingAssetPublicUrl(caricatureAsset, appBaseUrl);
-
-        const result = await heygenCreateVideoFromImage({
-          image: { type: "url", url: imageUrl },
-          voiceId,
-          script: transcript,
-          title: name ?? (topic ? `Curador v2 (caricato) - ${topic}` : "Curador v2 (caricato)"),
-          aspectRatio: "9:16",
-          resolution: "1080p",
-          callbackUrl,
+        const imageUrl = await getTrainingAssetPublicUrl(imageAsset, appBaseUrl);
+        const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, appBaseUrl);
+        const avatarName = resolveAvatarTrainingName({
+          fullName: dashboard.profile?.fullName,
+          role: dashboard.profile?.role,
+          city: dashboard.profile?.city,
+        });
+        const { voiceId: resolvedVoiceId, value: result } =
+          await resolveHeyGenClonedVoiceIdWithRetry({
+          requestedVoiceId: voiceId,
+          voiceName: `${avatarName} (clone)`,
+          audio: { type: "url", url: voiceAudioUrl },
+          run: async (activeVoiceId) =>
+            heygenCreateVideoFromImage({
+              image: { type: "url", url: imageUrl },
+              voiceId: activeVoiceId,
+              script: transcript,
+              title:
+                name ??
+                (topic
+                  ? generateMode === "photo_real"
+                    ? `Curador v2 (foto real) - ${topic}`
+                    : `Curador v2 (caricato) - ${topic}`
+                  : generateMode === "photo_real"
+                    ? "Curador v2 (foto real)"
+                    : "Curador v2 (caricato)"),
+              aspectRatio: "9:16",
+              resolution: "1080p",
+              callbackUrl,
+            }),
         });
 
         return NextResponse.json(
           {
             videoId: result.videoId,
-            providerMode: "caricature_image",
-            message: "Video caricato enviado para a HeyGen. Aguarde a renderizacao.",
+            voiceId: resolvedVoiceId,
+            providerMode:
+              generateMode === "photo_real" ? "photo_real_image" : "caricature_image",
+            message:
+              generateMode === "photo_real"
+                ? "Vídeo com foto real enviado para renderização. Aguarde."
+                : "Vídeo caricato enviado para renderização. Aguarde.",
           },
           { status: 201 },
         );
@@ -128,7 +171,7 @@ export async function POST(request: Request) {
 
       if (!avatarId) {
         return NextResponse.json(
-          { message: "Avatar HeyGen ausente. Clique em Treinar (HeyGen) primeiro." },
+          { message: "Gêmeo digital ausente. Treine no Curador antes de gerar o vídeo." },
           { status: 400 },
         );
       }
@@ -165,33 +208,16 @@ export async function POST(request: Request) {
         // ignore (fallback to avatar_iv)
       }
 
-      // Pre-flight: estima custo com base na duracao aproximada do texto.
-      // Importante: o erro "Insufficient credit" costuma acontecer quando o roteiro fica longo
-      // (especialmente quando o prompt livre vira texto de fala).
-      try {
-        const me = await heygenGetUserMe();
-        const remaining = Number(me.data?.wallet?.remaining_balance ?? 0);
-        const words = countWords(transcript);
-        const seconds = estimateSecondsFromWords(words);
-        const ratePerSecond = avatarType === "photo_avatar" ? 0.05 : 0.0667; // docs pricing (IV/V 1080p)
-        const estimatedCost = seconds * ratePerSecond;
-
-        if (remaining > 0 && estimatedCost > remaining) {
-          return NextResponse.json(
-            {
-              message:
-                `Saldo insuficiente no wallet da API da HeyGen. ` +
-                `Saldo: $${remaining.toFixed(2)}. ` +
-                `Estimativa: ~${Math.ceil(seconds)}s (~${words} palavras) ≈ $${estimatedCost.toFixed(2)}. ` +
-                `Dica: encurte o roteiro/prompt livre para ~${Math.floor(
-                  (remaining / ratePerSecond) * 2.5,
-                )} palavras, ou adicione mais saldo.`,
-            },
-            { status: 402 },
-          );
-        }
-      } catch {
-        // Se o endpoint /v3/users/me falhar, nao bloqueia a geracao.
+      const walletCheck = await checkHeyGenWalletForVideo({
+        transcript,
+        ratePerSecond:
+          avatarType === "photo_avatar"
+            ? HEYGEN_PHOTO_IMAGE_VIDEO_RATE_PER_SECOND
+            : HEYGEN_DIGITAL_TWIN_VIDEO_RATE_PER_SECOND,
+        modeLabel: avatarType === "photo_avatar" ? "foto avatar 1080p" : "gêmeo digital 1080p",
+      });
+      if (!walletCheck.ok) {
+        return NextResponse.json({ message: walletCheck.message }, { status: 402 });
       }
 
       try {
@@ -236,7 +262,7 @@ export async function POST(request: Request) {
           {
             videoId: result.videoId,
             providerMode: "avatar",
-            message: "Video enviado para a HeyGen. Aguarde a renderizacao.",
+            message: "Vídeo enviado para renderização. Aguarde.",
           },
           { status: 201 },
         );
@@ -261,32 +287,43 @@ export async function POST(request: Request) {
         }
 
         const imageUrlBase = resolveAppBaseUrl(request);
-        const { getTrainingAssetPublicUrl } = await import("@/lib/training-asset-urls");
         const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
-
-        if (!voiceId) {
+        const { voiceAudioAsset } = pickAvatarImageAndVoiceAudioAssets(assets);
+        if (!voiceAudioAsset) {
           throw new Error(
-            `${message} (fallback por imagem exige uma voz selecionada/clonada).`,
+            `${message} (fallback por imagem exige áudio de voz enviado no Curador).`,
           );
         }
 
-        const result = await heygenCreateVideoFromImage({
-          image: { type: "url", url: imageUrl },
-          voiceId,
-          script: transcript,
-          title: name ?? `Curador v2 (fallback imagem) - ${topic}`,
-          aspectRatio: "9:16",
-          resolution: "1080p",
-          callbackUrl,
+        const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, imageUrlBase);
+        const avatarName = resolveAvatarTrainingName({
+          fullName: dashboard.profile?.fullName,
+          role: dashboard.profile?.role,
+          city: dashboard.profile?.city,
+        });
+        const { value: fallbackResult } = await resolveHeyGenClonedVoiceIdWithRetry({
+          requestedVoiceId: voiceId,
+          voiceName: `${avatarName} (clone)`,
+          audio: { type: "url", url: voiceAudioUrl },
+          run: async (activeVoiceId) =>
+            heygenCreateVideoFromImage({
+              image: { type: "url", url: imageUrl },
+              voiceId: activeVoiceId,
+              script: transcript,
+              title: name ?? `Curador v2 (fallback imagem) - ${topic}`,
+              aspectRatio: "9:16",
+              resolution: "1080p",
+              callbackUrl,
+            }),
         });
 
         return NextResponse.json(
           {
-            videoId: result.videoId,
+            videoId: fallbackResult.videoId,
             providerMode: "image_fallback",
             message:
-              "O avatar treinado nao foi aceito pela HeyGen (provavel consent/estado do look). " +
-              "Gerei via input direto de imagem para voce ver o resultado end-to-end.",
+              "O avatar treinado não foi aceito pela plataforma (consentimento ou estado do personagem). " +
+              "Geramos via imagem direta para você ver o resultado.",
           },
           { status: 201 },
         );

@@ -8,6 +8,7 @@ import {
   parseJsonOrText,
 } from "@/components/product/persona-shared";
 import { SentinelThemesSketch } from "@/components/product/sentinel-suggestion-row";
+import { formatCreativeProjectTitle } from "@/lib/creative-project-display";
 import type { CreativeProject } from "@/lib/types";
 
 function formatProjectDate(value: string) {
@@ -69,7 +70,7 @@ export function CriativoListPage() {
   }, [loadProjects]);
 
   return (
-    <section className="persona-page">
+    <section className="persona-page agent-theme-criativo">
       <div className="persona-container">
         <div className="persona-card">
           <h2 className="sr-only">Criativos</h2>
@@ -121,7 +122,7 @@ export function CriativoListPage() {
                 <li key={project.id} className="persona-creative-list-item">
                   <div className="persona-creative-list-main">
                     <p className="persona-creative-list-topic">
-                      {project.topic.trim() || "(sem tema)"}
+                      {formatCreativeProjectTitle(project)}
                     </p>
                     <p className="persona-helper-text">
                       {formatProjectDate(project.createdAt)} ·{" "}

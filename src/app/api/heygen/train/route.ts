@@ -5,21 +5,24 @@ import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
 import {
   formatHeyGenError,
-  heygenCloneVoice,
-  heygenCreateAvatarConsent,
   heygenCreateDigitalTwin,
   heygenCreatePhotoAvatar,
   heygenGetAvatarGroup,
   heygenGetVoice,
   heygenListAvatarLooks,
-  heygenVoiceExists,
 } from "@/lib/heygen";
+import { resolveHeyGenAvatarConsentLink } from "@/lib/heygen-consent-resolve";
+import { resolveHeyGenClonedVoiceId } from "@/lib/heygen-voice-resolve";
 import {
+  resolveAvatarTrainingName,
   resolveDigitalTwinTrainingPhase,
   resolveHeyGenTrainingPhase,
   trainingPhaseMessage,
+  twinGroupRequiresConsentLink,
+  isConsentApproved,
 } from "@/lib/heygen-twin-display";
 import type { HeyGenAvatarLookListItem } from "@/lib/heygen";
+import { resolveHeyGenDigitalTwinVideoInput } from "@/lib/heygen-training-video";
 import {
   getTrainingAssetPublicUrl,
   pickAvatarImageAndVoiceAudioAssets,
@@ -27,7 +30,9 @@ import {
   resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
 
-type HeyGenTrainMode = "photo" | "digital_twin" | "caricature";
+type HeyGenTrainMode = "photo" | "digital_twin" | "caricature" | "photo_real";
+
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
@@ -75,19 +80,20 @@ export async function POST(request: Request) {
       const appBaseUrl = resolveAppBaseUrl(request);
       const assetBaseUrl = resolveAppBaseUrl(request);
       const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, assetBaseUrl);
-      const trainingVideoUrl = latestVideoAsset
-        ? await getTrainingAssetPublicUrl(latestVideoAsset, assetBaseUrl)
-        : "";
+      const trainingVideoAsset = latestVideoAsset;
 
-      const avatarName =
-        String(body.avatarName ?? "").trim() ||
-        dashboard.profile?.fullName?.trim() ||
-        "Mandato Digital Avatar";
+      const avatarName = resolveAvatarTrainingName({
+        fullName:
+          String(body.avatarName ?? "").trim() || dashboard.profile?.fullName,
+        role: dashboard.profile?.role,
+        city: dashboard.profile?.city,
+      });
 
       let avatarId = "";
       let avatarGroupId: string | null = null;
       let consentUrl: string | null = null;
       let consentStatus: string | null = null;
+      let needsConsent = false;
       let avatarGroupStatus: string | null = null;
       let voiceId = String(body.voiceId ?? "").trim();
       let digitalTwinLookForPhase: HeyGenAvatarLookListItem | null = null;
@@ -133,89 +139,46 @@ export async function POST(request: Request) {
           );
         }
 
-        const consentNormalized = String(consentStatus ?? "").toLowerCase();
-        if (
-          consentNormalized &&
-          consentNormalized !== "completed" &&
-          consentNormalized !== "approved"
-        ) {
-          try {
-            const consent = await heygenCreateAvatarConsent({
-              groupId,
-              rerouteUrl: appBaseUrl.startsWith("https://")
-                ? `${appBaseUrl}/curador`
-                : undefined,
-            });
-            consentUrl = consent.consentUrl;
-          } catch (error) {
-            const message = formatHeyGenError(error);
-            if (!message.toLowerCase().includes("security code already binded")) {
-              throw error;
-            }
-          }
+        const consentResolved = await resolveHeyGenAvatarConsentLink({
+          groupId,
+          consentStatus,
+          rerouteUrl: appBaseUrl.startsWith("https://")
+            ? `${appBaseUrl}/curador`
+            : undefined,
+        });
+        consentUrl = consentResolved.consentUrl;
+        consentStatus = consentResolved.consentStatus ?? consentStatus;
+        needsConsent = consentResolved.needsConsent;
+
+        if (!needsConsent || isConsentApproved(consentStatus)) {
+          consentUrl = null;
+          needsConsent = false;
         }
 
         if (!voiceId && voiceAudioAsset) {
-          const voiceName = `${avatarName} (clone)`;
-          const cloned = await heygenCloneVoice({
-            voiceName,
+          voiceId = await resolveHeyGenClonedVoiceId({
+            voiceName: `${avatarName} (clone)`,
             audio: { type: "url", url: voiceAudioUrl },
           });
-          voiceId = cloned.voiceId;
         }
       } else if (mode === "digital_twin") {
-        if (!trainingVideoUrl) {
+        if (!trainingVideoAsset) {
           return NextResponse.json(
             {
               message:
-                "Para Realismo Maximo (Digital Twin), envie um video MP4 no slot de treino de video (HeyGen).",
+                "Para o gêmeo digital, envie um vídeo de treino no Curador (MP4, MOV ou WebM).",
             },
             { status: 400 },
           );
         }
 
+        const twinVideoInput = await resolveHeyGenDigitalTwinVideoInput(trainingVideoAsset);
         const twin = await heygenCreateDigitalTwin({
-          name: `${avatarName} (digital twin)`,
-          file: { type: "url", url: trainingVideoUrl },
+          name: avatarName,
+          file: twinVideoInput,
         });
         avatarId = twin.avatarId;
         avatarGroupId = twin.groupId;
-
-        try {
-          const consent = await heygenCreateAvatarConsent({
-            groupId: twin.groupId,
-            rerouteUrl: appBaseUrl.startsWith("https://")
-              ? `${appBaseUrl}/curador`
-              : undefined,
-          });
-          consentUrl = consent.consentUrl;
-        } catch (error) {
-          const message = formatHeyGenError(error);
-          if (message.toLowerCase().includes("security code already binded")) {
-            let groupStatus: unknown = null;
-            try {
-              groupStatus = await heygenGetAvatarGroup(twin.groupId);
-            } catch {
-              groupStatus = null;
-            }
-
-            const avatar_group = (
-              groupStatus as {
-                data?: {
-                  avatar_group?: {
-                    consent_status?: string | null;
-                    status?: string | null;
-                  };
-                };
-              }
-            )?.data?.avatar_group;
-
-            consentStatus = avatar_group?.consent_status ?? null;
-            avatarGroupStatus = avatar_group?.status ?? null;
-          } else {
-            throw error;
-          }
-        }
 
         try {
           const groupStatus = await heygenGetAvatarGroup(twin.groupId);
@@ -225,6 +188,25 @@ export async function POST(request: Request) {
         } catch {
           // ignore
         }
+
+        if (twinGroupRequiresConsentLink(consentStatus, avatarGroupStatus)) {
+          const consentResolved = await resolveHeyGenAvatarConsentLink({
+            groupId: twin.groupId,
+            consentStatus,
+            requireFreshLink: true,
+            rerouteUrl: appBaseUrl.startsWith("https://")
+              ? `${appBaseUrl}/curador`
+              : undefined,
+          });
+          consentUrl = consentResolved.consentUrl;
+          consentStatus = consentResolved.consentStatus ?? consentStatus;
+          needsConsent = consentResolved.needsConsent;
+        }
+
+        if (!needsConsent || isConsentApproved(consentStatus)) {
+          consentUrl = null;
+          needsConsent = false;
+        }
       } else if (mode === "caricature") {
         if (!caricatureAsset) {
           return NextResponse.json(
@@ -232,6 +214,13 @@ export async function POST(request: Request) {
               message:
                 "Gere a caricatura a partir da foto antes de preparar a voz para o video caricato.",
             },
+            { status: 400 },
+          );
+        }
+      } else if (mode === "photo_real") {
+        if (!avatarImageAsset) {
+          return NextResponse.json(
+            { message: "Envie uma foto do rosto (PNG/JPEG) para usar a foto real." },
             { status: 400 },
           );
         }
@@ -251,21 +240,11 @@ export async function POST(request: Request) {
         avatarId = photo.avatarId;
       }
 
-      if (voiceId) {
-        const stillExists = await heygenVoiceExists(voiceId);
-        if (!stillExists) {
-          voiceId = "";
-        }
-      }
-
-      if (!voiceId) {
-        const voiceName = `${avatarName} (clone)`;
-        const cloned = await heygenCloneVoice({
-          voiceName,
-          audio: { type: "url", url: voiceAudioUrl },
-        });
-        voiceId = cloned.voiceId;
-      }
+      voiceId = await resolveHeyGenClonedVoiceId({
+        requestedVoiceId: voiceId,
+        voiceName: `${avatarName} (clone)`,
+        audio: { type: "url", url: voiceAudioUrl },
+      });
 
       try {
         void buildAvatarVideoTranscript({
@@ -286,6 +265,7 @@ export async function POST(request: Request) {
               consentStatus,
               groupStatus: avatarGroupStatus,
               consentUrl,
+              needsConsent,
               look: digitalTwinLookForPhase,
             })
           : resolveHeyGenTrainingPhase({
@@ -293,13 +273,18 @@ export async function POST(request: Request) {
               consentStatus,
               groupStatus: avatarGroupStatus,
               consentUrl,
+              needsConsent,
             });
 
       const messageByMode: Record<HeyGenTrainMode, string> = {
-        digital_twin: trainingPhaseMessage(trainingPhase),
+        digital_twin: trainingPhaseMessage(trainingPhase, {
+          hasConsentUrl: Boolean(consentUrl?.trim()),
+        }),
         photo: "Avatar e voz criados. Agora voce ja pode gerar videos.",
         caricature:
           "Voz clonada para o modo caricato. Agora gere o video com a caricatura aprovada.",
+        photo_real:
+          "Voz clonada para foto real. Agora gere o video com a foto enviada no Curador.",
       };
 
       return NextResponse.json(
@@ -309,6 +294,7 @@ export async function POST(request: Request) {
           avatarGroupId,
           consentUrl,
           consentStatus,
+          needsConsent,
           avatarGroupStatus,
           trainingPhase,
           mode,

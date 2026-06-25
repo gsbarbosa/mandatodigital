@@ -13,7 +13,7 @@ const creativeProjectInputSchema = z.object({
   scriptApproved: z.boolean().default(false),
   freePrompt: z.string().default(""),
   useFreePrompt: z.boolean().default(false),
-  avatarTrack: z.enum(["realistic", "caricature"]).default("realistic"),
+  avatarTrack: z.enum(["realistic", "caricature", "photo_real"]).default("realistic"),
   caricatureAssetId: z.string().default(""),
   heygenVideoId: z.string().nullable().optional(),
   videoUrl: z.string().default(""),

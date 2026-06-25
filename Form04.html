@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mandato Digital - Configuração da Tropa de IA (Completo)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* BASE & RESET */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: #020617; /* Deep Slate */
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #f8fafc;
+            line-height: 1.6;
+            padding-bottom: 100px;
+        }
+
+        /* TECH BACKGROUND GRID */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* LAYOUT WRAPPER */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+        }
+
+        /* TYPOGRAPHY */
+        h1, h2, h3, h4 { font-weight: 700; color: #f8fafc; }
+        .slide-title { font-size: 32px; margin-bottom: 24px; display: flex; align-items: center; gap: 15px; }
+        .section-header { font-size: 16px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin: 30px 0 16px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;}
+        .section-header:first-of-type { margin-top: 0; }
+        
+        /* UTILITIES */
+        .tag-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 20px;
+            font-size: 14px; font-weight: 700;
+            margin-bottom: 16px; letter-spacing: 1px; text-transform: uppercase;
+        }
+
+        /* THEME COLORS */
+        .theme-sentinela { --brand-color: #10b981; --brand-bg: rgba(16, 185, 129, 0.1); }
+        .theme-curador { --brand-color: #3b82f6; --brand-bg: rgba(59, 130, 246, 0.1); }
+        .theme-criativo { --brand-color: #a855f7; --brand-bg: rgba(168, 85, 247, 0.1); }
+        .theme-auditor { --brand-color: #ef4444; --brand-bg: rgba(239, 68, 68, 0.1); }
+        .theme-distribuidor { --brand-color: #f59e0b; --brand-bg: rgba(245, 158, 11, 0.1); }
+
+        .agent-section .tag-pill {
+            background: var(--brand-bg); color: var(--brand-color);
+            border: 1px solid rgba(255,255,255,0.1); border-color: rgba(var(--brand-color), 0.3);
+        }
+        .agent-section .slide-title span { color: var(--brand-color); }
+
+        /* FORM UI COMPONENTS */
+        .form-panel {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .form-panel::after {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: var(--brand-color);
+        }
+
+        .form-group { margin-bottom: 30px; }
+        .form-label {
+            display: block; color: #cbd5e1; font-size: 15px; font-weight: 600; margin-bottom: 12px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        /* Toggles (Interactive) */
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .toggle-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            line-height: 1.3;
+        }
+        .toggle-btn:hover { background: rgba(255, 255, 255, 0.08); }
+        .toggle-btn i.fa-circle-check { display: none; }
+        .toggle-btn.active { background: var(--brand-bg); border-color: var(--brand-color); color: #f8fafc; }
+        .toggle-btn.active i.fa-circle-check { display: inline-block; color: var(--brand-color); }
+        .toggle-btn.active i.fa-icon-default { display: none; }
+
+        /* Inputs */
+        .input-group {
+            display: flex;
+            background: rgba(2, 6, 23, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            transition: border-color 0.3s;
+        }
+        .input-group:focus-within { border-color: var(--brand-color); }
+        .input-group-prepend {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+        }
+        
+        /* Dropdown Social Selector */
+        select.social-select {
+            background: rgba(255, 255, 255, 0.02);
+            border: none;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            padding: 0 16px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            appearance: auto;
+        }
+        select.social-select:focus { color: #f8fafc; }
+        select.social-select option {
+            background: #0f172a;
+            color: #f8fafc;
+        }
+
+        .input-control {
+            flex: 1; background: transparent; border: none; padding: 14px 16px; color: #f8fafc; font-size: 15px; font-family: inherit; outline: none;
+        }
+        textarea.input-control { min-height: 80px; resize: vertical; }
+
+        /* Segmented Controls */
+        .segmented-control {
+            display: flex; background: rgba(2, 6, 23, 0.8); border-radius: 10px; padding: 4px; border: 1px solid rgba(255, 255, 255, 0.1); flex-wrap: wrap; gap: 4px;
+        }
+        .segment {
+            flex: 1; text-align: center; padding: 12px; color: #94a3b8; font-weight: 600; font-size: 13px; border-radius: 6px; cursor: pointer; transition: 0.2s; min-width: 110px; display: flex; align-items: center; justify-content: center; line-height: 1.2;
+        }
+        .segment:hover { color: #f8fafc; background: rgba(255, 255, 255, 0.05); }
+        .segment.active { background: rgba(255, 255, 255, 0.1); color: #f8fafc; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 30px; margin-bottom: 30px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0; flex-wrap: wrap;}
+        .tab { color: #94a3b8; font-size: 18px; font-weight: 600; padding-bottom: 16px; cursor: pointer; transition: 0.3s; position: relative; }
+        .tab:hover { color: #cbd5e1; }
+        .tab.active { color: var(--brand-color); }
+        .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--brand-color); border-radius: 3px 3px 0 0; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Layout Helpers */
+        .didactic-box {
+            background: rgba(2, 6, 23, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 30px; display: flex; gap: 20px; align-items: flex-start;
+        }
+        .didactic-box i { font-size: 24px; color: var(--brand-color); margin-top: 2px; }
+        .didactic-box p { color: #cbd5e1; font-size: 15px; margin: 0; line-height: 1.5; }
+        .didactic-box strong { color: #f8fafc; }
+        
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+        @media(max-width: 900px) { .two-column { grid-template-columns: 1fr; gap: 20px; } }
+
+        /* Switch */
+        .switch-container {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(2, 6, 23, 0.8); padding: 20px; border-radius: 12px; border: 1px solid var(--brand-color); cursor: pointer;
+        }
+        .switch-label { font-size: 16px; font-weight: 700; color: #f8fafc; }
+        .switch-desc { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+        .switch-toggle { width: 54px; height: 30px; background: rgba(255,255,255,0.2); border-radius: 15px; position: relative; transition: 0.3s; }
+        .switch-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; background: #fff; border-radius: 50%; transition: 0.3s; }
+        .switch-container.active .switch-toggle { background: var(--brand-color); }
+        .switch-container.active .switch-toggle::after { transform: translateX(24px); }
+
+        /* Submit Button */
+        .btn-submit {
+            display: block; width: 100%; max-width: 400px; margin: 40px auto 0; padding: 20px; background: #10b981; color: #020617; text-align: center; border-radius: 12px; font-size: 20px; font-weight: 800; text-decoration: none; border: none; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+        }
+        .btn-submit:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3); }
+
+        /* Dynamic List Buttons */
+        .btn-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; padding: 0 16px; cursor: pointer; transition: 0.2s; outline: none; }
+        .btn-icon:hover { background: rgba(239, 68, 68, 0.2); }
+        .btn-add-item { background: transparent; color: var(--brand-color); border: 1px dashed rgba(255,255,255,0.3); padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; transition: 0.2s; font-size: 13px; font-family: inherit; margin-top: 4px; }
+        .btn-add-item:hover { background: var(--brand-bg); border-color: var(--brand-color); }
+
+        /* Header Layout */
+        .header-box { display: flex; align-items: center; justify-content: space-between; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(59, 130, 246, 0.3); padding: 40px; border-radius: 16px; flex-wrap: wrap; gap: 30px; }
+        .header-content { flex: 1; min-width: 300px; }
+        .header-content h1 { font-size: 48px; line-height: 1.1; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header class="header-box">
+        <div class="header-content">
+            <div class="tag-pill" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">Onboarding Estratégico</div>
+            <h1>Configure a sua<br><span style="color: #3b82f6;">Tropa de IA.</span></h1>
+            <p style="font-size: 18px; color: #cbd5e1; margin-bottom: 20px;">
+                Formulário unificado para captar as diretrizes do seu mandato. Este mapeamento exaustivo alimentará o cérebro de todos os agentes.
+            </p>
+            <div class="didactic-box" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); margin-bottom: 0;">
+                <i class="fa-solid fa-robot" style="color: #10b981;"></i>
+                <p><strong>Automação Inteligente:</strong> As IAs conversarão entre si. Você só preenche os inputs (pautas e estilo) uma vez. O restante (roteirização, auditoria, distribuição) ocorre em cadeia.</p>
+            </div>
+        </div>
+        <div style="flex: 0 0 auto; opacity: 0.8; padding-right: 20px;">
+            <i class="fa-solid fa-microchip" style="font-size: 160px; color: rgba(59, 130, 246, 0.2);"></i>
+        </div>
+    </header>
+
+    <!-- AGENT 1: SENTINELA -->
+    <section class="agent-section theme-sentinela">
+        <div class="tag-pill"><i class="fa-solid fa-radar"></i> Setup: 01. Sentinela</div>
+        <h2 class="slide-title">Mapeamento <span>de Radar</span></h2>
+        
+        <div class="form-panel">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('sentinela', 'temas', this)">1. Temas de Interesse (Pautas Globais)</div>
+                <div class="tab" onclick="switchTab('sentinela', 'adversarios', this)">2. Rastreio da Oposição (Adversários)</div>
+            </div>
+            
+            <!-- TAB 1: Temas Globais (EXAUSTIVO) -->
+            <div id="sentinela-temas" class="tab-content active">
+                <div class="didactic-box">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <p>Selecione detalhadamente todas as vertentes que devem ser rastreadas. A IA fará varredura 24h na web, focando nos marcadores abaixo para encontrar gatilhos e oportunidades (Breaking News). A partir de cada trecho selecionado, faremos via IA a expansão contextual do tema. Ex.: termo de "Reforma Tributária" tem a semântica expandida para: IVA, CBS, IBS, PEC 45, carga tributária, taxação, imposto, consumo, cesta básica, cashback tributário. A expansão semântica é aplicada em todos os termos.</p>
+                </div>
+
+                <div class="form-group">
+                    <h4 class="section-header">Economia, Trabalho e Mercado</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Carga Tributária</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Reforma Fiscal</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Desemprego</div>
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Inflação e Preços</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Empreendedorismo</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Direito Trabalhista</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Privatizações</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Subsídios Estatais</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Autonomia do Banco Central</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Geração de Renda</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> MEI e Simples Nacional</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Contratos Públicos</div>
+                    </div>
+
+                    <h4 class="section-header">Segurança, Justiça e Combate ao Crime</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Segurança Pública</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Combate à Corrupção</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Endurecimento de Penas</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Maioridade Penal</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Porte de Armas (CACs)</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Combate ao Tráfico</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Sistema Prisional</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Ressocialização</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Direitos Humanos</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Proteção de Fronteiras</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Valorização Policial</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Câmeras Corporais</div>
+                    </div>
+
+                    <h4 class="section-header">Meio Ambiente, Agro e Infraestrutura</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Apoio ao Agronegócio</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Transição Energética</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Proteção de Biomas</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Agricultura Familiar</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Defensivos Agrícolas</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Demarcação de Terras</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Saneamento Básico</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Mobilidade Urbana</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Ferrovias e Portos</div>
+                    </div>
+
+                    <h4 class="section-header">Sociedade, Costumes e Pautas Morais</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Valores Tradicionais</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Proteção da Família</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Liberdade Religiosa</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Combate ao Aborto</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Direitos das Minorias</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Ideologia de Gênero</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Cota Racial e Social</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Direitos da Mulher</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Legalização de Drogas</div>
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Defesa da Vida</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Direitos LGBTQIA+</div>
+                    </div>
+
+                    <h4 class="section-header">Estado, Saúde e Educação</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Saúde Pública (SUS)</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Educação Básica</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Educação Superior</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Combate à Fome / Pobreza</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Programas Assistenciais</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Homeschooling</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Ensino Técnico</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Piso Salarial</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Fila de Cirurgias</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Vacinação</div>
+                    </div>
+
+                    <h4 class="section-header">Política Externa, Tecnologia e Mídia</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Relações Internacionais</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Regulamentação de Redes</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Liberdade de Expressão</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Soberania Nacional</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Combate a Fake News</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Ativismo Judicial (STF)</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Fundão Eleitoral</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Transparência Gov.</div>
+                    </div>
+
+                    <h4 class="section-header">Temas Personalizados</h4>
+                    <p style="color: #94a3b8; font-size: 13px; margin-top: -10px; margin-bottom: 12px;">Inclua até 03 temas do seu interesse (limite sugerido de 5 palavras cada).</p>
+                    <div class="toggle-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <input type="text" class="input-control" placeholder="Tema 1...">
+                        </div>
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <input type="text" class="input-control" placeholder="Tema 2...">
+                        </div>
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <input type="text" class="input-control" placeholder="Tema 3...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="two-column" style="margin-top: 40px;">
+                    <div>
+                        <label class="form-label">Perfis de Interesse (@)</label>
+                        <div id="perfis-interesse-list">
+                            <div class="input-group">
+                                <select class="social-select">
+                                    <option>Instagram</option>
+                                    <option>X / Twitter</option>
+                                    <option>TikTok</option>
+                                    <option>YouTube</option>
+                                </select>
+                                <input type="text" class="input-control" placeholder="@perfil">
+                                <button type="button" class="btn-icon" onclick="this.parentElement.remove()" title="Remover"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add-item" onclick="addDynamicItem('perfis-interesse-list', 'social')"><i class="fa-solid fa-plus"></i> Adicionar Perfil (Máx 10)</button>
+                    </div>
+                    <div>
+                        <label class="form-label">Portais e Sites de Interesse</label>
+                        <div id="portais-interesse-list">
+                            <div class="input-group">
+                                <div class="input-group-prepend"><i class="fa-solid fa-globe"></i></div>
+                                <input type="text" class="input-control" placeholder="www.portalregional.com">
+                                <button type="button" class="btn-icon" onclick="this.parentElement.remove()" title="Remover"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add-item" onclick="addDynamicItem('portais-interesse-list', 'site')"><i class="fa-solid fa-plus"></i> Adicionar Portal (Máx 10)</button>
+                    </div>
+                </div>
+                
+                <div class="didactic-box" style="margin-top: 20px; margin-bottom: 0; padding: 15px; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+                    <i class="fa-solid fa-lightbulb" style="font-size: 20px;"></i>
+                    <p style="font-size: 13px;">Estes perfis e sites também serão monitorados para verificar assuntos que estão crescendo em popularidade e consequentemente saltam no radar para geração de posicionamento alinhado a personalidade do candidato - preenchida na próxima etapa.</p>
+                </div>
+            </div>
+
+            <!-- TAB 2: Adversários (EXAUSTIVO) -->
+            <div id="sentinela-adversarios" class="tab-content">
+                <div class="didactic-box">
+                    <i class="fa-solid fa-crosshairs"></i>
+                    <p>Mapeamento focado na <strong>Oposição</strong>. Estes perfis e sites também serão monitorados para verificar assuntos que estão crescendo em popularidade e consequentemente saltam no radar para geração de resposta aos adversários, alinhado a personalidade do candidato - preenchida na próxima etapa.</p>
+                </div>
+                
+                <div class="form-group">
+                    <h4 class="section-header">Economia, Trabalho e Mercado (Oposição)</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Carga Tributária</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Reforma Fiscal</div>
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Desemprego</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Inflação e Preços</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Empreendedorismo</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Contratos Públicos</div>
+                    </div>
+
+                    <h4 class="section-header">Segurança e Combate ao Crime (Oposição)</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Segurança Pública</div>
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Combate à Corrupção</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Sistema Prisional</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Câmeras Corporais</div>
+                    </div>
+
+                    <h4 class="section-header">Meio Ambiente e Infraestrutura (Oposição)</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Apoio ao Agronegócio</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Demarcação de Terras</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Saneamento Básico</div>
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Mobilidade Urbana</div>
+                    </div>
+
+                    <h4 class="section-header">Sociedade, Saúde e Educação (Oposição)</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Ideologia de Gênero</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Direitos da Mulher</div>
+                        <div class="toggle-btn active"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Saúde Pública / Filas</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Educação Básica</div>
+                        <div class="toggle-btn"><i class="fa-solid fa-tag fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Programas Assistenciais</div>
+                    </div>
+                </div>
+
+                <div class="two-column" style="margin-top: 40px;">
+                    <div>
+                        <label class="form-label">Perfis dos Adversários Diretos (@)</label>
+                        <div id="perfis-adversarios-list">
+                            <div class="input-group">
+                                <select class="social-select">
+                                    <option>Instagram</option>
+                                    <option>X / Twitter</option>
+                                    <option>TikTok</option>
+                                    <option>YouTube</option>
+                                </select>
+                                <input type="text" class="input-control" placeholder="@perfil">
+                                <button type="button" class="btn-icon" onclick="this.parentElement.remove()" title="Remover"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add-item" onclick="addDynamicItem('perfis-adversarios-list', 'social')"><i class="fa-solid fa-plus"></i> Adicionar Perfil (Máx 10)</button>
+                    </div>
+                    <div>
+                        <label class="form-label">Blogs e Portais de Oposição</label>
+                        <div id="portais-adversarios-list">
+                            <div class="input-group">
+                                <div class="input-group-prepend"><i class="fa-solid fa-globe"></i></div>
+                                <input type="text" class="input-control" placeholder="www.blog_esquerda_local.com.br">
+                                <button type="button" class="btn-icon" onclick="this.parentElement.remove()" title="Remover"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-add-item" onclick="addDynamicItem('portais-adversarios-list', 'site')"><i class="fa-solid fa-plus"></i> Adicionar Portal (Máx 10)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AGENT 2: CURADOR -->
+    <section class="agent-section theme-curador">
+        <div class="tag-pill"><i class="fa-solid fa-brain"></i> Setup: 02. Curador</div>
+        <h2 class="slide-title">Calibragem de <span>Persona e Tom</span></h2>
+        
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-fingerprint"></i>
+                <p>O Agente Curador usa estes dados para garantir que os roteiros tenham a sua cara. A IA aplicará o posicionamento ideológico em 100% dos roteiros para maximizar a assertividade da comunicação.</p>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Posicionamento Ideológico</h4>
+                <div class="segmented-control js-segmented">
+                    <div class="segment">Extrema-Esquerda</div>
+                    <div class="segment">Esquerda</div>
+                    <div class="segment">Centro-Esquerda</div>
+                    <div class="segment">Centro</div>
+                    <div class="segment active">Centro-Direita</div>
+                    <div class="segment">Direita</div>
+                    <div class="segment">Extrema-Direita</div>
+                    <div class="segment">Libertário (Ancap)</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Arquétipos de Persona Política (Escolha até 1 opção)</h4>
+                <p style="color: #94a3b8; font-size: 13px; margin-top: -10px; margin-bottom: 12px;">Caso não escolha nenhum arquétipo, a IA utilizará a identidade do candidato identificada nos vídeos encaminhados (recomendado).</p>
+                <div class="toggle-grid">
+                    <div class="toggle-btn"><i class="fa-solid fa-user-tie fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Estadista (Sério, Longo prazo)</div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-users fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Homem do Povo (Empatia)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-gavel fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Xerife/Justiceiro (Ordem)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-hands-praying fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Missionário (Moral/Costumes)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-chart-line fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Gestor/CEO (Eficiência)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-bullhorn fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Militante (Mobilizador)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-book fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Professor (Didático)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-handshake fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Conciliador (União/Pontes)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-tractor fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Agro/Regionalista (Interior)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-rocket fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> O Inovador/Digital (Tech)</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Modificadores de Tom (Filtros de Linguagem)</h4>
+                <p style="color: #94a3b8; font-size: 13px; margin-top: -10px; margin-bottom: 12px;">Caso não escolha nenhuma modificação de tom, a IA utilizará o tom do candidato identificada nos vídeos encaminhados (recomendado).</p>
+                <div class="toggle-grid" style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));">
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Acadêmico</div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-check"></i> Popular</div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-check"></i> Indignado</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Conciliador</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Sarcástico/Irônico</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Motivacional</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Institucional</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Técnico/Exato</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Didático</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Patriótico</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Denuncista</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Humorístico</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Agressivo</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Sofisticado</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Otimista</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check"></i> Paternal/Maternal</div>
+                </div>
+            </div>
+
+            <div class="two-column">
+                <div>
+                    <label class="form-label">Glossário Pessoal (Até 500 palavras)</label>
+                    <div class="input-group" style="height: auto;">
+                        <textarea class="input-control" placeholder="Escreva gírias, expressões ou bordões (Ex: 'Nossa gente', 'Trabalhador')..." style="min-height: 120px;"></textarea>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Base de Treino (Clonagem)</label>
+                    <div style="border: 2px dashed rgba(255, 255, 255, 0.2); border-radius: 10px; padding: 20px; text-align: center; background: rgba(255, 255, 255, 0.02); margin-bottom: 12px; cursor: pointer;">
+                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 28px; color: var(--brand-color); margin-bottom: 10px;"></i>
+                        <p style="color: #f8fafc; font-weight: 600; font-size: 14px; margin-bottom: 0;">Upload de 3 a 5 vídeos originais</p>
+                        <p style="font-size: 12px; color: #94a3b8; margin: 0;">A IA mapeará sua cadência e pausas</p>
+                    </div>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><i class="fa-brands fa-youtube"></i></div>
+                        <input type="text" class="input-control" placeholder="URL do YouTube...">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AGENT 3: CRIATIVO -->
+    <section class="agent-section theme-criativo">
+        <div class="tag-pill"><i class="fa-solid fa-pen-nib"></i> Setup: 03. Criativo</div>
+        <h2 class="slide-title">Edição e <span>Avatar Digital</span></h2>
+        
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <p>O Agente Criativo não requer pautas manuais (ele recebe do Sentinela/Curador). Aqui você apenas configura as preferências estéticas do Avatar Digital (Síntese) e da Edição Visual.</p>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Emoção e Expressão (Avatar Digital)</h4>
+                <div class="toggle-grid">
+                    <div class="toggle-btn active" style="grid-column: span 2; justify-content: center;"><i class="fa-solid fa-face-meh fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Manter o estilo do vídeo original</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-face-angry fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Indignado (Forte reprovação)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-face-smile fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Otimista (Sorriso leve)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-face-frown fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Triste / Empático (Solidariedade)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-user-tie fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Sóbrio / Institucional</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-bolt fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Urgente (Alerta/Olhos arregalados)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-face-grin-squint fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Sarcástico (Sobrancelha arqueada)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-hands-praying fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Religioso / Sereno</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Velocidade da Síntese de Voz</h4>
+                <div class="segmented-control js-segmented">
+                    <div class="segment active" style="flex: 2;">Manter velocidade original</div>
+                    <div class="segment">Muito Lenta (0.75x)</div>
+                    <div class="segment">Lenta (0.90x)</div>
+                    <div class="segment">Padrão (1.00x)</div>
+                    <div class="segment">Dinâmica (1.15x)</div>
+                    <div class="segment">Rápida (1.25x)</div>
+                    <div class="segment">Muito Rápida (1.50x)</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Formatos e Estilos de Edição Automática</h4>
+                <div class="toggle-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">
+                    <div class="toggle-btn active"><i class="fa-solid fa-wand-magic-sparkles fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Manter o formato original (Apenas legendas)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-fire fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Retenção Alta (Hormozi, emojis, cores)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-film fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Documentário Curto (B-Rolls, trilha tensa)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-closed-captioning fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Minimalista (Legendas padrão YouTube)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-users-rectangle fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Entrevista / Podcast (Split screen)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-book-open fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Storytelling (Início lento, CTA explosivo)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-up-right-and-down-left-from-center fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Reação / Dueto (Candidato + Tela PIP)</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AGENT 4: AUDITOR -->
+    <section class="agent-section theme-auditor">
+        <div class="tag-pill"><i class="fa-solid fa-shield-halved"></i> Setup: 04. Auditor</div>
+        <h2 class="slide-title">Fontes de <span>Fact-Checking</span></h2>
+        
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-scale-balanced"></i>
+                <p>O Agente Auditor lê os roteiros gerados e cruza dados estatísticos e alegações com portais oficiais antes da publicação. Defina sua matriz de confiança (Delta Check).</p>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Agências de Checagem Parceiras (APIs)</h4>
+                <div class="toggle-grid">
+                    <div class="toggle-btn active"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Agência Lupa</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Aos Fatos</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Fato ou Fake (G1)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Estadão Verifica</div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> PolitiFact (Global)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Projeto Comprova</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> UOL Confere</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Reuters Fact Check</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-check-double fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> AFP Checamos</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Bancos de Dados Governamentais (Hard Data)</h4>
+                <div class="toggle-grid">
+                    <div class="toggle-btn active"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> IBGE (População/Censo)</div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> IPEA (Pesquisa Econômica)</div>
+                    <div class="toggle-btn active"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Banco Central do Brasil</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Portal da Transparência</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Tesouro Nacional</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> TSE (Eleições/Doações)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> DataSUS (Leitos/Vacinas)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-database fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> INEP (IDEB/ENEM)</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- AGENT 5: DISTRIBUIDOR -->
+    <section class="agent-section theme-distribuidor">
+        <div class="tag-pill"><i class="fa-solid fa-share-nodes"></i> Setup: 05. Distribuidor</div>
+        <h2 class="slide-title">Conexões e <span>Automação</span></h2>
+        
+        <div class="form-panel">
+            <div class="didactic-box">
+                <i class="fa-solid fa-network-wired"></i>
+                <p>O passo final do ecossistema. Autorize as redes sociais para publicação e defina a janela operacional. A IA disparará o conteúdo assim que ele for certificado pelo Auditor.</p>
+            </div>
+
+            <div class="switch-container js-switch active" style="margin-bottom: 30px;">
+                <div>
+                    <div class="switch-label">Aprovação Automática de Conteúdo</div>
+                    <div class="switch-desc">Se ativo, a IA publica direto nas redes sem depender do "Go/No-go" da equipe humana, maximizando agilidade e escala.</div>
+                </div>
+                <div class="switch-toggle"></div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Integrações de Redes e Mensageria (OAuth / API)</h4>
+                <div class="toggle-grid" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
+                    <div class="toggle-btn active" style="color: #E1306C; border-color: rgba(225, 48, 108, 0.3); background: rgba(225, 48, 108, 0.1);"><i class="fa-brands fa-instagram"></i> Instagram (Feed/Reels)</div>
+                    <div class="toggle-btn active" style="color: #fff; border-color: rgba(255, 255, 255, 0.3); background: rgba(255, 255, 255, 0.1);"><i class="fa-brands fa-x-twitter"></i> X / Twitter (Threads)</div>
+                    <div class="toggle-btn active" style="color: #00f2fe; border-color: rgba(0, 242, 254, 0.3); background: rgba(0, 242, 254, 0.1);"><i class="fa-brands fa-tiktok"></i> TikTok</div>
+                    <div class="toggle-btn"><i class="fa-brands fa-youtube"></i> YouTube (Shorts)</div>
+                    <div class="toggle-btn"><i class="fa-brands fa-facebook-f"></i> Facebook (Página)</div>
+                    <div class="toggle-btn"><i class="fa-brands fa-linkedin-in"></i> LinkedIn</div>
+                    <div class="toggle-btn"><i class="fa-brands fa-threads"></i> Threads</div>
+                    <div class="toggle-btn"><i class="fa-brands fa-whatsapp"></i> WhatsApp (Grupos VIP)</div>
+                    <div class="toggle-btn"><i class="fa-brands fa-telegram"></i> Telegram (Canal Oficial)</div>
+                    <div class="toggle-btn"><i class="fa-solid fa-video"></i> Kwai</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <h4 class="section-header">Grade de Horários de Disparo (Janelas Autorizadas)</h4>
+                <div class="toggle-grid">
+                    <div class="toggle-btn"><i class="fa-regular fa-clock fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Madrugada (00h-06h)</div>
+                    <div class="toggle-btn active"><i class="fa-regular fa-clock fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Manhã (07h-11h)</div>
+                    <div class="toggle-btn active"><i class="fa-regular fa-clock fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Almoço (11h-14h)</div>
+                    <div class="toggle-btn active"><i class="fa-regular fa-clock fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Tarde (14h-18h)</div>
+                    <div class="toggle-btn active"><i class="fa-regular fa-clock fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Noite (18h-22h)</div>
+                    <div class="toggle-btn"><i class="fa-regular fa-clock fa-icon-default"></i><i class="fa-solid fa-circle-check"></i> Fim de Noite (22h-00h)</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SUBMIT AREA -->
+    <button class="btn-submit" onclick="alert('Configurações Salvas com Sucesso! A Tropa de IA do Mandato Digital está inicializando as rotinas de varredura (Sentinela) com as diretrizes da Persona (Curador).')">
+        <i class="fa-solid fa-power-off"></i> Inicializar Tropa de IA
+    </button>
+
+</div>
+
+<script>
+    // Interactivity Scripts
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        // 1. Toggle Buttons behavior
+        const toggleButtons = document.querySelectorAll('.toggle-btn');
+        toggleButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+
+        // 2. Segmented Controls behavior (Radio buttons simulation)
+        const segmentedGroups = document.querySelectorAll('.js-segmented');
+        segmentedGroups.forEach(group => {
+            const segments = group.querySelectorAll('.segment');
+            segments.forEach(segment => {
+                segment.addEventListener('click', function() {
+                    // Remove active from siblings
+                    segments.forEach(s => s.classList.remove('active'));
+                    // Add active to clicked
+                    this.classList.add('active');
+                });
+            });
+        });
+
+        // 3. Switch toggle behavior
+        const switchContainers = document.querySelectorAll('.js-switch');
+        switchContainers.forEach(container => {
+            container.addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+        });
+    });
+
+    // Tab Switching for Sentinela
+    function switchTab(agentId, tabId, element) {
+        // Find the parent form panel
+        const panel = element.closest('.form-panel');
+        
+        // Update tab buttons visually
+        const tabs = panel.querySelectorAll('.tab');
+        tabs.forEach(t => {
+            t.classList.remove('active');
+            t.style.opacity = '0.5';
+        });
+        element.classList.add('active');
+        element.style.opacity = '1';
+
+        // Update tab contents
+        const contents = panel.querySelectorAll('.tab-content');
+        contents.forEach(c => c.classList.remove('active'));
+        
+        const targetContent = document.getElementById(`${agentId}-${tabId}`);
+        if(targetContent) {
+            targetContent.classList.add('active');
+        }
+    }
+
+    // Dynamic Lists for Sentinela (Profiles and Portals)
+    function addDynamicItem(containerId, type) {
+        const container = document.getElementById(containerId);
+        
+        // Validation: Max 10 items
+        if (container.children.length >= 10) {
+            alert('Limite máximo de 10 itens atingido nesta seção.');
+            return;
+        }
+        
+        const div = document.createElement('div');
+        div.className = 'input-group';
+        
+        let innerHTML = '';
+        if (type === 'social') {
+            innerHTML = `
+                <select class="social-select">
+                    <option>Instagram</option>
+                    <option>X / Twitter</option>
+                    <option>TikTok</option>
+                    <option>YouTube</option>
+                </select>
+                <input type="text" class="input-control" placeholder="@perfil">
+            `;
+        } else {
+            innerHTML = `
+                <div class="input-group-prepend"><i class="fa-solid fa-globe"></i></div>
+                <input type="text" class="input-control" placeholder="www.site.com.br">
+            `;
+        }
+        
+        innerHTML += `<button type="button" class="btn-icon" onclick="this.parentElement.remove()" title="Remover"><i class="fa-solid fa-trash"></i></button>`;
+        div.innerHTML = innerHTML;
+        container.appendChild(div);
+    }
+</script>
+
+</body>
+</html>

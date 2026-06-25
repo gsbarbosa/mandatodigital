@@ -108,7 +108,7 @@ describe("buildAvatarVideoPrompt", () => {
     expect(prompt.system).toContain("INTELIGENCIA DE CENARIO");
     expect(prompt.system).toContain("1. O FATO");
     expect(prompt.system).toContain("Tom: Indignado");
-    expect(prompt.system).toContain("HeyGen");
+    expect(prompt.system).toContain("avatar de IA");
     expect(prompt.user).toContain("Palavras Obrigatorias");
   });
 });

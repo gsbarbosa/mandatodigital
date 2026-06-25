@@ -82,8 +82,10 @@ type ProductAppContextValue = {
   uploadTrainingAssets: (
     files: File[],
     trainingRole: TrainingAssetRole,
+    options?: { reportError?: "global" | "throw" },
   ) => Promise<ProfileTrainingAsset[]>;
   appendTrainingAssets: (assets: ProfileTrainingAsset[]) => void;
+  removeTrainingAssetsById: (assetIds: string[]) => void;
   generateContent: () => Promise<GeneratedContent[]>;
   updateContent: (
     contentId: string,
@@ -326,7 +328,10 @@ export function ProductAppProvider({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(parsedPayload.data),
+        body: JSON.stringify({
+          ...parsedPayload.data,
+          draftSave: options?.allowDraftDefaults === true,
+        }),
       });
 
       setProfile(result.profile);
@@ -345,8 +350,8 @@ export function ProductAppProvider({
       if (!options?.silent) {
         setStatusMessage(
           options?.allowDraftDefaults
-            ? "Preferencias do Curador salvas."
-            : "Configuracao salva. O onboarding profundo do mandato ja esta persistido para as proximas etapas.",
+            ? "Preferências do Curador salvas."
+            : "Configuração salva.",
         );
       }
     } catch (error) {
@@ -361,7 +366,11 @@ export function ProductAppProvider({
     }
   }
 
-  async function uploadTrainingAssets(files: File[], trainingRole: TrainingAssetRole) {
+  async function uploadTrainingAssets(
+    files: File[],
+    trainingRole: TrainingAssetRole,
+    options?: { reportError?: "global" | "throw" },
+  ) {
     if (!files.length) {
       return [];
     }
@@ -483,16 +492,23 @@ export function ProductAppProvider({
           ? "Audio de voz enviado."
           : trainingRole === "avatar_image"
             ? "Foto para clone enviada."
-            : "Asset de treinamento enviado.",
+            : trainingRole === "dataset"
+              ? "Video de treino enviado. Se necessario, sera comprimido automaticamente."
+              : "Asset de treinamento enviado.",
       );
 
       return uploadedAssets;
     } catch (error) {
-      setErrorMessage(
+      const message =
         error instanceof Error
           ? error.message
-          : "Nao foi possivel enviar os assets de treino.",
-      );
+          : "Nao foi possivel enviar os assets de treino.";
+
+      if (options?.reportError === "throw") {
+        throw new Error(message);
+      }
+
+      setErrorMessage(message);
       return [];
     } finally {
       setUploadingTrainingRoles((current) => current.filter((role) => role !== trainingRole));
@@ -505,6 +521,15 @@ export function ProductAppProvider({
     }
 
     setTrainingAssets((current) => [...assets, ...current]);
+  }
+
+  function removeTrainingAssetsById(assetIds: string[]) {
+    const ids = new Set(assetIds.map((id) => id.trim()).filter(Boolean));
+    if (!ids.size) {
+      return;
+    }
+
+    setTrainingAssets((current) => current.filter((asset) => !ids.has(asset.id)));
   }
 
   async function generateContent() {
@@ -790,6 +815,7 @@ export function ProductAppProvider({
     saveProfile,
     uploadTrainingAssets,
     appendTrainingAssets,
+    removeTrainingAssetsById,
     generateContent,
     updateContent,
     submitFeedback,

@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         total: voices.length,
         message:
           voices.length >= 10
-            ? "Limite de 10 clones atingido ou proximo. Remova vozes nao usadas na biblioteca de vozes do painel HeyGen (Voice Library)."
+            ? "Limite de 10 clones atingido ou próximo. Remova vozes não usadas na biblioteca de vozes do painel."
             : undefined,
       });
     });

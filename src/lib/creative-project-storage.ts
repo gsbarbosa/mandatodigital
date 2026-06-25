@@ -21,7 +21,7 @@ export type CreativeProjectCreateInput = {
   scriptApproved: boolean;
   freePrompt: string;
   useFreePrompt: boolean;
-  avatarTrack: "realistic" | "caricature";
+  avatarTrack: "realistic" | "caricature" | "photo_real";
   caricatureAssetId: string;
   heygenVideoId?: string | null;
   videoUrl?: string;

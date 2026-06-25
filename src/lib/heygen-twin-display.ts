@@ -10,9 +10,96 @@ export type TwinLookDisplayMeta = {
   supported_api_engines?: string[];
 };
 
+export type AvatarTrainingNameInput = {
+  fullName?: string | null;
+  role?: string | null;
+  city?: string | null;
+};
+
+const PROFILE_NAME_PLACEHOLDER = "perfil em configuracao";
+
+function normalizeProfileLabel(value?: string | null) {
+  return String(value ?? "").trim();
+}
+
+export function isProfileNamePlaceholder(name?: string | null) {
+  const normalized = normalizeProfileLabel(name).toLowerCase();
+  return !normalized || normalized === PROFILE_NAME_PLACEHOLDER;
+}
+
+/** Nome enviado ao treinar o gêmeo — ignora placeholder do rascunho do perfil. */
+export function resolveAvatarTrainingName(input: AvatarTrainingNameInput) {
+  const fullName = normalizeProfileLabel(input.fullName);
+  if (fullName && !isProfileNamePlaceholder(fullName)) {
+    return fullName;
+  }
+
+  const role = normalizeProfileLabel(input.role);
+  const city = normalizeProfileLabel(input.city);
+  if (role && city && !isProfileNamePlaceholder(role)) {
+    return `${role} — ${city}`;
+  }
+  if (role && !isProfileNamePlaceholder(role)) {
+    return role;
+  }
+
+  return "Gêmeo digital";
+}
+
+export function formatTwinLookDisplayName(
+  lookName?: string | null,
+  profile?: AvatarTrainingNameInput,
+) {
+  const cleaned = normalizeProfileLabel(lookName)
+    .replace(/\s*\(digital twin\)\s*$/i, "")
+    .replace(/\s*\(clone\)\s*$/i, "")
+    .trim();
+
+  if (!cleaned || isProfileNamePlaceholder(cleaned)) {
+    return resolveAvatarTrainingName(profile ?? {});
+  }
+
+  return cleaned;
+}
+
 export function isConsentApproved(consentStatus?: string | null) {
   const consent = String(consentStatus ?? "").toLowerCase();
-  return !consent || consent === "completed" || consent === "approved";
+  if (!consent) {
+    return true;
+  }
+
+  return (
+    consent === "completed" ||
+    consent === "approved" ||
+    consent === "confirmed" ||
+    consent === "consented" ||
+    consent === "done" ||
+    consent === "success" ||
+    consent === "verified"
+  );
+}
+
+/** Indica se ainda falta o usuário concluir o fluxo de consentimento na HeyGen. */
+export function twinGroupRequiresConsentLink(
+  consentStatus?: string | null,
+  groupStatus?: string | null,
+) {
+  const consent = String(consentStatus ?? "").toLowerCase();
+  const group = String(groupStatus ?? "").toLowerCase();
+
+  if (consent && isConsentApproved(consentStatus)) {
+    return false;
+  }
+
+  if (group.includes("pending_consent")) {
+    return true;
+  }
+
+  return (
+    consent === "pending" ||
+    consent === "waiting" ||
+    consent === "incomplete"
+  );
 }
 
 export function formatHeyGenUnixTimestamp(seconds?: number | null) {
@@ -74,29 +161,27 @@ export type HeyGenTrainingPhase =
   | "failed";
 
 export function resolveHeyGenTrainingPhase(input: {
-  mode: "digital_twin" | "photo" | "caricature";
+  mode: "digital_twin" | "photo" | "caricature" | "photo_real";
   consentStatus?: string | null;
   groupStatus?: string | null;
   consentUrl?: string | null;
+  needsConsent?: boolean;
 }): HeyGenTrainingPhase {
   if (input.mode !== "digital_twin") {
     return "ready" as const;
   }
 
-  const consent = String(input.consentStatus ?? "").toLowerCase();
   const status = String(input.groupStatus ?? "").toLowerCase();
-  const consentApproved =
-    !consent || consent === "completed" || consent === "approved";
+  const consentApproved = isConsentApproved(input.consentStatus);
+  const consentRequired =
+    input.needsConsent !== false &&
+    twinGroupRequiresConsentLink(input.consentStatus, input.groupStatus);
 
   if (status.includes("fail")) {
     return "failed" as const;
   }
 
-  if (!consentApproved) {
-    return "awaiting_consent" as const;
-  }
-
-  if (input.consentUrl) {
+  if (consentRequired) {
     return "awaiting_consent" as const;
   }
 
@@ -191,6 +276,7 @@ export function resolveDigitalTwinTrainingPhase(input: {
   consentStatus?: string | null;
   groupStatus?: string | null;
   consentUrl?: string | null;
+  needsConsent?: boolean;
   look?: TwinLookDisplayMeta | null;
 }) {
   const basePhase = resolveHeyGenTrainingPhase({
@@ -198,6 +284,7 @@ export function resolveDigitalTwinTrainingPhase(input: {
     consentStatus: input.consentStatus,
     groupStatus: input.groupStatus,
     consentUrl: input.consentUrl,
+    needsConsent: input.needsConsent,
   });
 
   if (basePhase !== "processing" || !input.look) {
@@ -227,12 +314,17 @@ export function trainingPhaseFromTwinLook(
   });
 }
 
-export function trainingPhaseMessage(phase: HeyGenTrainingPhase) {
+export function trainingPhaseMessage(
+  phase: HeyGenTrainingPhase,
+  options?: { hasConsentUrl?: boolean },
+) {
   switch (phase) {
     case "awaiting_consent":
-      return "Treino iniciado. Finalize o consentimento no link abaixo; ao concluir, o processamento continua automaticamente.";
+      return options?.hasConsentUrl
+        ? "Treino iniciado. Finalize o consentimento no link abaixo; ao concluir, o processamento continua automaticamente."
+        : "Treino iniciado.";
     case "processing":
-      return "Consentimento recebido. A HeyGen ainda reporta processamento no grupo — você já pode tentar gerar o vídeo.";
+      return "Consentimento recebido. A plataforma ainda reporta processamento — você já pode tentar gerar o vídeo.";
     case "ready":
       return "Gêmeo pronto. Você já pode gerar conteúdo com o avatar selecionado.";
     case "failed":

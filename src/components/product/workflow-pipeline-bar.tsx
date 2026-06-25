@@ -4,6 +4,8 @@ import type { MouseEvent } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { agentThemeClassName } from "@/lib/agent-theme";
+
 import { mvpPipelineSteps, type PipelineStepId } from "./shared";
 
 function isCuradorPath(pathname: string) {
@@ -97,6 +99,7 @@ export function WorkflowPipelineBar({
               key={step.id}
               className={[
                 "workflow-pipeline-item",
+                agentThemeClassName(step.id),
                 active ? "is-active" : "",
                 step.enabled ? "is-enabled" : "is-locked",
               ]

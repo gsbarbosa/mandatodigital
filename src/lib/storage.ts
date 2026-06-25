@@ -89,6 +89,7 @@ export type Repository = {
   listTrainingAssetsByProfile(profileId: string): Promise<ProfileTrainingAsset[]>;
   listTrainingAssetsForReference(referenceId: string): Promise<ProfileTrainingAsset[]>;
   getTrainingAssetById(id: string): Promise<ProfileTrainingAsset | null>;
+  deleteTrainingAsset(id: string): Promise<void>;
   updateProfileArgilTraining(
     profileId: string,
     input: {
@@ -747,6 +748,27 @@ const localRepository: Repository = {
   async getTrainingAssetById(id) {
     const database = await readLocalDatabase();
     return database.trainingAssets.find((item) => item.id === id) ?? null;
+  },
+
+  async deleteTrainingAsset(id) {
+    const database = await readLocalDatabase();
+    const asset = database.trainingAssets.find((item) => item.id === id);
+    if (!asset) {
+      return;
+    }
+
+    database.trainingAssets = database.trainingAssets.filter((item) => item.id !== id);
+    await writeLocalDatabase(database);
+
+    try {
+      await deleteTrainingAssetFile({
+        storageProvider: asset.storageProvider,
+        storageBucket: asset.storageBucket,
+        storagePath: asset.storagePath,
+      });
+    } catch {
+      // O registro já foi removido; falha ao apagar arquivo físico não bloqueia o fluxo.
+    }
   },
 
   async updateProfileArgilTraining(profileId, input) {
@@ -1447,6 +1469,35 @@ const supabaseRepository: Repository = {
     }
 
     return data ? mapTrainingAssetRow(data) : null;
+  },
+
+  async deleteTrainingAsset(id) {
+    const asset = await this.getTrainingAssetById(id);
+    if (!asset) {
+      return;
+    }
+
+    const client = getSupabaseClient();
+    const { error } = await client.from("profile_training_assets").delete().eq("id", id);
+
+    if (error) {
+      if (isSchemaCompatibilityError(error)) {
+        await localRepository.deleteTrainingAsset(id);
+        return;
+      }
+
+      throw error;
+    }
+
+    try {
+      await deleteTrainingAssetFile({
+        storageProvider: asset.storageProvider,
+        storageBucket: asset.storageBucket,
+        storagePath: asset.storagePath,
+      });
+    } catch {
+      // O registro já foi removido; falha ao apagar arquivo físico não bloqueia o fluxo.
+    }
   },
 
   async updateProfileArgilTraining(profileId, input) {

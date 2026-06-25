@@ -9,13 +9,13 @@ test.describe("smoke do MVP", () => {
     await gotoHome(page);
 
     await expect(
-      page.getByRole("heading", { name: "Fluxo do sistema por etapas" }),
+      page.getByRole("heading", { name: /tropa de ia/i }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Curador" }).first(),
-    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
 
-    await page.getByRole("link", { name: "Curador" }).first().click();
+    await page.getByRole("link", { name: "Entrar" }).click();
+    await expect(page).toHaveURL(/\/login/);
+    await page.goto("/curador");
     await expect(
       page.getByRole("heading", { name: "Onboarding do parlamentar" }),
     ).toBeVisible();

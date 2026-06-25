@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
+import { sanitizeProviderFacingMessage } from "@/lib/curador-heygen-prefs";
+
 export function handleRouteError(error: unknown) {
   if (error instanceof ZodError) {
     return NextResponse.json(
@@ -22,5 +24,8 @@ export function handleRouteError(error: unknown) {
         ? error.message
         : "Erro interno inesperado.";
 
-  return NextResponse.json({ message }, { status: 500 });
+  return NextResponse.json(
+    { message: sanitizeProviderFacingMessage(message) },
+    { status: 500 },
+  );
 }

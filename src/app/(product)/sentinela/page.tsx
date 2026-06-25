@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { SentinelaPageV2 } from "@/components/product/sentinela-page-v2";
 
 export default function SentinelaRoute() {
-  redirect("/curador");
+  return <SentinelaPageV2 />;
 }

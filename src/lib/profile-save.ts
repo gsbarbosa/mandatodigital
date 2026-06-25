@@ -17,23 +17,38 @@ const PROFILE_CORE_DEFAULTS = {
   bio: DEFAULT_BIO,
 } as const;
 
+const PROFILE_FIELD_MIN = {
+  fullName: 3,
+  role: 2,
+  city: 2,
+  state: 2,
+  audience: 3,
+  archetype: 3,
+  bio: 20,
+} as const;
+
+function hasMinLength(value: string, min: number) {
+  return value.trim().length >= min;
+}
+
 function pickString(
   value: string,
   existing: string | undefined,
   fallback: string,
   useFallback: boolean,
+  minLength = 1,
 ) {
   const trimmed = value.trim();
-  if (trimmed) {
+  if (trimmed && hasMinLength(trimmed, minLength)) {
     return trimmed;
   }
 
   const existingTrimmed = existing?.trim();
-  if (existingTrimmed) {
+  if (existingTrimmed && hasMinLength(existingTrimmed, minLength)) {
     return existingTrimmed;
   }
 
-  return useFallback ? fallback : "";
+  return useFallback ? fallback : trimmed;
 }
 
 function pickStringList(
@@ -42,15 +57,48 @@ function pickStringList(
   fallback: string[],
   useFallback: boolean,
 ) {
-  if (values.length > 0) {
-    return values;
+  const normalizedValues = values.map((value) => value.trim()).filter(Boolean);
+  if (normalizedValues.length > 0) {
+    return normalizedValues;
   }
 
-  if (existing?.length) {
-    return existing;
+  const normalizedExisting = existing?.map((value) => value.trim()).filter(Boolean) ?? [];
+  if (normalizedExisting.length > 0) {
+    return normalizedExisting;
   }
 
   return useFallback ? fallback : [];
+}
+
+function finalizeDraftProfileInput(input: ProfileInput): ProfileInput {
+  const state = input.state.trim().toUpperCase().slice(0, 2);
+
+  return {
+    ...input,
+    fullName: hasMinLength(input.fullName, PROFILE_FIELD_MIN.fullName)
+      ? input.fullName.trim()
+      : PROFILE_CORE_DEFAULTS.fullName,
+    role: hasMinLength(input.role, PROFILE_FIELD_MIN.role)
+      ? input.role.trim()
+      : PROFILE_CORE_DEFAULTS.role,
+    city: hasMinLength(input.city, PROFILE_FIELD_MIN.city)
+      ? input.city.trim()
+      : PROFILE_CORE_DEFAULTS.city,
+    state: hasMinLength(state, PROFILE_FIELD_MIN.state) ? state : PROFILE_CORE_DEFAULTS.state,
+    audience: hasMinLength(input.audience, PROFILE_FIELD_MIN.audience)
+      ? input.audience.trim()
+      : PROFILE_CORE_DEFAULTS.audience,
+    archetype: hasMinLength(input.archetype, PROFILE_FIELD_MIN.archetype)
+      ? input.archetype.trim()
+      : PROFILE_CORE_DEFAULTS.archetype,
+    keyIssues:
+      input.keyIssues.map((value) => value.trim()).filter(Boolean).length > 0
+        ? input.keyIssues.map((value) => value.trim()).filter(Boolean)
+        : [...PROFILE_CORE_DEFAULTS.keyIssues],
+    bio: hasMinLength(input.bio, PROFILE_FIELD_MIN.bio)
+      ? input.bio.trim()
+      : PROFILE_CORE_DEFAULTS.bio,
+  };
 }
 
 export function mergeProfileInputForSave(
@@ -60,17 +108,36 @@ export function mergeProfileInputForSave(
 ): ProfileInput {
   const useDefaults = options?.allowDraftDefaults ?? false;
 
-  return {
+  const merged: ProfileInput = {
     ...input,
     fullName: pickString(
       input.fullName,
       existing?.fullName,
       PROFILE_CORE_DEFAULTS.fullName,
       useDefaults,
+      PROFILE_FIELD_MIN.fullName,
     ),
-    role: pickString(input.role, existing?.role, PROFILE_CORE_DEFAULTS.role, useDefaults),
-    city: pickString(input.city, existing?.city, PROFILE_CORE_DEFAULTS.city, useDefaults),
-    state: pickString(input.state, existing?.state, PROFILE_CORE_DEFAULTS.state, useDefaults)
+    role: pickString(
+      input.role,
+      existing?.role,
+      PROFILE_CORE_DEFAULTS.role,
+      useDefaults,
+      PROFILE_FIELD_MIN.role,
+    ),
+    city: pickString(
+      input.city,
+      existing?.city,
+      PROFILE_CORE_DEFAULTS.city,
+      useDefaults,
+      PROFILE_FIELD_MIN.city,
+    ),
+    state: pickString(
+      input.state,
+      existing?.state,
+      PROFILE_CORE_DEFAULTS.state,
+      useDefaults,
+      PROFILE_FIELD_MIN.state,
+    )
       .toUpperCase()
       .slice(0, 2),
     audience: pickString(
@@ -78,6 +145,7 @@ export function mergeProfileInputForSave(
       existing?.audience,
       PROFILE_CORE_DEFAULTS.audience,
       useDefaults,
+      PROFILE_FIELD_MIN.audience,
     ),
     spectrum: pickString(
       input.spectrum,
@@ -90,6 +158,7 @@ export function mergeProfileInputForSave(
       existing?.archetype,
       PROFILE_CORE_DEFAULTS.archetype,
       useDefaults,
+      PROFILE_FIELD_MIN.archetype,
     ),
     keyIssues: pickStringList(
       input.keyIssues,
@@ -97,11 +166,19 @@ export function mergeProfileInputForSave(
       [...PROFILE_CORE_DEFAULTS.keyIssues],
       useDefaults,
     ),
-    bio: pickString(input.bio, existing?.bio, PROFILE_CORE_DEFAULTS.bio, useDefaults),
+    bio: pickString(
+      input.bio,
+      existing?.bio,
+      PROFILE_CORE_DEFAULTS.bio,
+      useDefaults,
+      PROFILE_FIELD_MIN.bio,
+    ),
     argilAvatarId: input.argilAvatarId?.trim() || existing?.argilAvatarId || "",
     argilVoiceId: input.argilVoiceId?.trim() || existing?.argilVoiceId || "",
     avatarTrainingStatus: (input.avatarTrainingStatus ||
       existing?.avatarTrainingStatus ||
       "") as ProfileInput["avatarTrainingStatus"],
   };
+
+  return useDefaults ? finalizeDraftProfileInput(merged) : merged;
 }

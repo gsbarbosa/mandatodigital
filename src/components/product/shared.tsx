@@ -235,13 +235,13 @@ export type MvpPipelineStep = {
   enabled: boolean;
 };
 
-/** Ordem do fluxo completo; no MVP apenas Curador esta habilitado. */
+/** Ordem do fluxo completo; Sentinela, Auditor e Distribuidor em modo demonstração. */
 export const mvpPipelineSteps: MvpPipelineStep[] = [
-  { id: "sentinela", label: "Sentinela", href: "/sentinela", enabled: false },
+  { id: "sentinela", label: "Sentinela", href: "/sentinela", enabled: true },
   { id: "curador", label: "Curador", href: "/curador", enabled: true },
   { id: "criativo", label: "Criativo", href: "/criativo", enabled: true },
-  { id: "auditor", label: "Auditor", href: "/auditor", enabled: false },
-  { id: "distribuidor", label: "Distribuidor", href: "/distribuidor", enabled: false },
+  { id: "auditor", label: "Auditor", href: "/auditor", enabled: true },
+  { id: "distribuidor", label: "Distribuidor", href: "/distribuidor", enabled: true },
 ];
 
 export const dashboardMenuItems: Array<{
@@ -265,10 +265,10 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Sentinela",
     subtitle: "Radar e sinais",
     description:
-      "Camada de captura de temas, oposicao, perfis e portais monitorados. No MVP ela opera de forma manual/semiassistida, mas ja estrutura o radar do mandato.",
+      "Camada de captura de temas, oposicao, perfis e portais monitorados. Interface em demonstracao com dados simulados.",
     inputLabel: "Temas de interesse, oposicao, perfis sociais, portais e sinais do time.",
     outputLabel: "Radar priorizado que alimenta Curador e Criativo.",
-    status: "planejado",
+    status: "ativo",
   },
   {
     id: "curador",
@@ -298,10 +298,10 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Auditor",
     subtitle: "Revisao e qualidade",
     description:
-      "Fase de lapidacao humana, registro de feedback editorial e conferencias de fonte antes de seguir adiante.",
+      "Fase de lapidacao humana e conferencias de fonte. Interface em demonstracao com fila simulada de auditoria.",
     inputLabel: "Roteiros gerados, prompt usado, fontes e observacoes do time.",
     outputLabel: "Conteudo aprovado com gate editorial e trilha de revisao.",
-    status: "planejado",
+    status: "ativo",
   },
   {
     id: "distribuidor",
@@ -309,10 +309,10 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Distribuidor",
     subtitle: "Entrega e publicacao",
     description:
-      "Camada operacional para definir canais, janelas e handoff de publicacao. No MVP a distribuicao ainda e manual, mas ja fica configurada e pronta para operacao.",
+      "Camada operacional para definir canais, janelas e handoff de publicacao. Interface em demonstracao com fila simulada.",
     inputLabel: "Conteudo aprovado, canais habilitados e janelas autorizadas.",
-    outputLabel: "Pacote manual de distribuicao pronto para publicar.",
-    status: "planejado",
+    outputLabel: "Pacote de distribuicao pronto para publicar.",
+    status: "ativo",
   },
   {
     id: "admin",

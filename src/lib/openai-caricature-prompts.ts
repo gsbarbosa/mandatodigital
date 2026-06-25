@@ -8,6 +8,8 @@ export const CARICATURE_VARIANT_FILENAMES: Record<CaricatureVariant, string> = {
 export const CARICATURE_EDITORIAL_PROMPT =
   "Transform this portrait into a polished editorial political caricature illustration. " +
   "Exaggerate distinctive facial features while keeping the person clearly recognizable. " +
+  "Give the expression a warm, friendly and approachable look — soft smile, kind eyes, " +
+  "sympathetic and likeable presence, without losing the editorial caricature style. " +
   "Bold clean outlines, warm colors, neutral simple background, front-facing bust, " +
   "suitable as a talking avatar. No text, no logos, no weapons, no extra people.";
 
@@ -47,5 +49,9 @@ export function caricatureVariantFromFilename(filename: string): CaricatureVaria
 }
 
 export function caricatureVariantLabel(variant: CaricatureVariant) {
-  return variant === "editorial" ? "Versão 1 — Editorial" : "Versão 2 — Mascote 3D";
+  return variant === "editorial" ? "Versão 1 — Caricatura" : "Versão 2 — Mascote 3D";
+}
+
+export function caricatureVariantGeneratingLabel(variant: CaricatureVariant) {
+  return variant === "editorial" ? "Gerando caricatura…" : "Gerando mascote 3D…";
 }

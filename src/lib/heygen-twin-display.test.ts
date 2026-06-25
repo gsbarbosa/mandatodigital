@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  formatTwinLookDisplayName,
   isTwinLookReadyForVideo,
+  resolveAvatarTrainingName,
   resolveDigitalTwinTrainingPhase,
   resolveHeyGenTrainingPhase,
   trainingPhaseFromTwinLook,
+  twinGroupRequiresConsentLink,
   twinLookHasOperationalPreview,
 } from "./heygen-twin-display";
 
@@ -26,6 +29,28 @@ describe("resolveHeyGenTrainingPhase", () => {
     ).toBe("ready");
   });
 
+  it("nao exige consentimento quando needsConsent e false", () => {
+    expect(
+      resolveHeyGenTrainingPhase({
+        mode: "digital_twin",
+        consentStatus: "pending",
+        groupStatus: "processing",
+        needsConsent: false,
+      }),
+    ).toBe("processing");
+  });
+
+  it("nao trava em awaiting_consent quando consentimento ja esta aprovado", () => {
+    expect(
+      resolveHeyGenTrainingPhase({
+        mode: "digital_twin",
+        consentStatus: "completed",
+        groupStatus: "processing",
+        consentUrl: "https://example.com/consent",
+      }),
+    ).toBe("processing");
+  });
+
   it("marca pronto quando consentimento ok e status vazio", () => {
     expect(
       resolveHeyGenTrainingPhase({
@@ -44,6 +69,33 @@ describe("resolveHeyGenTrainingPhase", () => {
         groupStatus: "processing",
       }),
     ).toBe("processing");
+  });
+
+  it("nao exige consentimento quando needsConsent e false mesmo com pending_consent", () => {
+    expect(
+      resolveHeyGenTrainingPhase({
+        mode: "digital_twin",
+        consentStatus: "pending",
+        groupStatus: "pending_consent",
+        needsConsent: false,
+      }),
+    ).toBe("processing");
+  });
+});
+
+describe("twinGroupRequiresConsentLink", () => {
+  it("exige link quando grupo esta em pending_consent", () => {
+    expect(twinGroupRequiresConsentLink(null, "pending_consent")).toBe(true);
+  });
+
+  it("nao exige link quando consentimento ja foi aprovado", () => {
+    expect(twinGroupRequiresConsentLink("completed", "pending_consent")).toBe(
+      false,
+    );
+  });
+
+  it("nao exige link quando grupo ja processa sem status pendente", () => {
+    expect(twinGroupRequiresConsentLink(null, "processing")).toBe(false);
   });
 });
 
@@ -109,5 +161,34 @@ describe("isTwinLookReadyForVideo", () => {
         consentStatus: "completed",
       }),
     ).toBe("ready");
+  });
+});
+
+describe("resolveAvatarTrainingName", () => {
+  it("ignora placeholder do perfil e usa cargo e cidade", () => {
+    expect(
+      resolveAvatarTrainingName({
+        fullName: "Perfil em configuracao",
+        role: "Vereador",
+        city: "Campinas",
+      }),
+    ).toBe("Vereador — Campinas");
+  });
+
+  it("usa fallback amigavel quando nao ha dados", () => {
+    expect(resolveAvatarTrainingName({ fullName: "Perfil em configuracao" })).toBe(
+      "Gêmeo digital",
+    );
+  });
+});
+
+describe("formatTwinLookDisplayName", () => {
+  it("remove sufixo digital twin e placeholder da plataforma", () => {
+    expect(
+      formatTwinLookDisplayName("Perfil em configuracao (digital twin)", {
+        role: "Deputado",
+        city: "SP",
+      }),
+    ).toBe("Deputado — SP");
   });
 });

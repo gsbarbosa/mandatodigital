@@ -4,7 +4,11 @@ import { apiRoute } from "@/lib/auth/api-route";
 import {
   isAllowedTrainingMime,
   parseTrainingAssetRole,
+  trainingAssetUploadRequirementMessage,
 } from "@/lib/training-asset-role";
+import { normalizeDatasetVideoInStorage } from "@/lib/training-video-storage-normalize";
+
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   return apiRoute(async (repository) => {
@@ -47,16 +51,36 @@ export async function POST(request: Request) {
     }
 
     if (!isAllowedTrainingMime(trainingRole, mimeType)) {
-      const expected =
-        trainingRole === "avatar_image" || trainingRole === "avatar_caricature"
-          ? "uma imagem (PNG, JPEG ou WebP)"
-          : trainingRole === "voice_audio"
-            ? "um audio (MP3, WAV ou M4A)"
-            : "um video";
       return NextResponse.json(
-        { message: `Para ${trainingRole}, envie ${expected}.` },
+        { message: trainingAssetUploadRequirementMessage(trainingRole) },
         { status: 400 },
       );
+    }
+
+    let finalStorageBucket = storageBucket;
+    let finalStoragePath = storagePath;
+    let finalOriginalFilename = originalFilename;
+    let finalMimeType = mimeType;
+    let finalSizeBytes = sizeBytes;
+
+    if (
+      trainingRole === "dataset" &&
+      storageProvider === "supabase" &&
+      storageBucket &&
+      storagePath
+    ) {
+      const normalized = await normalizeDatasetVideoInStorage({
+        referenceId,
+        storageBucket,
+        storagePath,
+        originalFilename,
+        mimeType,
+      });
+      finalStorageBucket = normalized.storageBucket;
+      finalStoragePath = normalized.storagePath;
+      finalOriginalFilename = normalized.originalFilename;
+      finalMimeType = normalized.mimeType;
+      finalSizeBytes = normalized.sizeBytes;
     }
 
     const assets = await repository.createTrainingAssets([
@@ -66,11 +90,11 @@ export async function POST(request: Request) {
         sourceType: "upload",
         trainingRole,
         storageProvider,
-        storageBucket,
-        storagePath,
-        originalFilename,
-        mimeType,
-        sizeBytes,
+        storageBucket: finalStorageBucket,
+        storagePath: finalStoragePath,
+        originalFilename: finalOriginalFilename,
+        mimeType: finalMimeType,
+        sizeBytes: finalSizeBytes,
         status: "uploaded",
         errorMessage: "",
       },
