@@ -20,6 +20,7 @@ const creativeProjectInputSchema = z.object({
   captionUrl: z.string().default(""),
   status: z.enum(creativeProjectStatuses).default("ready"),
   errorMessage: z.string().default(""),
+  metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
 export async function GET() {

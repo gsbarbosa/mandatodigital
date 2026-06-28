@@ -28,6 +28,7 @@ export type CreativeProjectCreateInput = {
   captionUrl?: string;
   status: CreativeProjectStatus;
   errorMessage?: string;
+  metadata?: Record<string, unknown>;
 };
 
 type LocalDatabase = {
@@ -130,6 +131,10 @@ function mapRow(row: Record<string, unknown>): CreativeProject {
     captionUrl: String(row.caption_url ?? ""),
     status: String(row.status ?? "draft") as CreativeProjectStatus,
     errorMessage: String(row.error_message ?? ""),
+    metadata:
+      row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {},
     createdAt: String(row.created_at ?? nowIso()),
     updatedAt: String(row.updated_at ?? nowIso()),
   };
@@ -153,6 +158,7 @@ function toPayload(record: CreativeProject) {
     caption_url: record.captionUrl,
     status: record.status,
     error_message: record.errorMessage,
+    metadata: record.metadata ?? {},
     created_at: record.createdAt,
     updated_at: record.updatedAt,
   };
@@ -178,6 +184,7 @@ export const creativeProjectStorage = {
       captionUrl: input.captionUrl ?? "",
       status: input.status,
       errorMessage: input.errorMessage ?? "",
+      metadata: input.metadata ?? {},
       createdAt: timestamp,
       updatedAt: timestamp,
     };

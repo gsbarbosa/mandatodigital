@@ -273,6 +273,7 @@ export type CreativeProject = {
   captionUrl: string;
   status: CreativeProjectStatus;
   errorMessage: string;
+  metadata: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 };

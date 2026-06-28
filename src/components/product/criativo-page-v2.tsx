@@ -63,9 +63,14 @@ import {
   resolveActiveTwinGroupId,
 } from "@/lib/heygen-avatar-refazer";
 import { resolveCreativeProjectTopicForSave } from "@/lib/creative-project-display";
+import { buildCreativeAiMetadata } from "@/lib/creative-ai-metadata";
 import { fetchHeyGenConsentLink } from "@/lib/heygen-consent-client";
 import { fetchHeygenApi } from "@/lib/heygen-client-override";
 import { SentinelContextPreview } from "@/components/product/sentinel-suggestion-row";
+import {
+  SCRIPT_EDIT_CONSENT_TEXT,
+  useScriptFactCheck,
+} from "@/components/product/use-script-fact-check";
 import {
   buildSentinelBriefingForCriativo,
   type MockSentinelSuggestion,
@@ -158,6 +163,16 @@ export function CriativoPageV2() {
   const [scriptDraft, setScriptDraft] = useState("");
   const [scriptTopicSnapshot, setScriptTopicSnapshot] = useState("");
   const [scriptApproved, setScriptApproved] = useState(false);
+  const {
+    isFactChecking,
+    factCheckResult,
+    scriptEditedAfterApproval,
+    scriptEditConsent,
+    setScriptEditConsent,
+    markScriptEditedAfterApproval,
+    resetFactCheckState,
+    approveWithFactCheck,
+  } = useScriptFactCheck();
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
   const autoPollStartedRef = useRef(false);
@@ -476,6 +491,7 @@ export function CriativoPageV2() {
   }
 
   function invalidateScriptApproval() {
+    markScriptEditedAfterApproval();
     setScriptApproved(false);
   }
 
@@ -587,6 +603,11 @@ export function CriativoPageV2() {
         captionUrl: input.captionUrl,
         status: input.status,
         errorMessage: input.errorMessage ?? "",
+        metadata: buildCreativeAiMetadata({
+          factCheckVerdict: factCheckResult?.verdict,
+          usedFreePrompt: useFreePromptAsTranscript,
+          technologies: ["HeyGen"],
+        }),
       }),
     });
 
@@ -605,6 +626,7 @@ export function CriativoPageV2() {
     }
 
     setIsGeneratingScript(true);
+    resetFactCheckState();
     invalidateScriptApproval();
 
     try {
@@ -647,7 +669,7 @@ export function CriativoPageV2() {
     }
   }
 
-  function handleApproveScript() {
+  async function handleApproveScript() {
     setScriptError(null);
     const draft = scriptDraft.trim();
     if (!draft) {
@@ -662,6 +684,19 @@ export function CriativoPageV2() {
       setScriptError("O tema mudou. Gere o roteiro novamente antes de aprovar.");
       return;
     }
+
+    const factCheck = await approveWithFactCheck({
+      script: draft,
+      topic: creativeForm.topic.trim(),
+      suggestion: sentinelSuggestion,
+      useFreePrompt: useFreePromptAsTranscript,
+    });
+
+    if (!factCheck.ok) {
+      setScriptError(factCheck.message || "Validacao factual reprovou o roteiro.");
+      return;
+    }
+
     setScriptApproved(true);
   }
 
@@ -1432,6 +1467,11 @@ export function CriativoPageV2() {
       if (!useFreePromptAsTranscript && !scriptApproved) {
         throw new Error("Aprove o roteiro antes de produzir o conteudo.");
       }
+      if (scriptEditedAfterApproval && !scriptEditConsent) {
+        throw new Error(
+          "Confirme o termo de responsabilidade apos editar o roteiro aprovado.",
+        );
+      }
       if (!useFreePromptAsTranscript && !scriptDraft.trim()) {
         throw new Error("Gere e aprove um roteiro antes de produzir o conteudo.");
       }
@@ -2082,12 +2122,33 @@ export function CriativoPageV2() {
                   <button
                     type="button"
                     className="persona-btn"
-                    onClick={handleApproveScript}
-                    disabled={!scriptDraft.trim() || scriptWordCount > MAX_SCRIPT_WORDS}
+                    onClick={() => void handleApproveScript()}
+                    disabled={
+                      !scriptDraft.trim() ||
+                      scriptWordCount > MAX_SCRIPT_WORDS ||
+                      isFactChecking
+                    }
                   >
-                    Aprovar roteiro
+                    {isFactChecking ? "Validando fatos..." : "Aprovar roteiro"}
                   </button>
                 </div>
+                {factCheckResult && factCheckResult.verdict !== "skipped" ? (
+                  <p className="persona-helper-text persona-top-gap">
+                    Validador: {factCheckResult.verdict} ({factCheckResult.confidence}%) —{" "}
+                    {factCheckResult.summary}
+                  </p>
+                ) : null}
+                {scriptEditedAfterApproval ? (
+                  <div className="persona-checkbox-row persona-top-gap">
+                    <input
+                      id="script-edit-consent"
+                      type="checkbox"
+                      checked={scriptEditConsent}
+                      onChange={(event) => setScriptEditConsent(event.target.checked)}
+                    />
+                    <label htmlFor="script-edit-consent">{SCRIPT_EDIT_CONSENT_TEXT}</label>
+                  </div>
+                ) : null}
                 {scriptApproved ? (
                   <p className="persona-script-approved">
                     Roteiro aprovado. Você já pode produzir o conteúdo.
