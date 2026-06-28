@@ -94,6 +94,28 @@ env:
   - variable: HEYGEN_API_KEY
     secret: heygen-api-key
 
+  # Sentinela Fase 1 (migrations aplicadas no Supabase)
+  - variable: SENTINEL_V2_PIPELINES
+    value: "true"
+    availability:
+      - RUNTIME
+
+  - variable: SENTINEL_LLM_EXPANSION
+    value: "true"
+    availability:
+      - RUNTIME
+
+  - variable: SENTINEL_TREND_PROXY
+    value: "true"
+    availability:
+      - RUNTIME
+
+  # Validador Fase 2 — ligar apos smoke test em prod
+  - variable: AUDITOR_FACTCHECK_ENABLED
+    value: "false"
+    availability:
+      - RUNTIME
+
   # Opcional — descomente apos cadastrar com npm run firebase:secrets:apply:
   # - variable: ANTHROPIC_API_KEY
   #   secret: anthropic-api-key
