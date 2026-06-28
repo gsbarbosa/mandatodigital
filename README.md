@@ -28,6 +28,10 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
+## Documentacao
+
+- [Sentinela — guia de uso (passo a passo)](docs/sentinela.md)
+
 ## Deploy no Firebase App Hosting
 
 O app usa **Firebase App Hosting** (Next.js com SSR e API routes no Cloud Run).
