@@ -110,9 +110,9 @@ env:
     availability:
       - RUNTIME
 
-  # Validador Fase 2 — ligar apos smoke test em prod
+  # Validador Fase 2 — fact-check no Criativo e top 10 Sentinela
   - variable: AUDITOR_FACTCHECK_ENABLED
-    value: "false"
+    value: "true"
     availability:
       - RUNTIME
 

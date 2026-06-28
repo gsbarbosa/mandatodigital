@@ -240,7 +240,7 @@ SENTINEL_TREND_PROXY=true
 
 ## Validador (Fase 2)
 
-Com `AUDITOR_FACTCHECK_ENABLED=true`:
+Com `AUDITOR_FACTCHECK_ENABLED=true` (ligado em prod desde 2026-06-24):
 
 - **Aprovar roteiro** no Criativo dispara fact-check (LLM + URLs do sinal Sentinela)
 - Top 10 sinais são validados em background após cada refresh
