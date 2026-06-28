@@ -286,7 +286,7 @@ export function SentinelaPageV2() {
               </button>
               <button
                 type="button"
-                className="persona-btn persona-btn-secondary"
+                className="persona-btn persona-btn-secondary persona-btn-large"
                 onClick={() => void handleRefreshSignals()}
                 disabled={isRefreshing || isSavingProfile}
               >
