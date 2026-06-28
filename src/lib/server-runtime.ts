@@ -55,6 +55,29 @@ function formatMissingTableHint(error: unknown) {
     );
   }
 
+  if (
+    normalized.includes("sentinel_suggestion_cache") ||
+    normalized.includes("sentinel_signals") ||
+    normalized.includes("sentinel_theme_expansions")
+  ) {
+    return (
+      "Faltam tabelas do Sentinela no Supabase. " +
+      "No SQL Editor, execute supabase/migrations/20260624_sentinel_foundation.sql " +
+      "(ou rode: npm run db:migrate:sentinel-foundation)."
+    );
+  }
+
+  if (
+    normalized.includes("audit_log") ||
+    normalized.includes("sentinel_fact_checks")
+  ) {
+    return (
+      "Faltam tabelas do Validador no Supabase. " +
+      "No SQL Editor, execute supabase/migrations/20260625_auditor_foundation.sql " +
+      "(ou rode: npm run db:migrate:auditor-foundation)."
+    );
+  }
+
   return null;
 }
 
