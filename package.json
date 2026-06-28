@@ -17,6 +17,8 @@
     "db:reset:confirm": "node scripts/reset-database.mjs --confirm",
     "db:migrate:owner-user-id": "node scripts/apply-owner-user-id-migration.mjs",
     "db:migrate:creative-projects": "node scripts/apply-creative-projects-migration.mjs",
+    "db:migrate:sentinel-foundation": "node scripts/apply-sentinel-foundation-migration.mjs",
+    "db:migrate:auditor-foundation": "node scripts/apply-auditor-foundation-migration.mjs",
     "deploy:firebase": "firebase deploy --only apphosting",
     "firebase:secrets:guide": "node scripts/firebase-secrets-guide.mjs",
     "firebase:secrets:apply": "node scripts/firebase-secrets-guide.mjs --apply"
