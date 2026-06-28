@@ -1,29 +1,35 @@
 import { createHash } from "node:crypto";
 
 import {
+  isSentinelV2PipelinesEnabled,
+} from "@/lib/feature-flags";
+import {
   clusterScoredArticles,
   countUniqueOutlets,
+  fetchSemanticExpansionNewsItems,
   fetchSentinelNewsItems,
   matchSentinelThemes,
   scoreSentinelArticle,
   type RssNewsItem,
 } from "@/lib/sentinel-rss";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
+import {
+  flattenExpansionSearchTerms,
+  loadSentinelThemeExpansions,
+} from "@/lib/sentinel-theme-expansion";
+import { buildV2SuggestionsFromArticles } from "@/lib/sentinel-suggestions-v2";
 import type { PoliticianProfile } from "@/lib/types";
+import {
+  isSentinelCacheExpired,
+  sentinelStorage,
+} from "@/lib/sentinel-storage";
+import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
+
+export type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const MAX_SUGGESTIONS = 5;
 const MAX_ARTICLES_PER_SUGGESTION = 4;
-
-export type SentinelSuggestionsMeta = {
-  source: "google-news-rss+portals";
-  cached: boolean;
-  refreshedAt: string;
-  radarThemesCount: number;
-  articlesScanned: number;
-  portalsMonitored: number;
-  emptyReason?: string;
-};
 
 type SentinelCacheEntry = {
   suggestions: MockSentinelSuggestion[];
@@ -248,21 +254,139 @@ function countMonitoredPortals(profile: PoliticianProfile) {
 
 function buildEmptyMeta(
   profile: PoliticianProfile,
-  options?: { emptyReason?: string; articlesScanned?: number },
+  options?: {
+    emptyReason?: string;
+    articlesScanned?: number;
+    pipelinesEnabled?: boolean;
+    expansionTermsCount?: number;
+  },
 ): SentinelSuggestionsMeta {
   return {
-    source: "google-news-rss+portals",
+    source: options?.pipelinesEnabled ? "sentinel-v2-pipelines" : "google-news-rss+portals",
     cached: false,
     refreshedAt: new Date().toISOString(),
     radarThemesCount: getRadarThemesCount(profile),
     articlesScanned: options?.articlesScanned ?? 0,
     portalsMonitored: countMonitoredPortals(profile),
+    pipelinesEnabled: options?.pipelinesEnabled,
+    expansionTermsCount: options?.expansionTermsCount,
     emptyReason: options?.emptyReason,
   };
 }
 
 export function invalidateSentinelCache(profileId: string) {
   suggestionCache.delete(profileId);
+  if (isPersistableProfileId(profileId)) {
+    void sentinelStorage.clearCache(profileId);
+  }
+}
+
+function isPersistableProfileId(profileId: string) {
+  return profileId.trim().length > 0 && profileId !== "default";
+}
+
+async function readCachedSuggestions(cacheKey: string, forceRefresh?: boolean) {
+  if (forceRefresh) {
+    return null;
+  }
+
+  const memoryCached = suggestionCache.get(cacheKey);
+  const now = Date.now();
+  if (memoryCached && memoryCached.expiresAt > now) {
+    return memoryCached;
+  }
+
+  if (!isPersistableProfileId(cacheKey)) {
+    return null;
+  }
+
+  const persisted = await sentinelStorage.readCache(cacheKey);
+  if (!persisted || isSentinelCacheExpired(persisted, now)) {
+    return null;
+  }
+
+  const entry: SentinelCacheEntry = {
+    suggestions: persisted.suggestions,
+    meta: persisted.meta,
+    expiresAt: Date.parse(persisted.expiresAt),
+  };
+
+  suggestionCache.set(cacheKey, entry);
+  return entry;
+}
+
+async function persistSuggestionsCache(
+  cacheKey: string,
+  suggestions: MockSentinelSuggestion[],
+  meta: SentinelSuggestionsMeta,
+  expiresAt: number,
+) {
+  suggestionCache.set(cacheKey, {
+    suggestions,
+    meta,
+    expiresAt,
+  });
+
+  if (!isPersistableProfileId(cacheKey)) {
+    return;
+  }
+
+  await sentinelStorage.writeCache(cacheKey, {
+    suggestions,
+    meta,
+    expiresAt: new Date(expiresAt).toISOString(),
+  });
+
+  await sentinelStorage.appendSignalHistory(cacheKey, suggestions, meta.refreshedAt);
+}
+
+async function collectSentinelArticles(profile: PoliticianProfile) {
+  const v2Enabled = isSentinelV2PipelinesEnabled();
+  const baseArticles = await fetchSentinelNewsItems(profile);
+
+  if (!v2Enabled) {
+    return { articles: baseArticles, expansions: [], expandedTerms: [] };
+  }
+
+  const profileId = profile.id?.trim() || "default";
+  const expansions =
+    profileId !== "default" ? await loadSentinelThemeExpansions(profileId) : [];
+  const expandedTerms = flattenExpansionSearchTerms(expansions);
+  const semanticArticles = await fetchSemanticExpansionNewsItems(profile, expandedTerms);
+
+  const seen = new Set<string>();
+  const articles: RssNewsItem[] = [];
+
+  for (const item of [...baseArticles, ...semanticArticles]) {
+    const key = `${item.title}|${item.link}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    articles.push(item);
+  }
+
+  return { articles, expansions, expandedTerms };
+}
+
+async function buildSuggestions(
+  profile: PoliticianProfile,
+  articles: RssNewsItem[],
+  bundle: Awaited<ReturnType<typeof collectSentinelArticles>>,
+) {
+  if (!isSentinelV2PipelinesEnabled()) {
+    return buildSuggestionsFromArticles(articles, profile);
+  }
+
+  const profileId = profile.id?.trim() || "default";
+  const geoLabel = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(", ") || "Brasil";
+
+  return buildV2SuggestionsFromArticles(articles, profile, {
+    profileId,
+    geoLabel,
+    expansions: bundle.expansions,
+    expandedTerms: bundle.expandedTerms,
+  });
 }
 
 export async function getSentinelSuggestions(
@@ -270,10 +394,9 @@ export async function getSentinelSuggestions(
   options?: { forceRefresh?: boolean },
 ) {
   const cacheKey = profile.id || "default";
-  const cached = suggestionCache.get(cacheKey);
-  const now = Date.now();
+  const cached = await readCachedSuggestions(cacheKey, options?.forceRefresh);
 
-  if (!options?.forceRefresh && cached && cached.expiresAt > now) {
+  if (cached) {
     return {
       suggestions: cached.suggestions,
       meta: { ...cached.meta, cached: true },
@@ -290,27 +413,27 @@ export async function getSentinelSuggestions(
     return { suggestions: [], meta };
   }
 
-  const articles = await fetchSentinelNewsItems(profile);
-  const suggestions = buildSuggestionsFromArticles(articles, profile);
+  const articlesBundle = await collectSentinelArticles(profile);
+  const suggestions = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
+  const v2Enabled = isSentinelV2PipelinesEnabled();
 
   const meta: SentinelSuggestionsMeta = {
-    source: "google-news-rss+portals",
+    source: v2Enabled ? "sentinel-v2-pipelines" : "google-news-rss+portals",
     cached: false,
     refreshedAt: new Date().toISOString(),
     radarThemesCount,
-    articlesScanned: articles.length,
+    articlesScanned: articlesBundle.articles.length,
     portalsMonitored,
+    pipelinesEnabled: v2Enabled,
+    expansionTermsCount: articlesBundle.expandedTerms.length,
     emptyReason:
       suggestions.length === 0
         ? "Nenhuma materia recente encontrada para os temas e portais configurados."
         : undefined,
   };
 
-  suggestionCache.set(cacheKey, {
-    suggestions,
-    meta,
-    expiresAt: now + CACHE_TTL_MS,
-  });
+  const expiresAt = Date.now() + CACHE_TTL_MS;
+  await persistSuggestionsCache(cacheKey, suggestions, meta, expiresAt);
 
   return { suggestions, meta };
 }

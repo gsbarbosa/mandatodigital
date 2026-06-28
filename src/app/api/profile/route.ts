@@ -4,6 +4,10 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { mergeProfileInputForSave } from "@/lib/profile-save";
 import { profileInputSchema } from "@/lib/schemas";
+import {
+  invalidateSentinelCache,
+} from "@/lib/sentinel-suggestions";
+import { syncSentinelThemeExpansions } from "@/lib/sentinel-theme-expansion";
 
 export async function GET() {
   return apiRoute(async (repository) => {
@@ -32,6 +36,14 @@ export async function PUT(request: Request) {
 
       const payload = profileInputSchema.parse(merged);
       const profile = await repository.saveProfile(payload);
+
+      void syncSentinelThemeExpansions(profile)
+        .then(() => {
+          if (profile.id) {
+            invalidateSentinelCache(profile.id);
+          }
+        })
+        .catch(() => undefined);
 
       return NextResponse.json({ profile });
     });

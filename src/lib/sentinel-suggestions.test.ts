@@ -5,6 +5,7 @@ import {
   buildStoryClusterKey,
   clusterScoredArticles,
   countUniqueOutlets,
+  matchLiteralThemes,
   matchSentinelThemes,
   normalizeSentinelText,
   parseGoogleNewsRss,
@@ -103,6 +104,20 @@ describe("sentinel-rss", () => {
       sampleProfile.sentinelThemes,
     );
     expect(matches).toContain("Seguranca Publica");
+  });
+
+  it("faz match literal apenas para temas personalizados", () => {
+    const matches = matchLiteralThemes(
+      "Campinas discute fila do SUS em audiencia publica",
+      sampleProfile.customRadarThemes,
+    );
+    expect(matches).toContain("fila do SUS");
+
+    const synonymOnly = matchLiteralThemes(
+      "Sistema Unico de Saude sob pressao",
+      sampleProfile.customRadarThemes,
+    );
+    expect(synonymOnly).toHaveLength(0);
   });
 
   it("prioriza materia recente, local e cluster multi-veiculo no score", () => {

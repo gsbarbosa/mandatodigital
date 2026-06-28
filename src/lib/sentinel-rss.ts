@@ -155,6 +155,20 @@ export function matchSentinelThemes(text: string, themes: string[]) {
   return matchThemesWithSynonyms(text, themes);
 }
 
+/** Match literal (sem sinonimos) — usado nos temas personalizados (pipeline manual). */
+export function matchLiteralThemes(text: string, themes: string[]) {
+  const normalized = normalizeSentinelText(text);
+
+  return themes.filter((theme) => {
+    const normalizedTheme = normalizeSentinelText(theme);
+    return normalizedTheme.length >= 3 && normalized.includes(normalizedTheme);
+  });
+}
+
+export function isPortalOriginArticle(article: RssNewsItem) {
+  return article.origin === "portal-rss" || article.origin === "google-news-site";
+}
+
 export function buildStoryClusterKey(title: string) {
   const words = normalizeSentinelText(title)
     .split(" ")
@@ -319,6 +333,28 @@ export async function fetchSentinelNewsItems(profile: PoliticianProfile) {
   ]);
 }
 
+const MAX_SEMANTIC_EXPANSION_QUERIES = 10;
+
+export async function fetchSemanticExpansionNewsItems(
+  profile: PoliticianProfile,
+  expandedTerms: string[],
+) {
+  const terms = [...new Set(expandedTerms.map((term) => term.trim()).filter(Boolean))].slice(
+    0,
+    MAX_SEMANTIC_EXPANSION_QUERIES,
+  );
+
+  if (terms.length === 0) {
+    return [];
+  }
+
+  const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
+  const queries = terms.map((term) => (geo ? `${term} ${geo}` : term));
+  const batches = await Promise.all(queries.map((query) => fetchGoogleNewsQuery(query)));
+
+  return dedupeNewsItems(batches.flat());
+}
+
 export function scoreSentinelArticle(
   article: RssNewsItem,
   profile: PoliticianProfile,
@@ -375,6 +411,7 @@ type ScoredArticle = {
   matchedThemes: string[];
   sourceList: "interest" | "opposition";
   relevanceScore: number;
+  pipeline?: string;
 };
 
 function storyClusterKeysSimilar(left: string, right: string) {

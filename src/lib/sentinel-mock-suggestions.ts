@@ -52,17 +52,36 @@ export type SentinelEngagementMetrics = {
   byNetwork: SentinelNetworkEngagement[];
 };
 
+export type SentinelPipeline = "manual" | "portal" | "semantic" | "social" | "legacy";
+
 /** Sinal do Sentinela com dados de alta confiabilidade (scraping + config + Trends). */
 export type MockSentinelSuggestion = {
   id: string;
   themeLabel: string;
   matchedThemes: string[];
   relevanceScore: number;
+  /** Pipeline de origem (Fase 1). Ausente em sinais legados. */
+  pipeline?: SentinelPipeline;
   /** Tema curto para pré-preencher o Criativo — derivado do radar, não de LLM. */
   topic: string;
   evidence: SentinelVerifiedEvidence;
   engagement: SentinelEngagementMetrics;
 };
+
+export function sentinelPipelineBadgeLabel(pipeline: SentinelPipeline | undefined) {
+  switch (pipeline) {
+    case "manual":
+      return "Manual";
+    case "portal":
+      return "Portal";
+    case "semantic":
+      return "Semântico";
+    case "social":
+      return "Social";
+    default:
+      return "Radar";
+  }
+}
 
 function sumNetworkMetric(
   rows: SentinelNetworkEngagement[],

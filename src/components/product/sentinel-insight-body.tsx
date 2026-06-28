@@ -1,5 +1,9 @@
 import { SentinelNetworkMetrics } from "@/components/product/sentinel-network-metrics";
-import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
+import {
+  formatSentinelSearchTrend,
+  sentinelPipelineBadgeLabel,
+  type MockSentinelSuggestion,
+} from "@/lib/sentinel-mock-suggestions";
 
 export function SentinelInsightBody({
   suggestion,
@@ -15,17 +19,34 @@ export function SentinelInsightBody({
 
       {matchedThemes.length > 0 ? (
         <div className="persona-sentinel-insight-tags">
+          {suggestion.pipeline ? (
+            <span className="persona-sentinel-source-badge is-interest">
+              {sentinelPipelineBadgeLabel(suggestion.pipeline)}
+            </span>
+          ) : null}
           {matchedThemes.map((theme) => (
             <span key={theme} className="persona-sentinel-theme-badge">
               {theme}
             </span>
           ))}
+          {evidence.searchTrend ? (
+            <span className="persona-sentinel-source-badge is-opposition">
+              ↑ {evidence.searchTrend.changePercent >= 0 ? "+" : ""}
+              {evidence.searchTrend.changePercent}% volume
+            </span>
+          ) : null}
           {evidence.outletCount && evidence.outletCount > 1 ? (
             <span className="persona-sentinel-source-badge is-interest">
               {evidence.outletCount} veículos
             </span>
           ) : null}
         </div>
+      ) : null}
+
+      {evidence.searchTrend ? (
+        <p className="persona-helper-text">
+          Trend proxy: {formatSentinelSearchTrend(evidence.searchTrend)}
+        </p>
       ) : null}
 
       {evidence.byNetwork.length > 0 ? (

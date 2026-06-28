@@ -119,12 +119,22 @@ export function MockSocialProfileList({
   values,
   onChange,
   maxItems = 10,
+  instagramOnly = false,
 }: {
   label: string;
   values: Array<{ network: string; handle: string }>;
   onChange: (values: Array<{ network: string; handle: string }>) => void;
   maxItems?: number;
+  /** Desabilita X/TikTok/YouTube enquanto pipeline social nao estiver ativo. */
+  instagramOnly?: boolean;
 }) {
+  const networkOptions = [
+    { value: "Instagram", label: "Instagram" },
+    { value: "X / Twitter", label: instagramOnly ? "X (em breve)" : "X" },
+    { value: "TikTok", label: instagramOnly ? "TikTok (em breve)" : "TikTok" },
+    { value: "YouTube", label: instagramOnly ? "YouTube (em breve)" : "YouTube" },
+  ];
+
   return (
     <div className="persona-form-group">
       <label className="persona-label">{label}</label>
@@ -147,13 +157,12 @@ export function MockSocialProfileList({
                 )
               }
             >
-              {[
-                { value: "Instagram", label: "Instagram" },
-                { value: "X / Twitter", label: "X" },
-                { value: "TikTok", label: "TikTok" },
-                { value: "YouTube", label: "YouTube" },
-              ].map((network) => (
-                <option key={network.value} value={network.value}>
+              {networkOptions.map((network) => (
+                <option
+                  key={network.value}
+                  value={network.value}
+                  disabled={instagramOnly && network.value !== "Instagram"}
+                >
                   {network.label}
                 </option>
               ))}

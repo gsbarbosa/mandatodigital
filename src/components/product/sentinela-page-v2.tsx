@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { updateToggleValues } from "@/components/product/config-controls";
 import {
@@ -18,20 +18,50 @@ import { oppositionThemeGroups, sentinelThemeGroups } from "@/lib/constants";
 
 type SentinelaTab = "temas" | "adversarios";
 
+type ThemeExpansionRow = {
+  sourceTheme: string;
+  expandedTerms: string[];
+  generatedAt: string;
+};
+
 export function SentinelaPageV2() {
   const { profileForm, setProfileForm, saveProfile, isSavingProfile } = useProductApp();
   const [activeTab, setActiveTab] = useState<SentinelaTab>("temas");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
+  const [expansions, setExpansions] = useState<ThemeExpansionRow[]>([]);
+  const [expansionsOpen, setExpansionsOpen] = useState(false);
+  const [isLoadingExpansions, setIsLoadingExpansions] = useState(false);
 
   const customThemes = Array.from({ length: 3 }, (_, index) => profileForm.customRadarThemes[index] ?? "");
+
+  const loadExpansions = useCallback(async () => {
+    setIsLoadingExpansions(true);
+    try {
+      const response = await fetch("/api/sentinel/expansions");
+      const payload = (await response.json()) as { expansions?: ThemeExpansionRow[] };
+      if (response.ok) {
+        setExpansions(payload.expansions ?? []);
+      }
+    } catch {
+      setExpansions([]);
+    } finally {
+      setIsLoadingExpansions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadExpansions();
+  }, [loadExpansions]);
 
   async function handleSave() {
     setSaveMessage(null);
 
     try {
       await saveProfile({ allowDraftDefaults: true, throwOnError: true });
+      await loadExpansions();
+      setExpansionsOpen(true);
       setSaveMessage("Radar do Sentinela salvo com sucesso.");
       window.setTimeout(() => setSaveMessage(null), 3200);
     } catch {
@@ -87,8 +117,8 @@ export function SentinelaPageV2() {
               <MockAgentPill>Setup: 01 · Sentinela</MockAgentPill>
               <h2>Mapeamento de Radar</h2>
               <p>
-                Monitoramento via Google News e RSS dos portais cadastrados. Sinônimos por tema
-                ampliam o match sem depender de API externa.
+                Quatro monitoramentos: temas do radar, temas personalizados (busca literal), portais
+                RSS e expansão semântica (com flag ativa). Instagram entra em breve.
               </p>
             </div>
           </div>
@@ -155,6 +185,7 @@ export function SentinelaPageV2() {
                 <MockSocialProfileList
                   label="Perfis de interesse (@)"
                   values={profileForm.interestProfiles}
+                  instagramOnly
                   onChange={(interestProfiles) =>
                     setProfileForm((current) => ({ ...current, interestProfiles }))
                   }
@@ -170,9 +201,33 @@ export function SentinelaPageV2() {
               </div>
 
               <MockDidacticBox>
-                Perfis ficam registrados para evolucao futura. Portais cadastrados entram no
-                radar via RSS (feed do site ou busca no Google News por dominio).
+                Perfis @ ficam registrados para o pipeline social (Instagram em breve). Portais
+                cadastrados entram via RSS ou busca Google News por domínio.
               </MockDidacticBox>
+
+              {expansions.length > 0 ? (
+                <div className="persona-form-group persona-top-gap">
+                  <button
+                    type="button"
+                    className="persona-btn persona-btn-secondary"
+                    onClick={() => setExpansionsOpen((current) => !current)}
+                  >
+                    {expansionsOpen ? "Ocultar" : "Ver"} termos monitorados (expansão)
+                  </button>
+                  {expansionsOpen ? (
+                    <ul className="persona-helper-text persona-top-gap">
+                      {expansions.map((row) => (
+                        <li key={row.sourceTheme}>
+                          <strong>{row.sourceTheme}:</strong> {row.expandedTerms.join(", ")}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {isLoadingExpansions ? (
+                    <p className="persona-helper-text persona-top-gap">Carregando expansões...</p>
+                  ) : null}
+                </div>
+              ) : null}
             </>
           ) : (
             <>
@@ -202,6 +257,7 @@ export function SentinelaPageV2() {
                 <MockSocialProfileList
                   label="Perfis dos adversários diretos (@)"
                   values={profileForm.oppositionProfiles}
+                  instagramOnly
                   onChange={(oppositionProfiles) =>
                     setProfileForm((current) => ({ ...current, oppositionProfiles }))
                   }
