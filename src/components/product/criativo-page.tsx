@@ -45,9 +45,9 @@ export function CriativoPage() {
 
       <div className="grid-main">
         <div className="column-main">
-          <SectionCard title="Avatar digital e edicao" subtitle="Preferencias criativas do mandato">
+          <SectionCard title="Avatar digital e edição" subtitle="Preferências criativas do mandato">
             <ToggleGridField
-              label="Emocao e expressao"
+              label="Emoção e expressão"
               values={profileForm.avatarEmotions}
               options={avatarEmotionOptions}
               onToggle={(value) =>
@@ -77,7 +77,7 @@ export function CriativoPage() {
             </div>
 
             <ToggleGridField
-              label="Estilos de edicao"
+              label="Estilos de edição"
               values={profileForm.editingStyles}
               options={editingStyleOptions}
               onToggle={(value) =>
@@ -95,12 +95,12 @@ export function CriativoPage() {
                 onClick={() => void saveProfile()}
                 disabled={isSavingProfile}
               >
-                {isSavingProfile ? "Salvando preferencias..." : "Salvar preferencias criativas"}
+                {isSavingProfile ? "Salvando preferências..." : "Salvar preferências criativas"}
               </button>
             </div>
           </SectionCard>
 
-          <SectionCard title="Nova pauta" subtitle="Geracao com revisao humana">
+          <SectionCard title="Nova pauta" subtitle="Geração com revisão humana">
             <label className="field">
               <span>Tema do dia</span>
               <textarea
@@ -118,7 +118,7 @@ export function CriativoPage() {
 
             <div className="field-grid">
               <label className="field">
-                <span>Objetivo da peca</span>
+                <span>Objetivo da peça</span>
                 <input
                   value={requestForm.objective}
                   onChange={(event) =>
@@ -194,7 +194,7 @@ export function CriativoPage() {
                     context: event.target.value,
                   }))
                 }
-                placeholder="O que a equipe ja sabe, qual a leitura politica e o enquadramento desejado."
+                placeholder="O que a equipe já sabe, qual a leitura política e o enquadramento desejado."
                 data-testid="request-context"
               />
             </label>
@@ -209,13 +209,13 @@ export function CriativoPage() {
                     keyFacts: event.target.value,
                   }))
                 }
-                placeholder={"Uma informacao por linha\nFila dobrou em 30 dias\nBairro X ficou sem medico"}
+                placeholder={"Uma informação por linha\nFila dobrou em 30 dias\nBairro X ficou sem medico"}
                 data-testid="request-key-facts"
               />
             </label>
 
             <label className="field">
-              <span>Palavras obrigatorias</span>
+              <span>Palavras obrigatórias</span>
               <textarea
                 value={requestForm.mandatoryTerms}
                 onChange={(event) =>
@@ -224,7 +224,7 @@ export function CriativoPage() {
                     mandatoryTerms: event.target.value,
                   }))
                 }
-                placeholder={"Uma expressao por linha\npovo trabalhador\nrespeito com a cidade"}
+                placeholder={"Uma expressão por linha\npovo trabalhador\nrespeito com a cidade"}
               />
             </label>
 
@@ -235,16 +235,16 @@ export function CriativoPage() {
               disabled={isGenerating || !profile}
               data-testid="generate-content-button"
             >
-              {isGenerating ? "Gerando 3 versoes..." : "Gerar conteudo"}
+              {isGenerating ? "Gerando 3 versões..." : "Gerar conteúdo"}
             </button>
           </SectionCard>
         </div>
 
         <aside className="column-side">
-          <SectionCard title="Saida criativa" subtitle="Rascunhos disponiveis">
+          <SectionCard title="Saída criativa" subtitle="Rascunhos disponíveis">
             <div className="linked-card">
               <strong>Modo principal do MVP</strong>
-              <span>Roteiro curto de video com revisao humana antes da publicacao.</span>
+              <span>Roteiro curto de vídeo com revisão humana antes da publicação.</span>
             </div>
 
             {contents.length ? (
@@ -258,7 +258,7 @@ export function CriativoPage() {
                         <strong>{item.title}</strong>
                         <StatusPill status={item.status} />
                       </div>
-                      <span>{linkedRequest?.topic ?? "Pauta sem referencia"}</span>
+                      <span>{linkedRequest?.topic ?? "Pauta sem referência"}</span>
                       <small>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</small>
                     </Link>
                   );
@@ -266,7 +266,7 @@ export function CriativoPage() {
               </div>
             ) : (
               <p className="empty-state">
-                As saidas do Criativo aparecem aqui logo apos a primeira geracao.
+                As saidas do Criativo aparecem aqui logo apos a primeira geração.
               </p>
             )}
           </SectionCard>

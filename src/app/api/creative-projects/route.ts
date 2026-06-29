@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { creativeProjectStorage } from "@/lib/creative-project-storage";
+import { assertMandatorySetup } from "@/lib/product-setup-checklist";
 import { creativeProjectStatuses } from "@/lib/types";
 
 const creativeProjectInputSchema = z.object({
@@ -48,6 +49,11 @@ export async function POST(request: Request) {
         { message: "Salve o perfil no Curador antes de criar um criativo." },
         { status: 400 },
       );
+    }
+
+    const setup = assertMandatorySetup(dashboard.profile);
+    if (!setup.ok) {
+      return NextResponse.json({ message: setup.message }, { status: 403 });
     }
 
     const parsed = creativeProjectInputSchema.parse(await request.json());

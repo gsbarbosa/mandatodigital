@@ -15,7 +15,7 @@ export async function POST() {
       const decoded = await getFirebaseAdminAuth().verifySessionCookie(sessionCookie);
       await getFirebaseAdminAuth().revokeRefreshTokens(decoded.sub);
     } catch {
-      // Cookie invalido ou expirado — segue limpando no cliente.
+      // Cookie inválido ou expirado — segue limpando no cliente.
     }
   }
 

@@ -23,10 +23,10 @@ const factCheckResponseSchema = z.object({
 function buildPrompt(input: FactCheckInput, corpus: string) {
   return {
     system:
-      "Voce e um validador factual para conteudo politico no Brasil. " +
-      "Compare o roteiro apenas com as fontes fornecidas (nao invente URLs). " +
+      "Você e um validador factual para conteúdo político no Brasil. " +
+      "Compare o roteiro apenas com as fontes fornecidas (não invente URLs). " +
       "Responda JSON: { verdict, confidence, summary, claims[], sources[] }. " +
-      "verdict=verified se claims centrais tem suporte; disputed se ha contradicoes materiais; inconclusive se fontes insuficientes.",
+      "verdict=verified se claims centrais tem suporte; disputed se ha contradicoes matériais; inconclusive se fontes insuficientes.",
     user: [
       input.topic ? `Tema: ${input.topic}` : "",
       input.sentinelBriefing ? `Briefing Sentinela:\n${input.sentinelBriefing}` : "",
@@ -44,8 +44,8 @@ function heuristicFallback(input: FactCheckInput): FactCheckResult {
     verdict: hasSources ? "inconclusive" : "skipped",
     confidence: 0,
     summary: hasSources
-      ? "Nao foi possivel validar automaticamente. Revise manualmente antes de publicar."
-      : "Fact-check ignorado: nenhuma materia de referencia informada.",
+      ? "Não foi possível validar automaticamente. Revise manualmente antes de publicar."
+      : "Fact-check ignorado: nenhuma matéria de referência informada.",
     claims: [],
     sources: (input.articles ?? []).map((article) => article.url).filter(Boolean),
     checkedAt: new Date().toISOString(),

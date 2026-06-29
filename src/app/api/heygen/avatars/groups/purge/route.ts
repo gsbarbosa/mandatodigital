@@ -42,7 +42,7 @@ export async function POST(request: Request) {
           {
             message: formatHeyGenPurgeFailureMessage(
               result.errors,
-              "Nao foi possivel remover os personagens na plataforma.",
+              "Não foi possível remover os personagens na plataforma.",
             ),
             ...result,
           },

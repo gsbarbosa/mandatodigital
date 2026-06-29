@@ -853,7 +853,7 @@ const localRepository: Repository = {
     const index = database.generatedContents.findIndex((item) => item.id === id);
 
     if (index === -1) {
-      throw new Error("Conteudo nao encontrado.");
+      throw new Error("Conteudo não encontrado.");
     }
 
     const current = database.generatedContents[index];
@@ -940,7 +940,7 @@ const localRepository: Repository = {
     const index = database.evaluationRuns.findIndex((item) => item.id === id);
 
     if (index === -1) {
-      throw new Error("Run de avaliacao nao encontrado.");
+      throw new Error("Run de avaliacao não encontrado.");
     }
 
     const current = database.evaluationRuns[index];
@@ -1295,7 +1295,7 @@ const supabaseRepository: Repository = {
     if (existing.error) throwSupabaseQueryError(existing.error);
 
     if (ownerUserId && input.id && existing.data?.id && input.id !== existing.data.id) {
-      throw new Error("Nao e permitido salvar o perfil de outro usuario.");
+      throw new Error("Não é permitido salvar o perfil de outro usuário.");
     }
 
     const payload = {
@@ -1574,7 +1574,7 @@ const supabaseRepository: Repository = {
     const profile = ownerUserId ? await fetchProfileForStorageContext(client) : null;
 
     if (ownerUserId && !profile) {
-      throw new Error("Salve o perfil antes de criar pautas de conteudo.");
+      throw new Error("Salve o perfil antes de criar pautas de conteúdo.");
     }
 
     const payload = {
@@ -2059,7 +2059,7 @@ export async function storeTrainingAssetBytes(input: {
 
       if (signedUpload.error || !signedUpload.data?.signedUrl || !signedUpload.data.token) {
         throw new Error(
-          `Nao foi possivel preparar upload no Supabase Storage: ${signedUpload.error?.message ?? "URL vazia"}`,
+          `Não foi possível preparar upload no Supabase Storage: ${signedUpload.error?.message ?? "URL vazia"}`,
         );
       }
 
@@ -2138,7 +2138,7 @@ export async function deleteTrainingAssetFile(input: {
 
     if (removeResult.error) {
       throw new Error(
-        `Nao foi possivel remover o arquivo do Supabase Storage: ${removeResult.error.message}`,
+        `Não foi possível remover o arquivo do Supabase Storage: ${removeResult.error.message}`,
       );
     }
 

@@ -17,7 +17,7 @@ export async function GET() {
       );
     }
 
-    const result = await getSentinelSuggestions(dashboard.profile);
+    const result = await getSentinelSuggestions(dashboard.profile, { cacheOnly: true });
     return NextResponse.json(result);
   });
 }

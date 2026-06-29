@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
       const updated = await avatarVideoStorage.update(generation.id, {
         status: "FAILED",
-        errorMessage: "Geracao falhou na Argil (webhook).",
+        errorMessage: "Geração falhou na Argil (webhook).",
       });
 
       return NextResponse.json({ received: true, matched: true, generation: updated });

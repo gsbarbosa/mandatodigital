@@ -341,7 +341,7 @@ export const avatarVideoStorage = {
             database.avatarVideoGenerations?.findIndex((item) => item.id === id) ?? -1;
 
           if (index === -1) {
-            throw new Error("Geracao de video nao encontrada.");
+            throw new Error("Geração de video não encontrada.");
           }
 
           const current = database.avatarVideoGenerations![index];
@@ -367,7 +367,7 @@ export const avatarVideoStorage = {
       database.avatarVideoGenerations?.findIndex((item) => item.id === id) ?? -1;
 
     if (index === -1) {
-      throw new Error("Geracao de video nao encontrada.");
+      throw new Error("Geração de video não encontrada.");
     }
 
     const current = database.avatarVideoGenerations![index];

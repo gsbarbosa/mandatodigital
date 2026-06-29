@@ -13,7 +13,7 @@ export async function POST(request: Request) {
 
     if (!dashboard.profile) {
       return NextResponse.json(
-        { message: "Crie e salve um perfil antes de avaliar a geracao." },
+        { message: "Crie e salve um perfil antes de avaliar a geração." },
         { status: 400 },
       );
     }
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     if (!contentRequest) {
       return NextResponse.json(
-        { message: "Pedido editorial nao encontrado para avaliacao." },
+        { message: "Pedido editorial não encontrado para avaliação." },
         { status: 404 },
       );
     }
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     if (!generatedContents.length) {
       return NextResponse.json(
-        { message: "Nenhum conteudo gerado foi encontrado para esse briefing." },
+        { message: "Nenhum conteúdo gerado foi encontrado para esse briefing." },
         { status: 404 },
       );
     }

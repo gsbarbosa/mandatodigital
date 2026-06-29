@@ -6,6 +6,7 @@ import {
   buildAvatarVideoTranscript,
   type CuradorVideoContext,
 } from "@/lib/avatar-video-script";
+import { assertMandatorySetup } from "@/lib/product-setup-checklist";
 import type { PoliticianProfile } from "@/lib/types";
 
 function mergeProfileWithCuradorContext(
@@ -47,6 +48,11 @@ export async function POST(request: Request) {
       }
 
       const dashboard = await repository.getDashboard();
+      const setup = assertMandatorySetup(dashboard.profile);
+      if (!setup.ok) {
+        return NextResponse.json({ message: setup.message }, { status: 403 });
+      }
+
       const profile = mergeProfileWithCuradorContext(
         dashboard.profile,
         body.curadorContext,

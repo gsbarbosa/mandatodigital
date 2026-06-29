@@ -231,7 +231,7 @@ export async function uploadTrainingFileToSupabase(input: SignedTrainingUploadPa
       (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
     if (!anonKey) {
       throw new Error(
-        "Upload direto indisponivel para arquivos grandes sem chave anon do Supabase. " +
+        "Upload direto indisponível para arquivos grandes sem chave anon do Supabase. " +
           "O app deve enviar pelo servidor automaticamente; recarregue a pagina e tente de novo.",
       );
     }

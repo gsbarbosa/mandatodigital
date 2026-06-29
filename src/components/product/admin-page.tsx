@@ -34,7 +34,7 @@ export function AdminPage() {
 
       <div className="grid-main">
         <div className="column-main">
-          <SectionCard title="Avaliacao do core" subtitle="Admin da LLM">
+          <SectionCard title="Avaliação do core" subtitle="Admin da LLM">
             <div className="button-row">
               <button
                 type="button"
@@ -42,7 +42,7 @@ export function AdminPage() {
                 onClick={() => void reloadEvaluationReports()}
                 disabled={isLoadingEvaluations}
               >
-                {isLoadingEvaluations ? "Atualizando..." : "Atualizar relatorios"}
+                {isLoadingEvaluations ? "Atualizando..." : "Atualizar relatórios"}
               </button>
             </div>
 
@@ -63,7 +63,7 @@ export function AdminPage() {
                         data-testid="evaluate-selected-request"
                       >
                         {isEvaluatingContentRequestId === request.id
-                          ? "Avaliando geracao..."
+                          ? "Avaliando geração..."
                           : "Avaliar esta pauta"}
                       </button>
                     </div>
@@ -71,7 +71,7 @@ export function AdminPage() {
                 ))
               ) : (
                 <p className="empty-state">
-                  Gere uma pauta no Criativo para liberar a avaliacao do core no Admin.
+                  Gere uma pauta no Criativo para liberar a avaliação do core no Admin.
                 </p>
               )}
             </div>
@@ -86,11 +86,11 @@ export function AdminPage() {
                     data-testid="evaluation-report-item"
                   >
                     <div className="history-top">
-                      <strong>{report.run.winnerRecommendation || "Relatorio de avaliacao"}</strong>
+                      <strong>{report.run.winnerRecommendation || "Relatório de avaliação"}</strong>
                       <EvaluationStatusPill status={report.run.status} />
                     </div>
                     <span>
-                      {report.run.primaryProvider} / {report.run.primaryModel || "nao informado"} ·
+                      {report.run.primaryProvider} / {report.run.primaryModel || "não informado"} ·
                       nota {report.winner?.totalScore.toFixed(1) ?? "--"}
                     </span>
                     <small>{new Date(report.run.createdAt).toLocaleString("pt-BR")}</small>
@@ -99,7 +99,7 @@ export function AdminPage() {
               </div>
             ) : (
               <p className="empty-state">
-                As avaliacoes do core aparecem aqui assim que a primeira execucao for julgada.
+                As avaliações do core aparecem aqui assim que a primeira execução for julgada.
               </p>
             )}
           </SectionCard>

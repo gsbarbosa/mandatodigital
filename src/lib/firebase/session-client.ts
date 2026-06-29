@@ -4,14 +4,14 @@ export function formatAuthClientError(message: string) {
   const normalized = message.toLowerCase();
 
   if (normalized.includes("email-already-in-use")) {
-    return "Este e-mail ja tem conta. Use Entrar com a mesma senha ou o mesmo provedor social.";
+    return "Este e-mail já tem conta. Use Entrar com a mesma senha ou o mesmo provedor social.";
   }
 
   if (
     normalized.includes("account-exists-with-different-credential") ||
     normalized.includes("auth/account-exists-with-different-credential")
   ) {
-    return "Este e-mail ja foi cadastrado com outro metodo de login. Use o mesmo provedor ou e-mail e senha.";
+    return "Este e-mail já foi cadastrado com outro método de login. Use o mesmo provedor ou e-mail e senha.";
   }
 
   if (normalized.includes("invalid-credential") || normalized.includes("wrong-password")) {
@@ -31,7 +31,7 @@ export function formatAuthClientError(message: string) {
   }
 
   if (normalized.includes("operation-not-allowed")) {
-    return "Este provedor social ainda nao esta habilitado no Firebase (Authentication → Sign-in method).";
+    return "Este provedor social ainda não está habilitado no Firebase (Authentication → Sign-in method).";
   }
 
   if (normalized.includes("redirect_uri_mismatch")) {
@@ -46,8 +46,8 @@ export function formatAuthClientError(message: string) {
 
   if (normalized.includes("unauthorized-domain")) {
     return (
-      "Dominio nao autorizado no Firebase. Em Authentication → Settings → Authorized domains, " +
-      "adicione o host em que voce abriu o app (ex.: madatodigital.web.app ou localhost)."
+      "Domínio não autorizado no Firebase. Em Authentication → Settings → Authorized domains, " +
+      "adicione o host em que você abriu o app (ex.: madatodigital.web.app ou localhost)."
     );
   }
 
@@ -58,7 +58,7 @@ export async function persistFirebaseSession() {
   const idToken = await getFirebaseAuth().currentUser?.getIdToken(true);
 
   if (!idToken) {
-    throw new Error("Nao foi possivel obter a sessao do Firebase.");
+    throw new Error("Não foi possível obter a sessão do Firebase.");
   }
 
   const response = await fetch("/api/auth/session", {
@@ -69,6 +69,6 @@ export async function persistFirebaseSession() {
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(payload?.message ?? "Nao foi possivel iniciar a sessao no servidor.");
+    throw new Error(payload?.message ?? "Não foi possível iniciar a sessão no servidor.");
   }
 }

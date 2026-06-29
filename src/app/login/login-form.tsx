@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { Route } from "next";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -16,6 +17,7 @@ import {
   completeSocialRedirectSignIn,
   signInWithGoogle,
 } from "@/lib/firebase/social-auth";
+import { resolveDefaultAppPath } from "@/lib/product-nav";
 
 function GoogleIcon() {
   return (
@@ -40,7 +42,7 @@ function LoginLoading({ message }: { message: string }) {
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/curador";
+  const nextPath = (searchParams.get("next") || resolveDefaultAppPath()) as Route;
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -55,7 +57,7 @@ export function LoginForm() {
   useEffect(() => {
     if (searchParams.get("setup") === "firebase-auth") {
       setErrorMessage(
-        "Login ainda nao esta completo no servidor. Configure FIREBASE_SERVICE_ACCOUNT_JSON no ambiente.",
+        "Login ainda não está completo no servidor. Configure FIREBASE_SERVICE_ACCOUNT_JSON no ambiente.",
       );
     }
   }, [searchParams]);
@@ -74,12 +76,12 @@ export function LoginForm() {
         setIsCheckingRedirect(false);
         setIsFinishingAuth(true);
         await persistFirebaseSession();
-        router.replace(nextPath as "/curador");
+        router.replace(nextPath);
         router.refresh();
       } catch (error) {
         if (!cancelled) {
           const rawMessage =
-            error instanceof Error ? error.message : "Nao foi possivel autenticar.";
+            error instanceof Error ? error.message : "Não foi possível autenticar.";
           setErrorMessage(formatAuthClientError(rawMessage));
           setIsFinishingAuth(false);
         }
@@ -102,7 +104,7 @@ export function LoginForm() {
 
     try {
       await persistFirebaseSession();
-      router.replace(nextPath as "/curador");
+      router.replace(nextPath);
       router.refresh();
     } catch (error) {
       setIsFinishingAuth(false);
@@ -129,7 +131,7 @@ export function LoginForm() {
       await finishAuth();
     } catch (error) {
       const rawMessage =
-        error instanceof Error ? error.message : "Nao foi possivel autenticar.";
+        error instanceof Error ? error.message : "Não foi possível autenticar.";
       setErrorMessage(formatAuthClientError(rawMessage));
     } finally {
       setIsSubmitting(false);
@@ -152,7 +154,7 @@ export function LoginForm() {
       await finishAuth();
     } catch (error) {
       const rawMessage =
-        error instanceof Error ? error.message : "Nao foi possivel autenticar.";
+        error instanceof Error ? error.message : "Não foi possível autenticar.";
       setErrorMessage(formatAuthClientError(rawMessage));
     } finally {
       setIsGoogleLoading(false);

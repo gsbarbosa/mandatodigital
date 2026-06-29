@@ -6,14 +6,14 @@ const DEFAULT_BIO =
   "Mandato focado em entregas concretas, linguagem clara e defesa consistente das pautas prioritarias.";
 
 const PROFILE_CORE_DEFAULTS = {
-  fullName: "Perfil em configuracao",
+  fullName: "Perfil em configuração",
   role: "Mandato",
   city: "Cidade",
   state: "SP",
   audience: "Eleitorado local",
   spectrum: "",
   archetype: archetypeOptions[0] ?? "O Conciliador (Uniao/Pontes)",
-  keyIssues: ["Comunicacao politica"],
+  keyIssues: ["Comunicação política"],
   bio: DEFAULT_BIO,
 } as const;
 

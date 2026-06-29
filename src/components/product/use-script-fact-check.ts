@@ -67,7 +67,7 @@ export function useScriptFactCheck() {
 
         const result = payload.result;
         if (!result) {
-          return { ok: false, message: "Resposta invalida do validador." };
+          return { ok: false, message: "Resposta inválida do validador." };
         }
 
         setFactCheckResult(result);
@@ -85,7 +85,7 @@ export function useScriptFactCheck() {
         setScriptEditedAfterApproval(false);
         return { ok: true };
       } catch {
-        return { ok: false, message: "Nao foi possivel contatar o validador factual." };
+        return { ok: false, message: "Não foi possível contatar o validador factual." };
       } finally {
         setIsFactChecking(false);
       }

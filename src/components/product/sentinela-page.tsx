@@ -29,8 +29,8 @@ export function SentinelaPage() {
         <div className="column-main">
           <SectionCard title="Radar de pautas" subtitle="Captação manual/semiassistida">
             <p className="empty-state">
-              No MVP, o Sentinela ainda nao varre a web automaticamente, mas ja captura
-              o que deve entrar em monitoramento: temas, oposicao, perfis e portais.
+              No MVP, o Sentinela ainda não varre a web automaticamente, mas já captura
+              o que deve entrar em monitoramento: temas, oposição, perfis e portais.
             </p>
 
             {sentinelThemeGroups.map((group) => (
@@ -90,7 +90,7 @@ export function SentinelaPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Rastreio da oposicao" subtitle="Assuntos e vozes adversarias">
+          <SectionCard title="Rastreio da oposição" subtitle="Assuntos e vozes adversárias">
             {oppositionThemeGroups.map((group) => (
               <ToggleGridField
                 key={group.title}
@@ -108,19 +108,19 @@ export function SentinelaPage() {
 
             <div className="field-grid">
               <DynamicSocialListField
-                label="Perfis dos adversarios diretos"
+                label="Perfis dos adversários diretos"
                 fieldKey="oppositionProfiles"
                 values={profileForm.oppositionProfiles}
                 networkOptions={socialNetworkOptions}
-                addLabel="Adicionar adversario"
+                addLabel="Adicionar adversário"
                 setProfileForm={setProfileForm}
               />
               <DynamicStringListField
-                label="Blogs e portais de oposicao"
+                label="Blogs e portais de oposição"
                 fieldKey="oppositionSites"
                 values={profileForm.oppositionSites}
-                placeholder="www.blog-oposicao.com.br"
-                addLabel="Adicionar portal de oposicao"
+                placeholder="www.blog-oposição.com.br"
+                addLabel="Adicionar portal de oposição"
                 setProfileForm={setProfileForm}
               />
             </div>
@@ -139,7 +139,7 @@ export function SentinelaPage() {
         </div>
 
         <aside className="column-side">
-          <SectionCard title="Saida do sentinela" subtitle="Fila priorizada">
+          <SectionCard title="Saída do sentinela" subtitle="Fila priorizada">
             <div className="feedback-stack">
               <div className="linked-card">
                 <strong>Temas monitorados</strong>
@@ -154,7 +154,7 @@ export function SentinelaPage() {
                 <span>
                   {(profile?.oppositionProfiles.length ?? 0) +
                     (profile?.oppositionSites.length ?? 0)}{" "}
-                  fontes adversarias acompanhadas.
+                  fontes adversárias acompanhadas.
                 </span>
               </div>
             </div>

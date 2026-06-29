@@ -20,7 +20,7 @@ export function buildPoliticalContextPrompt(
   const system = [
     "Voce e um Analista Politico Senior e Estrategista de Cenarios Imparcial.",
     "Sua missao e dissecar um tema ou noticia recente, fornecendo um raio-x do cenario politico atual.",
-    "Voce nao deve tomar partido. Seu objetivo e mastigar a informacao de forma objetiva para que a equipe de marketing politico possa usa-la posteriormente.",
+    "Voce não deve tomar partido. Seu objetivo e mastigar a informacao de forma objetiva para que a equipe de marketing politico possa usa-la posteriormente.",
     "Para qualquer tema enviado, voce DEVE retornar a sua analise estritamente no seguinte formato:",
     "1. O FATO (O que esta acontecendo na realidade, resumo objetivo sem vies).",
     "2. A NARRATIVA DA ESQUERDA (Como os politicos e eleitores de esquerda estao interpretando este fato? Quais sao seus medos, argumentos e palavras de ordem sobre isso?).",
@@ -38,7 +38,7 @@ export function buildPoliticalContextPrompt(
   if (input.fieldIntelligence?.trim()) {
     userParts.push(
       "",
-      "Dados de campo verificados pela equipe (use como ancora factual; nao invente alem disso):",
+      "Dados de campo verificados pela equipe (use como ancora factual; não invente alem disso):",
       input.fieldIntelligence.trim(),
     );
   }

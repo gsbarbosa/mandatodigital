@@ -77,7 +77,7 @@ async function runFfmpeg(args: string[]) {
     child.on("error", (error) => {
       reject(
         new Error(
-          `FFmpeg indisponivel (${binary}). Instale ffmpeg ou use MP4 menor que 32 MB. ${error.message}`,
+          `FFmpeg indisponível (${binary}). Instale ffmpeg ou use MP4 menor que 32 MB. ${error.message}`,
         ),
       );
     });
@@ -164,12 +164,12 @@ export async function transcodeTrainingVideoForHeyGen(
     }
 
     if (!lastBuffer || lastBuffer.length === 0) {
-      throw new Error("Nao foi possivel gerar um MP4 de treino apos a compressao.");
+      throw new Error("Não foi possível gerar um MP4 de treino após a compressão.");
     }
 
     if (lastBuffer.length > HEYGEN_TRAINING_VIDEO_MAX_BYTES) {
       throw new Error(
-        `Mesmo apos compressao o video ficou com ${(lastBuffer.length / (1024 * 1024)).toFixed(1)} MB. ` +
+        `Mesmo após compressão o video ficou com ${(lastBuffer.length / (1024 * 1024)).toFixed(1)} MB. ` +
           "Grave um clipe mais curto (30–45s) ou em 480p e tente novamente.",
       );
     }

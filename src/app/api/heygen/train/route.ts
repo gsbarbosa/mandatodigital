@@ -23,6 +23,7 @@ import {
 } from "@/lib/heygen-twin-display";
 import type { HeyGenAvatarLookListItem } from "@/lib/heygen";
 import { resolveHeyGenDigitalTwinVideoInput } from "@/lib/heygen-training-video";
+import { isHeygenDigitalTwinEnabled } from "@/lib/feature-flags";
 import {
   getTrainingAssetPublicUrl,
   pickAvatarImageAndVoiceAudioAssets,
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       const dashboard = await repository.getDashboard();
       const profileId = dashboard.profile?.id ?? null;
       if (!profileId) {
-        return NextResponse.json({ message: "Perfil nao encontrado." }, { status: 400 });
+        return NextResponse.json({ message: "Perfil não encontrado." }, { status: 400 });
       }
 
       const assets = await repository.listTrainingAssetsForReference(profileId);
@@ -77,6 +78,13 @@ export async function POST(request: Request) {
       }
 
       const mode: HeyGenTrainMode = body.mode ?? "photo";
+      if (mode === "digital_twin" && !isHeygenDigitalTwinEnabled()) {
+        return NextResponse.json(
+          { message: "Gêmeo digital via vídeo indisponível nesta versão." },
+          { status: 403 },
+        );
+      }
+
       const appBaseUrl = resolveAppBaseUrl(request);
       const assetBaseUrl = resolveAppBaseUrl(request);
       const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, assetBaseUrl);
@@ -212,7 +220,7 @@ export async function POST(request: Request) {
           return NextResponse.json(
             {
               message:
-                "Gere a caricatura a partir da foto antes de preparar a voz para o video caricato.",
+                "Gere a caricatura a partir da foto antes de preparar a voz para o vídeo caricato.",
             },
             { status: 400 },
           );
@@ -280,11 +288,11 @@ export async function POST(request: Request) {
         digital_twin: trainingPhaseMessage(trainingPhase, {
           hasConsentUrl: Boolean(consentUrl?.trim()),
         }),
-        photo: "Avatar e voz criados. Agora voce ja pode gerar videos.",
+        photo: "Avatar e voz criados. Agora você já pode gerar vídeos.",
         caricature:
-          "Voz clonada para o modo caricato. Agora gere o video com a caricatura aprovada.",
+          "Voz clonada para o modo caricato. Agora gere o vídeo com a caricatura aprovada.",
         photo_real:
-          "Voz clonada para foto real. Agora gere o video com a foto enviada no Curador.",
+          "Voz clonada para foto real. Agora gere o vídeo com a foto enviada no Curador.",
       };
 
       return NextResponse.json(

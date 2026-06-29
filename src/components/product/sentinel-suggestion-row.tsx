@@ -12,9 +12,13 @@ import type { SentinelSuggestionsMeta } from "@/lib/sentinel-suggestions";
 export function SentinelSuggestionCard({
   suggestion,
   showAction = true,
+  generationBlocked = false,
+  generationBlockedMessage,
 }: {
   suggestion: MockSentinelSuggestion;
   showAction?: boolean;
+  generationBlocked?: boolean;
+  generationBlockedMessage?: string;
 }) {
   return (
     <article className="persona-sentinel-wire-item">
@@ -29,13 +33,24 @@ export function SentinelSuggestionCard({
           <SentinelInsightBody suggestion={suggestion} />
         </div>
         {showAction ? (
-          <Link
-            href={buildCriativoNovoHref(suggestion.id) as Route}
-            className="persona-sentinel-wire-action"
-          >
-            <span>Gerar</span>
-            <span>criativo</span>
-          </Link>
+          generationBlocked ? (
+            <span
+              className="persona-sentinel-wire-action is-disabled"
+              title={generationBlockedMessage}
+              aria-disabled="true"
+            >
+              <span>Gerar</span>
+              <span>criativo</span>
+            </span>
+          ) : (
+            <Link
+              href={buildCriativoNovoHref(suggestion.id) as Route}
+              className="persona-sentinel-wire-action"
+            >
+              <span>Gerar</span>
+              <span>criativo</span>
+            </Link>
+          )
         ) : null}
       </div>
     </article>
@@ -67,15 +82,25 @@ export function SentinelSuggestionsList({
   loadError,
   emptyMessage = "Nenhum sinal do Sentinela disponivel. Configure o radar e atualize os sinais.",
   meta,
+  loadingMessage,
+  generationBlocked = false,
+  generationBlockedMessage,
 }: {
   suggestions: MockSentinelSuggestion[];
   isLoading: boolean;
   loadError: string | null;
   emptyMessage?: string;
   meta?: SentinelSuggestionsMeta | null;
+  loadingMessage?: string;
+  generationBlocked?: boolean;
+  generationBlockedMessage?: string;
 }) {
   if (isLoading) {
-    return <p className="persona-helper-text persona-top-gap">Carregando sinais do Sentinela...</p>;
+    return (
+      <p className="persona-helper-text persona-top-gap" role="status">
+        {loadingMessage ?? "Carregando sinais do Sentinela..."}
+      </p>
+    );
   }
 
   if (loadError) {
@@ -96,7 +121,11 @@ export function SentinelSuggestionsList({
     <ul className="persona-sentinel-wire-list persona-top-gap">
       {suggestions.map((suggestion) => (
         <li key={suggestion.id}>
-          <SentinelSuggestionCard suggestion={suggestion} />
+          <SentinelSuggestionCard
+            suggestion={suggestion}
+            generationBlocked={generationBlocked}
+            generationBlockedMessage={generationBlockedMessage}
+          />
         </li>
       ))}
     </ul>

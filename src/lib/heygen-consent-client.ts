@@ -35,7 +35,7 @@ export async function fetchHeyGenConsentLink(input: {
       });
 
   if (!response.ok) {
-    throw new Error(payload.message || "Nao foi possivel obter o link de consentimento.");
+    throw new Error(payload.message || "Não foi possível obter o link de consentimento.");
   }
 
   return payload;

@@ -45,8 +45,8 @@ function buildExpansionPrompt(theme: string, profile: PoliticianProfile) {
 
   return {
     system:
-      "Voce e um analista de monitoramento politico no Brasil. " +
-      "Responda apenas JSON valido no formato {\"terms\": [\"...\"]}. " +
+      "Você e um analista de monitoramento político no Brasil. " +
+      "Responda apenas JSON válido no formato {\"terms\": [\"...\"]}. " +
       "Gere entre 8 e 15 termos correlatos para busca de noticias. " +
       "Use portugues do Brasil, termos concretos, sem hashtags, sem URLs.",
     user:

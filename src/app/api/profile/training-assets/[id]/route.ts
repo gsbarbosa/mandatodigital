@@ -16,7 +16,7 @@ export async function DELETE(
 
     const asset = await repository.getTrainingAssetById(id);
     if (!asset) {
-      return NextResponse.json({ message: "Arquivo de treino nao encontrado." }, { status: 404 });
+      return NextResponse.json({ message: "Arquivo de treino não encontrado." }, { status: 404 });
     }
 
     await repository.deleteTrainingAsset(id);

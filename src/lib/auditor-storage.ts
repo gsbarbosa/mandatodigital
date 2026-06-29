@@ -239,7 +239,7 @@ export async function factCheckTopSentinelSuggestions(input: {
 
       await auditorStorage.saveFactCheck(input.profileId, suggestion.id, result);
     } catch {
-      // Nao bloqueia refresh por falha individual.
+      // Não bloqueia refresh por falha individual.
     }
   }
 }

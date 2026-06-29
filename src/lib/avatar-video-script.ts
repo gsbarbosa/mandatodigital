@@ -42,7 +42,7 @@ function normalizeSpokenTranscript(raw: string) {
     .trim();
 }
 
-/** Fallback deterministico quando nao ha LLM configurada. */
+/** Fallback deterministico quando não ha LLM configurada. */
 export function buildAvatarVideoTranscriptFallback(input: {
   topic: string;
   profile?: PoliticianProfile | null;

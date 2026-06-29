@@ -190,7 +190,7 @@ export function AvatarImageCropModal({
       await onConfirm(cropped);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel aplicar o recorte.",
+        error instanceof Error ? error.message : "Não foi possível aplicar o recorte.",
       );
     } finally {
       setIsSubmitting(false);

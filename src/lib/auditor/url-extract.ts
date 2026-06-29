@@ -51,7 +51,7 @@ export async function fetchArticlesCorpus(
   for (const article of articles.slice(0, 4)) {
     const body = await fetchArticleText(article.url);
     const header = `[${article.sourceName ?? "Fonte"}] ${article.title} (${article.url})`;
-    snippets.push(body ? `${header}\n${body}` : `${header}\n(conteudo indisponivel para fetch)`);
+    snippets.push(body ? `${header}\n${body}` : `${header}\n(conteúdo indisponível para fetch)`);
   }
 
   return snippets.join("\n\n---\n\n");

@@ -16,12 +16,12 @@ export function AdminEvalDetailPage({ runId }: { runId: string }) {
 
       <div className="grid-main">
         <div className="column-main">
-          <SectionCard title="Detalhe da avaliacao" subtitle="Run selecionado">
+          <SectionCard title="Detalhe da avaliação" subtitle="Run selecionado">
             {report ? (
               <EvaluationReportView report={report} />
             ) : (
               <p className="empty-state">
-                Relatorio nao encontrado. Volte ao Admin para selecionar outra execucao.
+                Relatório não encontrado. Volte ao Admin para selecionar outra execução.
               </p>
             )}
 
@@ -34,7 +34,7 @@ export function AdminEvalDetailPage({ runId }: { runId: string }) {
         </div>
 
         <aside className="column-side">
-          <SectionCard title="Ultimos relatorios" subtitle="Historico do core">
+          <SectionCard title="Últimos relatórios" subtitle="Histórico do core">
             {evaluationReports.length ? (
               <div className="history-list eval-history-list">
                 {evaluationReports.map((item) => (
@@ -44,7 +44,7 @@ export function AdminEvalDetailPage({ runId }: { runId: string }) {
                     className={item.run.id === runId ? "history-item active" : "history-item"}
                   >
                     <div className="history-top">
-                      <strong>{item.run.primaryModel || "Modelo nao informado"}</strong>
+                      <strong>{item.run.primaryModel || "Modelo não informado"}</strong>
                     </div>
                     <span>Nota {item.winner?.totalScore.toFixed(1) ?? "--"}</span>
                     <small>{new Date(item.run.createdAt).toLocaleString("pt-BR")}</small>
@@ -53,7 +53,7 @@ export function AdminEvalDetailPage({ runId }: { runId: string }) {
               </div>
             ) : (
               <p className="empty-state">
-                Ainda nao existe um relatorio de avaliacao disponivel para detalhe.
+                Ainda não existe um relatório de avaliação disponivel para detalhe.
               </p>
             )}
           </SectionCard>

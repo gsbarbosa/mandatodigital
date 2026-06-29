@@ -152,7 +152,7 @@ async function callOpenAI(
   const { apiKey } = getConfiguredProvider("openai");
 
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY nao configurada.");
+    throw new Error("OPENAI_API_KEY não configurada.");
   }
 
   const startedAt = Date.now();
@@ -221,7 +221,7 @@ async function callAnthropic(
   const { apiKey } = getConfiguredProvider("anthropic");
 
   if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY nao configurada.");
+    throw new Error("ANTHROPIC_API_KEY não configurada.");
   }
 
   const startedAt = Date.now();
@@ -283,7 +283,7 @@ async function callOpenAIPlainText(
   const { apiKey } = getConfiguredProvider("openai");
 
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY nao configurada.");
+    throw new Error("OPENAI_API_KEY não configurada.");
   }
 
   const startedAt = Date.now();
@@ -352,7 +352,7 @@ export async function requestPlainText(
 
   if (!provider) {
     if (options?.strict) {
-      throw new Error("Nenhum provider de LLM configurado para esta execucao.");
+      throw new Error("Nenhum provider de LLM configurado para esta execução.");
     }
 
     return {
@@ -385,7 +385,7 @@ export async function requestStructuredJson(
 
   if (!provider) {
     if (options?.strict) {
-      throw new Error("Nenhum provider de LLM configurado para esta execucao.");
+      throw new Error("Nenhum provider de LLM configurado para esta execução.");
     }
 
     return {
@@ -470,7 +470,7 @@ export async function generateContentVariants(
 
     if (!execution.rawText || !execution.provider || !execution.model) {
       if (!allowFallback) {
-        throw new Error("A execucao da LLM nao retornou resposta utilizavel.");
+        throw new Error("A execução da LLM não retornou resposta utilizavel.");
       }
 
       return buildFallbackGenerationResult(profile, request, prompt);
@@ -480,7 +480,7 @@ export async function generateContentVariants(
 
     if (!normalized) {
       if (!allowFallback) {
-        throw new Error("A resposta da LLM nao respeitou o contrato esperado.");
+        throw new Error("A resposta da LLM não respeitou o contrato esperado.");
       }
 
       return buildFallbackGenerationResult(profile, request, prompt);

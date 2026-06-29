@@ -162,13 +162,13 @@ export async function runShadowEvaluation({
   );
 
   if (!shadowExecution) {
-    throw new Error("Nao foi possivel resolver um alvo de shadow mode.");
+    throw new Error("Não foi possível resolver um alvo de shadow mode.");
   }
 
   const judgeExecution = resolveJudgeExecution(judge);
 
   if (!judgeExecution) {
-    throw new Error("Nao foi possivel resolver um juiz LLM para a avaliacao.");
+    throw new Error("Não foi possível resolver um juiz LLM para a avaliacao.");
   }
 
   const repository = getRepository();

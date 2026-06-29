@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const name = String(body.name ?? "").trim() || undefined;
 
     if (!topic) {
-      return NextResponse.json({ message: "Informe o tema do video." }, { status: 400 });
+      return NextResponse.json({ message: "Informe o tema do vídeo." }, { status: 400 });
     }
 
     const dashboard = await repository.getDashboard();
@@ -67,11 +67,11 @@ export async function POST(request: Request) {
       const trainingStatus = dashboard.profile?.avatarTrainingStatus ?? "";
       const hint =
         trainingStatus === "TRAINING_FAILED"
-          ? " O treino do clone IA falhou. Veja a mensagem acima e tente Treinar novamente apos liberar vagas na Argil (app.argil.ai)."
-          : " No Curador, envie foto e audio e clique em Treinar clone IA antes de gerar o video.";
+          ? " O treino do clone IA falhou. Veja a mensagem acima e tente Treinar novamente após liberar vagas na Argil (app.argil.ai)."
+          : " No Curador, envie foto e audio e clique em Treinar clone IA antes de gerar o vídeo.";
 
       return NextResponse.json(
-        { message: `Avatar ainda nao esta pronto.${hint}` },
+        { message: `Avatar ainda não está pronto.${hint}` },
         { status: 400 },
       );
     }
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
       );
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel enviar o video para a Argil.";
+        error instanceof Error ? error.message : "Não foi possível enviar o vídeo para a Argil.";
 
       const failedGeneration = await avatarVideoStorage.update(generation.id, {
         status: "FAILED",

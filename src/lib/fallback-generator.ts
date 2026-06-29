@@ -14,14 +14,14 @@ const introByIntensity = {
     "Antes de qualquer conclusao, precisamos olhar os fatos.",
   ],
   Firme: [
-    "Nao da para tratar esse tema como algo secundario.",
+    "Não da para tratar esse tema como algo secundario.",
     "Minha posicao sobre isso e objetiva.",
     "Esse debate precisa sair da enrolacao e ir para a pratica.",
   ],
   Confrontadora: [
-    "Nao vou fingir normalidade diante desse problema.",
+    "Não vou fingir normalidade diante desse problema.",
     "Chega de discurso bonito sem entrega concreta.",
-    "Quem vive a realidade da cidade sabe que isso nao da mais para tolerar.",
+    "Quem vive a realidade da cidade sabe que isso não da mais para tolerar.",
   ],
 } as const;
 
@@ -67,7 +67,7 @@ function buildBody(
       `Quem mora em ${profile.city} sabe que isso bate direto em ${mainIssue.toLowerCase()} e ${secondaryIssue.toLowerCase()}.`,
       request.context
         ? request.context
-        : "A dor real da cidade precisa virar posicionamento claro, nao comentario generico.",
+        : "A dor real da cidade precisa virar posicionamento claro, não comentario generico.",
       mandatoryTerms,
       `Como ${profile.role}, eu sustento uma resposta ${angle.toLowerCase()}, coerente com ${profile.spectrum.toLowerCase()} e com a identidade do nosso mandato.`,
       signature,
@@ -77,13 +77,13 @@ function buildBody(
       .join("\n");
   }
 
-  if (request.format === "Audio WhatsApp") {
+  if (request.format === "Áudio WhatsApp") {
     return [
       `Oi, gente. Aqui e ${profile.fullName.split(" ")[0]}. ${intro}`,
       `Estou falando sobre ${request.topic.toLowerCase()} porque isso conversa diretamente com ${mainIssue.toLowerCase()} em ${profile.city}.`,
       (request.keyFacts ?? []).length
-        ? `O que ja sabemos: ${(request.keyFacts ?? []).join("; ")}.`
-        : "Ainda ha pontos que precisam ser confirmados, mas o impacto local ja merece resposta.",
+        ? `O que já sabemos: ${(request.keyFacts ?? []).join("; ")}.`
+        : "Ainda há pontos que precisam ser confirmados, mas o impacto local já merece resposta.",
       `Minha linha e ${angle.toLowerCase()}, sem abrir mao de ${secondaryIssue.toLowerCase()}.`,
       cta,
     ].join("\n\n");
@@ -94,7 +94,7 @@ function buildBody(
   return [
     intro,
     "",
-    `${request.topic} nao pode ser tratado como mais uma manchete que passa. Em ${profile.city}, esse debate toca diretamente em ${mainIssue.toLowerCase()} e ${secondaryIssue.toLowerCase()}.`,
+    `${request.topic} não pode ser tratado como mais uma manchete que passa. Em ${profile.city}, esse debate toca diretamente em ${mainIssue.toLowerCase()} e ${secondaryIssue.toLowerCase()}.`,
     request.context
       ? `Meu ponto de partida e simples: ${request.context}`
       : "Meu ponto de partida e simples: resposta publica com clareza, contexto e compromisso com entrega.",

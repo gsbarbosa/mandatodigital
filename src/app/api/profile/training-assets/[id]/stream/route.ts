@@ -22,13 +22,13 @@ export async function GET(request: Request, context: RouteContext) {
     const token = new URL(request.url).searchParams.get("token") ?? "";
 
     if (!verifyTrainingAssetAccessToken(id, token)) {
-      return NextResponse.json({ message: "Token invalido ou expirado." }, { status: 403 });
+      return NextResponse.json({ message: "Token inválido ou expirado." }, { status: 403 });
     }
 
     const asset = await getRepository().getTrainingAssetById(id);
 
     if (!asset) {
-      return NextResponse.json({ message: "Asset nao encontrado." }, { status: 404 });
+      return NextResponse.json({ message: "Asset não encontrado." }, { status: 404 });
     }
 
     if (asset.storageProvider === "supabase") {

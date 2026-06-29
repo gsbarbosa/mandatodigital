@@ -5,6 +5,7 @@ import { ProductShell } from "@/components/product/shell";
 import { runWithSessionRepository } from "@/lib/auth/runner";
 import { getSessionUser, requireSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
+import { isProductNavV2Enabled } from "@/lib/feature-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,11 @@ export default async function ProductLayout({
     repository.getDashboard(),
   );
   const sessionUser = isFirebaseAuthConfigured() ? await getSessionUser() : null;
+  const productNavV2 = isProductNavV2Enabled();
 
   return (
     <ProductAppProvider initialData={initialData} sessionUser={sessionUser}>
-      <ProductShell>{children}</ProductShell>
+      <ProductShell productNavV2={productNavV2}>{children}</ProductShell>
     </ProductAppProvider>
   );
 }

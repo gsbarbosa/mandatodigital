@@ -11,6 +11,7 @@ Documentos relacionados:
 - [Guia Sentinela](sentinela.md)
 - [Plano roadmap](plano-roadmap-sentinel-auditor-mvp.md)
 - [Parecer técnico Tars](parecer-tars-roadmap.md)
+- [Proposta navegação v2 (operação-first + rollback)](proposta-navegacao-v2.md)
 
 ---
 
@@ -32,6 +33,7 @@ Documentos relacionados:
 | `SENTINEL_LLM_EXPANSION` | `true` |
 | `SENTINEL_TREND_PROXY` | `true` |
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
+| `NEXT_PUBLIC_PRODUCT_NAV_V2` | off (default) |
 | `SENTINEL_SOCIAL_ENABLED` | off (default) |
 
 **Migrations Supabase aplicadas:**
@@ -223,7 +225,20 @@ Referência detalhada: [sentinela.md](sentinela.md)
 
 ---
 
-## 10. Ordem sugerida de execução
+## 10. Navegação v2 (operação-first)
+
+Documentação: [proposta-navegacao-v2.md](proposta-navegacao-v2.md)
+
+| Item | Status | Flag prod |
+|------|--------|-----------|
+| Shell v1 preservado (`ProductShellV1`) | ✅ | flag off |
+| Shell v2 (`/inicio`, `/configuracoes`, onboarding) | ✅ | `NEXT_PUBLIC_PRODUCT_NAV_V2` **off** |
+| Rollback em 1 deploy (flag false) | ✅ | |
+| E2E `tests/e2e/nav-v2.spec.ts` | ✅ | requer flag on local |
+
+---
+
+## 11. Ordem sugerida de execução
 
 ```
 [x] Fase 0 — migrations + cache Supabase + flags
@@ -239,13 +254,15 @@ Referência detalhada: [sentinela.md](sentinela.md)
 
 ---
 
-## 11. Changelog deste documento
+## 12. Changelog deste documento
 
 | Data | Mudança |
 |------|---------|
 | 2026-06-24 | Criação inicial pós deploy Fase 0+1 e migration Auditor |
 | | Sentinela v2 + LLM + trend proxy **on** em prod |
 | 2026-06-24 | Validador ligado em prod (`AUDITOR_FACTCHECK_ENABLED=true`) |
+| 2026-06-24 | Proposta navegação v2 (operação-first) com rollback via flag |
+| 2026-06-24 | Implementação nav v2 (shell paralelo, inicio, configuracoes, onboarding) — flag off em prod |
 
 ---
 

@@ -20,7 +20,7 @@ describe("analyzeProductFeedback", () => {
     const result = await analyzeProductFeedback({
       screen: "onboarding",
       workedWell: "",
-      issueObserved: "o botao de salvar nao funciona e os dados nao salvam",
+      issueObserved: "o botao de salvar não funciona e os dados não salvam",
     });
 
     expect(result.classification).toBe("bug");

@@ -37,8 +37,8 @@ export async function POST(
         message: resolved.needsConsent
           ? resolved.consentUrl
             ? "Finalize o consentimento no link abaixo."
-            : "Consentimento pendente na plataforma. Use Refazer gemeo digital se o link nao aparecer."
-          : "Consentimento ja concluido para este gemeo.",
+            : "Consentimento pendente na plataforma. Use Refazer gêmeo digital se o link não aparecer."
+          : "Consentimento já concluído para este gêmeo.",
       });
     });
   } catch (error) {

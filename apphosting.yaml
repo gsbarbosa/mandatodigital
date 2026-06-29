@@ -116,6 +116,13 @@ env:
     availability:
       - RUNTIME
 
+  # Navegação v2 (operação-first) — ligar após smoke test interno
+  # - variable: NEXT_PUBLIC_PRODUCT_NAV_V2
+  #   value: "true"
+  #   availability:
+  #     - BUILD
+  #     - RUNTIME
+
   # Opcional — descomente apos cadastrar com npm run firebase:secrets:apply:
   # - variable: ANTHROPIC_API_KEY
   #   secret: anthropic-api-key

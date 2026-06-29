@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { fetchSentinelNewsItems } from "@/lib/sentinel-rss";
 import type { PoliticianProfile } from "@/lib/types";
 import { invalidateSentinelCache } from "@/lib/sentinel-suggestions";
 
@@ -55,7 +56,7 @@ const profile: PoliticianProfile = {
 };
 
 describe("sentinel-suggestions cache", () => {
-  it("invalida cache em memoria sem erro", () => {
+  it("inválida cache em memoria sem erro", () => {
     expect(() => invalidateSentinelCache(profile.id)).not.toThrow();
   });
 
@@ -73,5 +74,14 @@ describe("sentinel-suggestions cache", () => {
     expect(result.suggestions).toEqual([]);
     expect(result.meta.emptyReason).toContain("Configure temas");
     expect(result.meta.source).toBe("google-news-rss+portals");
+  });
+
+  it("cacheOnly não dispara busca RSS quando não ha cache", async () => {
+    const { getSentinelSuggestions } = await import("@/lib/sentinel-suggestions");
+    const result = await getSentinelSuggestions(profile, { cacheOnly: true });
+
+    expect(result.suggestions).toEqual([]);
+    expect(result.meta.emptyReason).toContain("Atualizar sinais");
+    expect(fetchSentinelNewsItems).not.toHaveBeenCalled();
   });
 });

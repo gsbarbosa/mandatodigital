@@ -101,7 +101,7 @@ export async function runGeneratedContentEvaluation({
   const judgeExecution = resolveJudgeExecution(judge);
 
   if (!judgeExecution) {
-    throw new Error("Nao foi possivel resolver um juiz LLM para a avaliacao.");
+    throw new Error("Não foi possível resolver um juiz LLM para a avaliacao.");
   }
 
   const repository = getRepository();
@@ -191,7 +191,7 @@ export async function runGeneratedContentEvaluation({
       winnerRecommendation: "",
       judgeSummary: "",
       errorMessage:
-        error instanceof Error ? error.message : "Falha ao avaliar a geracao.",
+        error instanceof Error ? error.message : "Falha ao avaliar a geração.",
       judgeProvider: "",
       judgeModel: "",
     });
@@ -209,7 +209,7 @@ export async function runStoredContentEvaluation(input: {
     prompt: {
       templateId: GENERATION_PROMPT_TEMPLATE_ID,
       promptVersion: GENERATION_PROMPT_VERSION,
-      preview: input.generatedContents[0]?.promptPreview || "prompt nao disponivel",
+      preview: input.generatedContents[0]?.promptPreview || "prompt não disponivel",
       system: "",
       user: "",
       fingerprint: "",

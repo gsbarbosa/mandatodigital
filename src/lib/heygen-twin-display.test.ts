@@ -29,7 +29,7 @@ describe("resolveHeyGenTrainingPhase", () => {
     ).toBe("ready");
   });
 
-  it("nao exige consentimento quando needsConsent e false", () => {
+  it("não exige consentimento quando needsConsent e false", () => {
     expect(
       resolveHeyGenTrainingPhase({
         mode: "digital_twin",
@@ -40,7 +40,7 @@ describe("resolveHeyGenTrainingPhase", () => {
     ).toBe("processing");
   });
 
-  it("nao trava em awaiting_consent quando consentimento ja esta aprovado", () => {
+  it("não trava em awaiting_consent quando consentimento ja esta aprovado", () => {
     expect(
       resolveHeyGenTrainingPhase({
         mode: "digital_twin",
@@ -71,7 +71,7 @@ describe("resolveHeyGenTrainingPhase", () => {
     ).toBe("processing");
   });
 
-  it("nao exige consentimento quando needsConsent e false mesmo com pending_consent", () => {
+  it("não exige consentimento quando needsConsent e false mesmo com pending_consent", () => {
     expect(
       resolveHeyGenTrainingPhase({
         mode: "digital_twin",
@@ -88,13 +88,13 @@ describe("twinGroupRequiresConsentLink", () => {
     expect(twinGroupRequiresConsentLink(null, "pending_consent")).toBe(true);
   });
 
-  it("nao exige link quando consentimento ja foi aprovado", () => {
+  it("não exige link quando consentimento ja foi aprovado", () => {
     expect(twinGroupRequiresConsentLink("completed", "pending_consent")).toBe(
       false,
     );
   });
 
-  it("nao exige link quando grupo ja processa sem status pendente", () => {
+  it("não exige link quando grupo ja processa sem status pendente", () => {
     expect(twinGroupRequiresConsentLink(null, "processing")).toBe(false);
   });
 });
@@ -168,15 +168,15 @@ describe("resolveAvatarTrainingName", () => {
   it("ignora placeholder do perfil e usa cargo e cidade", () => {
     expect(
       resolveAvatarTrainingName({
-        fullName: "Perfil em configuracao",
+        fullName: "Perfil em configuração",
         role: "Vereador",
         city: "Campinas",
       }),
     ).toBe("Vereador — Campinas");
   });
 
-  it("usa fallback amigavel quando nao ha dados", () => {
-    expect(resolveAvatarTrainingName({ fullName: "Perfil em configuracao" })).toBe(
+  it("usa fallback amigavel quando não ha dados", () => {
+    expect(resolveAvatarTrainingName({ fullName: "Perfil em configuração" })).toBe(
       "Gêmeo digital",
     );
   });
@@ -185,7 +185,7 @@ describe("resolveAvatarTrainingName", () => {
 describe("formatTwinLookDisplayName", () => {
   it("remove sufixo digital twin e placeholder da plataforma", () => {
     expect(
-      formatTwinLookDisplayName("Perfil em configuracao (digital twin)", {
+      formatTwinLookDisplayName("Perfil em configuração (digital twin)", {
         role: "Deputado",
         city: "SP",
       }),

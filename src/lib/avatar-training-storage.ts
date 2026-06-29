@@ -350,7 +350,7 @@ export const avatarTrainingStorage = {
             database.profileAvatarTrainings?.findIndex((item) => item.id === id) ?? -1;
 
           if (index === -1) {
-            throw new Error("Treinamento de avatar nao encontrado.");
+            throw new Error("Treinamento de avatar não encontrado.");
           }
 
           const current = database.profileAvatarTrainings![index];
@@ -376,7 +376,7 @@ export const avatarTrainingStorage = {
       database.profileAvatarTrainings?.findIndex((item) => item.id === id) ?? -1;
 
     if (index === -1) {
-      throw new Error("Treinamento de avatar nao encontrado.");
+      throw new Error("Treinamento de avatar não encontrado.");
     }
 
     const current = database.profileAvatarTrainings![index];

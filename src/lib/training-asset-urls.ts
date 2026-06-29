@@ -105,7 +105,7 @@ export async function getTrainingAssetPublicUrl(
 
     if (error || !data?.signedUrl) {
       throw new Error(
-        `Nao foi possivel gerar URL assinada para o asset ${asset.id}: ${error?.message ?? "URL vazia"}`,
+        `Não foi possível gerar URL assinada para o asset ${asset.id}: ${error?.message ?? "URL vazia"}`,
       );
     }
 

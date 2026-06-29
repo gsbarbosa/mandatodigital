@@ -16,7 +16,7 @@ export type AvatarTrainingNameInput = {
   city?: string | null;
 };
 
-const PROFILE_NAME_PLACEHOLDER = "perfil em configuracao";
+const PROFILE_NAME_PLACEHOLDER = "perfil em configuração";
 
 function normalizeProfileLabel(value?: string | null) {
   return String(value ?? "").trim();

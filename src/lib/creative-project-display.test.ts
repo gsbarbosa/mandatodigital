@@ -16,7 +16,7 @@ describe("creative-project-display", () => {
     ).toBe(FREE_PROMPT_CREATIVE_TOPIC_LABEL);
   });
 
-  it("mantem o tema quando nao foi prompt livre", () => {
+  it("mantem o tema quando não foi prompt livre", () => {
     expect(
       formatCreativeProjectTitle({
         useFreePrompt: false,

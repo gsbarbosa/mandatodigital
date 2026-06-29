@@ -16,7 +16,7 @@ export async function resolveAccessibleTrainingAsset(
 
   const asset = await repository.getTrainingAssetById(normalizedId);
   if (!asset) {
-    return { ok: false, status: 404, message: "Asset nao encontrado." };
+    return { ok: false, status: 404, message: "Asset não encontrado." };
   }
 
   const referenceIds = new Set(
@@ -33,6 +33,6 @@ export async function resolveAccessibleTrainingAsset(
   return {
     ok: false,
     status: 403,
-    message: "Asset nao pertence ao perfil atual.",
+    message: "Asset não pertence ao perfil atual.",
   };
 }

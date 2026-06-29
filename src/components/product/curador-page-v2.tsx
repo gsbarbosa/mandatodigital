@@ -13,7 +13,6 @@ import {
 
 import { useProductApp } from "@/components/product/provider";
 import {
-  CaricatureAssetPreview,
   IdeologicalSpectrumSlider,
   MaterialUploadField,
   BaseMaterialsReadiness,
@@ -26,6 +25,7 @@ import {
   type AvatarTrack,
   type PrivateTwinLook,
   type ProductionSource,
+  defaultAvatarTrack,
 } from "@/components/product/persona-shared";
 import {
   formatProviderLimitHint,
@@ -58,6 +58,7 @@ import {
 } from "@/lib/heygen-avatar-refazer";
 import { fetchHeyGenConsentLink } from "@/lib/heygen-consent-client";
 import { fetchHeygenApi } from "@/lib/heygen-client-override";
+import { isHeygenDigitalTwinEnabled } from "@/lib/feature-flags";
 import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
 import { validateTrainingVideoFile } from "@/lib/training-video-upload";
 import type { ProfileTrainingAsset } from "@/lib/types";
@@ -73,6 +74,7 @@ type TrainingBannerState =
 
 export function CuradorPageV2() {
   const router = useRouter();
+  const digitalTwinEnabled = isHeygenDigitalTwinEnabled();
   const uploadInputId = useId();
   const [isTraining, setIsTraining] = useState(false);
   const [trainingError, setTrainingError] = useState<string | null>(null);
@@ -106,8 +108,6 @@ export function CuradorPageV2() {
   const twinPollActiveRef = useRef(false);
   const autoSyncTwinOnLoadRef = useRef(false);
   const [isPollingTwinTraining, setIsPollingTwinTraining] = useState(false);
-  const [twinPreviewOpen, setTwinPreviewOpen] = useState(false);
-  const [caricaturePreviewOpen, setCaricaturePreviewOpen] = useState(false);
   const [materialUploadErrors, setMaterialUploadErrors] = useState<
     Partial<Record<"voice_audio" | "avatar_image" | "dataset", string | null>>
   >({});
@@ -326,7 +326,7 @@ export function CuradorPageV2() {
       heygenAvatarGroupId: overrides?.heygenAvatarGroupId ?? heygenAvatarGroupId,
       lastCaricatureAssetId:
         overrides?.lastCaricatureAssetId ?? sortedCaricatureAssets[0]?.id,
-      avatarTrack: overrides?.avatarTrack ?? "realistic",
+      avatarTrack: overrides?.avatarTrack ?? defaultAvatarTrack(),
       productionSource: overrides?.productionSource ?? productionSource,
     });
   }
@@ -350,7 +350,7 @@ export function CuradorPageV2() {
     if (message) {
       return sanitizeProviderFacingMessage(message);
     }
-    return `Nao foi possivel gerar a caricatura (${response.status}).`;
+    return `Não foi possível gerar a caricatura (${response.status}).`;
   }
 
   async function requestCaricatureVariant(
@@ -386,7 +386,7 @@ export function CuradorPageV2() {
 
     const assetId = payload.asset?.id?.trim() ?? "";
     if (!assetId) {
-      throw new Error("Resposta invalida: caricatura sem identificador.");
+      throw new Error("Resposta inválida: caricatura sem identificador.");
     }
 
     return {
@@ -543,7 +543,7 @@ export function CuradorPageV2() {
     );
 
     if (!response.ok) {
-      throw new Error(payload.message || "Nao foi possivel treinar o avatar.");
+      throw new Error(payload.message || "Não foi possível treinar o avatar.");
     }
 
     return payload;
@@ -578,7 +578,7 @@ export function CuradorPageV2() {
         setTwinConsentPending(false);
       }
     } catch {
-      // mantem mensagem generica; usuario pode sincronizar de novo
+      // mantem mensagem generica; usuário pode sincronizar de novo
     }
   }
 
@@ -897,40 +897,6 @@ export function CuradorPageV2() {
           {renderCaricatureVariantRow("mascot_3d", "Versão mascote 3D", mascotCaricature)}
         </div>
 
-        {hasAnyCaricatureReady ? (
-          <div className="persona-prepare-ready-actions persona-top-gap">
-            <button
-              type="button"
-              className="persona-btn persona-btn-secondary persona-btn-compact"
-              onClick={() => setCaricaturePreviewOpen((open) => !open)}
-              aria-expanded={caricaturePreviewOpen}
-              aria-controls="caricature-prepare-preview-panel"
-            >
-              {caricaturePreviewOpen ? "Ocultar preview" : "Ver preview"}
-            </button>
-          </div>
-        ) : null}
-
-        {caricaturePreviewOpen && hasAnyCaricatureReady ? (
-          <div
-            id="caricature-prepare-preview-panel"
-            className="persona-prepare-twin-preview persona-prepare-caricature-preview persona-top-gap"
-            aria-label="Preview das caricaturas"
-          >
-            {editorialCaricature ? (
-              <figure className="persona-prepare-caricature-preview-item">
-                <CaricatureAssetPreview assetId={editorialCaricature.id} />
-                <figcaption>{caricatureVariantLabel("editorial")}</figcaption>
-              </figure>
-            ) : null}
-            {mascotCaricature ? (
-              <figure className="persona-prepare-caricature-preview-item">
-                <CaricatureAssetPreview assetId={mascotCaricature.id} />
-                <figcaption>{caricatureVariantLabel("mascot_3d")}</figcaption>
-              </figure>
-            ) : null}
-          </div>
-        ) : null}
         {caricatureRefazerError ? (
           <>
             <p
@@ -1003,33 +969,8 @@ export function CuradorPageV2() {
                 >
                   {isDeletingTwinGroup ? "Refazendo…" : "Refazer"}
                 </button>
-                <button
-                  type="button"
-                  className="persona-btn persona-btn-secondary persona-btn-compact"
-                  onClick={() => setTwinPreviewOpen((open) => !open)}
-                  aria-expanded={twinPreviewOpen}
-                  aria-controls="twin-prepare-preview-panel"
-                >
-                  {twinPreviewOpen ? "Ocultar preview" : "Ver preview"}
-                </button>
               </div>
             </div>
-            {twinPreviewOpen ? (
-              <div
-                id="twin-prepare-preview-panel"
-                className="persona-prepare-twin-preview persona-top-gap"
-                aria-label="Preview do gêmeo digital"
-              >
-                <TwinLookMedia
-                  look={selectedTwinLook}
-                  className="persona-prepare-twin-preview-media"
-                  preferVideo
-                  profile={profileForm}
-                  fallbackAssetId={latestTrainingVideo?.id ?? avatarImageAssets[0]?.id}
-                  fallbackPreferVideo={Boolean(latestTrainingVideo?.id)}
-                />
-              </div>
-            ) : null}
           </>
         ) : hasAnyTwinOnPlatform ? (
           <div className="persona-prepare-actions-row persona-top-gap">
@@ -1124,7 +1065,7 @@ export function CuradorPageV2() {
   function renderPrepareAvatarsSection() {
     return (
       <div className="persona-prepare-generation-stack">
-        {renderTwinPrepareBlock()}
+        {digitalTwinEnabled ? renderTwinPrepareBlock() : null}
         {renderPhotoAvatarsPrepareBlock()}
       </div>
     );
@@ -1253,6 +1194,10 @@ export function CuradorPageV2() {
     preferredAvatarId?: string;
     preferredGroupId?: string;
   }) {
+    if (!digitalTwinEnabled) {
+      return;
+    }
+
     setLooksError(null);
     setIsLoadingLooks(true);
     try {
@@ -1276,10 +1221,10 @@ export function CuradorPageV2() {
       }>(groupsResponse);
 
       if (!looksResponse.ok) {
-        throw new Error(looksPayload.message || "Nao foi possivel listar avatares.");
+        throw new Error(looksPayload.message || "Não foi possível listar avatares.");
       }
       if (!groupsResponse.ok) {
-        throw new Error(groupsPayload.message || "Nao foi possivel listar personagens.");
+        throw new Error(groupsPayload.message || "Não foi possível listar personagens.");
       }
 
       const groupsById = new Map(
@@ -1371,7 +1316,7 @@ export function CuradorPageV2() {
       }
     } catch (error) {
       setLooksError(
-        error instanceof Error ? error.message : "Nao foi possivel listar avatares.",
+        error instanceof Error ? error.message : "Não foi possível listar avatares.",
       );
     } finally {
       setIsLoadingLooks(false);
@@ -1427,7 +1372,6 @@ export function CuradorPageV2() {
         setHeygenVoiceId("");
         setCaricatureError(null);
         setCaricatureInfo(null);
-        setCaricaturePreviewOpen(false);
 
         if (profileIdForPrefs) {
           writeCuradorHeygenPrefs(profileIdForPrefs, {
@@ -1458,8 +1402,6 @@ export function CuradorPageV2() {
         setHeygenAvatarGroupId("");
         setHeygenConsentUrl("");
         setTwinConsentPending(false);
-        setTwinPreviewOpen(false);
-        setCaricaturePreviewOpen(false);
         setPrivateTwinLooks([]);
         setTrainingStarted(false);
         setTrainingBannerState("hidden");
@@ -1628,17 +1570,13 @@ export function CuradorPageV2() {
   ]);
 
   useEffect(() => {
-    setTwinPreviewOpen(false);
-  }, [selectedTwinLook?.id]);
-
-  useEffect(() => {
-    if (autoLoadedLooksRef.current) {
+    if (!digitalTwinEnabled || autoLoadedLooksRef.current) {
       return;
     }
     autoLoadedLooksRef.current = true;
     void loadPrivateDigitalTwinLooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [digitalTwinEnabled]);
 
   useEffect(() => {
     if (!profileIdForPrefs || restoredHeygenPrefsRef.current) {
@@ -1747,7 +1685,7 @@ export function CuradorPageV2() {
         [trainingRole]:
           error instanceof Error
             ? error.message
-            : "Nao foi possivel enviar o arquivo.",
+            : "Não foi possível enviar o arquivo.",
       }));
     }
   }
@@ -1768,8 +1706,8 @@ export function CuradorPageV2() {
           <div className="persona-form-group">
             <label className="persona-label">Materiais base</label>
             <p className="persona-helper-text">
-              Comece pelo áudio — ele alimenta gêmeo digital e avatares por foto. Depois envie foto
-              ou vídeo conforme o que for gerar.
+              Comece pelo áudio — ele alimenta os avatares por foto. Depois envie a foto de rosto
+              {digitalTwinEnabled ? " ou vídeo conforme o que for gerar" : ""}.
             </p>
             <BaseMaterialsReadiness
               hasVoice={Boolean(selectedVoiceAudio)}
@@ -1820,6 +1758,7 @@ export function CuradorPageV2() {
               />
             </div>
 
+            {digitalTwinEnabled ? (
             <div className="persona-material-field">
               <label className="persona-label" htmlFor={`${uploadInputId}-training-video`}>
                 Vídeo de treino{" "}
@@ -1839,6 +1778,7 @@ export function CuradorPageV2() {
                 onFile={(file) => void handleMaterialUpload("dataset", file)}
               />
             </div>
+            ) : null}
           </div>
 
           {looksError ? (

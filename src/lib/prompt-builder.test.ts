@@ -21,14 +21,14 @@ const profile: PoliticianProfile = {
   voiceTones: ["Didatico", "Popular"],
   keyIssues: ["Saude publica", "Emprego e renda"],
   slogans: ["Gente em primeiro lugar"],
-  redLines: ["nao inventar dado", "nao atacar servidor publico"],
+  redLines: ["não inventar dado", "não atacar servidor publico"],
   referenceExamples: ["fala curta, direta e com exemplos locais"],
   bio: "Atua com fiscalizacao, defesa de entregas concretas e linguagem acessivel.",
   updatedAt: "2026-05-25T00:00:00.000Z",
 };
 
 const request: ContentRequestInput = {
-  topic: "alagamentos recorrentes apos chuva forte no centro",
+  topic: "alagamentos recorrentes após chuva forte no centro",
   objective: "cobrar resposta da prefeitura sem perder foco em solucao",
   format: "Post Instagram",
   intensity: "Firme",
@@ -44,7 +44,7 @@ describe("buildGenerationPrompt", () => {
     expect(prompt.preview).toContain("Maria Souza");
     expect(prompt.preview).toContain("alagamentos recorrentes");
     expect(prompt.user).toContain("Pautas prioritarias");
-    expect(prompt.system).toContain("Gere exatamente 3 versoes");
+    expect(prompt.system).toContain("Gere exatamente 3 versões");
     expect(prompt.templateId).toBe(GENERATION_PROMPT_TEMPLATE_ID);
     expect(prompt.promptVersion).toBe(GENERATION_PROMPT_VERSION);
     expect(prompt.fingerprint.length).toBe(64);

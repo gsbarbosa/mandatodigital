@@ -89,7 +89,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             message: hasLegacyDataset
-              ? "A Argil nao aceita mais video de treino. Envie uma foto do rosto (PNG/JPEG) no slot de clone e clique em Treinar novamente."
+              ? "A Argil não aceita mais vídeo de treino. Envie uma foto do rosto (PNG/JPEG) no slot de clone e clique em Treinar novamente."
               : "Envie uma foto do rosto (PNG/JPEG) para treinar o avatar na Argil.",
           },
           { status: 400 },
@@ -135,13 +135,13 @@ export async function POST(request: Request) {
           return NextResponse.json({
             avatarReady: true,
             message:
-              "Voce ja tem um avatar pronto na Argil. Pode gerar videos direto. " +
+              "Você já tem um avatar pronto na Argil. Pode gerar vídeos direto. " +
               "Para treinar um rosto novo, exclua avatares antigos no painel da Argil (limite de 10).",
             avatar: existingAvatar,
           });
         }
       } catch {
-        // Avatar salvo invalido ou removido na Argil; segue fluxo de treino novo.
+        // Avatar salvo inválido ou removido na Argil; segue fluxo de treino novo.
       }
     }
 
@@ -261,8 +261,8 @@ export async function POST(request: Request) {
               training: recovered,
               avatar: existingAvatar,
               message:
-                "Limite de 10 avatares na Argil, mas reutilizamos o avatar ja treinado deste perfil. " +
-                "Voce pode gerar videos. Para um rosto novo, exclua avatares antigos em app.argil.ai.",
+                "Limite de 10 avatares na Argil, mas reutilizamos o avatar já treinado deste perfil. " +
+                "Você pode gerar vídeos. Para um rosto novo, exclua avatares antigos em app.argil.ai.",
             });
           }
         } catch {
@@ -305,7 +305,7 @@ export async function GET(request: Request) {
     if (!trainingId && profileId) {
       const dashboard = await repository.getDashboard();
       if (dashboard.profile?.id !== profileId) {
-        return NextResponse.json({ message: "Perfil nao autorizado." }, { status: 403 });
+        return NextResponse.json({ message: "Perfil não autorizado." }, { status: 403 });
       }
 
       const training = await avatarTrainingStorage.getLatestByProfileId(profileId);
@@ -322,7 +322,7 @@ export async function GET(request: Request) {
     const training = await avatarTrainingStorage.getById(trainingId);
 
     if (!training) {
-      return NextResponse.json({ message: "Treinamento nao encontrado." }, { status: 404 });
+      return NextResponse.json({ message: "Treinamento não encontrado." }, { status: 404 });
     }
 
     if (

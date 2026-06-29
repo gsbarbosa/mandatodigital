@@ -2,6 +2,7 @@ import { after, NextResponse } from "next/server";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { generateContentVariants } from "@/lib/llm";
+import { assertMandatorySetup } from "@/lib/product-setup-checklist";
 import { contentRequestInputSchema } from "@/lib/schemas";
 import {
   isJudgeEvaluationEnabled,
@@ -14,9 +15,14 @@ export async function POST(request: Request) {
 
     if (!dashboard.profile) {
       return NextResponse.json(
-        { message: "Crie e salve um perfil antes de gerar conteudo." },
+        { message: "Crie e salve um perfil antes de gerar conteúdo." },
         { status: 400 },
       );
+    }
+
+    const setup = assertMandatorySetup(dashboard.profile);
+    if (!setup.ok) {
+      return NextResponse.json({ message: setup.message }, { status: 403 });
     }
 
     const profile = dashboard.profile;
@@ -40,7 +46,7 @@ export async function POST(request: Request) {
             mode: "judge",
           });
         } catch {
-          // A avaliacao do core nao pode impactar a resposta principal do usuario.
+          // A avaliação do core não pode impactar a resposta principal do usuário.
         }
       });
     }

@@ -20,14 +20,14 @@ export type EvaluationJudgeOutcome = {
 };
 
 function joinList(items: string[]) {
-  return items.length ? items.join(", ") : "nao informado";
+  return items.length ? items.join(", ") : "não informado";
 }
 
 function renderCandidate(candidate: EvaluationCandidateInput) {
   return [
     `CandidateKey: ${candidate.candidateKey}`,
     `Provider: ${candidate.provider}`,
-    `Model: ${candidate.model || "nao informado"}`,
+    `Model: ${candidate.model || "não informado"}`,
     `PromptVersion: ${candidate.promptVersion}`,
     `TemplateId: ${candidate.templateId}`,
     `PromptPreview: ${candidate.promptPreview}`,
@@ -46,16 +46,16 @@ function buildJudgePrompt(
 ) {
   const singleCandidateMode = candidates.length === 1;
   const system = [
-    "Voce e um juiz editorial para comunicacao politica.",
+    "Você e um juiz editorial para comunicação política.",
     singleCandidateMode
-      ? "Avalie o candidato de geracao de conteudo para o briefing politico."
-      : "Compare candidatos de geracao de conteudo para o mesmo briefing politico.",
+      ? "Avalie o candidato de geração de conteúdo para o briefing político."
+      : "Compare candidatos de geração de conteúdo para o mesmo briefing político.",
     "Pontue cada candidato de 0 a 10 em todos os criterios informados.",
     `Use exatamente estes criterios: ${evaluationCriteria.join(", ")}.`,
-    "Nao invente contexto fora do que foi fornecido.",
+    "Não invente contexto fora do que foi fornecido.",
     "Se o texto violar redLines, penalize fortemente.",
-    "overall deve refletir a utilidade politica final do candidato.",
-    "Responda em JSON valido com as chaves winnerCandidateKey, winnerRecommendation, rationale, candidates e provider.",
+    "overall deve refletir a utilidade política final do candidato.",
+    "Responda em JSON válido com as chaves winnerCandidateKey, winnerRecommendation, rationale, candidates e provider.",
     "Cada item de candidates deve conter candidateKey, summary e scores.",
     "Cada item de scores deve conter criterion, score, rationale e verdict.",
   ].join(" ");
@@ -80,17 +80,17 @@ function buildJudgePrompt(
     `Objetivo: ${request.objective}`,
     `Formato: ${request.format}`,
     `Intensidade: ${request.intensity}`,
-    `Contexto adicional: ${request.context || "nao informado"}`,
+    `Contexto adicional: ${request.context || "não informado"}`,
     `Fatos confirmados: ${joinList(request.keyFacts)}`,
-    `CTA desejado: ${request.desiredCallToAction || "nao informado"}`,
+    `CTA desejado: ${request.desiredCallToAction || "não informado"}`,
     "",
     "Candidatos para comparar:",
     ...candidates.map(renderCandidate),
     "",
     "Regras de julgamento:",
-    "- aderencia_perfil_politico: o texto soa como esse politico e suas prioridades;",
+    "- aderencia_perfil_politico: o texto soa como esse político e suas prioridades;",
     "- adequacao_cargo_cidade_base: respeita cargo, cidade e base eleitoral;",
-    "- respeito_redlines: nao cruza linhas vermelhas nem inventa fatos;",
+    "- respeito_redlines: não cruza linhas vermelhas nem inventa fatos;",
     "- aderencia_objetivo_cta: persegue o objetivo e o CTA do briefing;",
     "- uso_keyfacts: usa ou respeita os fatos confirmados fornecidos;",
     "- adequacao_formato_intensidade: cabe no formato e intensidade pedidos;",
@@ -113,17 +113,17 @@ function validateCandidateCoverage(
   const receivedKeys = new Set(analysis.candidates.map((candidate) => candidate.candidateKey));
 
   if (expectedKeys.size !== receivedKeys.size) {
-    throw new Error("O juiz nao retornou todos os candidatos esperados.");
+    throw new Error("O juiz não retornou todos os candidatos esperados.");
   }
 
   for (const key of expectedKeys) {
     if (!receivedKeys.has(key)) {
-      throw new Error("O juiz nao retornou todos os candidatos esperados.");
+      throw new Error("O juiz não retornou todos os candidatos esperados.");
     }
   }
 
   if (!expectedKeys.has(analysis.winnerCandidateKey)) {
-    throw new Error("O juiz indicou um vencedor invalido.");
+    throw new Error("O juiz indicou um vencedor inválido.");
   }
 }
 
@@ -149,7 +149,7 @@ export async function evaluateGeneratedCandidates(
   });
 
   if (!execution.rawText || !execution.provider || !execution.model) {
-    throw new Error("O juiz LLM nao retornou resposta utilizavel.");
+    throw new Error("O juiz LLM não retornou resposta utilizavel.");
   }
 
   const parsed = parseJsonResponse<EvaluationJudgeResult>(execution.rawText);
@@ -159,7 +159,7 @@ export async function evaluateGeneratedCandidates(
   });
 
   if (!normalized.success) {
-    throw new Error("O juiz LLM retornou um payload invalido.");
+    throw new Error("O juiz LLM retornou um payload inválido.");
   }
 
   validateCandidateCoverage(candidates, normalized.data);

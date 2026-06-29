@@ -11,7 +11,7 @@ function parseServiceAccount(): ServiceAccount | null {
   try {
     return JSON.parse(raw) as ServiceAccount;
   } catch {
-    throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON invalido (esperado JSON).");
+    throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON inválido (esperado JSON).");
   }
 }
 
@@ -33,7 +33,7 @@ export function getFirebaseAdminApp(): App {
     return initializeApp();
   }
 
-  throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON nao configurado.");
+  throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON não configurado.");
 }
 
 export function getFirebaseAdminAuth(): Auth {

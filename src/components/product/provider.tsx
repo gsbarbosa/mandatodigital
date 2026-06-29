@@ -194,7 +194,7 @@ export function ProductAppProvider({
         };
 
         if (!response.ok) {
-          throw new Error(payload.message || "Nao foi possivel carregar as avaliacoes.");
+          throw new Error(payload.message || "Não foi possível carregar as avaliações.");
         }
 
         if (!isMounted) {
@@ -246,7 +246,7 @@ export function ProductAppProvider({
           ? ({ message: payload } satisfies ApiErrorPayload)
           : (payload as ApiErrorPayload | null);
       throw new Error(
-        formatApiError(apiErrorPayload ?? { message: "Falha na operacao." }),
+        formatApiError(apiErrorPayload ?? { message: "Falha na operação." }),
       );
     }
 
@@ -356,7 +356,7 @@ export function ProductAppProvider({
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Nao foi possivel salvar o perfil.";
+        error instanceof Error ? error.message : "Não foi possível salvar o perfil.";
       setErrorMessage(message);
       if (options?.throwOnError) {
         throw error instanceof Error ? error : new Error(message);
@@ -493,7 +493,7 @@ export function ProductAppProvider({
           : trainingRole === "avatar_image"
             ? "Foto para clone enviada."
             : trainingRole === "dataset"
-              ? "Video de treino enviado. Se necessario, sera comprimido automaticamente."
+              ? "Video de treino enviado. Se necessário, sera comprimido automaticamente."
               : "Asset de treinamento enviado.",
       );
 
@@ -502,7 +502,7 @@ export function ProductAppProvider({
       const message =
         error instanceof Error
           ? error.message
-          : "Nao foi possivel enviar os assets de treino.";
+          : "Não foi possível enviar os assets de treino.";
 
       if (options?.reportError === "throw") {
         throw new Error(message);
@@ -534,7 +534,7 @@ export function ProductAppProvider({
 
   async function generateContent() {
     if (!profile) {
-      setErrorMessage("Salve o perfil do parlamentar antes de gerar conteudo.");
+      setErrorMessage("Salve o perfil do parlamentar antes de gerar conteúdo.");
       return [];
     }
 
@@ -578,13 +578,13 @@ export function ProductAppProvider({
       setContents((current) => [...result.generatedContents, ...current]);
       setRequestForm(buildRequestState());
       setStatusMessage(
-        "Geracao concluida. Voce ja pode revisar, editar e aprovar a melhor versao.",
+        "Geração concluída. Você já pode revisar, editar e aprovar a melhor versão.",
       );
 
       return result.generatedContents;
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel gerar as versoes.",
+        error instanceof Error ? error.message : "Não foi possível gerar as versões.",
       );
       return [];
     } finally {
@@ -616,12 +616,12 @@ export function ProductAppProvider({
           item.id === result.generatedContent.id ? result.generatedContent : item,
         ),
       );
-      setStatusMessage("Conteudo atualizado e salvo no historico.");
+      setStatusMessage("Conteúdo atualizado e salvo no histórico.");
 
       return result.generatedContent;
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel atualizar o conteudo.",
+        error instanceof Error ? error.message : "Não foi possível atualizar o conteúdo.",
       );
       return null;
     } finally {
@@ -647,12 +647,12 @@ export function ProductAppProvider({
       );
 
       setFeedback((current) => [result.feedback, ...current]);
-      setStatusMessage("Feedback registrado para calibrar as proximas geracoes.");
+      setStatusMessage("Feedback registrado para calibrar as próximas gerações.");
 
       return result.feedback;
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel registrar o feedback.",
+        error instanceof Error ? error.message : "Não foi possível registrar o feedback.",
       );
       return null;
     }
@@ -687,7 +687,7 @@ export function ProductAppProvider({
       setProductFeedbacks((current) => [result.feedback, ...current]);
       setFeedbackWidgetOpen(true);
       setStatusMessage(
-        "Feedback analisado. A IA classificou a observacao e registrou o proximo passo sugerido.",
+        "Feedback analisado. A IA classificou a observação e registrou o próximo passo sugerido.",
       );
 
       return result.feedback;
@@ -695,7 +695,7 @@ export function ProductAppProvider({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Nao foi possivel analisar o feedback de produto.",
+          : "Não foi possível analisar o feedback de produto.",
       );
       return null;
     } finally {
@@ -713,7 +713,7 @@ export function ProductAppProvider({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Nao foi possivel carregar as avaliacoes do core.",
+          : "Não foi possível carregar as avaliações do core.",
       );
     } finally {
       setIsLoadingEvaluations(false);
@@ -742,7 +742,7 @@ export function ProductAppProvider({
         ]),
       );
       setStatusMessage(
-        "Avaliacao concluida. O juiz da LLM atribuiu nota e registrou o racional da execucao.",
+        "Avaliação concluída. O juiz da LLM atribuiu nota e registrou o racional da execução.",
       );
 
       return result.report;
@@ -750,7 +750,7 @@ export function ProductAppProvider({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Nao foi possivel avaliar a geracao selecionada.",
+          : "Não foi possível avaliar a geração selecionada.",
       );
       return null;
     } finally {

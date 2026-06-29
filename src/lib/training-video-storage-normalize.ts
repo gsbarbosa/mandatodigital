@@ -30,7 +30,7 @@ export async function normalizeDatasetVideoInStorage(input: {
 
   if (error || !data) {
     throw new Error(
-      `Nao foi possivel baixar o video de treino: ${error?.message ?? "arquivo vazio"}`,
+      `Não foi possível baixar o video de treino: ${error?.message ?? "arquivo vazio"}`,
     );
   }
 

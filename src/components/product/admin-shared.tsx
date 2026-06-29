@@ -19,7 +19,7 @@ export function EvaluationReportView({
     <div className="evaluation-report-card" data-testid="evaluation-report-card">
       <div className="feedback-drawer-header compact">
         <div>
-          <p className="eyebrow">Relatorio selecionado</p>
+          <p className="eyebrow">Relatório selecionado</p>
           <h3>Leitura do juiz da LLM</h3>
         </div>
       </div>
@@ -33,11 +33,11 @@ export function EvaluationReportView({
 
       <p className="feedback-line">
         <span>Modelo gerado:</span> {report.run.primaryProvider} /{" "}
-        {report.run.primaryModel || "nao informado"}
+        {report.run.primaryModel || "não informado"}
       </p>
       <p className="feedback-line">
-        <span>Juiz:</span> {report.run.judgeProvider || "nao informado"} /{" "}
-        {report.run.judgeModel || "nao informado"}
+        <span>Juiz:</span> {report.run.judgeProvider || "não informado"} /{" "}
+        {report.run.judgeModel || "não informado"}
       </p>
       <p className="feedback-line">
         <span>Recomendacao:</span>{" "}

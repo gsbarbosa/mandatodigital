@@ -33,6 +33,7 @@ Abra `http://localhost:3000`.
 - [Status de desenvolvimento (acompanhamento)](docs/status-desenvolvimento.md)
 - [Sentinela — guia de uso (passo a passo)](docs/sentinela.md)
 - [Plano roadmap Sentinela / Validador / MVP](docs/plano-roadmap-sentinel-auditor-mvp.md)
+- [Proposta navegação v2 — operação-first (com rollback)](docs/proposta-navegacao-v2.md)
 
 ## Deploy no Firebase App Hosting
 

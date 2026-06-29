@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       const profile = dashboard.profile;
 
       if (!profile) {
-        return NextResponse.json({ message: "Perfil nao encontrado." }, { status: 400 });
+        return NextResponse.json({ message: "Perfil não encontrado." }, { status: 400 });
       }
 
       const body = bodySchema.parse(await request.json());
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
           result: {
             verdict: "skipped",
             confidence: 0,
-            summary: "Prompt livre: fact-check nao aplicado nesta versao.",
+            summary: "Prompt livre: fact-check não aplicado nesta versão.",
             claims: [],
             sources: [],
             checkedAt: new Date().toISOString(),

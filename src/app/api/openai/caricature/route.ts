@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         message:
-          "OPENAI_API_KEY nao configurada no servidor. Adicione a chave nas variaveis da Vercel.",
+          "OPENAI_API_KEY não configurada no servidor. Adicione a chave nas variáveis da Vercel.",
       },
       { status: 503 },
     );
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
           return NextResponse.json(
             {
               message:
-                "Perfil nao encontrado. Salve o perfil e envie a foto antes de gerar.",
+                "Perfil não encontrado. Salve o perfil e envie a foto antes de gerar.",
             },
             { status: 400 },
           );
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
 
         const asset = created[0];
         if (!asset) {
-          throw new Error("Nao foi possivel registrar a caricatura gerada.");
+          throw new Error("Não foi possível registrar a caricatura gerada.");
         }
 
         const previewUrl = await getTrainingAssetPublicUrl(

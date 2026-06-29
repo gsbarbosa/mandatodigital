@@ -125,7 +125,7 @@ export function MockSocialProfileList({
   values: Array<{ network: string; handle: string }>;
   onChange: (values: Array<{ network: string; handle: string }>) => void;
   maxItems?: number;
-  /** Desabilita X/TikTok/YouTube enquanto pipeline social nao estiver ativo. */
+  /** Desabilita X/TikTok/YouTube enquanto pipeline social não estiver ativo. */
   instagramOnly?: boolean;
 }) {
   const networkOptions = [

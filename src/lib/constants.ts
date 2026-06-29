@@ -27,39 +27,39 @@ export function indexToSpectrum(index: number): SpectrumOption {
 }
 
 export const archetypeOptions = [
-  "O Estadista (Serio, Longo prazo)",
+  "O Estadista (Sério, Longo prazo)",
   "Homem do Povo (Empatia)",
   "O Xerife/Justiceiro (Ordem)",
-  "O Missionario (Moral/Costumes)",
-  "O Gestor/CEO (Eficiencia)",
+  "O Missionário (Moral/Costumes)",
+  "O Gestor/CEO (Eficiência)",
   "O Militante (Mobilizador)",
-  "O Professor (Didatico)",
-  "O Conciliador (Uniao/Pontes)",
+  "O Professor (Didático)",
+  "O Conciliador (União/Pontes)",
   "Agro/Regionalista (Interior)",
   "O Inovador/Digital (Tech)",
 ];
 
 export const voiceToneOptions = [
-  "Academico",
+  "Acadêmico",
   "Popular",
   "Indignado",
   "Conciliador",
   "Institucional",
-  "Tecnico/Exito",
-  "Didatico",
-  "Patriotico",
+  "Técnico/Êxito",
+  "Didático",
+  "Patriótico",
   "Agressivo",
   "Sofisticado",
   "Otimista",
   "Paternal/Maternal",
-  "Sarcastico/Ironico",
+  "Sarcástico/Irônico",
   "Motivacional",
   "Denuncista",
-  "Humoristico",
+  "Humorístico",
 ];
 
 export const avatarTypeOptions = [
-  "Meu Gemeo Digital",
+  "Meu Gêmeo Digital",
   "Minha Caricatura",
 ] as const;
 
@@ -68,8 +68,8 @@ export const defaultFormats: ContentFormat[] = [
   "Post Instagram",
   "Legenda Instagram",
   "Tweet/X",
-  "Resposta Rapida",
-  "Audio WhatsApp",
+  "Resposta Rápida",
+  "Áudio WhatsApp",
   "Discurso Curto",
 ];
 
@@ -80,19 +80,19 @@ export const defaultIntensities: IntensityLevel[] = [
 ];
 
 export const sampleIssueSuggestions = [
-  "Combate a corrupcao",
-  "Saude publica",
-  "Seguranca",
+  "Combate à corrupção",
+  "Saúde pública",
+  "Segurança",
   "Emprego e renda",
-  "Educacao basica",
+  "Educação básica",
   "Infraestrutura urbana",
-  "Liberdade economica",
-  "Defesa da familia",
+  "Liberdade econômica",
+  "Defesa da família",
 ];
 
 export const sampleValidationTopics = [
   "novo aumento no tempo de espera para consultas especializadas",
-  "alagamentos recorrentes apos chuva forte no centro da cidade",
+  "alagamentos recorrentes após chuva forte no centro da cidade",
   "projeto para reduzir burocracia de pequenos empreendedores",
 ];
 
@@ -103,151 +103,64 @@ export const socialNetworkOptions = [
   "YouTube",
 ] as const;
 
+/** Catálogo enxuto para configuração do radar (v2). Temas salvos fora da lista continuam válidos no perfil. */
 export const sentinelThemeGroups = [
   {
-    title: "Economia, Trabalho e Mercado",
+    title: "Saúde, educação e assistência",
     options: [
-      "Carga Tributaria",
-      "Reforma Fiscal",
-      "Desemprego",
-      "Inflacao e Precos",
-      "Empreendedorismo",
-      "Direito Trabalhista",
-      "Privatizacoes",
-      "Subsidios Estatais",
-      "Autonomia do Banco Central",
-      "Geracao de Renda",
-      "MEI e Simples Nacional",
-      "Contratos Publicos",
-    ],
-  },
-  {
-    title: "Seguranca, Justica e Combate ao Crime",
-    options: [
-      "Seguranca Publica",
-      "Combate a Corrupcao",
-      "Endurecimento de Penas",
-      "Maioridade Penal",
-      "Porte de Armas (CACs)",
-      "Combate ao Trafico",
-      "Sistema Prisional",
-      "Ressocializacao",
-      "Direitos Humanos",
-      "Protecao de Fronteiras",
-      "Valorizacao Policial",
-      "Cameras Corporais",
-    ],
-  },
-  {
-    title: "Meio Ambiente, Agro e Infraestrutura",
-    options: [
-      "Apoio ao Agronegocio",
-      "Transicao Energetica",
-      "Protecao de Biomas",
-      "Agricultura Familiar",
-      "Defensivos Agricolas",
-      "Demarcacao de Terras",
-      "Saneamento Basico",
-      "Mobilidade Urbana",
-      "Ferrovias e Portos",
-    ],
-  },
-  {
-    title: "Sociedade, Costumes e Pautas Morais",
-    options: [
-      "Valores Tradicionais",
-      "Protecao da Familia",
-      "Liberdade Religiosa",
-      "Combate ao Aborto",
-      "Direitos das Minorias",
-      "Ideologia de Genero",
-      "Cota Racial e Social",
-      "Direitos da Mulher",
-      "Legalizacao de Drogas",
-      "Defesa da Vida",
-      "Direitos LGBTQIA+",
-    ],
-  },
-  {
-    title: "Estado, Saude e Educacao",
-    options: [
-      "Saude Publica (SUS)",
-      "Educacao Basica",
-      "Educacao Superior",
+      "Saúde Pública (SUS)",
+      "Vacinação",
+      "Educação Básica",
+      "Piso Salarial",
       "Combate a Fome / Pobreza",
       "Programas Assistenciais",
-      "Homeschooling",
-      "Ensino Tecnico",
-      "Piso Salarial",
-      "Fila de Cirurgias",
-      "Vacinacao",
     ],
   },
   {
-    title: "Politica Externa, Tecnologia e Midia",
+    title: "Segurança, economia e gestão",
     options: [
-      "Relacoes Internacionais",
-      "Regulamentacao de Redes",
-      "Liberdade de Expressao",
-      "Soberania Nacional",
-      "Combate a Fake News",
-      "Ativismo Judicial (STF)",
-      "Fundao Eleitoral",
-      "Transparencia Gov.",
+      "Segurança Pública",
+      "Combate à Corrupção",
+      "Empreendedorismo",
+      "MEI e Simples Nacional",
+      "Inflação e Preços",
+      "Contratos Públicos",
+    ],
+  },
+  {
+    title: "Cidade e território",
+    options: [
+      "Saneamento Básico",
+      "Mobilidade Urbana",
+      "Apoio ao Agronegócio",
     ],
   },
 ] as const;
 
 export const oppositionThemeGroups = [
   {
-    title: "Economia, Trabalho e Mercado (Oposicao)",
+    title: "Responder com prioridade",
     options: [
-      "Carga Tributaria",
+      "Segurança Pública",
+      "Combate à Corrupção",
       "Reforma Fiscal",
-      "Desemprego",
-      "Inflacao e Precos",
-      "Empreendedorismo",
-      "Contratos Publicos",
-    ],
-  },
-  {
-    title: "Seguranca e Combate ao Crime (Oposicao)",
-    options: [
-      "Seguranca Publica",
-      "Combate a Corrupcao",
-      "Sistema Prisional",
-      "Cameras Corporais",
-    ],
-  },
-  {
-    title: "Meio Ambiente e Infraestrutura (Oposicao)",
-    options: [
-      "Apoio ao Agronegocio",
-      "Demarcacao de Terras",
-      "Saneamento Basico",
+      "Inflação e Preços",
+      "Educação Básica",
+      "Saúde Pública (SUS)",
+      "Contratos Públicos",
       "Mobilidade Urbana",
-    ],
-  },
-  {
-    title: "Sociedade, Saude e Educacao (Oposicao)",
-    options: [
-      "Ideologia de Genero",
-      "Direitos da Mulher",
-      "Saude Publica / Filas",
-      "Educacao Basica",
-      "Programas Assistenciais",
     ],
   },
 ] as const;
 
 export const avatarEmotionOptions = [
-  "Manter o estilo do video original",
+  "Manter o estilo do vídeo original",
   "Indignado",
   "Otimista",
-  "Triste / Empatico",
-  "Sobrio / Institucional",
+  "Triste / Empático",
+  "Sóbrio / Institucional",
   "Urgente",
-  "Sarcastico",
+  "Sarcástico",
   "Religioso / Sereno",
 ] as const;
 
@@ -255,27 +168,27 @@ export const avatarVoicePaceOptions = [
   "Manter velocidade original",
   "Muito Lenta (0.75x)",
   "Lenta (0.90x)",
-  "Padrao (1.00x)",
-  "Dinamica (1.15x)",
-  "Rapida (1.25x)",
-  "Muito Rapida (1.50x)",
+  "Padrão (1.00x)",
+  "Dinâmica (1.15x)",
+  "Rápida (1.25x)",
+  "Muito Rápida (1.50x)",
 ] as const;
 
 export const editingStyleOptions = [
   "Manter o formato original (Apenas legendas)",
-  "Retencao Alta",
-  "Documentario Curto",
+  "Retenção Alta",
+  "Documentário Curto",
   "Minimalista",
   "Entrevista / Podcast",
   "Storytelling",
-  "Reacao / Dueto",
+  "Reação / Dueto",
 ] as const;
 
 export const factCheckingSourceOptions = [
-  "Agencia Lupa",
+  "Agência Lupa",
   "Aos Fatos",
   "Fato ou Fake (G1)",
-  "Estadao Verifica",
+  "Estadão Verifica",
   "PolitiFact (Global)",
   "Projeto Comprova",
   "UOL Confere",
@@ -284,12 +197,12 @@ export const factCheckingSourceOptions = [
 ] as const;
 
 export const hardDataSourceOptions = [
-  "IBGE (Populacao/Censo)",
-  "IPEA (Pesquisa Economica)",
+  "IBGE (População/Censo)",
+  "IPEA (Pesquisa Econômica)",
   "Banco Central do Brasil",
-  "Portal da Transparencia",
+  "Portal da Transparência",
   "Tesouro Nacional",
-  "TSE (Eleicoes/Doacoes)",
+  "TSE (Eleições/Doações)",
   "DataSUS (Leitos/Vacinas)",
   "INEP (IDEB/ENEM)",
 ] as const;
@@ -299,7 +212,7 @@ export const distributionChannelOptions = [
   "X / Twitter (Threads)",
   "TikTok",
   "YouTube (Shorts)",
-  "Facebook (Pagina)",
+  "Facebook (Página)",
   "LinkedIn",
   "Threads",
   "WhatsApp (Grupos VIP)",
@@ -309,8 +222,8 @@ export const distributionChannelOptions = [
 
 export const distributionWindowOptions = [
   "Madrugada (00h-06h)",
-  "Manha (07h-11h)",
-  "Almoco (11h-14h)",
+  "Manhã (07h-11h)",
+  "Almoço (11h-14h)",
   "Tarde (14h-18h)",
   "Noite (18h-22h)",
   "Fim de Noite (22h-00h)",

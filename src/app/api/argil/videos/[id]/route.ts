@@ -32,7 +32,7 @@ export async function GET(
     const generation = await avatarVideoStorage.getById(id);
 
     if (!generation) {
-      return NextResponse.json({ message: "Geracao nao encontrada." }, { status: 404 });
+      return NextResponse.json({ message: "Geração não encontrada." }, { status: 404 });
     }
 
     const dashboard = await repository.getDashboard();
@@ -41,7 +41,7 @@ export async function GET(
       dashboard.profile?.id &&
       generation.profileId !== dashboard.profile.id
     ) {
-      return NextResponse.json({ message: "Geracao nao encontrada." }, { status: 404 });
+      return NextResponse.json({ message: "Geração não encontrada." }, { status: 404 });
     }
 
     if (

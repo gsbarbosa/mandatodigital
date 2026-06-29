@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildCreativeAiMetadata } from "@/lib/creative-ai-metadata";
 
 describe("creative-ai-metadata", () => {
-  it("marca conteudo como gerado por IA com versao do selo", () => {
+  it("marca conteúdo como gerado por IA com versao do selo", () => {
     const metadata = buildCreativeAiMetadata({
       factCheckVerdict: "verified",
       technologies: ["HeyGen", "OpenAI"],

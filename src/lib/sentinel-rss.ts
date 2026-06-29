@@ -28,7 +28,7 @@ const TITLE_STOP_WORDS = new Set([
   "com",
   "sem",
   "sobre",
-  "apos",
+  "após",
   "mais",
   "nova",
   "novo",
@@ -39,7 +39,7 @@ const TITLE_STOP_WORDS = new Set([
   "por",
   "sao",
   "ser",
-  "nao",
+  "não",
   "dia",
   "ano",
   "mes",
@@ -53,7 +53,7 @@ export function decodeXmlEntities(text: string) {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
+    .replace(/&após;/g, "'")
     .trim();
 }
 

@@ -3,9 +3,19 @@ export type AgentThemeId =
   | "curador"
   | "criativo"
   | "auditor"
-  | "distribuidor";
+  | "distribuidor"
+  | "inicio";
 
 export function resolveAgentThemeFromPathname(pathname: string): AgentThemeId {
+  if (pathname === "/inicio" || pathname.startsWith("/inicio/")) {
+    return "inicio";
+  }
+  if (pathname === "/onboarding" || pathname.startsWith("/onboarding/")) {
+    return "inicio";
+  }
+  if (pathname === "/configuracoes" || pathname.startsWith("/configuracoes/")) {
+    return "curador";
+  }
   if (pathname === "/sentinela" || pathname.startsWith("/sentinela/")) {
     return "sentinela";
   }

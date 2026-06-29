@@ -1,24 +1,27 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg: #020617;
-            --bg-panel: rgba(15, 23, 42, 0.9);
-            --bg-panel-soft: rgba(2, 6, 23, 0.6);
-            --text: #f8fafc;
+            --bg: #030712;
+            --bg-panel: rgba(17, 24, 39, 0.92);
+            --bg-panel-soft: rgba(3, 7, 18, 0.65);
+            --text: #f1f5f9;
             --text-muted: #cbd5e1;
             --text-faint: #94a3b8;
             --border: rgba(255, 255, 255, 0.1);
             --border-soft: rgba(255, 255, 255, 0.06);
-            --emerald: #10b981;
-            --emerald-bg: rgba(16, 185, 129, 0.1);
-            --blue: #3b82f6;
-            --blue-bg: rgba(59, 130, 246, 0.1);
-            --purple: #a855f7;
-            --purple-bg: rgba(168, 85, 247, 0.1);
-            --red: #ef4444;
-            --red-bg: rgba(239, 68, 68, 0.1);
-            --amber: #f59e0b;
-            --amber-bg: rgba(245, 158, 11, 0.1);
+            --brand: #0e9b72;
+            --brand-hover: #0b7f5e;
+            --brand-soft: rgba(14, 155, 114, 0.12);
+            --emerald: var(--brand);
+            --emerald-bg: var(--brand-soft);
+            --blue: #5b8def;
+            --blue-bg: rgba(91, 141, 239, 0.1);
+            --purple: #a78bfa;
+            --purple-bg: rgba(167, 139, 250, 0.1);
+            --red: #e8a0bf;
+            --red-bg: rgba(232, 160, 191, 0.1);
+            --amber: #d4a853;
+            --amber-bg: rgba(212, 168, 83, 0.1);
         }
 
         html { scroll-behavior: smooth; }
@@ -49,7 +52,7 @@
             position: fixed;
             top: -300px; right: -300px;
             width: 800px; height: 800px;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(14, 155, 114, 0.12) 0%, transparent 70%);
             z-index: -1;
             pointer-events: none;
         }
@@ -58,7 +61,7 @@
             position: fixed;
             bottom: -200px; left: -200px;
             width: 600px; height: 600px;
-            background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(167, 139, 250, 0.1) 0%, transparent 70%);
             z-index: -1;
             pointer-events: none;
         }
@@ -108,7 +111,7 @@
             transition: 0.2s;
             display: inline-flex; align-items: center; gap: 8px;
         }
-        .nav-cta:hover { background: #059669; transform: translateY(-1px); }
+        .nav-cta:hover { background: var(--brand-hover); transform: translateY(-1px); }
 
         @media(max-width: 800px) { .nav-links { display: none; } }
 
@@ -134,11 +137,11 @@
             h3 { font-size: 22px; }
         }
 
-        .gradient-emerald { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-        .gradient-blue { background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-        .gradient-purple { background: linear-gradient(135deg, #a855f7 0%, #c084fc 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-        .gradient-red { background: linear-gradient(135deg, #ef4444 0%, #f87171 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-        .gradient-amber { background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-emerald { background: linear-gradient(135deg, #0e9b72 0%, #34d399 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-blue { background: linear-gradient(135deg, #5b8def 0%, #93c5fd 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-purple { background: linear-gradient(135deg, #a78bfa 0%, #c4b5fd 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-red { background: linear-gradient(135deg, #e8a0bf 0%, #f9a8d4 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-amber { background: linear-gradient(135deg, #d4a853 0%, #fcd34d 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
         .tag-pill {
             display: inline-flex; align-items: center; gap: 8px;
@@ -147,7 +150,7 @@
             letter-spacing: 1.5px; text-transform: uppercase;
             margin-bottom: 24px;
             background: var(--emerald-bg); color: var(--emerald);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(14, 155, 114, 0.3);
         }
 
         .section-eyebrow {
@@ -199,13 +202,13 @@
             white-space: nowrap;
         }
         .btn-primary {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #0e9b72 0%, #0b7f5e 100%);
             color: var(--bg);
-            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);
+            box-shadow: 0 10px 30px rgba(14, 155, 114, 0.25);
         }
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 15px 40px rgba(14, 155, 114, 0.4);
         }
         .btn-secondary {
             background: rgba(255, 255, 255, 0.04);
@@ -240,7 +243,7 @@
         .hero-visual::before {
             content: '';
             position: absolute; top: 0; left: 0; right: 0; height: 3px;
-            background: linear-gradient(90deg, #10b981, #3b82f6, #a855f7, #ef4444, #f59e0b);
+            background: linear-gradient(90deg, #0e9b72, #5b8def, #a78bfa, #e8a0bf, #d4a853);
         }
         .hero-visual-header {
             font-size: 11px; font-weight: 700;
@@ -255,8 +258,8 @@
             animation: blink 1.6s ease infinite;
         }
         @keyframes blink {
-            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
-            70% { opacity: 0.5; box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(14, 155, 114, 0.6); }
+            70% { opacity: 0.5; box-shadow: 0 0 0 8px rgba(14, 155, 114, 0); }
         }
         .timeline-mock {
             position: relative;
@@ -292,7 +295,7 @@
             margin-top: 14px;
             padding: 12px 16px;
             background: var(--emerald-bg);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(14, 155, 114, 0.3);
             border-radius: 10px;
             font-size: 13px; font-weight: 700;
             color: var(--emerald);
@@ -518,7 +521,7 @@
         }
         .compare-side.good {
             border-left: 3px solid var(--emerald);
-            background: rgba(16, 185, 129, 0.03);
+            background: rgba(14, 155, 114, 0.03);
         }
         .compare-label {
             font-size: 11px; font-weight: 800;
@@ -559,7 +562,7 @@
         /* NUMBERS / PROOF */
         .numbers {
             background:
-                radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 60%);
+                radial-gradient(circle at 50% 0%, rgba(14, 155, 114, 0.08) 0%, transparent 60%);
         }
         .numbers-grid {
             display: grid;
@@ -584,7 +587,7 @@
         }
         .number-card:hover {
             transform: translateY(-4px);
-            border-color: rgba(16, 185, 129, 0.3);
+            border-color: rgba(14, 155, 114, 0.3);
         }
         .number-card .big {
             font-size: 56px; font-weight: 800;
@@ -653,7 +656,7 @@
             display: inline-flex; align-items: center; gap: 12px;
             padding: 14px 22px;
             background: var(--emerald-bg);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            border: 1px solid rgba(14, 155, 114, 0.3);
             border-radius: 30px;
             margin-top: 30px;
             font-size: 14px;
@@ -694,7 +697,7 @@
             transition: 0.2s;
         }
         .faq-item.open {
-            border-color: rgba(16, 185, 129, 0.3);
+            border-color: rgba(14, 155, 114, 0.3);
         }
         .faq-question {
             padding: 22px 24px;
@@ -726,7 +729,7 @@
         /* FINAL CTA */
         .final-cta {
             background:
-                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.15) 0%, transparent 60%);
+                radial-gradient(circle at 50% 50%, rgba(14, 155, 114, 0.15) 0%, transparent 60%);
             text-align: center;
             border-top: 1px solid var(--border);
         }

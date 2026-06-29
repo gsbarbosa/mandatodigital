@@ -128,7 +128,7 @@ export function pickCuradorVideoContext(
   return context;
 }
 
-/** Indica se ha dados de mandato uteis fora do escopo do Curador (nao entram no prompt de video). */
+/** Indica se ha dados de mandato uteis fora do escopo do Curador (não entram no prompt de video). */
 export function hasNonCuradorProfileData(profile?: PoliticianProfile | null) {
   if (!profile) {
     return false;
@@ -221,13 +221,13 @@ export function buildAvatarVideoPrompt(
     );
   } else {
     systemParts.push(
-      "Glossario de Expressoes Pessoais: Caso nao contenha expressoes no glossario, ignore esta regra.",
+      "Glossario de Expressoes Pessoais: Caso não contenha expressoes no glossario, ignore esta regra.",
     );
   }
 
   systemParts.push(
     "Formato: O texto sera lido por um avatar de IA. Escreva APENAS o que sera falado, sem marcacoes de cenario, sem emojis e sem introducoes como \"Aqui esta o roteiro\".",
-    "Nao use palavras excessivamente complexas ou rebuscadas; a fala deve soar como um ser humano conversando de frente para a camera.",
+    "Não use palavras excessivamente complexas ou rebuscadas; a fala deve soar como um ser humano conversando de frente para a camera.",
     "Pausas: Onde for necessaria uma pausa dramatica para respiracao, insira o simbolo \"...\" (reticencias).",
   );
 

@@ -19,7 +19,7 @@ describe("resolveHeyGenAvatarConsentLink", () => {
     vi.mocked(heygenGetAvatarGroup).mockReset();
   });
 
-  it("nao solicita link quando consentimento ja esta aprovado", async () => {
+  it("não solicita link quando consentimento ja esta aprovado", async () => {
     const result = await resolveHeyGenAvatarConsentLink({
       groupId: "group-1",
       consentStatus: "completed",

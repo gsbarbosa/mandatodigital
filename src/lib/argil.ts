@@ -72,7 +72,7 @@ function assertResolvableArgilAvatarId(avatarId: string, dryRun: boolean) {
 
   if (!isValidArgilUuid(avatarId)) {
     throw new Error(
-      `Avatar Argil invalido (${avatarId}). Treine o clone novamente no Curador para obter um ID valido.`,
+      `Avatar Argil inválido (${avatarId}). Treine o clone novamente no Curador para obter um ID válido.`,
     );
   }
 }
@@ -175,7 +175,7 @@ export function formatArgilApiError(path: string, status: number, rawBody: strin
   ) {
     return (
       "Limite de avatares na Argil atingido (maximo 10). " +
-      "Exclua avatares de teste no painel da Argil (app.argil.ai) ou reutilize o avatar ja treinado deste perfil. " +
+      "Exclua avatares de teste no painel da Argil (app.argil.ai) ou reutilize o avatar já treinado deste perfil. " +
       "Depois clique em Treinar novamente."
     );
   }
@@ -190,7 +190,7 @@ export function formatArgilApiError(path: string, status: number, rawBody: strin
       return `Argil ${path} falhou (${status}): ${apiMessage.trim()}`;
     }
   } catch {
-    // Corpo nao-JSON: usa texto bruto abaixo.
+    // Corpo não-JSON: usa texto bruto abaixo.
   }
 
   const compact = rawBody.replace(/\s+/g, " ").trim();
@@ -212,7 +212,7 @@ async function argilFetch<T>(
   const config = getArgilConfig();
 
   if (!config.apiKey) {
-    throw new Error("ARGIL_API_KEY nao configurado.");
+    throw new Error("ARGIL_API_KEY não configurado.");
   }
 
   const response = await fetch(`${config.baseUrl}${path}`, {
@@ -275,7 +275,7 @@ export async function argilCreateVoiceFromAudio(
   }
 
   if (!config.dryRun && !config.apiKey) {
-    throw new Error("ARGIL_API_KEY nao configurado.");
+    throw new Error("ARGIL_API_KEY não configurado.");
   }
 
   const headers = config.apiKey
@@ -332,7 +332,7 @@ export async function argilCreateAvatarFromImage(
   }
 
   if (!config.dryRun && !config.apiKey) {
-    throw new Error("ARGIL_API_KEY nao configurado.");
+    throw new Error("ARGIL_API_KEY não configurado.");
   }
 
   const headers = config.apiKey
@@ -397,7 +397,7 @@ export async function argilCreateAndRenderVideo(
   }
 
   if (!config.dryRun && !config.apiKey) {
-    throw new Error("ARGIL_API_KEY nao configurado.");
+    throw new Error("ARGIL_API_KEY não configurado.");
   }
 
   assertResolvableArgilAvatarId(config.avatarId, config.dryRun);
@@ -405,7 +405,7 @@ export async function argilCreateAndRenderVideo(
   const avatar = await argilGetAvatar(config.avatarId);
   if (avatar.status !== "IDLE" && !config.dryRun) {
     throw new Error(
-      `Avatar Argil indisponivel (status ${avatar.status}). Treine o avatar antes de gerar videos.`,
+      `Avatar Argil indisponível (status ${avatar.status}). Treine o avatar antes de gerar videos.`,
     );
   }
 
@@ -469,7 +469,7 @@ export function mapArgilVideoToGenerationUpdate(video: ArgilVideo) {
     previewUrl: video.previewUrl ?? "",
     videoUrl: video.videoUrl ?? "",
     videoUrlSubtitled: video.videoUrlSubtitled ?? "",
-    errorMessage: video.status === "FAILED" ? "Geracao falhou na Argil." : "",
+    errorMessage: video.status === "FAILED" ? "Geração falhou na Argil." : "",
   };
 }
 

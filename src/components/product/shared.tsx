@@ -135,7 +135,7 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     referenceExamples: toTextarea(data?.referenceExamples ?? []),
     bio:
       data?.bio ??
-      "Mandato focado em entregas concretas, linguagem clara e defesa consistente das pautas prioritarias.",
+      "Mandato focado em entregas concretas, linguagem clara e defesa consistente das pautas prioritárias.",
     personaArchetypes:
       data?.personaArchetypes?.length
         ? data.personaArchetypes
@@ -158,7 +158,7 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
     argilVoiceId: data?.argilVoiceId ?? "",
     avatarTrainingStatus: data?.avatarTrainingStatus ?? "",
     notificationEmail: data?.notificationEmail ?? "",
-    avatarEmotions: data?.avatarEmotions ?? ["Manter o estilo do video original"],
+    avatarEmotions: data?.avatarEmotions ?? ["Manter o estilo do vídeo original"],
     voicePace: data?.voicePace ?? avatarVoicePaceOptions[0],
     editingStyles: data?.editingStyles ?? ["Manter o formato original (Apenas legendas)"],
     factCheckingSources: data?.factCheckingSources ?? [],
@@ -265,8 +265,8 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Sentinela",
     subtitle: "Radar e sinais",
     description:
-      "Camada de captura de temas, oposicao, perfis e portais monitorados. Interface em demonstracao com dados simulados.",
-    inputLabel: "Temas de interesse, oposicao, perfis sociais, portais e sinais do time.",
+      "Camada de captura de temas, oposição, perfis e portais monitorados. Interface em demonstração com dados simulados.",
+    inputLabel: "Temas de interesse, oposição, perfis sociais, portais e sinais do time.",
     outputLabel: "Radar priorizado que alimenta Curador e Criativo.",
     status: "ativo",
   },
@@ -276,53 +276,53 @@ export const workflowStages: WorkflowStageDefinition[] = [
     title: "Curador",
     subtitle: "Identidade e framing",
     description:
-      "Aqui o sistema organiza identidade politica, tom e contexto para transformar uma necessidade em briefing editorial acionavel.",
-    inputLabel: "Perfil do parlamentar, contexto politico e direcionamento do time.",
-    outputLabel: "Briefing editorial pronto para a geracao criativa.",
+      "Aqui o sistema organiza identidade política, tom e contexto para transformar uma necessidade em briefing editorial acionável.",
+    inputLabel: "Perfil do parlamentar, contexto político e direcionamento do time.",
+    outputLabel: "Briefing editorial pronto para a geração criativa.",
     status: "ativo",
   },
   {
     id: "criativo",
     menuLabel: "Criativo",
     title: "Criativo",
-    subtitle: "Geracao de pecas",
+    subtitle: "Geração de peças",
     description:
-      "O motor criativo gera roteiros curtos e organiza preferencias de avatar digital e edicao para a saida audiovisual do mandato.",
-    inputLabel: "Briefing editorial, tema do dia, CTA e preferencias criativas.",
-    outputLabel: "Rascunhos de roteiro candidatos para revisao humana.",
+      "O motor criativo gera roteiros curtos e organiza preferências de avatar digital e edição para a saída audiovisual do mandato.",
+    inputLabel: "Briefing editorial, tema do dia, CTA e preferências criativas.",
+    outputLabel: "Rascunhos de roteiro candidatos para revisão humana.",
     status: "ativo",
   },
   {
     id: "auditor",
     menuLabel: "Auditor",
     title: "Auditor",
-    subtitle: "Revisao e qualidade",
+    subtitle: "Revisão e qualidade",
     description:
-      "Fase de lapidacao humana e conferencias de fonte. Interface em demonstracao com fila simulada de auditoria.",
-    inputLabel: "Roteiros gerados, prompt usado, fontes e observacoes do time.",
-    outputLabel: "Conteudo aprovado com gate editorial e trilha de revisao.",
+      "Fase de lapidação humana e conferências de fonte. Interface em demonstração com fila simulada de auditoria.",
+    inputLabel: "Roteiros gerados, prompt usado, fontes e observações do time.",
+    outputLabel: "Conteúdo aprovado com gate editorial e trilha de revisão.",
     status: "ativo",
   },
   {
     id: "distribuidor",
     menuLabel: "Distribuidor",
     title: "Distribuidor",
-    subtitle: "Entrega e publicacao",
+    subtitle: "Entrega e publicação",
     description:
-      "Camada operacional para definir canais, janelas e handoff de publicacao. Interface em demonstracao com fila simulada.",
-    inputLabel: "Conteudo aprovado, canais habilitados e janelas autorizadas.",
-    outputLabel: "Pacote de distribuicao pronto para publicar.",
+      "Camada operacional para definir canais, janelas e handoff de publicação. Interface em demonstração com fila simulada.",
+    inputLabel: "Conteúdo aprovado, canais habilitados e janelas autorizadas.",
+    outputLabel: "Pacote de distribuição pronto para publicar.",
     status: "ativo",
   },
   {
     id: "admin",
     menuLabel: "Admin",
     title: "Admin",
-    subtitle: "Governanca do sistema",
+    subtitle: "Governança do sistema",
     description:
-      "Area visivel para todos por enquanto, concentrando feedbacks do produto, avaliacoes do core da LLM e leitura operacional do MVP.",
-    inputLabel: "Logs de avaliacao, feedbacks de uso e execucoes do pipeline.",
-    outputLabel: "Decisoes sobre prompt, modelo, backlog e qualidade operacional.",
+      "Area visivel para todos por enquanto, concentrando feedbacks do produto, avaliações do core da LLM e leitura operacional do MVP.",
+    inputLabel: "Logs de avaliação, feedbacks de uso e execuções do pipeline.",
+    outputLabel: "Decisões sobre prompt, modelo, backlog e qualidade operacional.",
     status: "aberto",
   },
 ];
@@ -332,52 +332,52 @@ export const workflowStageById = Object.fromEntries(
 ) as Record<Exclude<DashboardSectionId, "overview">, WorkflowStageDefinition>;
 
 const fieldLabels: Record<string, string> = {
-  fullName: "Nome publico",
-  role: "Cargo / posicao",
+  fullName: "Nome público",
+  role: "Cargo / posição",
   city: "Cidade",
   state: "UF",
-  audience: "Eleitorado prioritario",
-  spectrum: "Espectro politico",
+  audience: "Eleitorado prioritário",
+  spectrum: "Espectro político",
   archetype: "Arquetipo dominante",
   voiceTones: "Tons de voz",
-  keyIssues: "Pautas prioritarias",
+  keyIssues: "Pautas prioritárias",
     sentinelThemes: "Temas de interesse",
-    oppositionThemes: "Temas da oposicao",
+    oppositionThemes: "Temas da oposição",
     customRadarThemes: "Temas personalizados",
     interestProfiles: "Perfis de interesse",
     interestSites: "Portais monitorados",
-    oppositionProfiles: "Perfis da oposicao",
-    oppositionSites: "Portais da oposicao",
+    oppositionProfiles: "Perfis da oposição",
+    oppositionSites: "Portais da oposição",
   slogans: "Bordoes / assinaturas",
-    glossaryTerms: "Glossario pessoal",
+    glossaryTerms: "Glossário pessoal",
     trainingReferenceLinks: "Base de treino",
     youtubeVideoUrl: "URL do YouTube",
     avatarType: "Tipo de avatar",
-    avatarVideoTopic: "Tema do video",
+    avatarVideoTopic: "Tema do vídeo",
     notificationEmail: "Seu e-mail",
     personaArchetypes: "Arquetipos de persona",
-    avatarEmotions: "Emocao do avatar",
+    avatarEmotions: "Emoção do avatar",
     voicePace: "Velocidade da voz",
-    editingStyles: "Estilos de edicao",
-    factCheckingSources: "Agencias de checagem",
+    editingStyles: "Estilos de edição",
+    factCheckingSources: "Agências de checagem",
     hardDataSources: "Bases governamentais",
-    distributionChannels: "Canais de distribuicao",
+    distributionChannels: "Canais de distribuição",
     distributionWindows: "Janelas de disparo",
-    autoPublish: "Aprovacao automatica",
+    autoPublish: "Aprovação automática",
   redLines: "Linhas vermelhas",
-  referenceExamples: "Exemplos de fala / referencia",
+  referenceExamples: "Exemplos de fala / referência",
   bio: "Resumo da identidade",
   topic: "Tema do dia",
-  objective: "Objetivo da peca",
+  objective: "Objetivo da peça",
   format: "Formato",
   intensity: "Intensidade",
   context: "Contexto adicional",
   keyFacts: "Fatos confirmados",
   desiredCallToAction: "CTA desejado",
-    mandatoryTerms: "Palavras obrigatorias",
+    mandatoryTerms: "Palavras obrigatórias",
   screen: "Tela / fluxo",
   workedWell: "O que funcionou bem",
-  issueObserved: "O que nao funcionou / observacao",
+  issueObserved: "O que não funcionou / observação",
 };
 
 const productFeedbackLabelMap: Record<ProductFeedback["classification"], string> = {
@@ -391,18 +391,18 @@ const productFeedbackCriticalityLabelMap: Record<
   string
 > = {
   alta: "Alta",
-  media: "Media",
+  media: "Média",
   baixa: "Baixa",
 };
 
 export const evaluationCriterionLabelMap: Record<EvaluationCriterion, string> = {
-  aderencia_perfil_politico: "Aderencia ao perfil politico",
+  aderencia_perfil_politico: "Aderência ao perfil político",
   adequacao_cargo_cidade_base: "Cargo, cidade e base",
   respeito_redlines: "Respeito as redLines",
   aderencia_objetivo_cta: "Objetivo e CTA",
   uso_keyfacts: "Uso de keyFacts",
   adequacao_formato_intensidade: "Formato e intensidade",
-  clareza_utilidade_politica: "Clareza e utilidade politica",
+  clareza_utilidade_politica: "Clareza e utilidade política",
   overall: "Nota final",
 };
 
@@ -414,7 +414,7 @@ export const evaluationModeLabelMap: Record<EvaluationReport["run"]["mode"], str
 
 const evaluationStatusLabelMap: Record<EvaluationReport["run"]["status"], string> = {
   pending: "Em andamento",
-  completed: "Concluido",
+  completed: "Concluído",
   failed: "Falhou",
 };
 
@@ -422,7 +422,7 @@ const workflowStageStatusLabelMap: Record<WorkflowStageStatus, string> = {
   ativo: "Ativo no MVP",
   parcial: "Parcial no MVP",
   planejado: "Planejado",
-  aberto: "Visivel para todos",
+  aberto: "Visível para todos",
 };
 
 export function formatApiError(payload: ApiErrorPayload) {
@@ -439,7 +439,7 @@ export function formatApiError(payload: ApiErrorPayload) {
     return [...fieldErrors, ...formErrors].join(" | ");
   }
 
-  return payload.message || "Falha na operacao.";
+  return payload.message || "Falha na operação.";
 }
 
 export function SectionCard({

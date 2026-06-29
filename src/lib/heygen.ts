@@ -128,7 +128,7 @@ export async function heygenUploadAsset(input: {
   const apiKey = resolveHeyGenApiKeyForFetch();
   if (!apiKey) {
     throw new Error(
-      "Servico de geracao de video indisponivel. Tente novamente mais tarde.",
+      "Servico de geração de video indisponível. Tente novamente mais tarde.",
     );
   }
 
@@ -166,7 +166,7 @@ export async function heygenUploadAsset(input: {
     payload.data?.asset_id?.trim() || payload.data?.id?.trim() || "";
 
   if (!assetId) {
-    throw new Error("Resposta invalida da HeyGen: asset_id ausente.");
+    throw new Error("Resposta inválida da HeyGen: asset_id ausente.");
   }
 
   return {
@@ -197,7 +197,7 @@ export async function heygenCreatePhotoAvatar(input: {
 
   const avatarId = response.data?.avatar_item?.id?.trim();
   if (!avatarId) {
-    throw new Error("Resposta invalida da HeyGen: avatar_id ausente.");
+    throw new Error("Resposta inválida da HeyGen: avatar_id ausente.");
   }
 
   return { avatarId, raw: response };
@@ -224,7 +224,7 @@ export async function heygenCreateDigitalTwin(input: {
   const groupId = response.data?.avatar_group?.id?.trim();
 
   if (!avatarId || !groupId) {
-    throw new Error("Resposta invalida da HeyGen: avatar_id/group_id ausente.");
+    throw new Error("Resposta inválida da HeyGen: avatar_id/group_id ausente.");
   }
 
   return { avatarId, groupId, raw: response };
@@ -249,7 +249,7 @@ export async function heygenCreateAvatarConsent(input: {
 
   const url = response.data?.url?.trim();
   if (!url) {
-    throw new Error("Resposta invalida da HeyGen: URL de consentimento ausente.");
+    throw new Error("Resposta inválida da HeyGen: URL de consentimento ausente.");
   }
 
   return { consentUrl: url, raw: response };
@@ -402,7 +402,7 @@ export async function heygenCloneVoice(input: { voiceName: string; audio: HeyGen
     "";
 
   if (!voiceId) {
-    throw new Error("Resposta invalida da HeyGen: voice_id ausente.");
+    throw new Error("Resposta inválida da HeyGen: voice_id ausente.");
   }
 
   return { voiceId, raw: response };
@@ -447,7 +447,7 @@ export async function heygenListVoices(input?: {
   });
 }
 
-/** Lista todos os clones privados (paginado). A API HeyGen nao expoe DELETE de voz. */
+/** Lista todos os clones privados (paginado). A API HeyGen não expoe DELETE de voz. */
 export async function heygenListAllPrivateVoices() {
   const voices: HeyGenVoiceListItem[] = [];
   let token: string | undefined;
@@ -520,7 +520,7 @@ export async function heygenGetVoiceReadiness(voiceId: string): Promise<HeyGenVo
     }
     if (message.toLowerCase().includes("unauthorized")) {
       throw new Error(
-        "Chave da API invalida para esta conta. Remova a chave de teste no painel ou atualize-a.",
+        "Chave da API inválida para esta conta. Remova a chave de teste no painel ou atualize-a.",
       );
     }
     throw error;
@@ -551,7 +551,7 @@ export async function heygenWaitForVoiceReady(
       );
     }
     if (readiness === "missing") {
-      throw new Error("A voz clonada nao foi encontrada na plataforma.");
+      throw new Error("A voz clonada não foi encontrada na plataforma.");
     }
 
     await sleep(intervalMs);
@@ -615,7 +615,7 @@ export async function heygenCreateVideo(input: {
 
   const videoId = response.data?.video_id?.trim();
   if (!videoId) {
-    throw new Error("Resposta invalida da HeyGen: video_id ausente.");
+    throw new Error("Resposta inválida da HeyGen: video_id ausente.");
   }
 
   return { videoId, raw: response };
@@ -648,7 +648,7 @@ export async function heygenCreateVideoFromImage(input: {
 
   const videoId = response.data?.video_id?.trim();
   if (!videoId) {
-    throw new Error("Resposta invalida da HeyGen: video_id ausente.");
+    throw new Error("Resposta inválida da HeyGen: video_id ausente.");
   }
 
   return { videoId, raw: response };

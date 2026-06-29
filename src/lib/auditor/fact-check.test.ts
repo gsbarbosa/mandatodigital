@@ -8,7 +8,7 @@ describe("rate-limit", () => {
     resetRateLimitBuckets();
   });
 
-  it("bloqueia apos atingir o limite na janela", () => {
+  it("bloqueia após atingir o limite na janela", () => {
     const now = 1_000_000;
     const first = checkRateLimit({ key: "user-1", max: 2, windowMs: 60_000, now });
     const second = checkRateLimit({ key: "user-1", max: 2, windowMs: 60_000, now: now + 1 });

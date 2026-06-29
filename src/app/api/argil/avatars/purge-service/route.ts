@@ -22,7 +22,7 @@ function isAuthorized(request: Request) {
 export async function POST(request: Request) {
   try {
     if (!isAuthorized(request)) {
-      return NextResponse.json({ message: "Nao autorizado." }, { status: 401 });
+      return NextResponse.json({ message: "Não autorizado." }, { status: 401 });
     }
 
     const body = (await request.json().catch(() => ({}))) as { confirm?: boolean };
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     if (!isAuthorized(request)) {
-      return NextResponse.json({ message: "Nao autorizado." }, { status: 401 });
+      return NextResponse.json({ message: "Não autorizado." }, { status: 401 });
     }
 
     const { listPrivateArgilAvatars } = await import("@/lib/argil-avatar-purge");

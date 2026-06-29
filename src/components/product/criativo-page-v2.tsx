@@ -29,17 +29,20 @@ import {
   avatarTypeToTrack,
   buildCuradorContextPayload,
   countWords,
+  defaultAvatarTrack,
   formatStatus,
   parseJsonOrText,
   productionTemplateDescription,
   productionTemplateLabel,
   productionTemplateTier,
+  resolveAvatarTrackWhenTwinHidden,
   selectSingleTagValue,
   type AvatarTrack,
   type PrivateTwinLook,
   type ProductionSource,
   type ProductionTemplate,
 } from "@/components/product/persona-shared";
+import { PersonaSectionHeader } from "@/components/product/persona-section-header";
 import {
   formatProviderLimitHint,
   readCuradorHeygenPrefs,
@@ -66,11 +69,14 @@ import { resolveCreativeProjectTopicForSave } from "@/lib/creative-project-displ
 import { buildCreativeAiMetadata } from "@/lib/creative-ai-metadata";
 import { fetchHeyGenConsentLink } from "@/lib/heygen-consent-client";
 import { fetchHeygenApi } from "@/lib/heygen-client-override";
+import { isHeygenDigitalTwinEnabled } from "@/lib/feature-flags";
 import { SentinelContextPreview } from "@/components/product/sentinel-suggestion-row";
 import {
   SCRIPT_EDIT_CONSENT_TEXT,
   useScriptFactCheck,
 } from "@/components/product/use-script-fact-check";
+import { SetupRequiredNotice } from "@/components/product/setup-required-notice";
+import { useMandatorySetupGate } from "@/components/product/use-mandatory-setup-gate";
 import {
   buildSentinelBriefingForCriativo,
   type MockSentinelSuggestion,
@@ -101,8 +107,10 @@ const EMPTY_CREATIVE_FORM: CreativeFormState = {
 function getCriativoGateReason(input: {
   spectrum: string;
   hasVoiceAudio: boolean;
+  hasPhoto: boolean;
   twinReady: boolean;
   hasCaricaturePair: boolean;
+  digitalTwinEnabled: boolean;
 }): string | null {
   if (!input.spectrum.trim()) {
     return "Defina o posicionamento ideológico no Curador.";
@@ -110,8 +118,13 @@ function getCriativoGateReason(input: {
   if (!input.hasVoiceAudio) {
     return "Envie o áudio de voz no Curador.";
   }
-  if (!input.twinReady && !input.hasCaricaturePair) {
-    return "Prepare o gêmeo digital ou as caricaturas no Curador.";
+  const avatarReady = input.digitalTwinEnabled
+    ? input.twinReady || input.hasCaricaturePair
+    : input.hasPhoto || input.hasCaricaturePair;
+  if (!avatarReady) {
+    return input.digitalTwinEnabled
+      ? "Prepare o gêmeo digital ou as caricaturas no Curador."
+      : "Envie foto e áudio no Curador para preparar avatares por foto.";
   }
   return null;
 }
@@ -119,6 +132,8 @@ function getCriativoGateReason(input: {
 export function CriativoPageV2() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const digitalTwinEnabled = isHeygenDigitalTwinEnabled();
+  const { canGenerateContent, setupHref, blockMessage } = useMandatorySetupGate();
   const [creativeForm, setCreativeForm] = useState<CreativeFormState>(EMPTY_CREATIVE_FORM);
   const [sentinelSuggestion, setSentinelSuggestion] =
     useState<MockSentinelSuggestion | null>(null);
@@ -130,7 +145,7 @@ export function CriativoPageV2() {
   const [heygenVoiceId, setHeygenVoiceId] = useState<string>("");
   const [heygenConsentUrl, setHeygenConsentUrl] = useState<string>("");
   const [selectedCaricatureAssetId, setSelectedCaricatureAssetId] = useState<string>("");
-  const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>("realistic");
+  const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>(defaultAvatarTrack());
   const [productionSource, setProductionSource] = useState<ProductionSource>("train_new");
   const restoredHeygenPrefsRef = useRef(false);
   const [trainingStarted, setTrainingStarted] = useState(false);
@@ -179,7 +194,6 @@ export function CriativoPageV2() {
   const twinPollActiveRef = useRef(false);
   const autoSyncTwinOnLoadRef = useRef(false);
   const [isPollingTwinTraining, setIsPollingTwinTraining] = useState(false);
-  const [twinPreviewOpen, setTwinPreviewOpen] = useState(false);
 
   const {
     profile,
@@ -467,6 +481,9 @@ export function CriativoPageV2() {
 
   function selectProductionTemplate(template: ProductionTemplate) {
     if (template === "digital_twin") {
+      if (!digitalTwinEnabled) {
+        return;
+      }
       selectAvatarTrack("realistic");
       persistHeygenPrefs({ avatarTrack: "realistic" });
       return;
@@ -546,7 +563,7 @@ export function CriativoPageV2() {
       }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel consultar o status do video.");
+        throw new Error(payload.message || "Não foi possível consultar o status do vídeo.");
       }
 
       setVideoStatus(payload.status ?? null);
@@ -556,7 +573,7 @@ export function CriativoPageV2() {
       if (payload.status === "failed") {
         throw new Error(
           sanitizeProviderFacingMessage(
-            payload.errorMessage || "A geracao do video falhou.",
+            payload.errorMessage || "A geração do vídeo falhou.",
           ),
         );
       }
@@ -572,7 +589,7 @@ export function CriativoPageV2() {
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
 
-    throw new Error("O video ainda esta em processamento. Atualize a pagina em alguns minutos.");
+    throw new Error("O vídeo ainda está em processamento. Atualize a página em alguns minutos.");
   }
 
   async function persistCreativeProject(input: {
@@ -613,7 +630,7 @@ export function CriativoPageV2() {
 
     const payload = await parseJsonOrText<{ message?: string }>(response);
     if (!response.ok) {
-      throw new Error(payload.message || "Nao foi possivel salvar o criativo.");
+      throw new Error(payload.message || "Não foi possível salvar o criativo.");
     }
   }
 
@@ -621,7 +638,7 @@ export function CriativoPageV2() {
     setScriptError(null);
     const topic = creativeForm.topic.trim();
     if (!topic) {
-      setScriptError("Informe o tema do video antes de gerar o roteiro.");
+      setScriptError("Informe o tema do vídeo antes de gerar o roteiro.");
       return;
     }
 
@@ -652,12 +669,12 @@ export function CriativoPageV2() {
       const payload = await parseJsonOrText<{ transcript?: string; message?: string }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel gerar o roteiro.");
+        throw new Error(payload.message || "Não foi possível gerar o roteiro.");
       }
 
       const transcript = payload.transcript?.trim() ?? "";
       if (!transcript) {
-        throw new Error("A IA nao retornou um roteiro valido.");
+        throw new Error("A IA não retornou um roteiro válido.");
       }
 
       setScriptDraft(transcript);
@@ -765,7 +782,7 @@ export function CriativoPageV2() {
     );
 
     if (!response.ok) {
-      throw new Error(payload.message || "Nao foi possivel treinar o avatar.");
+      throw new Error(payload.message || "Não foi possível treinar o avatar.");
     }
 
     return payload;
@@ -1067,6 +1084,7 @@ export function CriativoPageV2() {
               )
             }
           />
+          {digitalTwinEnabled ? (
           <ProductionTemplateOption
             label={productionTemplateLabel("digital_twin")}
             description={productionTemplateDescription("digital_twin")}
@@ -1096,6 +1114,7 @@ export function CriativoPageV2() {
               )
             }
           />
+          ) : null}
         </div>
       </div>
     );
@@ -1234,6 +1253,10 @@ export function CriativoPageV2() {
     preferredAvatarId?: string;
     preferredGroupId?: string;
   }) {
+    if (!digitalTwinEnabled) {
+      return;
+    }
+
     setLooksError(null);
     setIsLoadingLooks(true);
     try {
@@ -1257,10 +1280,10 @@ export function CriativoPageV2() {
       }>(groupsResponse);
 
       if (!looksResponse.ok) {
-        throw new Error(looksPayload.message || "Nao foi possivel listar avatares.");
+        throw new Error(looksPayload.message || "Não foi possível listar avatares.");
       }
       if (!groupsResponse.ok) {
-        throw new Error(groupsPayload.message || "Nao foi possivel listar personagens.");
+        throw new Error(groupsPayload.message || "Não foi possível listar personagens.");
       }
 
       const groupsById = new Map(
@@ -1351,7 +1374,7 @@ export function CriativoPageV2() {
       }
     } catch (error) {
       setLooksError(
-        error instanceof Error ? error.message : "Nao foi possivel listar avatares.",
+        error instanceof Error ? error.message : "Não foi possível listar avatares.",
       );
     } finally {
       setIsLoadingLooks(false);
@@ -1420,7 +1443,6 @@ export function CriativoPageV2() {
         setHeygenAvatarId("");
         setHeygenAvatarGroupId("");
         setHeygenConsentUrl("");
-        setTwinPreviewOpen(false);
         setPrivateTwinLooks([]);
         setTrainingStarted(false);
         setTrainingBannerState("hidden");
@@ -1465,7 +1487,7 @@ export function CriativoPageV2() {
         throw new Error("Escreva o roteiro completo no Prompt livre para gerar em modo teste.");
       }
       if (!useFreePromptAsTranscript && !scriptApproved) {
-        throw new Error("Aprove o roteiro antes de produzir o conteudo.");
+        throw new Error("Aprove o roteiro antes de produzir o conteúdo.");
       }
       if (scriptEditedAfterApproval && !scriptEditConsent) {
         throw new Error(
@@ -1473,11 +1495,11 @@ export function CriativoPageV2() {
         );
       }
       if (!useFreePromptAsTranscript && !scriptDraft.trim()) {
-        throw new Error("Gere e aprove um roteiro antes de produzir o conteudo.");
+        throw new Error("Gere e aprove um roteiro antes de produzir o conteúdo.");
       }
       if (avatarTrack === "realistic" && !heygenAvatarId) {
         throw new Error(
-          "Selecione um gemeo digital existente ou treine um novo antes de produzir o conteudo.",
+          "Selecione um gêmeo digital existente ou treine um novo antes de produzir o conteúdo.",
         );
       }
       let resolvedVoiceId = heygenVoiceId;
@@ -1526,12 +1548,12 @@ export function CriativoPageV2() {
         message?: string;
       }>(response);
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel gerar o video.");
+        throw new Error(payload.message || "Não foi possível gerar o vídeo.");
       }
 
       const id = payload.videoId?.trim();
       if (!id) {
-        throw new Error("Resposta invalida: videoId ausente.");
+        throw new Error("Resposta inválida: videoId ausente.");
       }
 
       const nextVoiceId = payload.voiceId?.trim();
@@ -1563,19 +1585,19 @@ export function CriativoPageV2() {
             captionUrl: "",
             status: "failed",
             errorMessage:
-              error instanceof Error ? error.message : "A geracao do video falhou.",
+              error instanceof Error ? error.message : "A geração do vídeo falhou.",
           });
         } catch {
           // mantem erro original na tela
         }
       }
       const baseMessage =
-        error instanceof Error ? error.message : "A geracao do video falhou.";
+        error instanceof Error ? error.message : "A geração do vídeo falhou.";
       if (startedVideoId && baseMessage.toLowerCase().includes("creative_projects")) {
         showUserError(
           setVideoError,
           new Error(
-            `O video foi gerado na HeyGen (Job: ${startedVideoId}), mas falhou ao salvar no banco. ${baseMessage}`,
+            `O vídeo foi gerado na HeyGen (Job: ${startedVideoId}), mas falhou ao salvar no banco. ${baseMessage}`,
           ),
         );
       } else {
@@ -1737,19 +1759,25 @@ export function CriativoPageV2() {
   ]);
 
   useEffect(() => {
+    if (!digitalTwinEnabled && avatarTrack === "realistic") {
+      setAvatarTrack("photo_real");
+    }
+  }, [digitalTwinEnabled, avatarTrack]);
+
+  useEffect(() => {
     if (profile?.avatarType) {
       setAvatarTrack(avatarTypeToTrack(profile.avatarType));
     }
   }, [profile?.avatarType]);
 
   useEffect(() => {
-    if (autoLoadedLooksRef.current) {
+    if (!digitalTwinEnabled || autoLoadedLooksRef.current) {
       return;
     }
     autoLoadedLooksRef.current = true;
     void loadPrivateDigitalTwinLooks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [digitalTwinEnabled]);
 
   useEffect(() => {
     if (!profileIdForPrefs || restoredHeygenPrefsRef.current) {
@@ -1774,7 +1802,7 @@ export function CriativoPageV2() {
       setSelectedCaricatureAssetId(prefs.lastCaricatureAssetId);
     }
     if (prefs.avatarTrack) {
-      setAvatarTrack(prefs.avatarTrack);
+      setAvatarTrack(resolveAvatarTrackWhenTwinHidden(prefs.avatarTrack));
     }
     const hasPriorTwinTraining = Boolean(
       prefs.heygenAvatarGroupId?.trim() && prefs.heygenAvatarId?.trim(),
@@ -1960,9 +1988,33 @@ export function CriativoPageV2() {
   const criativoGateReason = getCriativoGateReason({
     spectrum: profileForm.spectrum,
     hasVoiceAudio: Boolean(voiceAudioAssets[0]),
+    hasPhoto: Boolean(avatarImageAssets[0]),
     twinReady: hasExistingTwin && twinReadyForVideo,
     hasCaricaturePair: hasAnyCaricatureReady,
+    digitalTwinEnabled,
   });
+
+  if (!canGenerateContent) {
+    return (
+      <section className="persona-page agent-theme-criativo">
+        <div className="persona-container">
+          <div className="persona-card">
+            <PersonaSectionHeader
+              icon={<PersonaCriativoIcon />}
+              title="Novo criativo"
+              description="Complete a configuração inicial antes de gerar roteiros e vídeos."
+            />
+            <SetupRequiredNotice message={blockMessage} href={setupHref} />
+            <div className="persona-cta-row persona-top-gap">
+              <Link href="/criativo" className="persona-btn persona-btn-secondary">
+                Voltar para a listagem
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="persona-page agent-theme-criativo">
@@ -1970,13 +2022,11 @@ export function CriativoPageV2() {
         <div className="persona-card">
           <h2 className="sr-only">Criativo</h2>
 
-          <div className="persona-section-header">
-            <div className="persona-header-icon" aria-hidden="true">
-              <PersonaCriativoIcon />
-            </div>
-            <h2>Novo criativo</h2>
-            <p>Defina o enquadramento desta peça, gere o roteiro e produza o vídeo.</p>
-          </div>
+          <PersonaSectionHeader
+            icon={<PersonaCriativoIcon />}
+            title="Novo criativo"
+            description="Defina o enquadramento desta peça, gere o roteiro e produza o vídeo."
+          />
 
           <div className="persona-cta-row">
             <Link href="/criativo" className="persona-btn persona-btn-secondary">
@@ -2190,9 +2240,7 @@ export function CriativoPageV2() {
             )}
           </div>
 
-          <div className="persona-section-header persona-top-gap">
-            <h2>Produzir vídeo</h2>
-          </div>
+          <h3 className="persona-subsection-title persona-top-gap">Produzir vídeo</h3>
 
           {renderProductionTemplateSelector()}
 

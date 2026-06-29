@@ -13,7 +13,7 @@ export async function GET(
 
     if (!report) {
       return NextResponse.json(
-        { message: "Run de avaliacao nao encontrado." },
+        { message: "Run de avaliação não encontrado." },
         { status: 404 },
       );
     }

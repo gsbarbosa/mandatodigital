@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           message:
-            "Supabase nao configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para habilitar upload direto.",
+            "Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY para habilitar upload direto.",
         },
         { status: 501 },
       );
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
       .createSignedUploadUrl(storagePath, { upsert: false });
 
     if (error || !data?.signedUrl || !data?.token || !data?.path) {
-      throw new Error(`Nao foi possivel criar URL assinada: ${error?.message ?? "URL vazia"}`);
+      throw new Error(`Não foi possível criar URL assinada: ${error?.message ?? "URL vazia"}`);
     }
 
     const storageApiKey = getSupabaseAnonKey();

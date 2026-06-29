@@ -74,7 +74,7 @@ async function uploadBufferViaSignedUrl(
     .createSignedUploadUrl(storagePath, { upsert: false });
 
   if (error || !data?.signedUrl) {
-    throw new Error(error?.message ?? "Nao foi possivel criar URL assinada de upload.");
+    throw new Error(error?.message ?? "Não foi possível criar URL assinada de upload.");
   }
 
   const response = await fetch(data.signedUrl, {
@@ -179,7 +179,7 @@ export async function readTrainingAssetBytes(asset: ProfileTrainingAsset) {
 
     if (error || !data) {
       throw new Error(
-        `Nao foi possivel baixar o asset ${asset.id}: ${error?.message ?? "arquivo vazio"}`,
+        `Não foi possível baixar o asset ${asset.id}: ${error?.message ?? "arquivo vazio"}`,
       );
     }
 

@@ -22,6 +22,7 @@ import {
   resolveAppBaseUrl,
   resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
+import { assertMandatorySetup } from "@/lib/product-setup-checklist";
 
 export async function POST(request: Request) {
   try {
@@ -53,12 +54,16 @@ export async function POST(request: Request) {
 
       if (!topic && !explicitTranscript) {
         return NextResponse.json(
-          { message: "Informe o tema do video ou um roteiro completo (prompt livre)." },
+          { message: "Informe o tema do vídeo ou um roteiro completo (prompt livre)." },
           { status: 400 },
         );
       }
 
       const dashboard = await repository.getDashboard();
+      const setup = assertMandatorySetup(dashboard.profile);
+      if (!setup.ok) {
+        return NextResponse.json({ message: setup.message }, { status: 403 });
+      }
 
       if (generateMode === "caricature" || generateMode === "photo_real") {
         const assets = await repository.listTrainingAssetsForReference(
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
               message:
                 generateMode === "photo_real"
                   ? "Envie a foto do rosto no Curador antes de produzir o vídeo."
-                  : "Gere e aprove a caricatura antes de produzir o video.",
+                  : "Gere e aprove a caricatura antes de produzir o vídeo.",
             },
             { status: 400 },
           );
@@ -221,8 +226,8 @@ export async function POST(request: Request) {
       }
 
       try {
-        // `motion_prompt`/`expressiveness` nao sao suportados para video avatars (Digital Twin).
-        // Para evitar regressao quando nao conseguimos inferir o avatar_type, so habilitamos
+        // `motion_prompt`/`expressiveness` não são suportados para video avatars (Digital Twin).
+        // Para evitar regressao quando não conseguimos inferir o avatar_type, so habilitamos
         // motion_prompt quando o look for explicitamente photo_avatar.
         const supportsMotionPrompt = engine === "avatar_iv" && avatarType === "photo_avatar";
 
@@ -275,14 +280,14 @@ export async function POST(request: Request) {
           throw error;
         }
 
-        // Fallback: se o look nao for elegivel, gera via input direto de imagem.
+        // Fallback: se o look não for elegivel, gera via input direto de imagem.
         const assets = await repository.listTrainingAssetsForReference(
           dashboard.profile?.id ?? "",
         );
         const { avatarImageAsset } = pickAvatarImageAndVoiceAudioAssets(assets);
         if (!avatarImageAsset) {
           throw new Error(
-            `${message} (e nao foi encontrada foto para fallback de imagem).`,
+            `${message} (e não foi encontrada foto para fallback de imagem).`,
           );
         }
 

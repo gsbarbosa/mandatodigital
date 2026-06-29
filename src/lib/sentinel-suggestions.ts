@@ -391,7 +391,7 @@ async function buildSuggestions(
 
 export async function getSentinelSuggestions(
   profile: PoliticianProfile,
-  options?: { forceRefresh?: boolean },
+  options?: { forceRefresh?: boolean; cacheOnly?: boolean },
 ) {
   const cacheKey = profile.id || "default";
   const cached = await readCachedSuggestions(cacheKey, options?.forceRefresh);
@@ -400,6 +400,30 @@ export async function getSentinelSuggestions(
     return {
       suggestions: cached.suggestions,
       meta: { ...cached.meta, cached: true },
+    };
+  }
+
+  if (options?.cacheOnly) {
+    const radarThemesCount = getRadarThemesCount(profile);
+    const portalsMonitored = countMonitoredPortals(profile);
+
+    if (radarThemesCount === 0 && portalsMonitored === 0) {
+      return {
+        suggestions: [],
+        meta: buildEmptyMeta(profile, {
+          emptyReason: "Configure temas ou portais em Configurações › Radar antes de buscar sinais.",
+          pipelinesEnabled: isSentinelV2PipelinesEnabled(),
+        }),
+      };
+    }
+
+    return {
+      suggestions: [],
+      meta: buildEmptyMeta(profile, {
+        emptyReason:
+          "Nenhum sinal em cache. Clique em «Atualizar sinais» para buscar pautas recentes.",
+        pipelinesEnabled: isSentinelV2PipelinesEnabled(),
+      }),
     };
   }
 

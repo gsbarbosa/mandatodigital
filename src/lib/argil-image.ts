@@ -79,7 +79,7 @@ export function loadImageElement(source: string) {
     const image = new Image();
     image.crossOrigin = "anonymous";
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Nao foi possivel carregar a imagem."));
+    image.onerror = () => reject(new Error("Não foi possível carregar a imagem."));
     image.src = source;
   });
 }
@@ -104,7 +104,7 @@ export async function renderArgilCropToFile(
 
   const context = canvas.getContext("2d");
   if (!context) {
-    throw new Error("Nao foi possivel processar a imagem.");
+    throw new Error("Não foi possível processar a imagem.");
   }
 
   context.drawImage(
@@ -123,7 +123,7 @@ export async function renderArgilCropToFile(
     canvas.toBlob(
       (value) => {
         if (!value) {
-          reject(new Error("Nao foi possivel exportar o recorte."));
+          reject(new Error("Não foi possível exportar o recorte."));
           return;
         }
         resolve(value);

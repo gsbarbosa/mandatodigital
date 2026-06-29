@@ -8,7 +8,7 @@ export async function requireApiUser(): Promise<SessionUser | NextResponse> {
     return NextResponse.json(
       {
         message:
-          "Login nao configurado. Defina variaveis NEXT_PUBLIC_FIREBASE_* e FIREBASE_SERVICE_ACCOUNT_JSON.",
+          "Login não configurado. Defina variáveis NEXT_PUBLIC_FIREBASE_* e FIREBASE_SERVICE_ACCOUNT_JSON.",
       },
       { status: 501 },
     );

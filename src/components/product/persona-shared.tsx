@@ -18,6 +18,7 @@ import {
   spectrumToIndex,
 } from "@/lib/constants";
 import { caricatureVariantLabel } from "@/lib/caricature-asset-variant";
+import { isHeygenDigitalTwinEnabled } from "@/lib/feature-flags";
 import {
   formatTwinLookCaption,
   formatTwinLookDisplayName,
@@ -37,6 +38,27 @@ export const AVATAR_TYPE_BY_TRACK = {
 
 export type AvatarTrack = "realistic" | "caricature" | "photo_real";
 export type ProductionSource = "use_existing" | "train_new";
+
+export function defaultAvatarTrack(): AvatarTrack {
+  return isHeygenDigitalTwinEnabled() ? "realistic" : "photo_real";
+}
+
+export function resolveAvatarTrackWhenTwinHidden(track: AvatarTrack): AvatarTrack {
+  if (!isHeygenDigitalTwinEnabled() && track === "realistic") {
+    return "photo_real";
+  }
+  return track;
+}
+
+export function avatarTypeToTrack(value: string | undefined): AvatarTrack {
+  if (value === "Minha Caricatura") {
+    return "caricature";
+  }
+  if (value === "Minha Foto Real") {
+    return "photo_real";
+  }
+  return resolveAvatarTrackWhenTwinHidden("realistic");
+}
 export type ProductionTemplate =
   | "digital_twin"
   | "photo_real"
@@ -98,16 +120,6 @@ export function countWords(text: string) {
 
 export function uploadAreaButtonLabel(hasFile: boolean) {
   return hasFile ? "Substituir" : "Adicionar";
-}
-
-export function avatarTypeToTrack(value: string | undefined): AvatarTrack {
-  if (value === "Minha Caricatura") {
-    return "caricature";
-  }
-  if (value === "Minha Foto Real") {
-    return "photo_real";
-  }
-  return "realistic";
 }
 
 export function formatStatus(status: string | null | undefined) {
@@ -703,11 +715,13 @@ export function BaseMaterialsReadiness({
   hasPhoto,
   hasVideo,
   illustratedReadyCount,
+  showDigitalTwinTrack = isHeygenDigitalTwinEnabled(),
 }: {
   hasVoice: boolean;
   hasPhoto: boolean;
   hasVideo: boolean;
   illustratedReadyCount: number;
+  showDigitalTwinTrack?: boolean;
 }) {
   const photoRealReady = hasPhoto && hasVoice;
   const twinReady = hasVoice && hasVideo;
@@ -767,12 +781,14 @@ export function BaseMaterialsReadiness({
           {illustrated.label}
         </span>
       </div>
-      <div className="persona-materials-readiness-item">
-        <span className="persona-materials-readiness-track">Gêmeo digital</span>
-        <span className={`persona-materials-readiness-badge is-${twin.tone}`}>
-          {twin.label}
-        </span>
-      </div>
+      {showDigitalTwinTrack ? (
+        <div className="persona-materials-readiness-item">
+          <span className="persona-materials-readiness-track">Gêmeo digital</span>
+          <span className={`persona-materials-readiness-badge is-${twin.tone}`}>
+            {twin.label}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }

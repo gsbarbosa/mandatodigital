@@ -13,7 +13,7 @@ describe("resolveActiveTwinGroupId", () => {
     ).toBe("group-prefs");
   });
 
-  it("usa o look selecionado quando nao ha group id nas prefs", () => {
+  it("usa o look selecionado quando não ha group id nas prefs", () => {
     expect(
       resolveActiveTwinGroupId({
         heygenAvatarGroupId: "",

@@ -48,7 +48,7 @@ export function OverviewPage() {
                 <strong>Curador</strong>
                 <span>
                   {profile
-                    ? "Onboarding configurado e pronto para orientar a geracao."
+                    ? "Onboarding configurado e pronto para orientar a geração."
                     : "Ainda sem perfil salvo para iniciar a curadoria."}
                 </span>
               </div>
@@ -56,16 +56,16 @@ export function OverviewPage() {
                 <strong>Auditor</strong>
                 <span>
                   {latestApprovedContent
-                    ? "Ja existe ao menos uma peca aprovada para seguir no pipeline."
-                    : "Ainda nao existe uma peca aprovada no fluxo editorial."}
+                    ? "Já existe ao menos uma peça aprovada para seguir no pipeline."
+                    : "Ainda não existe uma peça aprovada no fluxo editorial."}
                 </span>
               </div>
               <div className="linked-card">
                 <strong>Admin</strong>
                 <span>
                   {evaluationReports.length
-                    ? `Ja existem ${evaluationReports.length} relatorios de avaliacao do core.`
-                    : "As avaliacoes do core ainda nao geraram relatorios para comparacao."}
+                    ? `Já existem ${evaluationReports.length} relatórios de avaliação do core.`
+                    : "As avaliações do core ainda não geraram relatórios para comparacao."}
                 </span>
               </div>
             </div>
@@ -73,7 +73,7 @@ export function OverviewPage() {
         </div>
 
         <aside className="column-side">
-          <SectionCard title="Proximos acessos" subtitle="Atalhos do fluxo">
+          <SectionCard title="Próximos acessos" subtitle="Atalhos do fluxo">
             <div className="button-row">
               <Link href="/curador" className="secondary-button">
                 Abrir Curador

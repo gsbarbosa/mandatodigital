@@ -17,14 +17,14 @@ const profile: PoliticianProfile = {
   voiceTones: ["Pragmatico", "Popular"],
   keyIssues: ["Saude publica", "Emprego e renda", "Infraestrutura urbana"],
   slogans: ["Trabalho que aparece"],
-  redLines: ["nao inventar numero", "nao prometer o que depende de outro ente"],
+  redLines: ["não inventar numero", "não prometer o que depende de outro ente"],
   referenceExamples: ["fala objetiva", "cobranca com proposta"],
   bio: "Parlamentar focado em entrega, fiscalizacao e linguagem simples para conectar problema local com solucao pratica.",
   updatedAt: "2026-05-25T00:00:00.000Z",
 };
 
-describe("validacao do fluxo de geracao", () => {
-  it("sustenta tres pautas tipicas do MVP sem retornar conteudo vazio", () => {
+describe("validacao do fluxo de geração", () => {
+  it("sustenta tres pautas tipicas do MVP sem retornar conteúdo vazio", () => {
     for (const topic of sampleValidationTopics) {
       const request: ContentRequestInput = {
         topic,

@@ -76,7 +76,7 @@ describe("pickCuradorVideoContext", () => {
 });
 
 describe("buildAvatarVideoPrompt", () => {
-  it("omite blocos de ideologia e glossario quando nao foram informados", () => {
+  it("omite blocos de ideologia e glossario quando não foram informados", () => {
     const prompt = buildAvatarVideoPrompt({
       topic: "Transparencia",
       profile: baseProfile,

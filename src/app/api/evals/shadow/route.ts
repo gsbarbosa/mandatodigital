@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
     if (!dashboard.profile) {
       return NextResponse.json(
-        { message: "Crie e salve um perfil antes de rodar a avaliacao shadow." },
+        { message: "Crie e salve um perfil antes de rodar a avaliação shadow." },
         { status: 400 },
       );
     }
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
     if (!contentRequest) {
       return NextResponse.json(
-        { message: "Pedido editorial nao encontrado para avaliacao." },
+        { message: "Pedido editorial não encontrado para avaliação." },
         { status: 404 },
       );
     }

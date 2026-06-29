@@ -14,7 +14,7 @@ function sanitizeOpenAiApiKey(raw: string) {
 function getOpenAiApiKey() {
   const apiKey = sanitizeOpenAiApiKey(process.env.OPENAI_API_KEY ?? "");
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY nao configurada.");
+    throw new Error("OPENAI_API_KEY não configurada.");
   }
   return apiKey;
 }
@@ -156,7 +156,7 @@ async function requestImageEdit(input: {
     return downloadImageFromUrl(imageUrl);
   }
 
-  throw new Error("OpenAI nao retornou imagem de caricatura.");
+  throw new Error("OpenAI não retornou imagem de caricatura.");
 }
 
 async function describePortraitForCaricature(input: {
@@ -203,7 +203,7 @@ async function describePortraitForCaricature(input: {
 
   const description = json.choices?.[0]?.message?.content?.trim();
   if (!description) {
-    throw new Error("Nao foi possivel analisar a foto para gerar a caricatura.");
+    throw new Error("Não foi possível analisar a foto para gerar a caricatura.");
   }
 
   return description;
@@ -244,7 +244,7 @@ async function requestImageGeneration(input: {
     return downloadImageFromUrl(imageUrl);
   }
 
-  throw new Error("OpenAI nao retornou imagem de caricatura.");
+  throw new Error("OpenAI não retornou imagem de caricatura.");
 }
 
 function shouldUseGenerationFallback(message: string) {

@@ -18,7 +18,7 @@ export type ArgilAvatarPurgeResult = {
 async function argilFetch(path: string, init?: RequestInit) {
   const apiKey = process.env.ARGIL_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error("ARGIL_API_KEY nao configurada no servidor.");
+    throw new Error("ARGIL_API_KEY não configurada no servidor.");
   }
 
   const response = await fetch(`${baseUrl}${path}`, {
@@ -106,6 +106,6 @@ export async function purgePrivateArgilAvatars(): Promise<ArgilAvatarPurgeResult
     message:
       after.length === 0
         ? "Todos os avatares privados foram removidos."
-        : "Alguns avatares nao puderam ser apagados via API. Remova o restante em app.argil.ai/avatars.",
+        : "Alguns avatares não puderam ser apagados via API. Remova o restante em app.argil.ai/avatars.",
   };
 }

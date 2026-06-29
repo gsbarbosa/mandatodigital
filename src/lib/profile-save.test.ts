@@ -56,7 +56,7 @@ describe("mergeProfileInputForSave", () => {
     expect(merged.keyIssues.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("substitui campos parciais invalidos por defaults no save silencioso", () => {
+  it("substitui campos parciais inválidos por defaults no save silencioso", () => {
     const merged = mergeProfileInputForSave(
       {
         fullName: "Jo",
@@ -103,11 +103,11 @@ describe("mergeProfileInputForSave", () => {
     );
 
     expect(profileInputSchema.safeParse(merged).success).toBe(true);
-    expect(merged.fullName).toBe("Perfil em configuracao");
-    expect(merged.keyIssues).toEqual(["Comunicacao politica"]);
+    expect(merged.fullName).toBe("Perfil em configuração");
+    expect(merged.keyIssues).toEqual(["Comunicação política"]);
   });
 
-  it("mantem espectro vazio quando o usuario nao selecionou", () => {
+  it("mantem espectro vazio quando o usuario não selecionou", () => {
     const merged = mergeProfileInputForSave(
       {
         fullName: "Joao Silva",

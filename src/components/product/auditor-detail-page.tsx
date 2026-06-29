@@ -50,7 +50,7 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
 
       <div className="grid-main">
         <div className="column-main">
-          <SectionCard title="Revisao e aprovacao" subtitle="Edicao humana obrigatoria">
+          <SectionCard title="Revisão e aprovacao" subtitle="Edicao humana obrigatoria">
             {content ? (
               <>
                 <div className="review-meta">
@@ -79,7 +79,7 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
                 </label>
 
                 <details className="prompt-preview">
-                  <summary>Ver contexto usado na geracao</summary>
+                  <summary>Ver contexto usado na geração</summary>
                   <pre>{content.promptPreview}</pre>
                 </details>
 
@@ -134,7 +134,7 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
                 </div>
 
                 <label className="field">
-                  <span>Feedback para calibrar as proximas pecas</span>
+                  <span>Feedback para calibrar as próximas peças</span>
                   <textarea
                     value={feedbackNote}
                     onChange={(event) => setFeedbackNote(event.target.value)}
@@ -163,7 +163,7 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
               </>
             ) : (
               <p className="empty-state">
-                Conteudo nao encontrado. Volte ao historico para selecionar outra peca.
+                Conteúdo não encontrado. Volte ao histórico para selecionar outra peça.
               </p>
             )}
           </SectionCard>
@@ -173,7 +173,7 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
           <SectionCard title="Checklist de checagem" subtitle="Gate humano antes de aprovar">
             <div className="feedback-stack">
               <div className="linked-card">
-                <strong>Agencias configuradas</strong>
+                <strong>Agências configuradas</strong>
                 <span>
                   {profile?.factCheckingSources.length
                     ? profile.factCheckingSources.join(", ")
@@ -196,7 +196,7 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
             </p>
           </SectionCard>
 
-          <SectionCard title="Historico reutilizavel" subtitle="Memoria editorial">
+          <SectionCard title="Histórico reutilizavel" subtitle="Memória editorial">
             {contents.length ? (
               <div className="history-list">
                 {contents.map((item) => {
@@ -212,9 +212,9 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
                         <strong>{item.title}</strong>
                         <StatusPill status={item.status} />
                       </div>
-                      <span>{request?.topic ?? "Pauta sem referencia"}</span>
+                      <span>{request?.topic ?? "Pauta sem referência"}</span>
                       <small>
-                        {request?.format ?? "Formato nao informado"} ·{" "}
+                        {request?.format ?? "Formato não informado"} ·{" "}
                         {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                       </small>
                     </Link>
@@ -223,7 +223,7 @@ export function AuditorDetailPage({ contentId }: { contentId: string }) {
               </div>
             ) : (
               <p className="empty-state">
-                O historico aparece aqui conforme a equipe gera e revisa novas pecas.
+                O histórico aparece aqui conforme a equipe gera e revisa novas peças.
               </p>
             )}
           </SectionCard>

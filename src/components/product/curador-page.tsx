@@ -37,16 +37,16 @@ function formatVideoStatusLabel(
   generation?: { argilVideoId?: string | null },
 ) {
   if (isVideoStuckIdle({ status, argilVideoId: generation?.argilVideoId })) {
-    return "Nao enviado para Argil";
+    return "Não enviado para Argil";
   }
 
   switch (status) {
     case "GENERATING_AUDIO":
       return "Gerando audio";
     case "GENERATING_VIDEO":
-      return "Gerando video (lip-sync)";
+      return "Gerando vídeo (lip-sync)";
     case "DONE":
-      return "Concluido";
+      return "Concluído";
     case "FAILED":
       return "Falhou";
     case "DRY_RUN":
@@ -226,7 +226,7 @@ export function CuradorPage() {
       }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel consultar o treinamento.");
+        throw new Error(payload.message || "Não foi possível consultar o treinamento.");
       }
 
       const training = payload.training;
@@ -289,7 +289,7 @@ export function CuradorPage() {
       }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel iniciar o treinamento.");
+        throw new Error(payload.message || "Não foi possível iniciar o treinamento.");
       }
 
       if (payload.avatarReady) {
@@ -302,14 +302,14 @@ export function CuradorPage() {
         }));
         setAvatarTrainingInfo(
           payload.message ??
-            "Avatar pronto. Voce ja pode gerar videos com o tema desejado.",
+            "Avatar pronto. Você já pode gerar vídeos com o tema desejado.",
         );
         return;
       }
 
       const trainingId = payload.training?.id;
       if (!trainingId) {
-        throw new Error("Resposta de treinamento invalida.");
+        throw new Error("Resposta de treinamento inválida.");
       }
 
       setAvatarTrainingStatus(payload.training?.status ?? "TRAINING");
@@ -397,7 +397,7 @@ export function CuradorPage() {
         if (isVideoStuckIdle(active)) {
           setVideoError(
             active.errorMessage?.trim() ||
-              "Este video nao foi enviado para a Argil. Treine o clone IA e gere novamente.",
+              "Este vídeo não foi enviado para a Argil. Treine o clone IA e gere novamente.",
           );
         } else if (active.status === "FAILED" && active.errorMessage?.trim()) {
           setVideoError(active.errorMessage.trim());
@@ -423,7 +423,7 @@ export function CuradorPage() {
       const payload = await parseJsonOrText<{ generation?: AvatarVideoGeneration }>(response);
 
       if (!response.ok || !payload.generation) {
-        throw new Error("Nao foi possivel consultar o status do video.");
+        throw new Error("Não foi possível consultar o status do vídeo.");
       }
 
       applyGenerationState(payload.generation);
@@ -431,12 +431,12 @@ export function CuradorPage() {
 
       if (payload.generation.status === "FAILED") {
         setVideoError(
-          payload.generation.errorMessage || "A geracao do video falhou na Argil.",
+          payload.generation.errorMessage || "A geração do vídeo falhou na Argil.",
         );
       }
     } catch (error) {
       setVideoError(
-        error instanceof Error ? error.message : "Nao foi possivel consultar o status do video.",
+        error instanceof Error ? error.message : "Não foi possível consultar o status do vídeo.",
       );
     } finally {
       setIsRefreshingVideoStatus(false);
@@ -518,7 +518,7 @@ export function CuradorPage() {
       }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel consultar o status do video.");
+        throw new Error(payload.message || "Não foi possível consultar o status do vídeo.");
       }
 
       const generation = payload.generation;
@@ -530,13 +530,13 @@ export function CuradorPage() {
       if (isVideoStuckIdle(generation)) {
         throw new Error(
           generation?.errorMessage?.trim() ||
-            "Este video nao chegou a ser enviado para a Argil (avatar nao pronto). Treine o clone IA e gere novamente.",
+            "Este vídeo não chegou a ser enviado para a Argil (avatar não pronto). Treine o clone IA e gere novamente.",
         );
       }
 
       if (generation?.status === "FAILED") {
         throw new Error(
-          generation.errorMessage?.trim() || "A geracao do video falhou na Argil.",
+          generation.errorMessage?.trim() || "A geração do vídeo falhou na Argil.",
         );
       }
 
@@ -548,8 +548,8 @@ export function CuradorPage() {
     }
 
     throw new Error(
-      "O lip-sync ainda esta em processamento na Argil (pode levar 5 a 15 min). " +
-        "Atualize a pagina em alguns minutos ou confira o painel da Argil.",
+      "O lip-sync ainda está em processamento na Argil (pode levar 5 a 15 min). " +
+        "Atualize a página em alguns minutos ou confira o painel da Argil.",
     );
   }
 
@@ -564,7 +564,7 @@ export function CuradorPage() {
     try {
       const topic = profileForm.avatarVideoTopic.trim();
       if (!topic) {
-        throw new Error("Informe o tema do video antes de gerar.");
+        throw new Error("Informe o tema do vídeo antes de gerar.");
       }
 
       void saveProfile({ allowDraftDefaults: true, silent: true });
@@ -592,12 +592,12 @@ export function CuradorPage() {
           applyGenerationState(payload.generation);
           upsertVideoGeneration(payload.generation);
         }
-        throw new Error(payload.message || "Nao foi possivel gerar o video.");
+        throw new Error(payload.message || "Não foi possível gerar o vídeo.");
       }
 
       const generationId = payload.generation?.id;
       if (!generationId) {
-        throw new Error("Resposta invalida: geracao sem id.");
+        throw new Error("Resposta inválida: geração sem id.");
       }
 
       if (payload.generation) {
@@ -611,7 +611,7 @@ export function CuradorPage() {
       await pollVideoGeneration(generationId);
       await loadVideoGenerations();
     } catch (error) {
-      setVideoError(error instanceof Error ? error.message : "Falha ao gerar o video.");
+      setVideoError(error instanceof Error ? error.message : "Falha ao gerar o vídeo.");
     } finally {
       setIsGeneratingVideo(false);
     }
@@ -683,7 +683,7 @@ export function CuradorPage() {
               htmlFor={`${uploadInputId}-voice-audio`}
               className={`upload-area persona-upload-area ${isUploadingVoiceAudioAsset ? "persona-upload-area-loading" : ""}`}
             >
-              <h4>1) Enviar audio de voz (obrigatorio)</h4>
+              <h4>1) Enviar audio de voz (obrigatório)</h4>
               <p>
                 Grave 30 segundos a 4 minutos da sua voz, falando de forma natural (MP3, WAV ou
                 M4A). Usamos para clonar o timbre na Argil.
@@ -718,10 +718,10 @@ export function CuradorPage() {
               htmlFor={`${uploadInputId}-avatar-image`}
               className={`upload-area persona-upload-area ${isUploadingAvatarImageAsset ? "persona-upload-area-loading" : ""}`}
             >
-              <h4>2) Enviar foto para clone (obrigatorio)</h4>
+              <h4>2) Enviar foto para clone (obrigatório)</h4>
               <p>
-                Foto do rosto (PNG ou JPEG), bem iluminada. Voce ajusta o recorte na tela (9:16 ou
-                16:9) para nao cortar o rosto.
+                Foto do rosto (PNG ou JPEG), bem iluminada. Você ajusta o recorte na tela (9:16 ou
+                16:9) para não cortar o rosto.
               </p>
               <input
                 id={`${uploadInputId}-avatar-image`}
@@ -751,7 +751,7 @@ export function CuradorPage() {
 
             {legacyDatasetAssets.length > 0 && !avatarImageAssets.length && (
               <p className="persona-helper-text persona-helper-highlight">
-                Voce enviou um video de treino antigo. A API da Argil passou a exigir{" "}
+                Você enviou um vídeo de treino antigo. A API da Argil passou a exigir{" "}
                 <strong>foto (IMAGE)</strong>. Envie a foto acima e treine novamente.
               </p>
             )}
@@ -788,7 +788,7 @@ export function CuradorPage() {
               </button>
             </div>
             <p className="persona-helper-text">
-              Enquanto treinamos, voce pode preencher o restante do formulario (salvamos
+              Enquanto treinamos, você pode preencher o restante do formulario (salvamos
               automaticamente). Tempo aproximado: 2 a 5 minutos.
             </p>
             {(trainingRequested || avatarTrainingStatus) && (
@@ -817,7 +817,7 @@ export function CuradorPage() {
             )}
             {trainingRequested && !avatarTrainingStatus && !avatarTrainingError && (
               <p className="persona-helper-text persona-helper-highlight">
-                Dica: em ambiente de testes (dry-run), o treino e simulado e nao consome
+                Dica: em ambiente de testes (dry-run), o treino e simulado e não consome
                 creditos.
               </p>
             )}
@@ -852,9 +852,9 @@ export function CuradorPage() {
           </div>
 
           <div className="persona-form-group">
-            <label className="persona-label">Glossario de expressoes</label>
+            <label className="persona-label">Glossário de expressoes</label>
             <p className="persona-helper-text">
-              Inclua caracteristicas fundamentais da sua expressao, como por exemplo:
+              Inclua caracteristicas fundamentais da sua expressão, como por exemplo:
               ne, tipo, entendeu, sabe, ta, ok, certo, mano, assim.
             </p>
             <textarea
@@ -893,7 +893,7 @@ export function CuradorPage() {
               ))}
             </div>
             <p className="persona-helper-text persona-top-gap">
-              A nao selecao de algum arquetipo nao traz prejuizo para sua identidade
+              A não seleção de algum arquetipo não traz prejuízo para sua identidade
               comunicacional, previamente mapeada pelos videos encaminhados.
             </p>
           </div>
@@ -917,7 +917,7 @@ export function CuradorPage() {
               ))}
             </div>
             <p className="persona-helper-text persona-top-gap">
-              A nao selecao de algum modificador de tom nao traz prejuizo para sua
+              A não seleção de algum modificador de tom não traz prejuízo para sua
               identidade comunicacional, previamente mapeada pelos videos encaminhados.
             </p>
           </div>
@@ -944,7 +944,7 @@ export function CuradorPage() {
 
           <div className="persona-form-group">
             <label className="persona-label">
-              Tema do video <span className="persona-badge persona-badge--required">Obrigatorio</span>
+              Tema do vídeo <span className="persona-badge persona-badge--required">Obrigatorio</span>
             </label>
             <input
               type="text"
@@ -956,7 +956,7 @@ export function CuradorPage() {
                   avatarVideoTopic: event.target.value,
                 }))
               }
-              placeholder="Digite o tema do video..."
+              placeholder="Digite o tema do vídeo..."
               data-testid="avatar-video-topic"
             />
           </div>
@@ -979,7 +979,7 @@ export function CuradorPage() {
             />
             <p className="persona-helper-text persona-top-gap">
               Usaremos este e-mail para avisar quando o treinamento terminar (e, no futuro,
-              para enviar o link do video final).
+              para enviar o link do vídeo final).
             </p>
           </div>
 
@@ -992,14 +992,14 @@ export function CuradorPage() {
               data-testid="generate-avatar-video-button"
             >
               {isGeneratingVideo
-                ? "Gerando video (lip-sync)..."
+                ? "Gerando vídeo (lip-sync)..."
                 : isSavingProfile
                   ? "Salvando..."
                   : "Gerar meu avatar"}
             </button>
             <p className="persona-helper-text persona-top-gap">
-              A Argil primeiro mostra uma pre-visualizacao estatica; o video com lip-sync leva em
-              media <strong>5 a 15 minutos</strong>. Voce pode sair e voltar depois — o status fica
+              A Argil primeiro mostra uma pré-visualização estática; o vídeo com lip-sync leva em
+              media <strong>5 a 15 minutos</strong>. Você pode sair e voltar depois — o status fica
               salvo na lista abaixo.
             </p>
           </div>
@@ -1008,7 +1008,7 @@ export function CuradorPage() {
             <div className="persona-form-group" data-testid="argil-video-history">
               <label className="persona-label">Videos gerados</label>
               {isLoadingVideoGenerations ? (
-                <p className="persona-helper-text">Carregando historico...</p>
+                <p className="persona-helper-text">Carregando histórico...</p>
               ) : (
                 <ul className="persona-video-history-list">
                   {videoGenerations.map((generation) => {
@@ -1071,7 +1071,7 @@ export function CuradorPage() {
               className="persona-form-group persona-support-block"
               data-testid="argil-video-generation-panel"
             >
-              <label className="persona-label">Geracao do video (Argil)</label>
+              <label className="persona-label">Geração do vídeo (Argil)</label>
               {videoError ? (
                 <p
                   className="persona-helper-text persona-helper-highlight"
@@ -1126,10 +1126,10 @@ export function CuradorPage() {
                         <a
                           className="persona-btn"
                           href={videoUrl}
-                          download={`avatar-${(profileForm.fullName || "politico").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(profileForm.avatarVideoTopic || "tema").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`}
+                          download={`avatar-${(profileForm.fullName || "político").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(profileForm.avatarVideoTopic || "tema").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`}
                           data-testid="argil-video-download-link"
                         >
-                          Baixar video
+                          Baixar vídeo
                         </a>
                       </p>
                     </>
@@ -1142,9 +1142,9 @@ export function CuradorPage() {
           <div className="persona-form-group">
             <label className="persona-label">Observacoes importantes:</label>
             <p className="persona-helper-text">
-              Com foco na geracao de conteudo viral, a IA pode nao utilizar
-              arquetipos da persona politica e ou tom de linguagem. O paradoxo das
-              restricoes reduz a viralidade do video. Imagine o cenario: arquetipo
+              Com foco na geração de conteúdo viral, a IA pode não utilizar
+              arquetipos da persona política e ou tom de linguagem. O paradoxo das
+              restricoes reduz a viralidade do vídeo. Imagine o cenario: arquetipo
               estadista conciliador com tom indignado e tema corrupcao. O agente tenta
               equilibrar posturas conflitantes, e o resultado pode ficar inconsistente.
             </p>

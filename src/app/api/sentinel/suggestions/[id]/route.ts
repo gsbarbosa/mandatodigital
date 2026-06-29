@@ -21,7 +21,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
     const suggestion = await getSentinelSuggestionById(dashboard.profile, id);
     if (!suggestion) {
-      return NextResponse.json({ message: "Sugestao do Sentinela nao encontrada." }, { status: 404 });
+      return NextResponse.json({ message: "Sugestão do Sentinela não encontrada." }, { status: 404 });
     }
 
     return NextResponse.json({ suggestion });

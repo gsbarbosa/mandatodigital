@@ -26,13 +26,13 @@ export function DistribuidorPage() {
 
       <div className="grid-main">
         <div className="column-main">
-          <SectionCard title="Entrega para canais" subtitle="Operacao manual do MVP">
+          <SectionCard title="Entrega para canais" subtitle="Operação manual do MVP">
             <label className="switch-row">
               <div>
-                <strong>Aprovacao automatica de conteudo</strong>
+                <strong>Aprovação automática de conteúdo</strong>
                 <p>
-                  Se ativado, o produto fica preparado para publicacao automatica em
-                  fases futuras, embora no MVP a operacao ainda siga manual.
+                  Se ativado, o produto fica preparado para publicação automática em
+                  fases futuras, embora no MVP a operação ainda siga manual.
                 </p>
               </div>
               <input
@@ -84,7 +84,7 @@ export function DistribuidorPage() {
                 onClick={() => void saveProfile()}
                 disabled={isSavingProfile}
               >
-                {isSavingProfile ? "Salvando distribuicao..." : "Salvar Distribuidor"}
+                {isSavingProfile ? "Salvando distribuição..." : "Salvar Distribuidor"}
               </button>
             </div>
           </SectionCard>
@@ -97,19 +97,19 @@ export function DistribuidorPage() {
                 <div className="linked-card">
                   <strong>{latestApprovedContent.title}</strong>
                   <span>
-                    Existe ao menos uma peca aprovada pronta para seguir ao distribuidor.
+                    Existe ao menos uma peça aprovada pronta para seguir ao distribuidor.
                   </span>
                 </div>
                 <p className="empty-state">
-                  Neste MVP, a saida do Distribuidor ainda e manual: copiar o roteiro
+                  Neste MVP, a saída do Distribuidor ainda e manual: copiar o roteiro
                   aprovado, respeitar os canais/janelas configurados e levar para a
-                  operacao.
+                  operação.
                 </p>
               </>
             ) : (
               <p className="empty-state">
-                Quando houver uma peca aprovada, ela aparecera aqui como input da fase
-                de distribuicao.
+                Quando houver uma peça aprovada, ela aparecerá aqui como input da fase
+                de distribuição.
               </p>
             )}
 

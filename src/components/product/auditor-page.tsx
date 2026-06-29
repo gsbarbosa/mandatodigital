@@ -31,7 +31,7 @@ export function AuditorPage() {
         <div className="column-main">
           <SectionCard title="Fontes de fact-checking" subtitle="Matriz de confianca">
             <ToggleGridField
-              label="Agencias de checagem parceiras"
+              label="Agências de checagem parceiras"
               values={profileForm.factCheckingSources}
               options={factCheckingSourceOptions}
               onToggle={(value) =>
@@ -64,12 +64,12 @@ export function AuditorPage() {
                 onClick={() => void saveProfile()}
                 disabled={isSavingProfile}
               >
-                {isSavingProfile ? "Salvando matriz..." : "Salvar configuracao do Auditor"}
+                {isSavingProfile ? "Salvando matriz..." : "Salvar configuração do Auditor"}
               </button>
             </div>
           </SectionCard>
 
-          <SectionCard title="Historico reutilizavel" subtitle="Memoria editorial">
+          <SectionCard title="Histórico reutilizavel" subtitle="Memória editorial">
             {contents.length ? (
               <div className="history-list">
                 {contents.map((item) => {
@@ -81,9 +81,9 @@ export function AuditorPage() {
                         <strong>{item.title}</strong>
                         <StatusPill status={item.status} />
                       </div>
-                      <span>{linkedRequest?.topic ?? "Pauta sem referencia"}</span>
+                      <span>{linkedRequest?.topic ?? "Pauta sem referência"}</span>
                       <small>
-                        {linkedRequest?.format ?? "Formato nao informado"} ·{" "}
+                        {linkedRequest?.format ?? "Formato não informado"} ·{" "}
                         {new Date(item.createdAt).toLocaleDateString("pt-BR")}
                       </small>
                     </Link>
@@ -92,14 +92,14 @@ export function AuditorPage() {
               </div>
             ) : (
               <p className="empty-state">
-                O historico aparece aqui conforme a equipe gera e revisa novas pecas.
+                O histórico aparece aqui conforme a equipe gera e revisa novas peças.
               </p>
             )}
           </SectionCard>
         </div>
 
         <aside className="column-side">
-          <SectionCard title="Saida do auditor" subtitle="Qualidade editorial">
+          <SectionCard title="Saída do auditor" subtitle="Qualidade editorial">
             <div className="linked-card">
               <strong>Matriz de confianca</strong>
               <span>
@@ -113,7 +113,7 @@ export function AuditorPage() {
               <>
                 <div className="linked-card">
                   <strong>{latestApprovedContent.title}</strong>
-                  <span>Ja existe uma peca aprovada para seguir ao distribuidor.</span>
+                  <span>Já existe uma peça aprovada para seguir ao distribuidor.</span>
                 </div>
                 <div className="button-row">
                   <Link href="/distribuidor" className="secondary-button">
@@ -124,7 +124,7 @@ export function AuditorPage() {
             ) : contents[0] ? (
               <div className="button-row">
                 <Link href={`/auditor/${contents[0].id}`} className="primary-button">
-                  Abrir ultima peca para revisar
+                  Abrir última peça para revisar
                 </Link>
               </div>
             ) : (

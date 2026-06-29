@@ -10,7 +10,7 @@ import {
 
 export async function POST(request: Request) {
   if (!isFirebaseAuthConfigured()) {
-    return NextResponse.json({ message: "Login nao configurado." }, { status: 501 });
+    return NextResponse.json({ message: "Login não configurado." }, { status: 501 });
   }
 
   let idToken = "";
@@ -19,11 +19,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { idToken?: string };
     idToken = body.idToken?.trim() ?? "";
   } catch {
-    return NextResponse.json({ message: "Corpo invalido." }, { status: 400 });
+    return NextResponse.json({ message: "Corpo inválido." }, { status: 400 });
   }
 
   if (!idToken) {
-    return NextResponse.json({ message: "idToken obrigatorio." }, { status: 400 });
+    return NextResponse.json({ message: "idToken obrigatório." }, { status: 400 });
   }
 
   try {
@@ -42,6 +42,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch {
-    return NextResponse.json({ message: "Token invalido ou expirado." }, { status: 401 });
+    return NextResponse.json({ message: "Token inválido ou expirado." }, { status: 401 });
   }
 }

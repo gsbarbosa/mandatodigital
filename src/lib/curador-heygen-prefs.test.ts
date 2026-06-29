@@ -46,7 +46,7 @@ describe("formatHeyGenPurgeFailureMessage", () => {
     expect(message).toContain("01/07/2026");
   });
 
-  it("usa fallback quando nao ha erros", () => {
+  it("usa fallback quando não ha erros", () => {
     expect(formatHeyGenPurgeFailureMessage(undefined, "Falha generica")).toBe(
       "Falha generica",
     );

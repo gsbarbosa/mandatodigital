@@ -67,8 +67,8 @@ export const contentFormats = [
   "Legenda Instagram",
   "Roteiro Reels",
   "Tweet/X",
-  "Resposta Rapida",
-  "Audio WhatsApp",
+  "Resposta Rápida",
+  "Áudio WhatsApp",
   "Discurso Curto",
 ] as const;
 export type ContentFormat = (typeof contentFormats)[number];
