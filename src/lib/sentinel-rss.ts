@@ -219,12 +219,33 @@ function dedupeNewsItems(items: RssNewsItem[]) {
   return deduped;
 }
 
+function isSentinelRssFixturesEnabled() {
+  const value = process.env.SENTINEL_RSS_FIXTURES?.trim().toLowerCase();
+  return value === "1" || value === "true" || value === "yes" || value === "on";
+}
+
+let cachedFixtureFetch: typeof fetch | null = null;
+
+async function resolveSentinelFetchImpl(): Promise<typeof fetch> {
+  if (!isSentinelRssFixturesEnabled()) {
+    return fetch;
+  }
+
+  if (!cachedFixtureFetch) {
+    const { createSentinelFixtureFetch } = await import("@/lib/sentinel-rss-fixtures");
+    cachedFixtureFetch = createSentinelFixtureFetch();
+  }
+
+  return cachedFixtureFetch;
+}
+
 async function fetchRssUrl(url: string, metadata?: Partial<RssNewsItem>) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), RSS_FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, {
+    const fetchImpl = await resolveSentinelFetchImpl();
+    const response = await fetchImpl(url, {
       headers: {
         Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
         "User-Agent": "MandatoDigital-Sentinela/1.0",

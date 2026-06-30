@@ -34,6 +34,21 @@ export default defineConfig({
           ...process.env,
           ARGIL_DRY_RUN: process.env.ARGIL_DRY_RUN ?? "true",
           ARGIL_AVATAR_ID: process.env.ARGIL_AVATAR_ID ?? "dry-run-avatar-id",
+          SENTINEL_RSS_FIXTURES: process.env.SENTINEL_RSS_FIXTURES ?? "true",
+          SENTINEL_V2_PIPELINES: process.env.SENTINEL_V2_PIPELINES ?? "false",
+          ...(process.env.E2E_DISABLE_AUTH === "true"
+            ? {
+                FIREBASE_SERVICE_ACCOUNT_JSON: "",
+                FIREBASE_CONFIG: "",
+                K_SERVICE: "",
+                NEXT_PUBLIC_FIREBASE_API_KEY: "",
+                NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "",
+                NEXT_PUBLIC_FIREBASE_PROJECT_ID: "",
+                NEXT_PUBLIC_FIREBASE_APP_ID: "",
+                NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "",
+                NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "",
+              }
+            : {}),
         },
       },
   projects: [

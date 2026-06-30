@@ -6,6 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useProductShell } from "@/components/product/product-shell-context";
 import {
+  AppLoadingStatus,
+  CreativeListSkeleton,
+} from "@/components/product/app-loading";
+import {
   PersonaCriativoIcon,
   formatStatus,
   parseJsonOrText,
@@ -57,7 +61,13 @@ function CriativoListBody({
       ) : null}
 
       {isLoading ? (
-        <p className="persona-helper-text persona-top-gap">Carregando criativos...</p>
+        <>
+          <AppLoadingStatus
+            message="Carregando criativos..."
+            className="app-loading-status--compact persona-top-gap"
+          />
+          <CreativeListSkeleton count={4} />
+        </>
       ) : null}
 
       {!isLoading && !loadError && projects.length === 0 ? (

@@ -1,6 +1,15 @@
 import { createHash } from "node:crypto";
 
+import { buildSocialSuggestions, mergeSentinelSuggestions } from "@/lib/sentinel-social-suggestions";
+import { correlateSocialSuggestionsWithRss } from "@/lib/sentinel-social-cross-match";
 import {
+  enrichSentinelSuggestions,
+  sortSentinelSuggestionsForDisplay,
+} from "@/lib/sentinel-enrich";
+import { partitionSentinelSuggestions } from "@/lib/sentinel-editorial-gate";
+import {
+  isSentinelLlmEnrichEnabled,
+  isSentinelSocialEnabled,
   isSentinelV2PipelinesEnabled,
 } from "@/lib/feature-flags";
 import {
@@ -15,9 +24,13 @@ import {
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import {
   flattenExpansionSearchTerms,
-  loadSentinelThemeExpansions,
+  loadSentinelThemeExpansionsForProfile,
 } from "@/lib/sentinel-theme-expansion";
 import { buildV2SuggestionsFromArticles } from "@/lib/sentinel-suggestions-v2";
+import {
+  filterArticlesMatchingProfileRadar,
+  guardSuggestionsForProfile,
+} from "@/lib/sentinel-theme-relevance";
 import type { PoliticianProfile } from "@/lib/types";
 import {
   isSentinelCacheExpired,
@@ -239,7 +252,8 @@ export function buildSuggestionsFromArticles(
 function getRadarThemesCount(profile: PoliticianProfile) {
   return (
     profile.sentinelThemes.length +
-    profile.customRadarThemes.filter((theme) => theme.trim()).length
+    profile.customRadarThemes.filter((theme) => theme.trim()).length +
+    profile.oppositionThemes.length
   );
 }
 
@@ -349,8 +363,7 @@ async function collectSentinelArticles(profile: PoliticianProfile) {
   }
 
   const profileId = profile.id?.trim() || "default";
-  const expansions =
-    profileId !== "default" ? await loadSentinelThemeExpansions(profileId) : [];
+  const expansions = await loadSentinelThemeExpansionsForProfile(profile);
   const expandedTerms = flattenExpansionSearchTerms(expansions);
   const semanticArticles = await fetchSemanticExpansionNewsItems(profile, expandedTerms);
 
@@ -438,7 +451,39 @@ export async function getSentinelSuggestions(
   }
 
   const articlesBundle = await collectSentinelArticles(profile);
-  const suggestions = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
+  const articlesMatchedRadar = filterArticlesMatchingProfileRadar(
+    articlesBundle.articles,
+    profile,
+  ).length;
+  let suggestions = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
+
+  let socialProfilesScanned = 0;
+  let socialPostsScanned = 0;
+
+  if (isSentinelSocialEnabled()) {
+    const social = await buildSocialSuggestions(profile);
+    socialProfilesScanned = social.profilesScanned;
+    socialPostsScanned = social.postsScanned;
+
+    const socialCorrelated = correlateSocialSuggestionsWithRss(
+      social.suggestions,
+      suggestions,
+    );
+    const { opportunities: socialOpportunities, monitoring: socialMonitoring } =
+      partitionSentinelSuggestions(socialCorrelated);
+
+    suggestions = mergeSentinelSuggestions([suggestions, socialOpportunities]);
+    suggestions = [
+      ...suggestions,
+      ...socialMonitoring.slice(0, 3),
+    ];
+  }
+
+  suggestions = await enrichSentinelSuggestions(profile, suggestions);
+  suggestions = sortSentinelSuggestionsForDisplay(suggestions).slice(0, MAX_SUGGESTIONS + 3);
+
+  const guarded = guardSuggestionsForProfile(suggestions, profile);
+  suggestions = guarded.suggestions;
   const v2Enabled = isSentinelV2PipelinesEnabled();
 
   const meta: SentinelSuggestionsMeta = {
@@ -447,12 +492,22 @@ export async function getSentinelSuggestions(
     refreshedAt: new Date().toISOString(),
     radarThemesCount,
     articlesScanned: articlesBundle.articles.length,
+    articlesMatchedRadar,
     portalsMonitored,
     pipelinesEnabled: v2Enabled,
     expansionTermsCount: articlesBundle.expandedTerms.length,
+    socialProfilesScanned: socialProfilesScanned > 0 ? socialProfilesScanned : undefined,
+    socialPostsScanned: socialPostsScanned > 0 ? socialPostsScanned : undefined,
+    socialEnabled: isSentinelSocialEnabled() || undefined,
+    enrichmentEnabled: isSentinelLlmEnrichEnabled() || undefined,
+    themeViolationsFiltered: guarded.removedCount > 0 ? guarded.removedCount : undefined,
     emptyReason:
       suggestions.length === 0
-        ? "Nenhuma materia recente encontrada para os temas e portais configurados."
+        ? articlesBundle.articles.length === 0
+          ? "Nenhuma materia recente encontrada para os temas e portais configurados."
+          : articlesMatchedRadar === 0
+            ? "Matérias encontradas não correspondem aos temas selecionados no radar."
+            : "Nenhuma materia recente encontrada para os temas e portais configurados."
         : undefined,
   };
 

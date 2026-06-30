@@ -75,6 +75,7 @@ import {
   SCRIPT_EDIT_CONSENT_TEXT,
   useScriptFactCheck,
 } from "@/components/product/use-script-fact-check";
+import { AuditorFactCheckLoading } from "@/components/product/auditor-fact-check-loading";
 import { SetupRequiredNotice } from "@/components/product/setup-required-notice";
 import { useMandatorySetupGate } from "@/components/product/use-mandatory-setup-gate";
 import {
@@ -1940,6 +1941,7 @@ export function CriativoPageV2() {
 
   useEffect(() => {
     const suggestionId = searchParams.get("sugestao")?.trim();
+    const monitoringMode = searchParams.get("monitoring") === "1";
     if (!suggestionId) {
       router.replace("/criativo");
       return;
@@ -1967,9 +1969,15 @@ export function CriativoPageV2() {
         }
 
         setSentinelSuggestion(payload.suggestion);
+        const monitoringPrefix =
+          monitoringMode && payload.suggestion!.editorial?.suggestedAngle
+            ? `[Monitoramento] ${payload.suggestion!.editorial.suggestedAngle} — `
+            : monitoringMode
+              ? "[Monitoramento social] "
+              : "";
         setCreativeForm((current) => ({
           ...current,
-          topic: payload.suggestion!.topic,
+          topic: `${monitoringPrefix}${payload.suggestion!.topic}`,
         }));
         invalidateScriptApproval();
       } catch {
@@ -2036,7 +2044,17 @@ export function CriativoPageV2() {
 
           {sentinelSuggestion ? (
             <div className="persona-sentinel-context-banner">
-              <strong>Tema sugerido pelo Sentinela</strong>
+              <strong>
+                {searchParams.get("monitoring") === "1"
+                  ? "Monitoramento social (Sentinela)"
+                  : "Tema sugerido pelo Sentinela"}
+              </strong>
+              {searchParams.get("monitoring") === "1" ? (
+                <p className="persona-helper-text persona-top-gap">
+                  Fonte social sem crivo editorial completo — confira fatos no Auditor antes de
+                  publicar.
+                </p>
+              ) : null}
               <SentinelContextPreview suggestion={sentinelSuggestion} />
             </div>
           ) : null}
@@ -2179,9 +2197,10 @@ export function CriativoPageV2() {
                       isFactChecking
                     }
                   >
-                    {isFactChecking ? "Validando fatos..." : "Aprovar roteiro"}
+                    {isFactChecking ? "Validando…" : "Aprovar roteiro"}
                   </button>
                 </div>
+                <AuditorFactCheckLoading active={isFactChecking} />
                 {factCheckResult && factCheckResult.verdict !== "skipped" ? (
                   <p className="persona-helper-text persona-top-gap">
                     Validador: {factCheckResult.verdict} ({factCheckResult.confidence}%) —{" "}

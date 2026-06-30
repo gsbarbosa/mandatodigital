@@ -54,6 +54,25 @@ export type SentinelEngagementMetrics = {
 
 export type SentinelPipeline = "manual" | "portal" | "semantic" | "social" | "legacy";
 
+export type SentinelSignalKind =
+  | "editorial_opportunity"
+  | "social_monitoring"
+  | "social_promoted";
+
+export type SentinelEditorialEnrichment = {
+  themeConfidence: number;
+  editorialRelevanceScore: number;
+  creativeWorthy: boolean;
+  signalKind: SentinelSignalKind;
+  factualSummary?: string;
+  suggestedAngle?: string;
+  rejectReason?: string;
+  /** Engajamento bruto (social) — separado da relevância editorial. */
+  viralScore?: number;
+  enrichedAt?: string;
+  enrichedBy?: "llm" | "heuristic";
+};
+
 /** Sinal do Sentinela com dados de alta confiabilidade (scraping + config + Trends). */
 export type MockSentinelSuggestion = {
   id: string;
@@ -62,11 +81,26 @@ export type MockSentinelSuggestion = {
   relevanceScore: number;
   /** Pipeline de origem (Fase 1). Ausente em sinais legados. */
   pipeline?: SentinelPipeline;
+  /** Curadoria editorial pós-keyword (heurística ou LLM). */
+  editorial?: SentinelEditorialEnrichment;
   /** Tema curto para pré-preencher o Criativo — derivado do radar, não de LLM. */
   topic: string;
   evidence: SentinelVerifiedEvidence;
   engagement: SentinelEngagementMetrics;
 };
+
+export function sentinelSignalKindLabel(kind: SentinelSignalKind | undefined) {
+  switch (kind) {
+    case "editorial_opportunity":
+      return "Oportunidade";
+    case "social_monitoring":
+      return "Monitoramento";
+    case "social_promoted":
+      return "Imprensa + social";
+    default:
+      return "Oportunidade";
+  }
+}
 
 export function sentinelPipelineBadgeLabel(pipeline: SentinelPipeline | undefined) {
   switch (pipeline) {
@@ -325,12 +359,30 @@ export function formatSentinelActorSource(sourceList: SentinelVerifiedActor["sou
 
 /** Briefing enviado ao Criativo — somente dados verificáveis. */
 export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggestion) {
-  const { evidence, matchedThemes } = suggestion;
+  const { evidence, matchedThemes, editorial } = suggestion;
   const parts = [
     `Tema do radar: ${suggestion.themeLabel}`,
     `Temas correspondentes: ${matchedThemes.join(", ")}`,
-    `Materias analisadas: ${evidence.postsAnalyzed}`,
   ];
+
+  if (editorial?.factualSummary?.trim()) {
+    parts.push(`Resumo factual: ${editorial.factualSummary.trim()}`);
+  }
+
+  if (editorial?.suggestedAngle?.trim()) {
+    parts.push(`Ângulo sugerido: ${editorial.suggestedAngle.trim()}`);
+  }
+
+  if (editorial?.signalKind) {
+    parts.push(`Tipo de sinal: ${sentinelSignalKindLabel(editorial.signalKind)}`);
+  }
+
+  if (editorial?.viralScore !== undefined) {
+    parts.push(`Engajamento viral (score): ${editorial.viralScore}`);
+  }
+
+  parts.push(`Relevância editorial: ${suggestion.relevanceScore}/100`);
+  parts.push(`Materias analisadas: ${evidence.postsAnalyzed}`);
 
   if (evidence.outletCount && evidence.outletCount > 1) {
     parts.push(`Cobertura editorial: ${evidence.outletCount} veiculos distintos`);

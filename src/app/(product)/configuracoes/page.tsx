@@ -1,5 +1,11 @@
-import { ConfiguracoesPage } from "@/components/product/configuracoes-page";
+import { Suspense } from "react";
 
-export default function ConfiguracoesRoute() {
-  return <ConfiguracoesPage />;
+import { ConfiguracoesLegacyRedirect } from "@/components/product/configuracoes-legacy-redirect";
+
+export default function ConfiguracoesIndexPage() {
+  return (
+    <Suspense fallback={null}>
+      <ConfiguracoesLegacyRedirect />
+    </Suspense>
+  );
 }

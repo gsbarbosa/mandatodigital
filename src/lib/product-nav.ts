@@ -3,6 +3,14 @@
  * Default off: produção mantém pipeline de 5 agentes até smoke test.
  */
 
+import type { ConfigSectionId } from "@/lib/config-setup-status";
+import {
+  configNavSections,
+  configSectionHref,
+  parseConfigSectionFromPathname,
+  resolveConfigSectionLabel,
+} from "@/lib/config-setup-status";
+
 const TRUTHY = new Set(["1", "true", "yes", "on"]);
 
 function readPublicFlag(name: string) {
@@ -47,15 +55,31 @@ export type ProductNavV2Item = {
   section: ProductNavV2Section;
 };
 
-export const productNavV2Items: ProductNavV2Item[] = [
+export type ProductNavV2ConfigItem = {
+  id: ConfigSectionId;
+  label: string;
+  href: string;
+  section: "configuracoes";
+  oneTime?: boolean;
+};
+
+export const productNavV2OperacaoItems: ProductNavV2Item[] = [
   { id: "inicio", label: "Início", href: "/inicio", section: "operacao" },
   { id: "criativo", label: "Meus criativos", href: "/criativo", section: "operacao" },
-  {
-    id: "configuracoes",
-    label: "Configurações",
-    href: "/configuracoes",
-    section: "configuracoes",
-  },
+];
+
+export const productNavV2ConfigItems: ProductNavV2ConfigItem[] = configNavSections.map((section) => ({
+  id: section.id,
+  label: section.label,
+  href: configSectionHref(section.id),
+  section: "configuracoes" as const,
+  oneTime: section.oneTime,
+}));
+
+/** @deprecated Use productNavV2OperacaoItems + productNavV2ConfigItems */
+export const productNavV2Items: ProductNavV2Item[] = [
+  ...productNavV2OperacaoItems,
+  ...productNavV2ConfigItems,
 ];
 
 export function isProductNavV2FocusPath(pathname: string) {
@@ -83,12 +107,12 @@ export function isProductNavV2FocusPath(pathname: string) {
   );
 }
 
-export function resolveProductNavV2ActiveId(pathname: string) {
+export function resolveProductNavV2ActiveId(pathname: string, configTab?: ConfigSectionId | null) {
   if (pathname === "/inicio" || pathname.startsWith("/inicio/")) {
     return "inicio";
   }
   if (pathname === "/configuracoes" || pathname.startsWith("/configuracoes/")) {
-    return "configuracoes";
+    return parseConfigSectionFromPathname(pathname) ?? configTab ?? "perfil";
   }
   if (pathname === "/criativo" || pathname.startsWith("/criativo/")) {
     return "criativo";
@@ -101,12 +125,12 @@ export function resolveProductNavV2ActiveId(pathname: string) {
     pathname === "/distribuidor" ||
     pathname.startsWith("/distribuidor/")
   ) {
-    return "configuracoes";
+    return "radar";
   }
   return "inicio";
 }
 
-export function resolveProductNavV2PageMeta(pathname: string) {
+export function resolveProductNavV2PageMeta(pathname: string, configTab?: ConfigSectionId | null) {
   if (pathname === "/inicio" || pathname.startsWith("/inicio/")) {
     return {
       id: "inicio",
@@ -122,10 +146,20 @@ export function resolveProductNavV2PageMeta(pathname: string) {
     };
   }
   if (pathname === "/configuracoes" || pathname.startsWith("/configuracoes/")) {
+    const section = configTab ?? "perfil";
     return {
       id: "configuracoes",
-      title: "Configurações",
-      subtitle: "Identidade, radar de monitoramento e canais",
+      title: resolveConfigSectionLabel(section),
+      subtitle:
+        section === "perfil"
+          ? "Identidade pública e tom de voz"
+          : section === "avatar"
+            ? "Voz, foto e gêmeo digital"
+            : section === "radar"
+              ? "Temas monitorados pelo Sentinela"
+              : section === "fontes"
+                ? "Portais e blogs consultados"
+                : "Publicação e distribuição",
     };
   }
   if (pathname === "/criativo/novo" || pathname.startsWith("/criativo/novo")) {

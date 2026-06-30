@@ -2,6 +2,14 @@ import { z } from "zod";
 
 import { isSentinelLlmExpansionEnabled } from "@/lib/feature-flags";
 import { parseJsonResponse, requestStructuredJson } from "@/lib/llm";
+import {
+  sanitizeMandateThemesOnLoad,
+  sanitizeOppositionThemesOnLoad,
+} from "@/lib/sentinel-radar-themes";
+import {
+  filterExpansionsForAllowedThemes,
+  filterExpansionsForThemeSelection,
+} from "@/lib/sentinel-theme-expansion-filter";
 import { sentinelStorage, type SentinelThemeExpansionRecord } from "@/lib/sentinel-storage";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -81,16 +89,29 @@ export async function generateThemeExpansionTerms(
 }
 
 export function collectExpansionSourceThemes(profile: PoliticianProfile) {
-  return [...new Set([...profile.sentinelThemes, ...profile.oppositionThemes].map(normalizeTheme))]
+  return [
+    ...new Set(
+      [
+        ...sanitizeMandateThemesOnLoad(profile.sentinelThemes),
+        ...sanitizeOppositionThemesOnLoad(profile.oppositionThemes),
+        ...profile.customRadarThemes.map((theme) => theme.trim()).filter(Boolean),
+      ].map(normalizeTheme),
+    ),
+  ]
     .filter(Boolean)
     .slice(0, MAX_THEMES_PER_RUN);
 }
 
-export async function syncSentinelThemeExpansions(profile: PoliticianProfile) {
-  if (!isSentinelLlmExpansionEnabled()) {
-    return { updated: 0, skipped: true as const };
-  }
+export function filterExpansionsForProfile(
+  expansions: SentinelThemeExpansion[],
+  profile: PoliticianProfile,
+) {
+  return filterExpansionsForAllowedThemes(expansions, collectExpansionSourceThemes(profile));
+}
 
+export { filterExpansionsForThemeSelection };
+
+export async function syncSentinelThemeExpansions(profile: PoliticianProfile) {
   const profileId = profile.id?.trim();
   if (!profileId || profileId === "default") {
     return { updated: 0, skipped: true as const };
@@ -98,7 +119,15 @@ export async function syncSentinelThemeExpansions(profile: PoliticianProfile) {
 
   const themes = collectExpansionSourceThemes(profile);
   if (themes.length === 0) {
+    await sentinelStorage.writeThemeExpansions(profileId, []);
     return { updated: 0, skipped: false as const };
+  }
+
+  if (!isSentinelLlmExpansionEnabled()) {
+    const existing = await sentinelStorage.readThemeExpansions(profileId);
+    const filtered = filterExpansionsForProfile(existing, profile);
+    await sentinelStorage.writeThemeExpansions(profileId, filtered);
+    return { updated: filtered.length, skipped: true as const };
   }
 
   const existing = await sentinelStorage.readThemeExpansions(profileId);
@@ -143,6 +172,22 @@ export async function loadSentinelThemeExpansions(profileId: string) {
   }
 
   return sentinelStorage.readThemeExpansions(profileId);
+}
+
+export async function loadSentinelThemeExpansionsForProfile(profile: PoliticianProfile) {
+  const profileId = profile.id?.trim();
+  if (!profileId || profileId === "default") {
+    return [];
+  }
+
+  const stored = await loadSentinelThemeExpansions(profileId);
+  const sanitizedProfile: PoliticianProfile = {
+    ...profile,
+    sentinelThemes: sanitizeMandateThemesOnLoad(profile.sentinelThemes),
+    oppositionThemes: sanitizeOppositionThemesOnLoad(profile.oppositionThemes),
+  };
+
+  return filterExpansionsForProfile(stored, sanitizedProfile);
 }
 
 export function flattenExpansionSearchTerms(expansions: SentinelThemeExpansion[]) {

@@ -15,6 +15,7 @@ export const featureFlags = {
   sentinelV2Pipelines: readEnvFlag("SENTINEL_V2_PIPELINES"),
   sentinelTrendProxy: readEnvFlag("SENTINEL_TREND_PROXY"),
   sentinelSocial: readEnvFlag("SENTINEL_SOCIAL_ENABLED"),
+  sentinelLlmEnrich: readEnvFlag("SENTINEL_LLM_ENRICH"),
   sentinelSerpApi: Boolean(process.env.SENTINEL_SERPAPI_KEY?.trim()),
   auditorFactCheck: readEnvFlag("AUDITOR_FACTCHECK_ENABLED"),
   auditorRealQueue: readEnvFlag("AUDITOR_V2_REAL_QUEUE"),
@@ -47,7 +48,17 @@ export function isSentinelTrendProxyEnabled() {
 }
 
 export function isSentinelSocialEnabled() {
-  return featureFlags.sentinelSocial;
+  return readEnvFlag("SENTINEL_SOCIAL_ENABLED") && Boolean(process.env.APIFY_API_TOKEN?.trim());
+}
+
+export function isSentinelLlmEnrichEnabled() {
+  if (!featureFlags.sentinelLlmEnrich) {
+    return false;
+  }
+
+  return Boolean(
+    process.env.OPENAI_API_KEY?.trim() || process.env.ANTHROPIC_API_KEY?.trim(),
+  );
 }
 
 export function isSentinelSerpApiEnabled() {

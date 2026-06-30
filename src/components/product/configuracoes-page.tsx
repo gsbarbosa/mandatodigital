@@ -1,84 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-
-import { CuradorPageV2 } from "@/components/product/curador-page-v2";
+import { ConfigAvatarPanel } from "@/components/product/config-avatar-panel";
+import { ConfigPerfilPanel } from "@/components/product/config-perfil-panel";
 import { SentinelaRadarPanel } from "@/components/product/sentinela-radar-panel";
+import {
+  isAvatarSectionComplete,
+  type ConfigSectionId,
+} from "@/lib/config-setup-status";
+import { useConfigSectionStatuses } from "@/components/product/use-config-section-statuses";
 
-type ConfigTab = "perfil" | "radar" | "canais";
-
-const tabs: Array<{ id: ConfigTab; label: string }> = [
-  { id: "perfil", label: "Perfil & avatar" },
-  { id: "radar", label: "Radar & fontes" },
-  { id: "canais", label: "Canais" },
-];
-
-function parseConfigTab(value: string | null): ConfigTab {
-  if (value === "radar" || value === "canais" || value === "perfil") {
-    return value;
-  }
-  return "perfil";
-}
-
-export function ConfiguracoesPage() {
-  const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<ConfigTab>("perfil");
-
-  useEffect(() => {
-    setActiveTab(parseConfigTab(searchParams.get("tab")));
-  }, [searchParams]);
+export function ConfiguracoesPage({ section }: { section: ConfigSectionId }) {
+  const { trainingAssets, hasReadyTwin } = useConfigSectionStatuses({ probeTwin: true });
+  const avatarComplete = isAvatarSectionComplete({ trainingAssets, hasReadyTwin });
 
   return (
     <div className="app-page agent-theme-curador">
       <section className="app-panel app-panel-span-full app-panel-flush-top">
-        <div className="config-tabs" role="tablist" aria-label="Seções de configuração">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              className={["config-tab", activeTab === tab.id ? "is-active" : ""]
-                .filter(Boolean)
-                .join(" ")}
-              onClick={() => setActiveTab(tab.id)}
-              data-testid={`config-tab-${tab.id}`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {section === "perfil" ? <ConfigPerfilPanel /> : null}
 
-        <div className="config-tab-panel" role="tabpanel">
-          {activeTab === "perfil" ? (
-            <div className="config-embed config-embed-curador" data-testid="config-panel-perfil">
-              <CuradorPageV2 />
-            </div>
-          ) : null}
+        {section === "avatar" ? (
+          <ConfigAvatarPanel key={avatarComplete ? "avatar-summary" : "avatar-edit"} />
+        ) : null}
 
-          {activeTab === "radar" ? (
-            <div data-testid="config-panel-radar">
+        {section === "radar" ? (
+          <div className="config-panel-body" data-testid="config-panel-radar">
+            <p className="config-section-lead">
+              Temas monitorados pelo Sentinela — o que entra na busca de pautas no Início.
+            </p>
+            <SentinelaRadarPanel focus="radar" />
+          </div>
+        ) : null}
+
+        {section === "fontes" ? (
+          <div className="config-panel-body" data-testid="config-panel-fontes">
+            <p className="config-section-lead">
+              Opcional — refine portais específicos além do Google News. O radar já cobre temas
+              gerais; use fontes para sites locais ou blogs que você quer priorizar.
+            </p>
+            <SentinelaRadarPanel focus="fontes" showRefreshSignals={false} />
+          </div>
+        ) : null}
+
+        {section === "canais" ? (
+          <div data-testid="config-panel-canais">
+            <div className="config-coming-soon" role="status">
+              <p className="config-coming-soon-label">Canais de publicação</p>
+              <p className="config-coming-soon-message">Disponível em breve</p>
               <p className="persona-helper-text">
-                Temas, portais e oposição monitorados pelo Sentinela.
+                Integrações com redes sociais, janelas de disparo e preferências de
+                distribuição entrarão nesta seção em uma próxima versão.
               </p>
-              <SentinelaRadarPanel />
             </div>
-          ) : null}
-
-          {activeTab === "canais" ? (
-            <div data-testid="config-panel-canais">
-              <div className="config-coming-soon" role="status">
-                <p className="config-coming-soon-label">Canais de publicação</p>
-                <p className="config-coming-soon-message">Disponível em breve</p>
-                <p className="persona-helper-text">
-                  Integrações com redes sociais, janelas de disparo e preferências de
-                  distribuição entrarão nesta aba em uma próxima versão.
-                </p>
-              </div>
-            </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );

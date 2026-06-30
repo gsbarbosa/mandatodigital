@@ -72,7 +72,13 @@ type TrainingBannerState =
   | "failed"
   | "completed";
 
-export function CuradorPageV2() {
+export function CuradorPageV2({
+  scope = "full",
+  onTwinStatusChange,
+}: {
+  scope?: "full" | "avatar";
+  onTwinStatusChange?: () => void;
+} = {}) {
   const router = useRouter();
   const digitalTwinEnabled = isHeygenDigitalTwinEnabled();
   const uploadInputId = useId();
@@ -1526,6 +1532,14 @@ export function CuradorPageV2() {
   }, [linkedTwinLook, isPollingTwinTraining, trainingBannerState, productionSource]);
 
   useEffect(() => {
+    if (!onTwinStatusChange || !hasExistingTwin) {
+      return;
+    }
+
+    onTwinStatusChange();
+  }, [hasExistingTwin, onTwinStatusChange]);
+
+  useEffect(() => {
     if (
       !heygenAvatarId.trim() ||
       twinReadyForVideo ||
@@ -1700,7 +1714,7 @@ export function CuradorPageV2() {
             <div className="persona-header-icon" aria-hidden="true">
               <PersonaHeaderIcon />
             </div>
-            <h2>Calibragem de Persona</h2>
+            <h2>{scope === "avatar" ? "Avatar e voz" : "Calibragem de Persona"}</h2>
           </div>
 
           <div className="persona-form-group">
@@ -1787,56 +1801,60 @@ export function CuradorPageV2() {
 
           {renderPrepareAvatarsSection()}
 
-          <hr className="persona-divider" />
+          {scope === "full" ? (
+            <>
+              <hr className="persona-divider" />
 
-          <div className="persona-form-group">
-            <label className="persona-label">
-              Posicionamento ideológico <span className="persona-badge">Obrigatório</span>
-            </label>
-            <p className="persona-helper-text">
-              Arraste na linha para calibrar entre esquerda e direita. O centro representa
-              posicionamento moderado.
-            </p>
-            <IdeologicalSpectrumSlider
-              value={profileForm.spectrum}
-              onChange={(spectrum) =>
-                setProfileForm((current) => ({
-                  ...current,
-                  spectrum,
-                }))
-              }
-            />
-          </div>
+              <div className="persona-form-group">
+                <label className="persona-label">
+                  Posicionamento ideológico <span className="persona-badge">Obrigatório</span>
+                </label>
+                <p className="persona-helper-text">
+                  Arraste na linha para calibrar entre esquerda e direita. O centro representa
+                  posicionamento moderado.
+                </p>
+                <IdeologicalSpectrumSlider
+                  value={profileForm.spectrum}
+                  onChange={(spectrum) =>
+                    setProfileForm((current) => ({
+                      ...current,
+                      spectrum,
+                    }))
+                  }
+                />
+              </div>
 
-          <div className="persona-form-group">
-            <label className="persona-label">Glossário de expressões</label>
-            <p className="persona-helper-text">
-              Inclua características fundamentais da sua expressão, como por exemplo: né, tipo,
-              entendeu, sabe, tá, ok, certo, mano, assim.
-            </p>
-            <textarea
-              className="persona-input-control persona-top-gap"
-              value={profileForm.glossaryTerms ?? ""}
-              onChange={(event) =>
-                setProfileForm((current) => ({
-                  ...current,
-                  glossaryTerms: event.target.value,
-                }))
-              }
-              placeholder="Digite suas expressões, separadas por vírgula..."
-            />
-          </div>
+              <div className="persona-form-group">
+                <label className="persona-label">Glossário de expressões</label>
+                <p className="persona-helper-text">
+                  Inclua características fundamentais da sua expressão, como por exemplo: né, tipo,
+                  entendeu, sabe, tá, ok, certo, mano, assim.
+                </p>
+                <textarea
+                  className="persona-input-control persona-top-gap"
+                  value={profileForm.glossaryTerms ?? ""}
+                  onChange={(event) =>
+                    setProfileForm((current) => ({
+                      ...current,
+                      glossaryTerms: event.target.value,
+                    }))
+                  }
+                  placeholder="Digite suas expressões, separadas por vírgula..."
+                />
+              </div>
 
-          <div className="persona-cta-row persona-top-gap">
-            <button
-              type="button"
-              className="persona-btn"
-              onClick={() => void handleSaveAndContinue()}
-              disabled={isSavingProfile}
-            >
-              {isSavingProfile ? "Salvando…" : "Salvar"}
-            </button>
-          </div>
+              <div className="persona-cta-row persona-top-gap">
+                <button
+                  type="button"
+                  className="persona-btn"
+                  onClick={() => void handleSaveAndContinue()}
+                  disabled={isSavingProfile}
+                >
+                  {isSavingProfile ? "Salvando…" : "Salvar"}
+                </button>
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </section>

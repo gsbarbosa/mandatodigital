@@ -1,6 +1,15 @@
 import type { ProfileFormState } from "@/components/product/shared";
 import type { PoliticianProfile, ProfileTrainingAsset } from "@/lib/types";
 
+import {
+  configSectionHref,
+  isAvatarSectionComplete,
+  isMonitoringConfigured,
+  isMonitoringConfiguredSaved,
+  isPerfilBasicsComplete,
+  isPerfilBasicsCompleteSaved,
+} from "@/lib/config-setup-status";
+
 export type SetupChecklistItem = {
   id: "profile" | "radar" | "avatar";
   label: string;
@@ -9,64 +18,15 @@ export type SetupChecklistItem = {
   href: string;
 };
 
-function hasProfileBasics(form: ProfileFormState) {
-  return Boolean(
-    form.fullName.trim() &&
-      form.role.trim() &&
-      form.city.trim() &&
-      form.state.trim() &&
-      form.bio.trim(),
-  );
-}
-
-function hasProfileBasicsSaved(profile: PoliticianProfile) {
-  return Boolean(
-    profile.fullName?.trim() &&
-      profile.role?.trim() &&
-      profile.city?.trim() &&
-      profile.state?.trim() &&
-      profile.bio?.trim(),
-  );
-}
-
-function hasRadarConfigured(form: ProfileFormState) {
-  const customThemes = form.customRadarThemes.some((theme) => theme.trim().length > 0);
-  return (
-    form.sentinelThemes.length > 0 ||
-    customThemes ||
-    form.interestSites.some((site) => site.trim().length > 0) ||
-    form.oppositionThemes.length > 0 ||
-    form.oppositionSites.some((site) => site.trim().length > 0)
-  );
-}
-
-function hasRadarSaved(profile: PoliticianProfile) {
-  const customThemes = profile.customRadarThemes?.some((theme) => theme.trim().length > 0) ?? false;
-  return (
-    (profile.sentinelThemes?.length ?? 0) > 0 ||
-    customThemes ||
-    (profile.interestSites?.some((site) => site.trim().length > 0) ?? false) ||
-    (profile.oppositionThemes?.length ?? 0) > 0 ||
-    (profile.oppositionSites?.some((site) => site.trim().length > 0) ?? false)
-  );
-}
-
-function hasAvatarMaterial(assets: ProfileTrainingAsset[]) {
-  return assets.some(
-    (asset) =>
-      asset.trainingRole === "voice_audio" ||
-      asset.trainingRole === "avatar_image" ||
-      asset.trainingRole === "dataset",
-  );
-}
-
 export function buildSetupChecklist(input: {
   profileForm: ProfileFormState;
   trainingAssets: ProfileTrainingAsset[];
 }): SetupChecklistItem[] {
-  const profileDone = hasProfileBasics(input.profileForm);
-  const radarDone = hasRadarConfigured(input.profileForm);
-  const avatarDone = hasAvatarMaterial(input.trainingAssets);
+  const profileDone = isPerfilBasicsComplete(input.profileForm);
+  const radarDone = isMonitoringConfigured(input.profileForm);
+  const avatarDone = isAvatarSectionComplete({
+    trainingAssets: input.trainingAssets,
+  });
 
   return [
     {
@@ -74,21 +34,21 @@ export function buildSetupChecklist(input: {
       label: "Perfil básico",
       description: "Nome, cargo, cidade, estado e bio.",
       done: profileDone,
-      href: "/configuracoes?tab=perfil",
+      href: configSectionHref("perfil"),
     },
     {
       id: "radar",
       label: "Radar de pauta",
       description: "Ao menos um tema ou portal monitorado.",
       done: radarDone,
-      href: "/configuracoes?tab=radar",
+      href: configSectionHref("radar"),
     },
     {
       id: "avatar",
       label: "Materiais de avatar",
       description: "Áudio, foto ou vídeo de treino (opcional para começar).",
       done: avatarDone,
-      href: "/configuracoes?tab=perfil",
+      href: configSectionHref("avatar"),
     },
   ];
 }
@@ -116,19 +76,19 @@ export function isMandatorySetupCompleteForProfile(profile: PoliticianProfile | 
     return false;
   }
 
-  return hasProfileBasicsSaved(profile) && hasRadarSaved(profile);
+  return isPerfilBasicsCompleteSaved(profile) && isMonitoringConfiguredSaved(profile);
 }
 
 export function resolveMandatorySetupHref(profile: PoliticianProfile | null) {
-  if (!profile?.id?.trim() || !hasProfileBasicsSaved(profile)) {
-    return "/configuracoes?tab=perfil";
+  if (!profile?.id?.trim() || !isPerfilBasicsCompleteSaved(profile)) {
+    return configSectionHref("perfil");
   }
 
-  if (!hasRadarSaved(profile)) {
-    return "/configuracoes?tab=radar";
+  if (!isMonitoringConfiguredSaved(profile)) {
+    return configSectionHref("radar");
   }
 
-  return "/configuracoes";
+  return configSectionHref("perfil");
 }
 
 export function getMandatorySetupBlockMessage(profile: PoliticianProfile | null) {
@@ -136,11 +96,11 @@ export function getMandatorySetupBlockMessage(profile: PoliticianProfile | null)
     return "Salve o perfil em Configurações antes de gerar conteúdo.";
   }
 
-  if (!hasProfileBasicsSaved(profile)) {
+  if (!isPerfilBasicsCompleteSaved(profile)) {
     return "Complete e salve nome, cargo, cidade, estado e bio em Configurações.";
   }
 
-  if (!hasRadarSaved(profile)) {
+  if (!isMonitoringConfiguredSaved(profile)) {
     return "Configure e salve ao menos um tema ou portal do radar antes de gerar conteúdo.";
   }
 

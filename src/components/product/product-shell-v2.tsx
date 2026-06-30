@@ -4,11 +4,14 @@ import type { ReactNode } from "react";
 
 import { usePathname } from "next/navigation";
 
+import { AppStatusToast } from "./app-status-toast";
 import { useProductApp } from "./provider";
+import { SentinelRefreshPill } from "./sentinel-refresh-pill";
 import { ProductShellProvider } from "./product-shell-context";
 import { ProductShellSessionBar } from "./product-shell-shared";
 import { AppSidebar } from "./app-sidebar";
 import { agentThemeClassName, resolveAgentThemeFromPathname } from "@/lib/agent-theme";
+import { parseConfigSectionFromPathname } from "@/lib/config-setup-status";
 import {
   isProductNavV2FocusPath,
   resolveProductNavV2PageMeta,
@@ -19,9 +22,17 @@ import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-pan
 /** Shell operação-first — sidebar + área principal estilo produto. */
 export function ProductShellV2({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const configTab = parseConfigSectionFromPathname(pathname);
   const isFocusMode = isProductNavV2FocusPath(pathname);
-  const pageMeta = resolveProductNavV2PageMeta(pathname);
-  const { statusMessage, errorMessage, sessionUser, signOut } = useProductApp();
+  const pageMeta = resolveProductNavV2PageMeta(pathname, configTab);
+  const {
+    statusMessage,
+    errorMessage,
+    dismissAppMessages,
+    sessionUser,
+    signOut,
+    isRefreshingSentinel,
+  } = useProductApp();
   const {
     open: heygenDevOpen,
     setOpen: setHeygenDevOpen,
@@ -62,22 +73,27 @@ export function ProductShellV2({ children }: { children: ReactNode }) {
                 <p className="app-page-subtitle">{pageMeta.subtitle}</p>
               ) : null}
             </div>
-            {sessionUser ? (
-              <ProductShellSessionBar sessionUser={sessionUser} onSignOut={signOut} />
-            ) : null}
-          </header>
-
-          {(statusMessage || errorMessage) && (
-            <div className={`message-banner app-main-banner ${errorMessage ? "error" : "success"}`}>
-              {errorMessage ?? statusMessage}
+            <div className="app-main-header-actions">
+              {isRefreshingSentinel ? <SentinelRefreshPill /> : null}
+              {sessionUser ? (
+                <ProductShellSessionBar sessionUser={sessionUser} onSignOut={signOut} />
+              ) : null}
             </div>
-          )}
+          </header>
 
           <ProductShellProvider hasPageHeader>
             <div className="app-main-content">{children}</div>
           </ProductShellProvider>
         </div>
       </div>
+
+      {statusMessage || errorMessage ? (
+        <AppStatusToast
+          message={errorMessage ?? statusMessage ?? ""}
+          variant={errorMessage ? "error" : "success"}
+          onDismiss={dismissAppMessages}
+        />
+      ) : null}
 
       <HeygenDevKeyPanel open={heygenDevOpen} onClose={() => setHeygenDevOpen(false)} />
     </main>

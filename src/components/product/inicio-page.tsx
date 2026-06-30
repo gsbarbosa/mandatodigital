@@ -2,9 +2,10 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { CreativeListSkeleton } from "@/components/product/app-loading";
 import { parseJsonOrText } from "@/components/product/persona-shared";
 import { useProductApp } from "@/components/product/provider";
 import { SetupRequiredNotice } from "@/components/product/setup-required-notice";
@@ -17,8 +18,6 @@ import {
   markOnboardingV2Completed,
 } from "@/lib/product-nav";
 import { buildSetupChecklist, countPendingSetupItems } from "@/lib/product-setup-checklist";
-import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
-import type { SentinelSuggestionsMeta } from "@/lib/sentinel-suggestions";
 import type { CreativeProject } from "@/lib/types";
 
 function formatProjectDate(value: string) {
@@ -34,79 +33,67 @@ function formatProjectDate(value: string) {
 
 export function InicioPage() {
   const router = useRouter();
-  const { profileForm, trainingAssets } = useProductApp();
+  const {
+    profileForm,
+    trainingAssets,
+    sentinelSuggestions,
+    sentinelMeta,
+    isLoadingSentinel,
+    sentinelLoadError,
+    isRefreshingSentinel,
+    refreshSentinelSignals,
+    syncSentinelOnPageEnter,
+  } = useProductApp();
   const { canGenerateContent, setupHref, blockMessage } = useMandatorySetupGate();
   const [projects, setProjects] = useState<CreativeProject[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [projectsError, setProjectsError] = useState<string | null>(null);
-  const [sentinelSuggestions, setSentinelSuggestions] = useState<MockSentinelSuggestion[]>([]);
-  const [sentinelMeta, setSentinelMeta] = useState<SentinelSuggestionsMeta | null>(null);
-  const [isLoadingSentinel, setIsLoadingSentinel] = useState(true);
-  const [sentinelLoadError, setSentinelLoadError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
 
   const checklist = buildSetupChecklist({ profileForm, trainingAssets });
   const pendingCount = countPendingSetupItems({ profileForm, trainingAssets });
 
-  const loadProjects = useCallback(async () => {
-    setIsLoadingProjects(true);
-    setProjectsError(null);
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      const response = await fetch("/api/creative-projects");
-      const payload = await parseJsonOrText<{ projects?: CreativeProject[]; message?: string }>(
-        response,
-      );
+    void (async () => {
+      setIsLoadingProjects(true);
+      setProjectsError(null);
 
-      if (!response.ok) {
-        throw new Error(payload.message || "Não foi possível carregar os criativos.");
+      try {
+        const response = await fetch("/api/creative-projects");
+        const payload = await parseJsonOrText<{ projects?: CreativeProject[]; message?: string }>(
+          response,
+        );
+
+        if (!response.ok) {
+          throw new Error(payload.message || "Não foi possível carregar os criativos.");
+        }
+
+        if (!cancelled) {
+          setProjects(payload.projects ?? []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setProjectsError(
+            error instanceof Error ? error.message : "Não foi possível carregar os criativos.",
+          );
+          setProjects([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingProjects(false);
+        }
       }
+    })();
 
-      setProjects(payload.projects ?? []);
-    } catch (error) {
-      setProjectsError(
-        error instanceof Error ? error.message : "Não foi possível carregar os criativos.",
-      );
-      setProjects([]);
-    } finally {
-      setIsLoadingProjects(false);
-    }
-  }, []);
-
-  const loadSentinelSuggestions = useCallback(async () => {
-    setIsLoadingSentinel(true);
-    setSentinelLoadError(null);
-
-    try {
-      const response = await fetch("/api/sentinel/suggestions");
-      const payload = await parseJsonOrText<{
-        suggestions?: MockSentinelSuggestion[];
-        meta?: SentinelSuggestionsMeta;
-        message?: string;
-      }>(response);
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Não foi possível carregar os sinais.");
-      }
-
-      setSentinelSuggestions(payload.suggestions ?? []);
-      setSentinelMeta(payload.meta ?? null);
-    } catch (error) {
-      setSentinelLoadError(
-        error instanceof Error ? error.message : "Não foi possível carregar os sinais.",
-      );
-      setSentinelSuggestions([]);
-      setSentinelMeta(null);
-    } finally {
-      setIsLoadingSentinel(false);
-    }
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    void loadProjects();
-    void loadSentinelSuggestions();
-  }, [loadProjects, loadSentinelSuggestions]);
+    void syncSentinelOnPageEnter();
+  }, [syncSentinelOnPageEnter]);
 
   useEffect(() => {
     if (pendingCount === 0 && !isOnboardingV2Completed()) {
@@ -123,42 +110,6 @@ export function InicioPage() {
       router.replace("/onboarding");
     }
   }, [pendingCount, router]);
-
-  async function handleRefreshSignals() {
-    setIsRefreshing(true);
-    setRefreshMessage(null);
-    setSentinelLoadError(null);
-
-    try {
-      const response = await fetch("/api/sentinel/refresh", { method: "POST" });
-      const payload = (await response.json()) as {
-        message?: string;
-        suggestions?: MockSentinelSuggestion[];
-        meta?: SentinelSuggestionsMeta;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Não foi possível atualizar os sinais.");
-      }
-
-      setSentinelSuggestions(payload.suggestions ?? []);
-      setSentinelMeta(payload.meta ?? null);
-
-      const count = payload.suggestions?.length ?? 0;
-      setRefreshMessage(
-        count > 0
-          ? `${count} sinal(is) atualizado(s).`
-          : payload.meta?.emptyReason || "Nenhum sinal novo para o radar atual.",
-      );
-      window.setTimeout(() => setRefreshMessage(null), 4200);
-    } catch (error) {
-      setRefreshMessage(
-        error instanceof Error ? error.message : "Não foi possível atualizar os sinais.",
-      );
-    } finally {
-      setIsRefreshing(false);
-    }
-  }
 
   const recentProjects = projects.slice(0, 5);
 
@@ -205,32 +156,27 @@ export function InicioPage() {
             <button
               type="button"
               className="persona-btn persona-btn-secondary"
-              onClick={() => void handleRefreshSignals()}
-              disabled={isRefreshing}
+              onClick={() => void refreshSentinelSignals()}
+              disabled={isRefreshingSentinel}
               data-testid="inicio-refresh-signals"
             >
-              {isRefreshing ? "Atualizando..." : "Atualizar sinais"}
+              {isRefreshingSentinel ? "Atualizando..." : "Atualizar sinais"}
             </button>
           </div>
-          {refreshMessage ? (
-            <p className="persona-helper-text persona-top-gap" role="status">
-              {refreshMessage}
-            </p>
-          ) : null}
-            <SentinelSuggestionsList
-              suggestions={sentinelSuggestions}
-              isLoading={isLoadingSentinel || isRefreshing}
-              loadError={sentinelLoadError}
-              emptyMessage="Nenhum sinal em cache. Clique em «Atualizar sinais» para buscar pautas."
-              loadingMessage={
-                isRefreshing
-                  ? "Buscando pautas recentes (pode levar até 1 minuto)..."
-                  : undefined
-              }
-              generationBlocked={!canGenerateContent}
-              generationBlockedMessage={blockMessage}
-              meta={sentinelMeta}
-            />
+          <SentinelSuggestionsList
+            suggestions={sentinelSuggestions}
+            isLoading={isLoadingSentinel || isRefreshingSentinel}
+            loadError={sentinelLoadError}
+            emptyMessage="Nenhum sinal em cache. Clique em «Atualizar sinais» para buscar pautas."
+            loadingMessage={
+              isRefreshingSentinel
+                ? "Buscando pautas recentes (pode levar até 1 minuto)..."
+                : undefined
+            }
+            generationBlocked={!canGenerateContent}
+            generationBlockedMessage={blockMessage}
+            meta={sentinelMeta}
+          />
         </section>
 
         <section className="app-panel app-panel-side">
@@ -252,7 +198,7 @@ export function InicioPage() {
             ) : (
               <SetupRequiredNotice message={blockMessage} href={setupHref} />
             )}
-            <Link href="/configuracoes?tab=radar" className="app-link-muted">
+            <Link href="/configuracoes/radar" className="app-link-muted">
               Ajustar radar
             </Link>
           </div>
@@ -264,7 +210,12 @@ export function InicioPage() {
             <p className="persona-helper-text persona-helper-highlight">{projectsError}</p>
           ) : null}
           {isLoadingProjects ? (
-            <p className="persona-helper-text">Carregando projetos...</p>
+            <>
+              <p className="sr-only" role="status">
+                Carregando projetos recentes...
+              </p>
+              <CreativeListSkeleton count={3} />
+            </>
           ) : null}
           {!isLoadingProjects && recentProjects.length === 0 ? (
             <p className="persona-helper-text">Nenhum criativo ainda. Comece por Novo criativo.</p>

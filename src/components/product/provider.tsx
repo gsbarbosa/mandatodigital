@@ -2,9 +2,11 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -12,6 +14,10 @@ import {
 } from "react";
 
 import { mergeProfileInputForSave } from "@/lib/profile-save";
+import {
+  sanitizeMandateThemesOnLoad,
+  sanitizeOppositionThemesOnLoad,
+} from "@/lib/sentinel-radar-themes";
 import { SUPABASE_STANDARD_UPLOAD_MAX_BYTES } from "@/lib/training-asset-upload-client";
 import {
   contentRequestInputSchema,
@@ -45,6 +51,9 @@ import {
   type ProfileFormState,
   type RequestFormState,
 } from "./shared";
+import { useSentinelSignalsState } from "./use-sentinel-signals";
+import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
+import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 
 type ProductAppContextValue = {
   profile: DashboardData["profile"];
@@ -62,6 +71,7 @@ type ProductAppContextValue = {
   requestsWithContent: ContentRequest[];
   statusMessage: string | null;
   errorMessage: string | null;
+  dismissAppMessages: () => void;
   isSavingProfile: boolean;
   isGenerating: boolean;
   isSavingContent: boolean;
@@ -107,6 +117,13 @@ type ProductAppContextValue = {
   getEvaluationReportById: (runId: string) => EvaluationReport | null;
   sessionUser: SessionUser | null;
   signOut: () => Promise<void>;
+  sentinelSuggestions: MockSentinelSuggestion[];
+  sentinelMeta: SentinelSuggestionsMeta | null;
+  isLoadingSentinel: boolean;
+  sentinelLoadError: string | null;
+  isRefreshingSentinel: boolean;
+  refreshSentinelSignals: () => Promise<void>;
+  syncSentinelOnPageEnter: () => Promise<void>;
 };
 
 const ProductAppContext = createContext<ProductAppContextValue | null>(null);
@@ -149,6 +166,73 @@ export function ProductAppProvider({
   );
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearStatusTimer = useCallback(() => {
+    if (statusTimerRef.current) {
+      clearTimeout(statusTimerRef.current);
+      statusTimerRef.current = null;
+    }
+  }, []);
+
+  const clearErrorTimer = useCallback(() => {
+    if (errorTimerRef.current) {
+      clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = null;
+    }
+  }, []);
+
+  const dismissAppMessages = useCallback(() => {
+    clearStatusTimer();
+    clearErrorTimer();
+    setStatusMessage(null);
+    setErrorMessage(null);
+  }, [clearErrorTimer, clearStatusTimer]);
+
+  const publishStatusMessage = useCallback(
+    (message: string, durationMs = 3600) => {
+      clearStatusTimer();
+      setStatusMessage(message);
+      statusTimerRef.current = setTimeout(() => {
+        setStatusMessage(null);
+        statusTimerRef.current = null;
+      }, durationMs);
+    },
+    [clearStatusTimer],
+  );
+
+  const publishErrorMessage = useCallback(
+    (message: string, durationMs = 7000) => {
+      clearErrorTimer();
+      setErrorMessage(message);
+      errorTimerRef.current = setTimeout(() => {
+        setErrorMessage(null);
+        errorTimerRef.current = null;
+      }, durationMs);
+    },
+    [clearErrorTimer],
+  );
+
+  const {
+    sentinelSuggestions,
+    sentinelMeta,
+    isLoadingSentinel,
+    sentinelLoadError,
+    isRefreshingSentinel,
+    refreshSentinelSignals,
+    syncSentinelOnPageEnter,
+  } = useSentinelSignalsState({
+    publishStatusMessage,
+    publishErrorMessage,
+  });
+
+  useEffect(() => {
+    return () => {
+      clearStatusTimer();
+      clearErrorTimer();
+    };
+  }, [clearErrorTimer, clearStatusTimer]);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingContent, setIsSavingContent] = useState(false);
@@ -221,6 +305,7 @@ export function ProductAppProvider({
   }, []);
 
   async function handleApi<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+    clearErrorTimer();
     setErrorMessage(null);
     const response = await fetch(input, {
       credentials: "same-origin",
@@ -259,6 +344,7 @@ export function ProductAppProvider({
     throwOnError?: boolean;
   }) {
     setIsSavingProfile(true);
+    clearStatusTimer();
     setStatusMessage(null);
 
     try {
@@ -278,8 +364,8 @@ export function ProductAppProvider({
         referenceExamples: parseTextarea(profileForm.referenceExamples),
         bio: profileForm.bio,
         personaArchetypes: profileForm.personaArchetypes,
-        sentinelThemes: profileForm.sentinelThemes,
-        oppositionThemes: profileForm.oppositionThemes,
+        sentinelThemes: sanitizeMandateThemesOnLoad(profileForm.sentinelThemes),
+        oppositionThemes: sanitizeOppositionThemesOnLoad(profileForm.oppositionThemes),
         customRadarThemes: profileForm.customRadarThemes.filter(Boolean),
         interestProfiles: profileForm.interestProfiles.filter(
           (item) => item.network.trim() && item.handle.trim(),
@@ -348,7 +434,7 @@ export function ProductAppProvider({
         ),
       );
       if (!options?.silent) {
-        setStatusMessage(
+        publishStatusMessage(
           options?.allowDraftDefaults
             ? "Preferências do Curador salvas."
             : "Configuração salva.",
@@ -357,7 +443,7 @@ export function ProductAppProvider({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Não foi possível salvar o perfil.";
-      setErrorMessage(message);
+      publishErrorMessage(message);
       if (options?.throwOnError) {
         throw error instanceof Error ? error : new Error(message);
       }
@@ -378,6 +464,7 @@ export function ProductAppProvider({
     setUploadingTrainingRoles((current) =>
       current.includes(trainingRole) ? current : [...current, trainingRole],
     );
+    clearStatusTimer();
     setStatusMessage(null);
 
     try {
@@ -487,7 +574,7 @@ export function ProductAppProvider({
       }
 
       setTrainingAssets((current) => [...uploadedAssets, ...current]);
-      setStatusMessage(
+      publishStatusMessage(
         trainingRole === "voice_audio"
           ? "Audio de voz enviado."
           : trainingRole === "avatar_image"
@@ -508,7 +595,7 @@ export function ProductAppProvider({
         throw new Error(message);
       }
 
-      setErrorMessage(message);
+      publishErrorMessage(message);
       return [];
     } finally {
       setUploadingTrainingRoles((current) => current.filter((role) => role !== trainingRole));
@@ -534,11 +621,12 @@ export function ProductAppProvider({
 
   async function generateContent() {
     if (!profile) {
-      setErrorMessage("Salve o perfil do parlamentar antes de gerar conteúdo.");
+      publishErrorMessage("Salve o perfil do parlamentar antes de gerar conteúdo.");
       return [];
     }
 
     setIsGenerating(true);
+    clearStatusTimer();
     setStatusMessage(null);
 
     try {
@@ -577,13 +665,13 @@ export function ProductAppProvider({
       setRequests((current) => [result.request, ...current]);
       setContents((current) => [...result.generatedContents, ...current]);
       setRequestForm(buildRequestState());
-      setStatusMessage(
+      publishStatusMessage(
         "Geração concluída. Você já pode revisar, editar e aprovar a melhor versão.",
       );
 
       return result.generatedContents;
     } catch (error) {
-      setErrorMessage(
+      publishErrorMessage(
         error instanceof Error ? error.message : "Não foi possível gerar as versões.",
       );
       return [];
@@ -597,6 +685,7 @@ export function ProductAppProvider({
     input: { body?: string; status?: ContentStatus },
   ) {
     setIsSavingContent(true);
+    clearStatusTimer();
     setStatusMessage(null);
 
     try {
@@ -616,11 +705,11 @@ export function ProductAppProvider({
           item.id === result.generatedContent.id ? result.generatedContent : item,
         ),
       );
-      setStatusMessage("Conteúdo atualizado e salvo no histórico.");
+      publishStatusMessage("Conteúdo atualizado e salvo no histórico.");
 
       return result.generatedContent;
     } catch (error) {
-      setErrorMessage(
+      publishErrorMessage(
         error instanceof Error ? error.message : "Não foi possível atualizar o conteúdo.",
       );
       return null;
@@ -647,11 +736,11 @@ export function ProductAppProvider({
       );
 
       setFeedback((current) => [result.feedback, ...current]);
-      setStatusMessage("Feedback registrado para calibrar as próximas gerações.");
+      publishStatusMessage("Feedback registrado para calibrar as próximas gerações.");
 
       return result.feedback;
     } catch (error) {
-      setErrorMessage(
+      publishErrorMessage(
         error instanceof Error ? error.message : "Não foi possível registrar o feedback.",
       );
       return null;
@@ -660,6 +749,7 @@ export function ProductAppProvider({
 
   async function submitProductFeedback(input: ProductFeedbackFormState) {
     setIsSubmittingProductFeedback(true);
+    clearStatusTimer();
     setStatusMessage(null);
 
     try {
@@ -686,13 +776,13 @@ export function ProductAppProvider({
 
       setProductFeedbacks((current) => [result.feedback, ...current]);
       setFeedbackWidgetOpen(true);
-      setStatusMessage(
+      publishStatusMessage(
         "Feedback analisado. A IA classificou a observação e registrou o próximo passo sugerido.",
       );
 
       return result.feedback;
     } catch (error) {
-      setErrorMessage(
+      publishErrorMessage(
         error instanceof Error
           ? error.message
           : "Não foi possível analisar o feedback de produto.",
@@ -710,7 +800,7 @@ export function ProductAppProvider({
       const result = await handleApi<{ reports: EvaluationReport[] }>("/api/evals/runs?limit=20");
       setEvaluationReports(sortReportsByDate(result.reports));
     } catch (error) {
-      setErrorMessage(
+      publishErrorMessage(
         error instanceof Error
           ? error.message
           : "Não foi possível carregar as avaliações do core.",
@@ -722,6 +812,7 @@ export function ProductAppProvider({
 
   async function evaluateContentRequest(contentRequestId: string) {
     setIsEvaluatingContentRequestId(contentRequestId);
+    clearStatusTimer();
     setStatusMessage(null);
 
     try {
@@ -741,13 +832,13 @@ export function ProductAppProvider({
           ...current.filter((item) => item.run.id !== result.report.run.id),
         ]),
       );
-      setStatusMessage(
+      publishStatusMessage(
         "Avaliação concluída. O juiz da LLM atribuiu nota e registrou o racional da execução.",
       );
 
       return result.report;
     } catch (error) {
-      setErrorMessage(
+      publishErrorMessage(
         error instanceof Error
           ? error.message
           : "Não foi possível avaliar a geração selecionada.",
@@ -800,6 +891,7 @@ export function ProductAppProvider({
     requestsWithContent,
     statusMessage,
     errorMessage,
+    dismissAppMessages,
     isSavingProfile,
     isGenerating,
     isSavingContent,
@@ -829,6 +921,13 @@ export function ProductAppProvider({
     getEvaluationReportById,
     sessionUser,
     signOut,
+    sentinelSuggestions,
+    sentinelMeta,
+    isLoadingSentinel,
+    sentinelLoadError,
+    isRefreshingSentinel,
+    refreshSentinelSignals,
+    syncSentinelOnPageEnter,
   };
 
   return <ProductAppContext.Provider value={value}>{children}</ProductAppContext.Provider>;

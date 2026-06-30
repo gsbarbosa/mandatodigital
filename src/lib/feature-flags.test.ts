@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   featureFlags,
   isAuditorFactCheckEnabled,
+  isSentinelLlmEnrichEnabled,
   isSentinelLlmExpansionEnabled,
   isSentinelPersistCacheEnabled,
   isSentinelSocialEnabled,
@@ -15,6 +16,8 @@ const ENV_KEYS = [
   "SENTINEL_V2_PIPELINES",
   "SENTINEL_TREND_PROXY",
   "SENTINEL_SOCIAL_ENABLED",
+  "SENTINEL_LLM_ENRICH",
+  "APIFY_API_TOKEN",
   "SENTINEL_PERSIST_CACHE",
   "AUDITOR_FACTCHECK_ENABLED",
   "SUPABASE_URL",
@@ -44,8 +47,18 @@ describe("feature-flags", () => {
     expect(isSentinelV2PipelinesEnabled()).toBe(false);
     expect(isSentinelTrendProxyEnabled()).toBe(false);
     expect(isSentinelSocialEnabled()).toBe(false);
+    expect(isSentinelLlmEnrichEnabled()).toBe(false);
     expect(isAuditorFactCheckEnabled()).toBe(false);
     expect(featureFlags.auditorRealQueue).toBe(false);
+  });
+
+  it("exige APIFY_API_TOKEN para ligar pipeline social", () => {
+    process.env.SENTINEL_SOCIAL_ENABLED = "true";
+    delete process.env.APIFY_API_TOKEN;
+    expect(isSentinelSocialEnabled()).toBe(false);
+
+    process.env.APIFY_API_TOKEN = "apify_api_test";
+    expect(isSentinelSocialEnabled()).toBe(true);
   });
 
   it("liga persistencia quando Supabase esta configurado", () => {

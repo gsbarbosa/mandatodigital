@@ -17,6 +17,7 @@ import {
 } from "@/lib/sentinel-rss";
 import { applyTrendScoreBoost, resolveThemeVolumeTrend } from "@/lib/sentinel-trends";
 import type { SentinelThemeExpansion } from "@/lib/sentinel-theme-expansion";
+import { mergeSentinelSuggestions } from "@/lib/sentinel-social-suggestions";
 import type { PoliticianProfile } from "@/lib/types";
 
 const MAX_SUGGESTIONS = 5;
@@ -211,21 +212,6 @@ async function buildSuggestionFromCluster(input: {
   };
 }
 
-function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
-  const byId = new Map<string, MockSentinelSuggestion>();
-
-  for (const suggestion of suggestions) {
-    const existing = byId.get(suggestion.id);
-    if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
-      byId.set(suggestion.id, suggestion);
-    }
-  }
-
-  return [...byId.values()]
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_SUGGESTIONS);
-}
-
 export async function buildV2SuggestionsFromArticles(
   articles: RssNewsItem[],
   profile: PoliticianProfile,
@@ -300,5 +286,5 @@ export async function buildV2SuggestionsFromArticles(
     );
   }
 
-  return mergeSuggestionsById(suggestions);
+  return mergeSentinelSuggestions([suggestions], MAX_SUGGESTIONS);
 }

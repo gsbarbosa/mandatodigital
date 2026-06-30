@@ -1,0 +1,29 @@
+{
+  "capturedAt": "2026-06-30T01:18:00.000Z",
+  "source": "Google News RSS (pt-BR, gl=BR)",
+  "profile": {
+    "city": "Campinas",
+    "state": "SP",
+    "sentinelThemes": ["Vacinação", "Segurança Pública"],
+    "oppositionThemes": ["Combate à Corrupção"],
+    "customRadarThemes": []
+  },
+  "feeds": [
+    {
+      "query": "Campinas SP",
+      "file": "campinas-sp.xml"
+    },
+    {
+      "query": "Vacinação Campinas SP",
+      "file": "vacinacao-campinas-sp.xml"
+    },
+    {
+      "query": "Segurança Pública Campinas SP",
+      "file": "seguranca-publica-campinas-sp.xml"
+    },
+    {
+      "query": "Combate à Corrupção Campinas SP",
+      "file": "combate-corrupcao-campinas-sp.xml"
+    }
+  ]
+}

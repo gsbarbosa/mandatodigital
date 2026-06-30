@@ -1,3 +1,4 @@
+import { stripHashtagsForThemeMatching } from "@/lib/sentinel-caption";
 import { normalizeSentinelText } from "@/lib/sentinel-text";
 
 /**
@@ -73,20 +74,59 @@ export function textMatchesThemeTerm(text: string, term: string) {
     return false;
   }
 
-  if (normalized.includes(termNorm)) {
+  const textWords = normalized.split(" ").filter(Boolean);
+
+  if (termNorm.includes(" ")) {
+    if (normalized.includes(termNorm)) {
+      return true;
+    }
+
+    const phraseWords = termNorm.split(" ").filter((word) => word.length >= 4);
+    return phraseWords.length > 0 && phraseWords.every((word) => textWords.includes(word));
+  }
+
+  if (textWords.includes(termNorm)) {
     return true;
   }
 
-  const words = termNorm.split(" ").filter((word) => word.length >= 4);
-  return words.some((word) => normalized.includes(word));
+  if (termNorm.length >= 8 && normalized.includes(termNorm)) {
+    return true;
+  }
+
+  const themeWords = termNorm.split(" ").filter((word) => word.length >= 4);
+  return themeWords.length > 1 && themeWords.every((word) => textWords.includes(word));
+}
+
+export function findThemeTermMatches(text: string, themes: string[]) {
+  const haystack = stripHashtagsForThemeMatching(text);
+  const matches: Array<{ theme: string; term: string }> = [];
+
+  for (const theme of themes) {
+    const terms = getThemeSearchTerms(theme);
+    const matchedTerm = terms.find((term) => textMatchesThemeTerm(haystack, term));
+    if (matchedTerm) {
+      matches.push({ theme, term: matchedTerm });
+    }
+  }
+
+  return matches;
+}
+
+export function pickPrimaryThemeMatch(matches: Array<{ theme: string; term: string }>) {
+  if (matches.length === 0) {
+    return null;
+  }
+
+  return [...matches].sort((left, right) => right.term.length - left.term.length)[0] ?? null;
 }
 
 export function matchThemesWithSynonyms(text: string, themes: string[]) {
+  const haystack = stripHashtagsForThemeMatching(text);
   const matched: string[] = [];
 
   for (const theme of themes) {
     const terms = getThemeSearchTerms(theme);
-    const hit = terms.some((term) => textMatchesThemeTerm(text, term));
+    const hit = terms.some((term) => textMatchesThemeTerm(haystack, term));
     if (hit) {
       matched.push(theme);
     }

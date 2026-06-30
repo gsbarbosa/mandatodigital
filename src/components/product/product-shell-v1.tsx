@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { AppStatusToast } from "./app-status-toast";
 import { useInitialProductFeedbackForm, useProductApp } from "./provider";
+import { SentinelRefreshPill } from "./sentinel-refresh-pill";
 import {
   ProductShellFeedbackDrawer,
   ProductShellFeedbackFab,
@@ -37,6 +39,7 @@ export function ProductShellV1({ children }: { children: ReactNode }) {
     contents,
     statusMessage,
     errorMessage,
+    dismissAppMessages,
     isFeedbackWidgetOpen,
     setFeedbackWidgetOpen,
     productFeedbacks,
@@ -44,6 +47,7 @@ export function ProductShellV1({ children }: { children: ReactNode }) {
     isSubmittingProductFeedback,
     sessionUser,
     signOut,
+    isRefreshingSentinel,
   } = useProductApp();
   const [productFeedbackForm, setProductFeedbackForm] = useInitialProductFeedbackForm();
   const isDrawerOpen = isFeedbackForcedOpen || isFeedbackWidgetOpen;
@@ -83,6 +87,7 @@ export function ProductShellV1({ children }: { children: ReactNode }) {
           }
         >
           <ProductShellSessionBar sessionUser={sessionUser} onSignOut={signOut} />
+          {isRefreshingSentinel ? <SentinelRefreshPill /> : null}
           {isCuradorFocusMode ? (
             <>
               <WorkflowPipelineBar
@@ -132,9 +137,11 @@ export function ProductShellV1({ children }: { children: ReactNode }) {
       )}
 
       {(statusMessage || errorMessage) && (
-        <div className={`message-banner ${errorMessage ? "error" : "success"}`}>
-          {errorMessage ?? statusMessage}
-        </div>
+        <AppStatusToast
+          message={errorMessage ?? statusMessage ?? ""}
+          variant={errorMessage ? "error" : "success"}
+          onDismiss={dismissAppMessages}
+        />
       )}
 
       {children}

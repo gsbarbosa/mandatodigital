@@ -364,7 +364,7 @@ export const sentinelStorage = {
   },
 
   async writeThemeExpansions(profileId: string, records: SentinelThemeExpansionRecord[]) {
-    if (!isSentinelPersistCacheEnabled() || records.length === 0) {
+    if (!isSentinelPersistCacheEnabled()) {
       return;
     }
 
@@ -372,6 +372,31 @@ export const sentinelStorage = {
 
     if (isSupabaseConfigured()) {
       const client = getSupabaseClient();
+
+      const { error: deleteError } = await client
+        .from("sentinel_theme_expansions")
+        .delete()
+        .eq("profile_id", profileId);
+
+      if (deleteError) {
+        if (isSchemaCompatibilityError(deleteError)) {
+          throwIfNoLocalSchemaFallback(deleteError);
+          const database = await readLocalDatabase();
+          database.sentinelThemeExpansions = {
+            ...(database.sentinelThemeExpansions ?? {}),
+            [profileId]: records,
+          };
+          await writeLocalDatabase(database);
+          return;
+        }
+
+        throw deleteError;
+      }
+
+      if (records.length === 0) {
+        return;
+      }
+
       const rows = records.map((record) => ({
         profile_id: profileId,
         owner_user_id: ownerUserId,
@@ -380,9 +405,7 @@ export const sentinelStorage = {
         generated_at: record.generatedAt || nowIso(),
       }));
 
-      const { error } = await client.from("sentinel_theme_expansions").upsert(rows, {
-        onConflict: "profile_id,source_theme",
-      });
+      const { error } = await client.from("sentinel_theme_expansions").insert(rows);
 
       if (error) {
         if (isSchemaCompatibilityError(error)) {

@@ -7,6 +7,10 @@ import {
   defaultFormats,
   defaultIntensities,
 } from "@/lib/constants";
+import {
+  sanitizeMandateThemesOnLoad,
+  sanitizeOppositionThemesOnLoad,
+} from "@/lib/sentinel-radar-themes";
 import type { DashboardData } from "@/lib/types";
 import type {
   ContentFormat,
@@ -142,8 +146,8 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
         : data?.archetype
           ? [data.archetype]
           : [],
-    sentinelThemes: data?.sentinelThemes ?? [],
-    oppositionThemes: data?.oppositionThemes ?? [],
+    sentinelThemes: sanitizeMandateThemesOnLoad(data?.sentinelThemes ?? []),
+    oppositionThemes: sanitizeOppositionThemesOnLoad(data?.oppositionThemes ?? []),
     customRadarThemes: data?.customRadarThemes ?? [],
     interestProfiles: data?.interestProfiles ?? [],
     interestSites: data?.interestSites ?? [],

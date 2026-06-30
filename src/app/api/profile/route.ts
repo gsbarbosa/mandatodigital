@@ -37,7 +37,7 @@ export async function PUT(request: Request) {
       const payload = profileInputSchema.parse(merged);
       const profile = await repository.saveProfile(payload);
 
-      void syncSentinelThemeExpansions(profile)
+      await syncSentinelThemeExpansions(profile)
         .then(() => {
           if (profile.id) {
             invalidateSentinelCache(profile.id);

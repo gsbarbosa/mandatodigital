@@ -66,6 +66,20 @@ describe("sentinel-theme-synonyms", () => {
     );
     expect(matches).toContain("Reforma Fiscal");
   });
+
+  it("nao associa IVA dentro de motivada nem porte dentro de passaporte", () => {
+    const caption =
+      "Jair Bolsonaro teve seu passaporte apreendido pela Polícia Federal em uma operação de busca e apreensão absolutamente arbitrária, supostamente motivada por um";
+
+    expect(matchThemesWithSynonyms(caption, ["Reforma Fiscal"])).toEqual([]);
+    expect(matchThemesWithSynonyms(caption, ["Porte de Armas (CACs)"])).toEqual([]);
+    expect(matchThemesWithSynonyms(caption, ["Direito Trabalhista"])).toEqual([]);
+    expect(matchThemesWithSynonyms(caption, ["Vacinação"])).toEqual([]);
+    expect(matchThemesWithSynonyms(caption, ["Saúde Pública (SUS)"])).toEqual([]);
+    expect(matchThemesWithSynonyms(caption, ["Segurança Pública"])).toContain(
+      "Segurança Pública",
+    );
+  });
 });
 
 describe("sentinel-rss", () => {

@@ -35,6 +35,7 @@ Documentos relacionados:
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
 | `NEXT_PUBLIC_PRODUCT_NAV_V2` | off (default) |
 | `SENTINEL_SOCIAL_ENABLED` | off (default) |
+| `SENTINEL_LLM_ENRICH` | off (default) |
 
 **Migrations Supabase aplicadas:**
 
@@ -158,8 +159,11 @@ Referência detalhada: [sentinela.md](sentinela.md)
 | **1.2.1/1.2.3** Trend proxy (volume D vs D-7) | ✅ | on | Precisa histórico em `sentinel_signals` |
 | Badge pipeline + “↑ volume” no Criativo | ✅ | on | |
 | Ranking unificado com pesos por pipeline | ✅ | on | `sentinel-pipeline.ts` |
-| **1.2.2** Pipeline social / Instagram | ❌ | off | ⏸ Apify vs Graph API |
-| Busca real de perfis @ + engajamento | ❌ | | Fórmula Eng/Growth definida no parecer |
+| **1.2.2** Pipeline social / Instagram | 🟡 | off (flag) | Apify + curadoria editorial (heurística + `SENTINEL_LLM_ENRICH`) |
+| Busca real de perfis @ + engajamento | 🟡 | | Apify; score viral separado da relevância editorial |
+| Gate criativo (oportunidade vs monitoramento) | ✅ | | `sentinel-editorial-gate.ts` |
+| Enriquecimento LLM de sinais | 🟡 | off | Flag `SENTINEL_LLM_ENRICH` + OpenAI/Anthropic |
+| Correlação social + imprensa (promoção) | ✅ | | `sentinel-social-cross-match.ts` |
 | X / TikTok / YouTube nos perfis @ | ❌ | | UI “em breve” |
 | Google Trends / SerpAPI | ❌ | | ⏸ Budget ~US$ 75/mo |
 | Refresh automático periódico (sem clique) | ❌ | | |

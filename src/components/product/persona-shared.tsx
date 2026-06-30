@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { parseTextarea } from "@/components/product/shared";
+import { AppLoadingRow, MediaPreviewSkeleton } from "@/components/product/app-loading";
 import {
   SPECTRUM_DEFAULT,
   indexToSpectrum,
@@ -313,38 +314,54 @@ export function TrainingAssetMediaPreview({
   preferVideo?: boolean;
 }) {
   const [mediaFailed, setMediaFailed] = useState(false);
+  const [isMediaLoading, setIsMediaLoading] = useState(true);
   const normalizedAssetId = assetId.trim();
   const src = normalizedAssetId ? trainingAssetFileUrl(normalizedAssetId) : "";
 
   useEffect(() => {
     setMediaFailed(false);
+    setIsMediaLoading(true);
   }, [normalizedAssetId]);
 
   if (!src || mediaFailed) {
     return <span className="persona-twin-preview-placeholder" />;
   }
 
+  const handleMediaReady = () => {
+    setIsMediaLoading(false);
+  };
+
   if (preferVideo) {
     return (
-      <video
-        src={src}
-        className={className}
-        muted
-        playsInline
-        loop
-        autoPlay
-        onError={() => setMediaFailed(true)}
-      />
+      <span className="app-media-preview-wrap">
+        {isMediaLoading ? <MediaPreviewSkeleton className={className} /> : null}
+        <video
+          src={src}
+          className={className}
+          muted
+          playsInline
+          loop
+          autoPlay
+          onLoadedData={handleMediaReady}
+          onError={() => setMediaFailed(true)}
+          style={isMediaLoading ? { display: "none" } : undefined}
+        />
+      </span>
     );
   }
 
   return (
-    <img
-      src={src}
-      alt=""
-      className={className}
-      onError={() => setMediaFailed(true)}
-    />
+    <span className="app-media-preview-wrap">
+      {isMediaLoading ? <MediaPreviewSkeleton className={className} /> : null}
+      <img
+        src={src}
+        alt=""
+        className={className}
+        onLoad={handleMediaReady}
+        onError={() => setMediaFailed(true)}
+        style={isMediaLoading ? { display: "none" } : undefined}
+      />
+    </span>
   );
 }
 
@@ -905,10 +922,7 @@ export function MaterialUploadField({
         <input id={id} type="file" accept={accept} hidden onChange={handleChange} />
         <span className="persona-btn persona-btn-upload-label">
           {isUploading ? (
-            <span className="persona-loading-row">
-              <span className="persona-spinner" aria-hidden="true" />
-              Enviando...
-            </span>
+            <AppLoadingRow message="Enviando..." />
           ) : (
             actionLabel
           )}

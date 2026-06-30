@@ -7,8 +7,17 @@ import {
   shouldEnforceLogin,
 } from "@/lib/firebase/env";
 
+function isE2eAuthBypassEnabled() {
+  return process.env.E2E_DISABLE_AUTH?.trim().toLowerCase() === "true";
+}
+
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  if (isE2eAuthBypassEnabled()) {
+    return NextResponse.next({ request });
+  }
+
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||

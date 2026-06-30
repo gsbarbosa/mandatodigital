@@ -110,18 +110,36 @@ env:
     availability:
       - RUNTIME
 
+  - variable: SENTINEL_LLM_ENRICH
+    value: "true"
+    availability:
+      - RUNTIME
+
+  # Social (Instagram via Apify) — requer secret apify-api-token em Firebase
+  # - variable: SENTINEL_SOCIAL_ENABLED
+  #   value: "true"
+  #   availability:
+  #     - RUNTIME
+  # - variable: NEXT_PUBLIC_SENTINEL_SOCIAL_ENABLED
+  #   value: "true"
+  #   availability:
+  #     - BUILD
+  #     - RUNTIME
+  # - variable: APIFY_API_TOKEN
+  #   secret: apify-api-token
+
   # Validador Fase 2 — fact-check no Criativo e top 10 Sentinela
   - variable: AUDITOR_FACTCHECK_ENABLED
     value: "true"
     availability:
       - RUNTIME
 
-  # Navegação v2 (operação-first) — ligar após smoke test interno
-  # - variable: NEXT_PUBLIC_PRODUCT_NAV_V2
-  #   value: "true"
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
+  # Navegação v2 (operação-first)
+  - variable: NEXT_PUBLIC_PRODUCT_NAV_V2
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
 
   # Opcional — descomente apos cadastrar com npm run firebase:secrets:apply:
   # - variable: ANTHROPIC_API_KEY

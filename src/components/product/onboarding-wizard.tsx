@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -7,6 +8,7 @@ import { updateToggleValues } from "@/components/product/config-controls";
 import { MockToggleSection } from "@/components/product/mock-agent-ui";
 import { useProductApp } from "@/components/product/provider";
 import { sentinelThemeGroups } from "@/lib/constants";
+import { configSectionHref } from "@/lib/config-setup-status";
 import { markOnboardingV2Completed } from "@/lib/product-nav";
 
 type OnboardingStep = 1 | 2 | 3;
@@ -199,8 +201,8 @@ export function OnboardingWizard() {
             <div className="persona-form-group persona-top-gap" data-testid="onboarding-step-3">
               <h2>Avatar (opcional)</h2>
               <p className="persona-helper-text">
-                Você pode enviar áudio, foto ou vídeo agora em Configurações › Perfil & avatar, ou
-                pular e fazer depois.
+                Você pode enviar áudio, foto ou vídeo agora em Configuração › Avatar, ou pular e
+                fazer depois.
               </p>
               <div className="persona-cta-row persona-top-gap">
                 <button
@@ -223,7 +225,7 @@ export function OnboardingWizard() {
                   className="persona-btn persona-btn-large"
                   onClick={() => {
                     markOnboardingV2Completed();
-                    router.replace("/configuracoes?tab=perfil");
+                    router.replace(configSectionHref("avatar") as Route);
                   }}
                   data-testid="onboarding-go-avatar"
                 >

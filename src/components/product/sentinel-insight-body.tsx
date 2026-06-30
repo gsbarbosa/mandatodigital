@@ -2,6 +2,7 @@ import { SentinelNetworkMetrics } from "@/components/product/sentinel-network-me
 import {
   formatSentinelSearchTrend,
   sentinelPipelineBadgeLabel,
+  sentinelSignalKindLabel,
   type MockSentinelSuggestion,
 } from "@/lib/sentinel-mock-suggestions";
 
@@ -11,21 +12,34 @@ export function SentinelInsightBody({
   suggestion: MockSentinelSuggestion;
   compact?: boolean;
 }) {
-  const { evidence, topic, matchedThemes } = suggestion;
+  const { evidence, topic, matchedThemes, editorial } = suggestion;
 
   return (
     <div className="persona-sentinel-insight">
       <p className="persona-sentinel-wire-topic">{topic}</p>
 
-      {matchedThemes.length > 0 ? (
+      {matchedThemes.length > 0 || editorial || suggestion.pipeline ? (
         <div className="persona-sentinel-insight-tags">
+          {editorial?.signalKind ? (
+            <span
+              className="persona-sentinel-source-badge is-interest"
+              data-testid="sentinel-signal-kind"
+            >
+              {sentinelSignalKindLabel(editorial.signalKind)}
+            </span>
+          ) : null}
           {suggestion.pipeline ? (
             <span className="persona-sentinel-source-badge is-interest">
               {sentinelPipelineBadgeLabel(suggestion.pipeline)}
             </span>
           ) : null}
           {matchedThemes.map((theme) => (
-            <span key={theme} className="persona-sentinel-theme-badge">
+            <span
+              key={theme}
+              className="persona-sentinel-theme-badge"
+              data-testid="sentinel-matched-theme"
+              data-theme={theme}
+            >
               {theme}
             </span>
           ))}
@@ -40,7 +54,22 @@ export function SentinelInsightBody({
               {evidence.outletCount} veículos
             </span>
           ) : null}
+          {editorial?.viralScore !== undefined ? (
+            <span className="persona-sentinel-source-badge is-opposition">
+              viral {editorial.viralScore}
+            </span>
+          ) : null}
         </div>
+      ) : null}
+
+      {editorial?.factualSummary ? (
+        <p className="persona-helper-text">{editorial.factualSummary}</p>
+      ) : null}
+
+      {editorial?.suggestedAngle ? (
+        <p className="persona-helper-text">
+          <strong>Ângulo:</strong> {editorial.suggestedAngle}
+        </p>
       ) : null}
 
       {evidence.searchTrend ? (

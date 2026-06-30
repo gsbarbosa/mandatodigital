@@ -60,12 +60,14 @@ export function MockToggleSection({
   values,
   onToggle,
   gridClassName,
+  isOptionActive,
 }: {
   title: string;
   options: readonly string[];
   values: string[];
   onToggle: (value: string) => void;
   gridClassName?: string;
+  isOptionActive?: (option: string, values: string[]) => boolean;
 }) {
   return (
     <div className="persona-form-group">
@@ -74,7 +76,9 @@ export function MockToggleSection({
         {options.map((option) => (
           <PersonaTag
             key={option}
-            active={values.includes(option)}
+            active={
+              isOptionActive ? isOptionActive(option, values) : values.includes(option)
+            }
             onClick={() => onToggle(option)}
           >
             {option}

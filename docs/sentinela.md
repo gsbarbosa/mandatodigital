@@ -259,6 +259,37 @@ API: `POST /api/auditor/fact-check`
 
 ---
 
+## Qualidade — testes com RSS real
+
+O pipeline valida que **sugestões só usam temas do radar salvo** (`guardSuggestionsForProfile`).
+
+### Comandos
+
+```bash
+# Suite automatizada (relevância + cenários por tema + pipeline + RSS real)
+npm run test:sentinel
+
+# E2E: API refresh + badges no Início (build + servidor local, sem login)
+npm run test:e2e:sentinel
+
+# Atualizar fixtures RSS (rede necessária)
+npm run fixtures:sentinel:capture
+```
+
+Fixtures RSS reais (Google News, Campinas/SP) em `tests/fixtures/sentinel/`.
+
+Cenários cobertos automaticamente:
+- Só Vacinação / só Segurança Pública / só Combate à Corrupção (oposição)
+- Combinação mandato + oposição
+- Tema sem fixture (Homeschooling → vazio)
+- Sinônimos do catálogo (IVA → Reforma Fiscal, etc.)
+- Pipeline `getSentinelSuggestions` ponta a ponta
+
+Meta do refresh inclui `articlesMatchedRadar` e, se houver descarte, `themeViolationsFiltered`.
+Mensagem específica quando há matérias mas nenhuma bate no radar: *«Matérias encontradas não correspondem aos temas selecionados no radar.»*
+
+---
+
 ## Ver também
 
 - **Curador** — identidade, tom e avatar (necessário para produzir vídeo no Criativo)
