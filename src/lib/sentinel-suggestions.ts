@@ -12,6 +12,7 @@ import {
   isSentinelSocialEnabled,
   isSentinelV2PipelinesEnabled,
 } from "@/lib/feature-flags";
+import { preloadPlatformCredentials } from "@/lib/platform-credentials";
 import {
   clusterScoredArticles,
   countUniqueOutlets,
@@ -406,6 +407,10 @@ export async function getSentinelSuggestions(
   profile: PoliticianProfile,
   options?: { forceRefresh?: boolean; cacheOnly?: boolean },
 ) {
+  if (!options?.cacheOnly) {
+    await preloadPlatformCredentials(["apify", "openai", "anthropic", "heygen", "serpapi"]);
+  }
+
   const cacheKey = profile.id || "default";
   const cached = await readCachedSuggestions(cacheKey, options?.forceRefresh);
 

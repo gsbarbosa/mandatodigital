@@ -103,7 +103,9 @@ export function isProductNavV2FocusPath(pathname: string) {
     pathname === "/auditor" ||
     pathname.startsWith("/auditor/") ||
     pathname === "/distribuidor" ||
-    pathname.startsWith("/distribuidor/")
+    pathname.startsWith("/distribuidor/") ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/")
   );
 }
 
@@ -189,6 +191,13 @@ export function resolveProductNavV2PageMeta(pathname: string, configTab?: Config
       id: "curador",
       title: "Curador",
       subtitle: "Persona e avatar (rota clássica)",
+    };
+  }
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return {
+      id: "admin",
+      title: "Administração",
+      subtitle: "Integrações e chaves da plataforma",
     };
   }
   return {

@@ -4,6 +4,7 @@
  */
 
 import { canUseLocalFilesystem } from "@/lib/server-runtime";
+import { readPlatformCredentialCached } from "@/lib/platform-credentials";
 
 function readEnvFlag(name: string) {
   const value = process.env[name]?.trim().toLowerCase();
@@ -16,7 +17,9 @@ export const featureFlags = {
   sentinelTrendProxy: readEnvFlag("SENTINEL_TREND_PROXY"),
   sentinelSocial: readEnvFlag("SENTINEL_SOCIAL_ENABLED"),
   sentinelLlmEnrich: readEnvFlag("SENTINEL_LLM_ENRICH"),
-  sentinelSerpApi: Boolean(process.env.SENTINEL_SERPAPI_KEY?.trim()),
+  sentinelSerpApi: Boolean(
+    process.env.SENTINEL_SERPAPI_KEY?.trim() || readPlatformCredentialCached("serpapi"),
+  ),
   auditorFactCheck: readEnvFlag("AUDITOR_FACTCHECK_ENABLED"),
   auditorRealQueue: readEnvFlag("AUDITOR_V2_REAL_QUEUE"),
   productNavV2: readEnvFlag("NEXT_PUBLIC_PRODUCT_NAV_V2"),
@@ -48,7 +51,10 @@ export function isSentinelTrendProxyEnabled() {
 }
 
 export function isSentinelSocialEnabled() {
-  return readEnvFlag("SENTINEL_SOCIAL_ENABLED") && Boolean(process.env.APIFY_API_TOKEN?.trim());
+  return (
+    readEnvFlag("SENTINEL_SOCIAL_ENABLED") &&
+    Boolean(process.env.APIFY_API_TOKEN?.trim() || readPlatformCredentialCached("apify"))
+  );
 }
 
 export function isSentinelLlmEnrichEnabled() {
@@ -57,7 +63,10 @@ export function isSentinelLlmEnrichEnabled() {
   }
 
   return Boolean(
-    process.env.OPENAI_API_KEY?.trim() || process.env.ANTHROPIC_API_KEY?.trim(),
+    process.env.OPENAI_API_KEY?.trim() ||
+      process.env.ANTHROPIC_API_KEY?.trim() ||
+      readPlatformCredentialCached("openai") ||
+      readPlatformCredentialCached("anthropic"),
   );
 }
 

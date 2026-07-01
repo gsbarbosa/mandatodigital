@@ -67,6 +67,14 @@ function formatMissingTableHint(error: unknown) {
     );
   }
 
+  if (normalized.includes("platform_credentials")) {
+    return (
+      "Falta a tabela platform_credentials no Supabase. " +
+      "No SQL Editor, execute supabase/migrations/20260630_platform_credentials.sql " +
+      "(ou rode: npm run db:migrate:platform-credentials)."
+    );
+  }
+
   if (
     normalized.includes("audit_log") ||
     normalized.includes("sentinel_fact_checks")

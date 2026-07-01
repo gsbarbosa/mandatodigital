@@ -13,6 +13,7 @@ import type {
 
 import { buildFallbackVariants } from "@/lib/fallback-generator";
 import { buildGenerationPrompt } from "@/lib/prompt-builder";
+import { resolvePlatformCredential } from "@/lib/platform-credentials";
 
 export type GeneratedVariant = GeneratedContentVariant & {
   promptPreview: string;
@@ -107,25 +108,32 @@ function normalizeTokenUsage(inputTokens = 0, outputTokens = 0): TokenUsage {
   };
 }
 
-function getConfiguredProvider(provider: Exclude<LlmProvider, "fallback-local">) {
+async function getConfiguredProvider(provider: Exclude<LlmProvider, "fallback-local">) {
   if (provider === "openai") {
+    const apiKey =
+      process.env.OPENAI_API_KEY?.trim() ||
+      (await resolvePlatformCredential("openai"));
     return {
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey,
       defaultModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
     };
   }
 
+  const apiKey =
+    process.env.ANTHROPIC_API_KEY?.trim() ||
+    (await resolvePlatformCredential("anthropic"));
+
   return {
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    apiKey,
     defaultModel: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
   };
 }
 
-function resolveExecutionProvider(
+async function resolveExecutionProvider(
   requestedProvider?: Exclude<LlmProvider, "fallback-local">,
 ) {
   if (requestedProvider) {
-    const configured = getConfiguredProvider(requestedProvider);
+    const configured = await getConfiguredProvider(requestedProvider);
     if (!configured.apiKey) {
       return null;
     }
@@ -133,11 +141,11 @@ function resolveExecutionProvider(
     return requestedProvider;
   }
 
-  if (process.env.OPENAI_API_KEY) {
+  if (process.env.OPENAI_API_KEY?.trim() || (await resolvePlatformCredential("openai"))) {
     return "openai" as const;
   }
 
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (process.env.ANTHROPIC_API_KEY?.trim() || (await resolvePlatformCredential("anthropic"))) {
     return "anthropic" as const;
   }
 
@@ -149,7 +157,7 @@ async function callOpenAI(
   user: string,
   options: ProviderRequestOptions,
 ): Promise<LlmExecutionResult> {
-  const { apiKey } = getConfiguredProvider("openai");
+  const { apiKey } = await getConfiguredProvider("openai");
 
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY não configurada.");
@@ -218,7 +226,7 @@ async function callAnthropic(
   user: string,
   options: ProviderRequestOptions,
 ): Promise<LlmExecutionResult> {
-  const { apiKey } = getConfiguredProvider("anthropic");
+  const { apiKey } = await getConfiguredProvider("anthropic");
 
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY não configurada.");
@@ -280,7 +288,7 @@ async function callOpenAIPlainText(
   user: string,
   options: ProviderRequestOptions,
 ): Promise<LlmExecutionResult> {
-  const { apiKey } = getConfiguredProvider("openai");
+  const { apiKey } = await getConfiguredProvider("openai");
 
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY não configurada.");
@@ -348,7 +356,7 @@ export async function requestPlainText(
   user: string,
   options?: LlmExecutionOptionsInput,
 ): Promise<LlmExecutionResult> {
-  const provider = resolveExecutionProvider(options?.provider);
+  const provider = await resolveExecutionProvider(options?.provider);
 
   if (!provider) {
     if (options?.strict) {
@@ -364,7 +372,7 @@ export async function requestPlainText(
     };
   }
 
-  const { defaultModel } = getConfiguredProvider(provider);
+  const { defaultModel } = await getConfiguredProvider(provider);
   const requestOptions = {
     model: options?.model?.trim() || defaultModel,
     temperature: options?.temperature,
@@ -381,7 +389,7 @@ export async function requestStructuredJson(
   user: string,
   options?: LlmExecutionOptionsInput,
 ): Promise<LlmExecutionResult> {
-  const provider = resolveExecutionProvider(options?.provider);
+  const provider = await resolveExecutionProvider(options?.provider);
 
   if (!provider) {
     if (options?.strict) {
@@ -397,7 +405,7 @@ export async function requestStructuredJson(
     };
   }
 
-  const { defaultModel } = getConfiguredProvider(provider);
+  const { defaultModel } = await getConfiguredProvider(provider);
   const requestOptions = {
     model: options?.model?.trim() || defaultModel,
     temperature: options?.temperature,

@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
+import { resolvePlatformCredential } from "@/lib/platform-credentials";
+
 export type HeyGenAssetInput =
   | { type: "url"; url: string }
   | { type: "asset_id"; asset_id: string };
@@ -11,11 +13,17 @@ export function runWithHeyGenApiKey<T>(apiKey: string, fn: () => T): T {
   return heygenApiKeyOverrideStore.run(apiKey.trim(), fn);
 }
 
-function resolveHeyGenApiKeyForFetch() {
+async function resolveHeyGenApiKeyForFetchAsync() {
   const override = heygenApiKeyOverrideStore.getStore()?.trim();
   if (override) {
     return override;
   }
+
+  const fromPlatform = await resolvePlatformCredential("heygen");
+  if (fromPlatform) {
+    return fromPlatform;
+  }
+
   return getHeyGenConfig().apiKey;
 }
 
@@ -53,7 +61,7 @@ export function formatHeyGenError(error: unknown) {
 
 async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const config = getHeyGenConfig();
-  const apiKey = resolveHeyGenApiKeyForFetch();
+  const apiKey = await resolveHeyGenApiKeyForFetchAsync();
   if (!apiKey) {
     throw new Error(
       "Serviço de geração de vídeo indisponível. Tente novamente mais tarde.",
@@ -125,7 +133,7 @@ export async function heygenUploadAsset(input: {
   mimeType: string;
 }) {
   const config = getHeyGenConfig();
-  const apiKey = resolveHeyGenApiKeyForFetch();
+  const apiKey = await resolveHeyGenApiKeyForFetchAsync();
   if (!apiKey) {
     throw new Error(
       "Servico de geração de video indisponível. Tente novamente mais tarde.",

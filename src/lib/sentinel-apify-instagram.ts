@@ -1,3 +1,5 @@
+import { resolvePlatformCredential } from "@/lib/platform-credentials";
+
 const DEFAULT_ACTOR_ID = "apify/instagram-scraper";
 const APIFY_SYNC_TIMEOUT_MS = 120_000;
 
@@ -12,8 +14,17 @@ export type ApifyInstagramPost = {
   ownerUsername: string;
 };
 
-function getApifyToken() {
+function getApifyTokenFromEnv() {
   return process.env.APIFY_API_TOKEN?.trim() ?? "";
+}
+
+export async function getApifyToken() {
+  const fromPlatform = await resolvePlatformCredential("apify");
+  return fromPlatform || getApifyTokenFromEnv();
+}
+
+export function getApifyTokenSync() {
+  return getApifyTokenFromEnv();
 }
 
 export function getApifyInstagramActorId() {
@@ -21,7 +32,12 @@ export function getApifyInstagramActorId() {
 }
 
 export function isApifyConfigured() {
-  return Boolean(getApifyToken());
+  return Boolean(getApifyTokenFromEnv());
+}
+
+export async function isApifyConfiguredAsync() {
+  const token = await getApifyToken();
+  return Boolean(token);
 }
 
 function actorIdToPath(actorId: string) {
@@ -101,7 +117,7 @@ export async function fetchInstagramPostsForUsername(
   username: string,
   options?: { resultsLimit?: number },
 ): Promise<ApifyInstagramPost[]> {
-  const token = getApifyToken();
+  const token = await getApifyToken();
   const normalized = normalizeInstagramUsername(username);
 
   if (!token || !normalized) {

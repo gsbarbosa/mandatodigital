@@ -1,0 +1,20 @@
+---
+description: Contexto Mandato Digital — agente dev, docs de status e convenções do repo
+alwaysApply: true
+---
+
+# Mandato Digital
+
+Este repo é o **Mandato Digital** (Next.js 16, Firebase, Supabase, HeyGen, Sentinela/Criativo/Validador).
+
+Para implementação ou backlog de produto:
+
+1. Ler `docs/status-desenvolvimento.md` (o que existe / falta).
+2. Seguir `.cursor/skills/mandato-digital/SKILL.md` e `AGENTS.md`.
+3. Priorizar backlog P0: geo por mandato, Instagram prod, smoke prod.
+4. PT-BR na UI e commits; escopo mínimo; rodar `npm run test:sentinel` e `npm run build` antes de encerrar.
+5. Deploy e push só quando o usuário pedir explicitamente.
+
+**Admin integrações:** `/admin/integracoes` — acesso discreto com **5 cliques** no subtítulo «Comunicação política» na sidebar. Configure `PLATFORM_ADMIN_EMAILS` em produção.
+
+Não iniciar Distribuidor real, selo TSE ou Fase 3 sem pedido explícito.

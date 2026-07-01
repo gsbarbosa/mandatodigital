@@ -5,6 +5,7 @@ import type { Route } from "next";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { useDiscreetAdminReveal } from "@/components/product/use-discreet-admin-reveal";
 import { useProductApp } from "@/components/product/provider";
 import { useConfigSectionStatuses } from "@/components/product/use-config-section-statuses";
 import {
@@ -51,6 +52,7 @@ export function AppSidebar({ onBrandSecretClick }: AppSidebarProps) {
   const [configExpanded, setConfigExpanded] = useState(
     pendingConfigCount > 0 || isConfigRoute,
   );
+  const { handleSecretClick: handleAdminSecretClick } = useDiscreetAdminReveal();
 
   useEffect(() => {
     if (pendingConfigCount > 0 || isConfigRoute) {
@@ -71,7 +73,19 @@ export function AppSidebar({ onBrandSecretClick }: AppSidebarProps) {
         </span>
         <span className="app-brand-copy">
           <strong>Mandato Digital</strong>
-          <span>Comunicação política</span>
+          <span
+            className="app-brand-tagline"
+            onClick={handleAdminSecretClick}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                handleAdminSecretClick();
+              }
+            }}
+            role="presentation"
+          >
+            Comunicação política
+          </span>
         </span>
       </button>
 

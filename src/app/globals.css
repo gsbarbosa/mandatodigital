@@ -5982,3 +5982,137 @@ textarea.persona-input-control {
     grid-row: auto;
   }
 }
+
+.admin-integracoes-page .app-panel {
+  padding: 1.25rem 1.5rem 1.75rem;
+}
+
+.admin-integracoes-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-integracoes-eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.admin-integracoes-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}
+
+.admin-integracoes-lead {
+  max-width: 52rem;
+}
+
+.admin-integracoes-summary {
+  display: grid;
+  gap: 0.15rem;
+  text-align: right;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.admin-integracoes-summary strong {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+}
+
+.admin-integracoes-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.admin-integracoes-card {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1rem 1rem 1.1rem;
+  background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
+}
+
+.admin-integracoes-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-integracoes-card-head h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.admin-integracoes-badge {
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-integracoes-badge.is-ok {
+  background: color-mix(in srgb, #1f8f4a 18%, transparent);
+  color: #1f8f4a;
+}
+
+.admin-integracoes-badge.is-missing {
+  background: color-mix(in srgb, #b45309 16%, transparent);
+  color: #b45309;
+}
+
+.admin-integracoes-meta {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+}
+
+.admin-integracoes-meta div {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.5rem;
+}
+
+.admin-integracoes-meta dt {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.admin-integracoes-meta dd {
+  margin: 0;
+}
+
+.admin-integracoes-test-ok {
+  color: #1f8f4a;
+}
+
+.admin-integracoes-test-error {
+  color: #b42318;
+}
+
+.admin-integracoes-actions {
+  margin-top: 0.65rem;
+}
+
+.admin-integracoes-env-note {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.admin-integracoes-foot {
+  margin-top: 1.25rem;
+}
+
+.app-brand-tagline {
+  cursor: default;
+  user-select: none;
+}
