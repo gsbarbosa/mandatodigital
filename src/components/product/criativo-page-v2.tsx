@@ -14,13 +14,17 @@ import {
   archetypeOptions,
   voiceToneOptions,
 } from "@/lib/constants";
+import {
+  MonitorSignalCard,
+  SignalEvidenceDrawer,
+} from "@/components/product/monitor-signal-card";
+import { ThemeTagPill } from "@/components/product/theme-tag";
 import { useProductApp } from "@/components/product/provider";
 import {
   AVATAR_TYPE_BY_TRACK,
   CaricatureAssetPreview,
   MAX_SCRIPT_WORDS,
   PersonaCriativoIcon,
-  PersonaTag,
   ProductionTemplateEmptyPreview,
   ProductionTemplateOption,
   ProductionTemplatePendingPreview,
@@ -66,7 +70,6 @@ import { resolveCreativeProjectTopicForSave } from "@/lib/creative-project-displ
 import { buildCreativeAiMetadata } from "@/lib/creative-ai-metadata";
 import { fetchHeyGenConsentLink } from "@/lib/heygen-consent-client";
 import { fetchHeygenApi } from "@/lib/heygen-client-override";
-import { SentinelContextPreview } from "@/components/product/sentinel-suggestion-row";
 import {
   SCRIPT_EDIT_CONSENT_TEXT,
   useScriptFactCheck,
@@ -116,7 +119,9 @@ function getCriativoGateReason(input: {
   return null;
 }
 
-export function CriativoPageV2() {
+export type CriativoPageMode = "padrao" | "independente";
+
+export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [creativeForm, setCreativeForm] = useState<CreativeFormState>(EMPTY_CREATIVE_FORM);
@@ -159,7 +164,12 @@ export function CriativoPageV2() {
   const [captionUrl, setCaptionUrl] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [freePrompt, setFreePrompt] = useState<string>("");
-  const [useFreePromptAsTranscript, setUseFreePromptAsTranscript] = useState(false);
+  const [useFreePromptAsTranscript, setUseFreePromptAsTranscript] = useState(
+    mode === "independente",
+  );
+  const [independentTermsAccepted, setIndependentTermsAccepted] = useState(false);
+  const [evidenceDrawerOpen, setEvidenceDrawerOpen] = useState(false);
+  const independentAvatarAppliedRef = useRef(false);
   const [scriptDraft, setScriptDraft] = useState("");
   const [scriptTopicSnapshot, setScriptTopicSnapshot] = useState("");
   const [scriptApproved, setScriptApproved] = useState(false);
@@ -344,6 +354,7 @@ export function CriativoPageV2() {
           Boolean(voiceAudioAssets[0]);
 
   const scriptWordCount = countWords(scriptDraft);
+  const freePromptWordCount = countWords(freePrompt);
   const canProduceContent =
     canGenerateVideo &&
     (useFreePromptAsTranscript
@@ -1462,7 +1473,14 @@ export function CriativoPageV2() {
       const topic = creativeForm.topic.trim();
       const free = freePrompt.trim();
       if (useFreePromptAsTranscript && !free) {
-        throw new Error("Escreva o roteiro completo no Prompt livre para gerar em modo teste.");
+        throw new Error(
+          mode === "independente"
+            ? "Escreva o que deseja falar antes de criar o conteúdo."
+            : "Escreva o roteiro completo antes de gerar o conteúdo.",
+        );
+      }
+      if (mode === "independente" && !independentTermsAccepted) {
+        throw new Error("Aceite os termos de responsabilidade (TSE) antes de criar o conteúdo.");
       }
       if (!useFreePromptAsTranscript && !scriptApproved) {
         throw new Error("Aprove o roteiro antes de produzir o conteudo.");
@@ -1911,6 +1929,25 @@ export function CriativoPageV2() {
   }, [selectedCaricature?.id]);
 
   useEffect(() => {
+    if (mode !== "independente" || independentAvatarAppliedRef.current) {
+      return;
+    }
+    independentAvatarAppliedRef.current = true;
+    const avatarParam = searchParams.get("avatar")?.trim();
+    if (avatarParam === "gemeo-digital") {
+      selectProductionTemplate("digital_twin");
+    } else if (avatarParam === "caricato") {
+      selectProductionTemplate("caricature_editorial");
+    } else if (avatarParam === "3d") {
+      selectProductionTemplate("caricature_mascot_3d");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, searchParams]);
+
+  useEffect(() => {
+    if (mode === "independente") {
+      return;
+    }
     const suggestionId = searchParams.get("sugestao")?.trim();
     if (!suggestionId) {
       router.replace("/criativo");
@@ -1955,7 +1992,7 @@ export function CriativoPageV2() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, router]);
+  }, [searchParams, router, mode]);
 
   const criativoGateReason = getCriativoGateReason({
     spectrum: profileForm.spectrum,
@@ -1974,20 +2011,38 @@ export function CriativoPageV2() {
             <div className="persona-header-icon" aria-hidden="true">
               <PersonaCriativoIcon />
             </div>
-            <h2>Novo criativo</h2>
-            <p>Defina o enquadramento desta peça, gere o roteiro e produza o vídeo.</p>
+            {mode === "independente" ? (
+              <>
+                <h2>Criar conteúdo independente</h2>
+                <p>
+                  <strong>Use seu avatar para falar o que você quiser publicar.</strong> Sem
+                  estúdio, sem gravações demoradas, sem ensaios e sem despesas. E o melhor, é você
+                  falando com a sua voz para o seu público em segundos.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2>Novo criativo</h2>
+                <p>Defina o enquadramento desta peça, gere o roteiro e produza o vídeo.</p>
+              </>
+            )}
           </div>
 
-          <div className="persona-cta-row">
-            <Link href="/criativo" className="persona-btn persona-btn-secondary">
-              Voltar para a listagem
-            </Link>
-          </div>
+          {mode === "padrao" ? (
+            <div className="persona-cta-row">
+              <Link href="/criativo" className="persona-btn persona-btn-secondary">
+                Voltar para a listagem
+              </Link>
+            </div>
+          ) : null}
 
-          {sentinelSuggestion ? (
-            <div className="persona-sentinel-context-banner">
-              <strong>Tema sugerido pelo Sentinela</strong>
-              <SentinelContextPreview suggestion={sentinelSuggestion} />
+          {mode === "padrao" && sentinelSuggestion ? (
+            <div className="persona-top-gap">
+              <MonitorSignalCard
+                suggestion={sentinelSuggestion}
+                showPautar={false}
+                onOpenEvidence={() => setEvidenceDrawerOpen(true)}
+              />
             </div>
           ) : null}
 
@@ -2009,9 +2064,9 @@ export function CriativoPageV2() {
 
             <div className="persona-selection-block">
               <label className="persona-label persona-selection-label">Arquétipo</label>
-              <div className="persona-tag-list is-archetype-grid">
+              <div className="flex flex-wrap gap-1 persona-top-gap">
                 {archetypeOptions.map((option) => (
-                  <PersonaTag
+                  <ThemeTagPill
                     key={option}
                     active={creativeForm.personaArchetypes.includes(option)}
                     onClick={() =>
@@ -2025,16 +2080,16 @@ export function CriativoPageV2() {
                     }
                   >
                     {option}
-                  </PersonaTag>
+                  </ThemeTagPill>
                 ))}
               </div>
             </div>
 
             <div className="persona-selection-block">
               <label className="persona-label persona-selection-label">Tom de linguagem</label>
-              <div className="persona-tag-list is-tone-grid">
+              <div className="flex flex-wrap gap-1 persona-top-gap">
                 {voiceToneOptions.map((tone) => (
-                  <PersonaTag
+                  <ThemeTagPill
                     key={tone}
                     active={creativeForm.voiceTones.includes(tone)}
                     onClick={() =>
@@ -2045,12 +2100,53 @@ export function CriativoPageV2() {
                     }
                   >
                     {tone}
-                  </PersonaTag>
+                  </ThemeTagPill>
                 ))}
               </div>
             </div>
           </div>
 
+          {mode === "independente" ? (
+            <div className="persona-form-group persona-form-panel persona-script-flow">
+              <div className="persona-script-block">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <label className="persona-label persona-selection-label">
+                    Digite o que deseja falar
+                  </label>
+                  <span className="text-xs text-slate-500">
+                    Limite de 1 minuto (até {MAX_SCRIPT_WORDS} palavras)
+                  </span>
+                </div>
+                <textarea
+                  className="persona-input-control persona-top-gap"
+                  value={freePrompt}
+                  onChange={(event) => setFreePrompt(event.target.value)}
+                  rows={5}
+                  placeholder="Escreva aqui a mensagem que deseja que seu avatar fale..."
+                />
+                <div className="persona-script-footer">
+                  <p
+                    className={
+                      freePromptWordCount > MAX_SCRIPT_WORDS
+                        ? "persona-script-meta is-warning"
+                        : "persona-script-meta"
+                    }
+                  >
+                    {freePromptWordCount}/{MAX_SCRIPT_WORDS} palavras
+                  </p>
+                </div>
+                <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg py-2.5 px-3.5 flex items-center gap-2 text-[11px] text-cyan-400 mt-2">
+                  <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>
+                    <strong>Dica de Performance:</strong> publicações virais tendem a ter entre 15
+                    e 30 segundos.
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="persona-form-group persona-form-panel persona-script-flow">
             <div className="persona-script-block">
               <label className="persona-label persona-selection-label">Tema do vídeo</label>
@@ -2094,6 +2190,17 @@ export function CriativoPageV2() {
                   Veja o roteiro do vídeo que será produzido. Altere-o conforme necessário. Máximo
                   de {MAX_SCRIPT_WORDS} palavras (ou ~1 minuto).
                 </p>
+                <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg py-2.5 px-3.5 flex items-start gap-2 text-[11px] text-cyan-400 mt-2">
+                  <svg className="h-4 w-4 shrink-0 text-cyan-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>
+                    <strong>Aviso:</strong> após a aprovação, nosso Agente Auditor confere cada
+                    afirmação do roteiro contra a notícia de origem e as matérias capturadas pelo
+                    monitoramento. Roteiros com afirmações contestadas são bloqueados para sua
+                    revisão — nada é produzido com informação marcada como falsa.
+                  </span>
+                </div>
                 <textarea
                   className="persona-input-control persona-top-gap"
                   value={scriptDraft}
@@ -2146,7 +2253,12 @@ export function CriativoPageV2() {
                       checked={scriptEditConsent}
                       onChange={(event) => setScriptEditConsent(event.target.checked)}
                     />
-                    <label htmlFor="script-edit-consent">{SCRIPT_EDIT_CONSENT_TEXT}</label>
+                    <label htmlFor="script-edit-consent">
+                      {SCRIPT_EDIT_CONSENT_TEXT}{" "}
+                      <Link href="/compliance" className="text-cyan-400 hover:underline">
+                        Ver Compliance TSE
+                      </Link>
+                    </label>
                   </div>
                 ) : null}
                 {scriptApproved ? (
@@ -2157,38 +2269,27 @@ export function CriativoPageV2() {
               </div>
             ) : null}
           </div>
+          )}
 
-          <div className="persona-form-group">
-            <label className="persona-label">Prompt livre (teste)</label>
-            <textarea
-              className="persona-input-control"
-              value={freePrompt}
-              onChange={(event) => setFreePrompt(event.target.value)}
-              rows={4}
-              placeholder="Use 1-2 frases curtas. Ex: 'tom confiante. frases curtas. finalize com CTA.'"
-            />
-            <div className="persona-checkbox-row">
-              <label className="persona-checkbox">
+          {mode === "independente" ? (
+            <div className="pt-4 border-t border-slate-800/60 persona-top-gap">
+              <label className="flex items-start gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
-                  checked={useFreePromptAsTranscript}
-                  onChange={(event) => {
-                    setUseFreePromptAsTranscript(event.target.checked);
-                    if (event.target.checked) {
-                      invalidateScriptApproval();
-                    }
-                  }}
+                  checked={independentTermsAccepted}
+                  onChange={(event) => setIndependentTermsAccepted(event.target.checked)}
+                  className="accent-cyan-500 h-4 w-4 mt-1 rounded border-slate-800 shrink-0"
                 />
-                Usar o Prompt livre como roteiro completo (ignorar o sistema)
+                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed">
+                  Li e aceito os termos de uso dessa mídia, me responsabilizando legalmente e
+                  exclusivamente pelo teor do conteúdo, em conformidade com as diretrizes do TSE.{" "}
+                  <Link href="/compliance" className="text-cyan-400 hover:underline">
+                    Ver Compliance TSE
+                  </Link>
+                </span>
               </label>
             </div>
-            {useFreePromptAsTranscript && (
-              <p className="persona-helper-text">
-                Modo teste: o Prompt livre vira o texto falado completo e dispensa aprovacao do
-                roteiro.
-              </p>
-            )}
-          </div>
+          ) : null}
 
           <div className="persona-section-header persona-top-gap">
             <h2>Produzir vídeo</h2>
@@ -2206,7 +2307,11 @@ export function CriativoPageV2() {
                   isGenerating ||
                   (isPollingTwinTraining && !twinReadyForVideo) ||
                   !canProduceContent ||
-                  ((avatarTrack === "caricature" || avatarTrack === "photo_real") && isTraining)
+                  ((avatarTrack === "caricature" || avatarTrack === "photo_real") && isTraining) ||
+                  (mode === "independente" &&
+                    (!independentTermsAccepted ||
+                      !freePrompt.trim() ||
+                      freePromptWordCount > MAX_SCRIPT_WORDS))
                 }
               >
                 {isGenerating ? (
@@ -2221,6 +2326,11 @@ export function CriativoPageV2() {
               {generateDisabledReason && !isGenerating ? (
                 <p className="persona-helper-text persona-helper-highlight persona-top-gap">
                   {generateDisabledReason}
+                </p>
+              ) : null}
+              {mode === "independente" && !isGenerating && !independentTermsAccepted ? (
+                <p className="persona-helper-text persona-top-gap">
+                  Aceite os termos de responsabilidade (TSE) para liberar a produção.
                 </p>
               ) : null}
               {isGenerating && <div className="persona-progress" />}
@@ -2258,7 +2368,15 @@ export function CriativoPageV2() {
                   Legendas:{" "}
                   <a href={captionUrl} target="_blank" rel="noreferrer">
                     abrir
-                  </a>
+                  </a>{" "}
+                  ·{" "}
+                  <button
+                    type="button"
+                    className="text-cyan-400 hover:underline"
+                    onClick={() => void navigator.clipboard.writeText(captionUrl)}
+                  >
+                    Copiar legenda
+                  </button>
                 </p>
               )}
             </>
@@ -2267,6 +2385,11 @@ export function CriativoPageV2() {
           ) : null}
         </div>
       </div>
+
+      <SignalEvidenceDrawer
+        suggestion={evidenceDrawerOpen ? sentinelSuggestion : null}
+        onClose={() => setEvidenceDrawerOpen(false)}
+      />
     </section>
   );
 }

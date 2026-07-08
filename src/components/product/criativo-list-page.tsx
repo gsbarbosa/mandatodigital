@@ -181,14 +181,25 @@ export function CriativoListPage() {
                     ) : null}
                   </div>
                   {project.videoUrl ? (
-                    <a
-                      href={project.videoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="persona-btn persona-btn-secondary"
-                    >
-                      Ver vídeo
-                    </a>
+                    <span className="flex items-center gap-2">
+                      <a
+                        href={project.videoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="persona-btn persona-btn-secondary"
+                      >
+                        Ver vídeo
+                      </a>
+                      {project.captionUrl ? (
+                        <button
+                          type="button"
+                          className="text-xs text-cyan-400 hover:underline"
+                          onClick={() => void navigator.clipboard.writeText(project.captionUrl)}
+                        >
+                          Copiar legenda
+                        </button>
+                      ) : null}
+                    </span>
                   ) : null}
                 </li>
               ))}
