@@ -58,15 +58,17 @@ export function decodeXmlEntities(text: string) {
 }
 
 function extractXmlTag(block: string, tag: string) {
+  // Google News emite tags com atributos (ex.: <source url="...">G1</source>).
+  const openTag = `<${tag}(?:\\s[^>]*)?>`;
   const cdataMatch = new RegExp(
-    `<${tag}><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>`,
+    `${openTag}<!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>`,
     "i",
   ).exec(block);
   if (cdataMatch) {
     return decodeXmlEntities(cdataMatch[1]);
   }
 
-  const plainMatch = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "i").exec(block);
+  const plainMatch = new RegExp(`${openTag}([\\s\\S]*?)</${tag}>`, "i").exec(block);
   return plainMatch ? decodeXmlEntities(plainMatch[1]) : "";
 }
 
