@@ -100,11 +100,14 @@ function SocialHandleRows({
     <div>
       <div className="space-y-3 mb-4">
         {values.map((row, index) => (
-          <div key={index} className="flex items-center gap-2">
+          <div
+            key={index}
+            className="grid grid-cols-[minmax(5.75rem,6.75rem)_minmax(0,1fr)_auto] items-center gap-2"
+          >
             <select
               value={row.network}
               onChange={(event) => updateRow(index, { network: event.target.value })}
-              className={`bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg block w-1/3 p-2 outline-none ${focusRing}`}
+              className={`bg-[#131C2D] border border-slate-700 text-slate-300 text-xs rounded-lg w-full min-w-0 px-2 py-2.5 outline-none ${focusRing}`}
             >
               {SOCIAL_NETWORKS.map((network) => (
                 <option key={network} value={network}>
@@ -117,7 +120,7 @@ function SocialHandleRows({
               value={row.handle}
               placeholder="@perfil"
               onChange={(event) => updateRow(index, { handle: event.target.value })}
-              className={`bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg p-2 flex-1 outline-none ${focusRing}`}
+              className={`bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none ${focusRing}`}
             />
             <button
               type="button"
@@ -395,7 +398,7 @@ export function RedefinirTemasPage() {
               </h3>
               <div className="space-y-3 mb-4">
                 {profileForm.interestSites.map((site, index) => (
-                  <div key={index} className="flex items-center gap-2">
+                  <div key={index} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                     <input
                       type="text"
                       value={site}
@@ -408,7 +411,7 @@ export function RedefinirTemasPage() {
                           ),
                         }))
                       }
-                      className="bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg p-2 w-full outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                      className="bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none focus:ring-emerald-500 focus:border-emerald-500"
                     />
                     <button
                       type="button"
