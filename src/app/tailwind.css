@@ -1,0 +1,8 @@
+/*
+ * Tailwind v4 in utilities-only mode: preflight/base is intentionally NOT imported
+ * so the existing globals.css keeps full control over legacy screens.
+ */
+@layer theme, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);

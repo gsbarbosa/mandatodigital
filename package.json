@@ -46,12 +46,14 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@tailwindcss/postcss": "^4.3.2",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.6",
     "pg": "^8.21.0",
+    "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
   }

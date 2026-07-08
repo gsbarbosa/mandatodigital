@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 import "./globals.css";
+import "./tailwind.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
