@@ -2272,18 +2272,18 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           )}
 
           {mode === "independente" ? (
-            <div className="pt-4 border-t border-slate-800/60 persona-top-gap">
-              <label className="flex items-start gap-3 cursor-pointer group">
+            <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-slate-800/60">
+              <label className="persona-checkbox !items-start cursor-pointer">
                 <input
                   type="checkbox"
                   checked={independentTermsAccepted}
                   onChange={(event) => setIndependentTermsAccepted(event.target.checked)}
-                  className="accent-cyan-500 h-4 w-4 mt-1 rounded border-slate-800 shrink-0"
+                  className="w-4 h-4 mt-0.5 shrink-0 accent-cyan-500"
                 />
-                <span className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors leading-relaxed">
+                <span className="text-xs leading-relaxed">
                   Li e aceito os termos de uso dessa mídia, me responsabilizando legalmente e
                   exclusivamente pelo teor do conteúdo, em conformidade com as diretrizes do TSE.{" "}
-                  <Link href="/compliance" className="text-cyan-400 hover:underline">
+                  <Link href="/compliance" className="text-cyan-400 no-underline hover:underline">
                     Ver Compliance TSE
                   </Link>
                 </span>
