@@ -17,7 +17,7 @@ export default async function HomePage() {
   if (isFirebaseAuthConfigured()) {
     const sessionUser = await getSessionUser();
     if (sessionUser) {
-      redirect("/curador");
+      redirect("/monitoramento");
     }
   }
 
