@@ -1,8 +1,13 @@
 /*
- * Tailwind v4 in utilities-only mode: preflight/base is intentionally NOT imported
- * so the existing globals.css keeps full control over legacy screens.
+ * Tailwind v4 with preflight/base intentionally NOT imported so the existing
+ * globals.css keeps full control over legacy screens.
+ *
+ * Utilities are intentionally NOT wrapped in a cascade layer: globals.css is
+ * unlayered, and unlayered element rules (e.g. `input { width: 100% }`) would
+ * beat any layered utility regardless of specificity. Unlayered utilities win
+ * by normal specificity + source order (this file loads after globals.css).
  */
-@layer theme, utilities;
+@layer theme;
 
 @import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+@import "tailwindcss/utilities.css";
