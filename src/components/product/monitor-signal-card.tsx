@@ -10,7 +10,11 @@ import type {
   SentinelVerifiedActor,
 } from "@/lib/sentinel-mock-suggestions";
 import { buildCriativoNovoHref } from "@/lib/sentinel-mock-suggestions";
-import { normalizeDomain, weightedEngagement } from "@/lib/sphere-classifier";
+import {
+  articleOutletLabel,
+  normalizeDomain,
+  weightedEngagement,
+} from "@/lib/sphere-classifier";
 
 const NETWORK_LABELS: Record<SentinelSocialNetwork, string> = {
   instagram: "Instagram",
@@ -152,7 +156,7 @@ export function MonitorSignalCard({
                     rel="noreferrer"
                     className="text-blue-400 no-underline hover:underline"
                   >
-                    {article.sourceName || normalizeDomain(article.url)}
+                    {articleOutletLabel(article)}
                   </a>
                 </span>
                 <button
@@ -294,7 +298,7 @@ export function SignalEvidenceDrawer({
                     {item.title}
                   </a>
                   <p className="text-xs text-slate-500 mt-1">
-                    {item.sourceName || normalizeDomain(item.url)}
+                    {articleOutletLabel(item)}
                     {formatSignalDate(item.publishedAt) ? ` · ${formatSignalDate(item.publishedAt)}` : ""}
                   </p>
                 </li>

@@ -78,6 +78,19 @@ describe("classifySuggestionSphere", () => {
     expect(classifySuggestionSphere(suggestion, ["www.portalregional.com"])).toBe("municipal");
   });
 
+  it("classifies aggregator articles by sourceName against interest sites", () => {
+    const suggestion = buildSuggestion({
+      articles: [
+        {
+          title: "Prefeitura anuncia mutirão - Hora Campinas",
+          url: "https://news.google.com/rss/articles/abc123",
+          sourceName: "Hora Campinas",
+        },
+      ],
+    });
+    expect(classifySuggestionSphere(suggestion, ["www.horacampinas.com.br"])).toBe("municipal");
+  });
+
   it("classifies national portals as federal", () => {
     const suggestion = buildSuggestion({
       articles: [{ title: "t", url: "https://g1.globo.com/politica/noticia.html" }],
@@ -85,9 +98,41 @@ describe("classifySuggestionSphere", () => {
     expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
   });
 
+  it("classifies aggregator articles by national sourceName as federal", () => {
+    const suggestion = buildSuggestion({
+      articles: [
+        {
+          title: "Reforma avança no Congresso",
+          url: "https://news.google.com/rss/articles/def456",
+          sourceName: "CNN Brasil",
+        },
+      ],
+    });
+    expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
+  });
+
+  it("classifies aggregator articles by title suffix when sourceName is missing", () => {
+    const suggestion = buildSuggestion({
+      articles: [
+        {
+          title: "Carga tributária em debate - Estadão",
+          url: "https://news.google.com/rss/articles/ghi789",
+          sourceName: "news.google.com",
+        },
+      ],
+    });
+    expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
+  });
+
   it("falls back to estadual", () => {
     const suggestion = buildSuggestion({
-      articles: [{ title: "t", url: "https://www.otempo.com.br/cidades/x" }],
+      articles: [
+        {
+          title: "Estado anuncia obras - Diário Regional",
+          url: "https://news.google.com/rss/articles/jkl012",
+          sourceName: "Diário Regional",
+        },
+      ],
     });
     expect(classifySuggestionSphere(suggestion, [])).toBe("estadual");
   });
