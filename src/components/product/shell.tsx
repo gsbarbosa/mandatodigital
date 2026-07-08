@@ -14,6 +14,9 @@ import { agentThemeClassName, resolveAgentThemeFromPathname } from "@/lib/agent-
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { NavSidebar } from "./nav-sidebar";
 
+/** Oculto na UI por enquanto; drawer segue acessivel via ?e2e=open-feedback nos testes. */
+const PRODUCT_FEEDBACK_WIDGET_ENABLED = false;
+
 const LEGACY_ROUTE_PREFIXES = [
   "/curador",
   "/criativo",
@@ -47,7 +50,9 @@ export function ProductShell({ children }: { children: ReactNode }) {
     signOut,
   } = useProductApp();
   const [productFeedbackForm, setProductFeedbackForm] = useInitialProductFeedbackForm();
-  const isDrawerOpen = isFeedbackForcedOpen || isFeedbackWidgetOpen;
+  const isDrawerOpen =
+    isFeedbackForcedOpen ||
+    (PRODUCT_FEEDBACK_WIDGET_ENABLED && isFeedbackWidgetOpen);
   const {
     open: heygenDevOpen,
     setOpen: setHeygenDevOpen,
@@ -97,14 +102,16 @@ export function ProductShell({ children }: { children: ReactNode }) {
           children
         )}
 
-        <button
-          type="button"
-          className="feedback-fab"
-          onClick={() => setFeedbackWidgetOpen((current) => !current)}
-          data-testid="feedback-fab"
-        >
-          {isDrawerOpen ? "Fechar feedback" : "Feedback do produto"}
-        </button>
+        {PRODUCT_FEEDBACK_WIDGET_ENABLED && (
+          <button
+            type="button"
+            className="feedback-fab"
+            onClick={() => setFeedbackWidgetOpen((current) => !current)}
+            data-testid="feedback-fab"
+          >
+            {isDrawerOpen ? "Fechar feedback" : "Feedback do produto"}
+          </button>
+        )}
 
         {isDrawerOpen && (
           <button
