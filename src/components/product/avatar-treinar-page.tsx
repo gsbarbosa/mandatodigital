@@ -29,7 +29,6 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
     uploadTrainingAssets,
     isUploadingAvatarImageAsset,
     isUploadingVoiceAudioAsset,
-    isUploadingTrainingVideoAsset,
   } = useProductApp();
 
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -37,14 +36,11 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const isVideoTraining = false;
   const hubHref = `/avatares/${tipo.slug}` as Route;
 
   const photoName = useMemo(() => latestAssetName(trainingAssets, "avatar_image"), [trainingAssets]);
   const audioName = useMemo(() => latestAssetName(trainingAssets, "voice_audio"), [trainingAssets]);
-  const videoName = useMemo(() => latestAssetName(trainingAssets, "dataset"), [trainingAssets]);
 
   async function handleUpload(file: File | null | undefined, role: TrainingAssetRole, label: string) {
     if (!file) {
@@ -188,47 +184,6 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
             </div>
           </div>
 
-          {/* VÍDEO DE TREINO — exigido pelo treino real do Gêmeo Digital */}
-          {isVideoTraining ? (
-            <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 mb-10">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-cyan-500/20 text-cyan-400 rounded-lg">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold text-white">Vídeo de Treinamento do Gêmeo</h4>
-              </div>
-              <p className="text-xs text-slate-400 mb-4">
-                Vídeo de 2 a 5 minutos, olhando para a câmera, com boa iluminação — é ele que treina
-                o realismo do seu Gêmeo Digital.
-              </p>
-              <label className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-600 hover:border-cyan-500 rounded-xl cursor-pointer bg-slate-800/30 transition-colors group">
-                <svg className="h-8 w-8 text-slate-500 group-hover:text-cyan-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                <span className="text-sm font-medium text-slate-300 group-hover:text-white">
-                  {isUploadingTrainingVideoAsset ? "Enviando vídeo..." : "Fazer Upload de Vídeo"}
-                </span>
-                <span className="text-[10px] text-slate-500 mt-1">MP4, MOV (2 a 5 minutos)</span>
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  className="hidden"
-                  accept="video/*"
-                  disabled={isUploadingTrainingVideoAsset}
-                  onChange={(event) => {
-                    void handleUpload(event.target.files?.[0], "dataset", "Vídeo de treinamento");
-                    event.target.value = "";
-                  }}
-                />
-              </label>
-              {videoName ? (
-                <p className="text-[11px] text-emerald-400 mt-2">Vídeo atual: {videoName}</p>
-              ) : null}
-            </div>
-          ) : null}
-
           {uploadMessage ? (
             <p className="text-sm text-emerald-400 mb-6" role="status">
               {uploadMessage}
@@ -250,7 +205,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                 de avatares personalizados.
               </p>
               <ul className="list-disc pl-4 space-y-1">
-                <li><strong>Finalidade:</strong> Criação do meu &apos;Gêmeo Digital&apos; para uso em propaganda eleitoral.</li>
+                <li><strong>Finalidade:</strong> Criação de avatares por foto e voz para uso em propaganda eleitoral.</li>
                 <li><strong>Segurança:</strong> Meus dados biométricos serão criptografados e utilizados exclusivamente para este fim.</li>
                 <li><strong>Direito de Exclusão:</strong> Posso solicitar a exclusão total dos meus dados e do modelo de IA criado a qualquer momento, o que resultará na interrupção imediata dos serviços.</li>
               </ul>

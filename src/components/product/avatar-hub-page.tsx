@@ -107,18 +107,25 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F19] via-transparent to-transparent opacity-60 pointer-events-none" />
             </div>
 
-            <div className="w-full max-w-[280px] mt-4 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setConfirmRetrain(true)}
-                className="text-xs text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1.5 focus:outline-none no-underline hover:underline"
+            <button
+              type="button"
+              onClick={() => setConfirmRetrain(true)}
+              className="w-full max-w-[280px] mt-4 group/edit inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700/70 bg-slate-950/50 px-4 py-2.5 text-sm font-medium text-slate-200 shadow-sm transition-all hover:border-cyan-500/45 hover:bg-cyan-950/25 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+            >
+              <svg
+                className="h-4 w-4 shrink-0 text-cyan-400 transition-colors group-hover/edit:text-cyan-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
               >
-                <svg className="h-3.5 w-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              <span className="text-center leading-snug">
                 Editar avatar / Retreinar {tipo.label === "3D" ? "Avatar 3D" : tipo.label}
-              </button>
-            </div>
+              </span>
+            </button>
           </div>
 
           {/* Ações */}
