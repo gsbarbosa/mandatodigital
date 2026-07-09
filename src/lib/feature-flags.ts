@@ -17,6 +17,7 @@ export const featureFlags = {
   sentinelSocial: readEnvFlag("SENTINEL_SOCIAL_ENABLED"),
   sentinelSerpApi: Boolean(process.env.SENTINEL_SERPAPI_KEY?.trim()),
   auditorFactCheck: readEnvFlag("AUDITOR_FACTCHECK_ENABLED"),
+  auditorRealQueue: readEnvFlag("AUDITOR_V2_REAL_QUEUE"),
   sentinelLlmThemeVerify: readEnvFlag("SENTINEL_LLM_THEME_VERIFY"),
 } as const;
 

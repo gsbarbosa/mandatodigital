@@ -54,7 +54,7 @@ export function buildArticleFingerprint(article: {
   title: string;
   link?: string;
   sourceName?: string;
-  pubDate?: string;
+  pubDate?: string | null;
 }) {
   const title = normalizeSentinelText(article.title);
   const source = normalizeSentinelText(article.sourceName ?? "");

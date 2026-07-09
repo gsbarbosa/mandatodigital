@@ -110,6 +110,19 @@ env:
     availability:
       - RUNTIME
 
+  - variable: SENTINEL_SOCIAL_ENABLED
+    value: "true"
+    availability:
+      - RUNTIME
+
+  - variable: SENTINEL_LLM_THEME_VERIFY
+    value: "true"
+    availability:
+      - RUNTIME
+
+  - variable: APIFY_API_TOKEN
+    secret: apify-api-token
+
   # Validador Fase 2 — fact-check no Criativo e top 10 Sentinela
   - variable: AUDITOR_FACTCHECK_ENABLED
     value: "true"
