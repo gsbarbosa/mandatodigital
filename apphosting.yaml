@@ -139,7 +139,6 @@ env:
   # - variable: TRAINING_ASSET_ACCESS_SECRET
   #   secret: training-asset-access-secret
 
-  # Opcional: necessario apenas fora do App Hosting (dev local / emulador).
-  # No App Hosting o Admin SDK usa FIREBASE_CONFIG automaticamente.
-  - variable: FIREBASE_SERVICE_ACCOUNT_JSON
-    secret: firebase-service-account-json
+  # FIREBASE_SERVICE_ACCOUNT_JSON: apenas dev local. No App Hosting o Admin SDK usa ADC.
+  # - variable: FIREBASE_SERVICE_ACCOUNT_JSON
+  #   secret: firebase-service-account-json

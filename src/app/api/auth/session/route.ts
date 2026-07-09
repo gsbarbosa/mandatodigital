@@ -41,7 +41,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    console.error("[auth/session] createSessionCookie failed:", error);
     return NextResponse.json({ message: "Token invalido ou expirado." }, { status: 401 });
   }
 }
