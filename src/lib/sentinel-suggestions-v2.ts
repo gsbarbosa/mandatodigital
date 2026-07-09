@@ -17,9 +17,10 @@ import {
 } from "@/lib/sentinel-rss";
 import { applyTrendScoreBoost, resolveThemeVolumeTrend } from "@/lib/sentinel-trends";
 import type { SentinelThemeExpansion } from "@/lib/sentinel-theme-expansion";
+import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
 import type { PoliticianProfile } from "@/lib/types";
 
-const MAX_SUGGESTIONS = 5;
+const MAX_SUGGESTIONS = 20;
 const MAX_ARTICLES_PER_SUGGESTION = 4;
 
 type V2BuildContext = {
@@ -82,15 +83,10 @@ function matchExpandedTerms(text: string, expandedTerms: string[]) {
 
 function resolveSourceList(input: {
   matchedInterest: string[];
-  matchedOpposition: string[];
   article: RssNewsItem;
 }): "interest" | "opposition" {
-  if (input.article.siteList === "opposition") {
-    return "opposition";
-  }
-
-  if (input.matchedOpposition.length > 0 && input.matchedInterest.length === 0) {
-    return "opposition";
+  if (input.article.siteList === "interest") {
+    return "interest";
   }
 
   return "interest";
@@ -106,21 +102,22 @@ function classifyArticle(
   context: V2BuildContext,
 ): ClassifiedArticle | null {
   const haystack = `${article.title} ${article.sourceName ?? ""} ${article.siteHost ?? ""}`;
-  const customThemes = profile.customRadarThemes.map((theme) => theme.trim()).filter(Boolean);
-  const interestThemes = [...profile.sentinelThemes, ...customThemes];
-  const oppositionThemes = profile.oppositionThemes;
+  const themes = splitProfileThemesBySphere(profile);
 
-  const matchedCustom = matchLiteralThemes(haystack, customThemes);
+  const matchedCustom = matchLiteralThemes(haystack, themes.municipalCustom);
   const matchedExpanded = matchExpandedTerms(haystack, context.expandedTerms);
-  const matchedInterest = matchSentinelThemes(haystack, interestThemes);
-  const matchedOpposition = matchSentinelThemes(haystack, oppositionThemes);
-  const matchedThemes = [...new Set([...matchedCustom, ...matchedExpanded, ...matchedInterest, ...matchedOpposition])];
+  const matchedFederal = matchSentinelThemes(haystack, themes.federal);
+  const matchedEstadual = matchSentinelThemes(haystack, themes.estadual);
+  const matchedInterest = [
+    ...new Set([...matchedFederal, ...matchedEstadual, ...matchedCustom]),
+  ];
+  const matchedThemes = [...new Set([...matchedCustom, ...matchedExpanded, ...matchedInterest])];
 
   if (matchedThemes.length === 0) {
     return null;
   }
 
-  const sourceList = resolveSourceList({ matchedInterest, matchedOpposition, article });
+  const sourceList = resolveSourceList({ matchedInterest, article });
   const expansionByTerm = buildExpansionTermMap(context.expansions);
 
   let pipeline: SentinelPipeline = "semantic";
@@ -128,7 +125,7 @@ function classifyArticle(
 
   if (isPortalOriginArticle(article)) {
     pipeline = "portal";
-    themeLabel = matchedInterest[0] ?? matchedOpposition[0] ?? matchedCustom[0] ?? themeLabel;
+    themeLabel = matchedInterest[0] ?? matchedCustom[0] ?? themeLabel;
   } else if (matchedCustom.length > 0) {
     pipeline = "manual";
     themeLabel = matchedCustom[0] ?? themeLabel;
@@ -140,7 +137,7 @@ function classifyArticle(
       themeLabel;
   } else {
     pipeline = "semantic";
-    themeLabel = matchedInterest[0] ?? matchedOpposition[0] ?? themeLabel;
+    themeLabel = matchedInterest[0] ?? themeLabel;
   }
 
   return {
@@ -235,11 +232,8 @@ export async function buildV2SuggestionsFromArticles(
     .map((article) => classifyArticle(article, profile, context))
     .filter((item): item is ClassifiedArticle => item !== null);
 
-  const interestThemes = [
-    ...profile.sentinelThemes,
-    ...profile.customRadarThemes.map((theme) => theme.trim()).filter(Boolean),
-  ];
-  const oppositionThemes = profile.oppositionThemes;
+  const themes = splitProfileThemesBySphere(profile);
+  const interestThemes = themes.interest;
 
   const clusters = clusterScoredArticles(classified);
   const suggestions: MockSentinelSuggestion[] = [];
@@ -252,14 +246,14 @@ export async function buildV2SuggestionsFromArticles(
         left.article,
         profile,
         matchSentinelThemes(`${left.article.title} ${left.article.sourceName ?? ""}`, interestThemes),
-        matchSentinelThemes(`${left.article.title} ${left.article.sourceName ?? ""}`, oppositionThemes),
+        [],
         { articleCount: articlesInCluster.length, outletCount },
       );
       const rightScore = scoreSentinelArticle(
         right.article,
         profile,
         matchSentinelThemes(`${right.article.title} ${right.article.sourceName ?? ""}`, interestThemes),
-        matchSentinelThemes(`${right.article.title} ${right.article.sourceName ?? ""}`, oppositionThemes),
+        [],
         { articleCount: articlesInCluster.length, outletCount },
       );
       return rightScore - leftScore;
@@ -273,16 +267,12 @@ export async function buildV2SuggestionsFromArticles(
       `${primaryItem.article.title} ${primaryItem.article.sourceName ?? ""}`,
       interestThemes,
     );
-    const matchedOpposition = matchSentinelThemes(
-      `${primaryItem.article.title} ${primaryItem.article.sourceName ?? ""}`,
-      oppositionThemes,
-    );
 
     const baseScore = scoreSentinelArticle(
       primaryItem.article,
       profile,
       matchedInterest,
-      matchedOpposition,
+      [],
       { articleCount: articlesInCluster.length, outletCount },
     );
 

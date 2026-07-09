@@ -14,6 +14,13 @@ import {
 } from "@/lib/sentinel-rss";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import {
+  countCatalogPortalHosts,
+} from "@/lib/sentinel-portal-catalog";
+import {
+  splitProfileThemesBySphere,
+} from "@/lib/sentinel-profile-themes";
+import { buildSocialSentinelSuggestions } from "@/lib/sentinel-social";
+import {
   flattenExpansionSearchTerms,
   loadSentinelThemeExpansions,
 } from "@/lib/sentinel-theme-expansion";
@@ -28,7 +35,7 @@ import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 export type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
-const MAX_SUGGESTIONS = 5;
+const MAX_SUGGESTIONS = 20;
 const MAX_ARTICLES_PER_SUGGESTION = 4;
 
 type SentinelCacheEntry = {
@@ -111,18 +118,10 @@ function buildSuggestionFromCluster(input: {
 
 function resolveSourceList(input: {
   matchedInterest: string[];
-  matchedOpposition: string[];
   article: RssNewsItem;
 }): "interest" | "opposition" {
-  if (input.article.siteList === "opposition") {
-    return "opposition";
-  }
-
-  if (
-    input.matchedOpposition.length > 0 &&
-    input.matchedInterest.length === 0
-  ) {
-    return "opposition";
+  if (input.article.siteList === "interest") {
+    return "interest";
   }
 
   return "interest";
@@ -132,25 +131,26 @@ export function buildSuggestionsFromArticles(
   articles: RssNewsItem[],
   profile: PoliticianProfile,
 ): MockSentinelSuggestion[] {
-  const interestThemes = [
-    ...profile.sentinelThemes,
-    ...profile.customRadarThemes.map((theme) => theme.trim()).filter(Boolean),
-  ];
-  const oppositionThemes = profile.oppositionThemes;
+  const themes = splitProfileThemesBySphere(profile);
+  const interestThemes = themes.interest;
 
   const scored = articles
     .map((article) => {
       const haystack = `${article.title} ${article.sourceName ?? ""} ${article.siteHost ?? ""}`;
-      const matchedInterest = matchSentinelThemes(haystack, interestThemes);
-      const matchedOpposition = matchSentinelThemes(haystack, oppositionThemes);
-      const matchedThemes = [...new Set([...matchedInterest, ...matchedOpposition])];
+      const matchedFederal = matchSentinelThemes(haystack, themes.federal);
+      const matchedEstadual = matchSentinelThemes(haystack, themes.estadual);
+      const matchedMunicipal = matchSentinelThemes(haystack, themes.municipalCustom);
+      const matchedInterest = [
+        ...new Set([...matchedFederal, ...matchedEstadual, ...matchedMunicipal]),
+      ];
+      const matchedThemes = matchedInterest;
 
       if (matchedThemes.length === 0) {
         return null;
       }
 
-      const themeLabel = matchedInterest[0] ?? matchedOpposition[0] ?? matchedThemes[0];
-      const sourceList = resolveSourceList({ matchedInterest, matchedOpposition, article });
+      const themeLabel = matchedThemes[0] ?? "";
+      const sourceList = resolveSourceList({ matchedInterest, article });
 
       return {
         article,
@@ -176,10 +176,7 @@ export function buildSuggestionsFromArticles(
           `${left.article.title} ${left.article.sourceName ?? ""}`,
           interestThemes,
         ),
-        matchSentinelThemes(
-          `${left.article.title} ${left.article.sourceName ?? ""}`,
-          oppositionThemes,
-        ),
+        [],
         { articleCount: articlesInCluster.length, outletCount },
       );
       const rightScore = scoreSentinelArticle(
@@ -189,10 +186,7 @@ export function buildSuggestionsFromArticles(
           `${right.article.title} ${right.article.sourceName ?? ""}`,
           interestThemes,
         ),
-        matchSentinelThemes(
-          `${right.article.title} ${right.article.sourceName ?? ""}`,
-          oppositionThemes,
-        ),
+        [],
         { articleCount: articlesInCluster.length, outletCount },
       );
       return rightScore - leftScore;
@@ -206,16 +200,12 @@ export function buildSuggestionsFromArticles(
       `${primaryItem.article.title} ${primaryItem.article.sourceName ?? ""}`,
       interestThemes,
     );
-    const matchedOpposition = matchSentinelThemes(
-      `${primaryItem.article.title} ${primaryItem.article.sourceName ?? ""}`,
-      oppositionThemes,
-    );
 
     const relevanceScore = scoreSentinelArticle(
       primaryItem.article,
       profile,
       matchedInterest,
-      matchedOpposition,
+      [],
       { articleCount: articlesInCluster.length, outletCount },
     );
 
@@ -237,19 +227,37 @@ export function buildSuggestionsFromArticles(
 }
 
 function getRadarThemesCount(profile: PoliticianProfile) {
-  return (
-    profile.sentinelThemes.length +
-    profile.customRadarThemes.filter((theme) => theme.trim()).length
-  );
+  return splitProfileThemesBySphere(profile).interest.length;
 }
 
 function countMonitoredPortals(profile: PoliticianProfile) {
+  const themes = splitProfileThemesBySphere(profile);
   const hosts = new Set(
-    [...profile.interestSites, ...profile.oppositionSites]
-      .map((site) => site.trim())
-      .filter(Boolean),
+    profile.interestSites.map((site) => site.trim()).filter(Boolean),
   );
-  return hosts.size;
+  return hosts.size + countCatalogPortalHosts({
+    federalThemeCount: themes.federal.length,
+    estadualThemeCount: themes.estadual.length,
+    state: profile.state,
+  });
+}
+
+function mergeSuggestions(
+  articleSuggestions: MockSentinelSuggestion[],
+  socialSuggestions: MockSentinelSuggestion[],
+): MockSentinelSuggestion[] {
+  const byId = new Map<string, MockSentinelSuggestion>();
+
+  for (const suggestion of [...articleSuggestions, ...socialSuggestions]) {
+    const existing = byId.get(suggestion.id);
+    if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
+      byId.set(suggestion.id, suggestion);
+    }
+  }
+
+  return [...byId.values()]
+    .sort((left, right) => right.relevanceScore - left.relevanceScore)
+    .slice(0, MAX_SUGGESTIONS);
 }
 
 function buildEmptyMeta(
@@ -405,16 +413,21 @@ export async function getSentinelSuggestions(
 
   const radarThemesCount = getRadarThemesCount(profile);
   const portalsMonitored = countMonitoredPortals(profile);
+  const hasSocialRadar =
+    profile.interestProfiles.some((row) => row.handle.trim()) ||
+    profile.oppositionProfiles.some((row) => row.handle.trim());
 
-  if (radarThemesCount === 0 && portalsMonitored === 0) {
+  if (radarThemesCount === 0 && portalsMonitored === 0 && !hasSocialRadar) {
     const meta = buildEmptyMeta(profile, {
-      emptyReason: "Configure temas de interesse ou portais no radar do Sentinela.",
+      emptyReason: "Configure temas de interesse, portais municipais ou perfis @ no radar.",
     });
     return { suggestions: [], meta };
   }
 
   const articlesBundle = await collectSentinelArticles(profile);
-  const suggestions = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
+  const articleSuggestions = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
+  const socialSuggestions = await buildSocialSentinelSuggestions(profile);
+  const suggestions = mergeSuggestions(articleSuggestions, socialSuggestions);
   const v2Enabled = isSentinelV2PipelinesEnabled();
 
   const meta: SentinelSuggestionsMeta = {
@@ -452,17 +465,18 @@ export function filterMockSentinelSuggestions(
   mocks: MockSentinelSuggestion[],
 ) {
   const radarThemes = new Set(
-    [
-      ...profile.sentinelThemes,
-      ...profile.customRadarThemes.map((theme) => theme.trim()).filter(Boolean),
-    ].map((theme) => theme.toLowerCase()),
+    splitProfileThemesBySphere(profile).interest.map((theme) => theme.toLowerCase()),
   );
 
   if (radarThemes.size === 0) {
-    return [];
+    return mocks.filter((suggestion) =>
+      (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition"),
+    );
   }
 
-  return mocks.filter((suggestion) =>
-    suggestion.matchedThemes.some((theme) => radarThemes.has(theme.toLowerCase())),
+  return mocks.filter(
+    (suggestion) =>
+      suggestion.matchedThemes.some((theme) => radarThemes.has(theme.toLowerCase())) ||
+      (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition"),
   );
 }

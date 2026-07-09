@@ -90,12 +90,15 @@ describe("sentinel-rss", () => {
     expect(items[0]?.sourceName).toBe("G1");
   });
 
-  it("monta queries com geografia, temas e oposicao", () => {
+  it("monta queries por esfera sem temas de oposicao", () => {
     const queries = buildSentinelRssQueries(sampleProfile);
-    expect(queries[0]).toContain("Campinas");
-    expect(queries.some((query) => query.includes("Seguranca Publica"))).toBe(true);
-    expect(queries.some((query) => query.includes("Endurecimento de Penas"))).toBe(true);
-    expect(queries.length).toBeGreaterThanOrEqual(4);
+    expect(queries.some((query) => query.includes("Campinas"))).toBe(true);
+    expect(queries.some((query) => query.includes("Seguranca Publica") && query.includes("Brasil"))).toBe(
+      true,
+    );
+    expect(queries.some((query) => query.includes("fila do SUS"))).toBe(true);
+    expect(queries.some((query) => query.includes("Endurecimento de Penas"))).toBe(false);
+    expect(queries.length).toBeGreaterThanOrEqual(3);
   });
 
   it("associa temas do radar ao titulo da materia", () => {

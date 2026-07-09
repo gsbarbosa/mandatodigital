@@ -1,8 +1,21 @@
 import type { PoliticianProfile } from "@/lib/types";
+import {
+  getNationalPortalHosts,
+  getStatePortalHosts,
+} from "@/lib/sentinel-portal-catalog";
+import {
+  hasAdversaryRadar,
+  hasEstadualRadar,
+  hasFederalRadar,
+  hasMunicipalRadar,
+  splitProfileThemesBySphere,
+} from "@/lib/sentinel-profile-themes";
 import { matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
 import { normalizeSentinelText } from "@/lib/sentinel-text";
 
 export { normalizeSentinelText } from "@/lib/sentinel-text";
+
+export type SentinelSiteList = "federal" | "estadual" | "interest" | "opposition";
 
 export type RssNewsOrigin = "google-news" | "portal-rss" | "google-news-site";
 
@@ -13,13 +26,12 @@ export type RssNewsItem = {
   publishedAt: Date | null;
   sourceName?: string;
   origin?: RssNewsOrigin;
-  siteList?: "interest" | "opposition";
+  siteList?: SentinelSiteList;
   siteHost?: string;
 };
 
 const MAX_THEME_QUERIES = 4;
-const MAX_OPPOSITION_QUERIES = 2;
-const MAX_PORTAL_SITES_PER_LIST = 5;
+const MAX_PORTAL_SITES_PER_LIST = 10;
 const RSS_FETCH_TIMEOUT_MS = 12_000;
 const PORTAL_RSS_PATHS = ["/feed", "/feed/", "/rss", "/rss/", "/feed.xml", "/rss.xml"];
 
@@ -130,23 +142,24 @@ export function normalizePortalHost(site: string) {
 }
 
 export function buildSentinelRssQueries(profile: PoliticianProfile) {
-  const themes = [
-    ...profile.sentinelThemes,
-    ...profile.customRadarThemes.map((theme) => theme.trim()).filter(Boolean),
-  ];
-
+  const { federal, estadual, municipalCustom } = splitProfileThemesBySphere(profile);
   const queries: string[] = [];
   const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
+  const state = profile.state.trim().toUpperCase();
 
-  if (geo) {
+  if (geo && (hasMunicipalRadar(profile) || municipalCustom.length > 0)) {
     queries.push(geo);
   }
 
-  for (const theme of themes.slice(0, MAX_THEME_QUERIES)) {
-    queries.push(geo ? `${theme} ${geo}` : theme);
+  for (const theme of federal.slice(0, MAX_THEME_QUERIES)) {
+    queries.push(`${theme} Brasil`);
   }
 
-  for (const theme of profile.oppositionThemes.slice(0, MAX_OPPOSITION_QUERIES)) {
+  for (const theme of estadual.slice(0, MAX_THEME_QUERIES)) {
+    queries.push(state ? `${theme} ${state}` : theme);
+  }
+
+  for (const theme of municipalCustom.slice(0, 3)) {
     queries.push(geo ? `${theme} ${geo}` : theme);
   }
 
@@ -264,7 +277,7 @@ async function fetchGoogleNewsForSite(host: string, profile: PoliticianProfile) 
   });
 }
 
-async function discoverPortalFeed(host: string, siteList: "interest" | "opposition") {
+async function discoverPortalFeed(host: string, siteList: SentinelSiteList) {
   if (!host) {
     return [];
   }
@@ -287,7 +300,7 @@ async function discoverPortalFeed(host: string, siteList: "interest" | "oppositi
 
 async function fetchPortalSites(
   sites: string[],
-  siteList: "interest" | "opposition",
+  siteList: SentinelSiteList,
   profile: PoliticianProfile,
 ) {
   const hosts = [...new Set(sites.map(normalizePortalHost).filter(Boolean))].slice(
@@ -313,25 +326,36 @@ async function fetchPortalSites(
 
 export async function fetchSentinelNewsItems(profile: PoliticianProfile) {
   const queries = buildSentinelRssQueries(profile);
+  const catalogHosts = {
+    federal: hasFederalRadar(profile) ? getNationalPortalHosts() : [],
+    estadual: hasEstadualRadar(profile) ? getStatePortalHosts(profile.state) : [],
+  };
+
   const hasRadar =
     queries.length > 0 ||
+    catalogHosts.federal.length > 0 ||
+    catalogHosts.estadual.length > 0 ||
     profile.interestSites.some((site) => site.trim()) ||
-    profile.oppositionSites.some((site) => site.trim());
+    profile.interestProfiles.some((row) => row.handle.trim()) ||
+    hasAdversaryRadar(profile);
 
   if (!hasRadar) {
     return [];
   }
 
-  const [googleNewsBatches, interestPortalItems, oppositionPortalItems] = await Promise.all([
-    Promise.all(queries.map((query) => fetchGoogleNewsQuery(query))),
-    fetchPortalSites(profile.interestSites, "interest", profile),
-    fetchPortalSites(profile.oppositionSites, "opposition", profile),
-  ]);
+  const [googleNewsBatches, federalPortalItems, estadualPortalItems, interestPortalItems] =
+    await Promise.all([
+      Promise.all(queries.map((query) => fetchGoogleNewsQuery(query))),
+      fetchPortalSites(catalogHosts.federal, "federal", profile),
+      fetchPortalSites(catalogHosts.estadual, "estadual", profile),
+      fetchPortalSites(profile.interestSites, "interest", profile),
+    ]);
 
   return dedupeNewsItems([
     ...googleNewsBatches.flat(),
+    ...federalPortalItems,
+    ...estadualPortalItems,
     ...interestPortalItems,
-    ...oppositionPortalItems,
   ]);
 }
 
@@ -368,8 +392,10 @@ export function scoreSentinelArticle(
   score += matchedInterest.length * 15;
   score += matchedOpposition.length * 10;
 
-  if (article.siteList === "opposition") {
-    score += 8;
+  if (article.siteList === "federal") {
+    score += 7;
+  } else if (article.siteList === "estadual") {
+    score += 7;
   } else if (article.siteList === "interest") {
     score += 5;
   }
@@ -414,6 +440,7 @@ type ScoredArticle = {
   sourceList: "interest" | "opposition";
   relevanceScore: number;
   pipeline?: string;
+  sphere?: "federal" | "estadual" | "municipal";
 };
 
 function storyClusterKeysSimilar(left: string, right: string) {

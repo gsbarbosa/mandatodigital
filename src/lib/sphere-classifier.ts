@@ -2,6 +2,11 @@ import type {
   MockSentinelSuggestion,
   SentinelNewsArticle,
 } from "./sentinel-mock-suggestions";
+import {
+  getStatePortalHosts,
+  isNationalPortalHost,
+  isStatePortalHost,
+} from "./sentinel-portal-catalog";
 
 /**
  * The backend has no notion of "sphere" — classification is a frontend heuristic
@@ -145,6 +150,7 @@ export function articleOutletLabel(article: SentinelNewsArticle): string {
 export function classifySuggestionSphere(
   suggestion: MockSentinelSuggestion,
   interestSites: string[],
+  profileState = "",
 ): MonitorSphere {
   const actors = suggestion.evidence.actors ?? [];
   if (actors.some((actor) => actor.sourceList === "opposition")) {
@@ -157,13 +163,34 @@ export function classifySuggestionSphere(
   const articles = suggestion.evidence.articles ?? [];
   const interestDomains = interestSites.map(normalizeDomain).filter(Boolean);
   const hintsList = articles.map(articleSourceHints);
+  const stateHosts = getStatePortalHosts(profileState);
 
   if (hintsList.some((hints) => matchesInterestSites(hints, interestDomains))) {
     return "municipal";
   }
+
+  if (
+    suggestion.pipeline === "portal" &&
+    hintsList.some((hints) => hints.domain && isNationalPortalHost(hints.domain))
+  ) {
+    return "federal";
+  }
+
   if (hintsList.some(matchesFederal)) {
     return "federal";
   }
+
+  if (
+    hintsList.some(
+      (hints) =>
+        hints.domain &&
+        (isStatePortalHost(hints.domain, profileState) ||
+          stateHosts.some((host) => domainMatches(hints.domain!, host))),
+    )
+  ) {
+    return "estadual";
+  }
+
   return "estadual";
 }
 
@@ -175,6 +202,7 @@ export function weightedEngagement(likes: number, comments: number, shares: numb
 export function groupSuggestionsBySphere(
   suggestions: MockSentinelSuggestion[],
   interestSites: string[],
+  profileState = "",
 ): Record<MonitorSphere, MockSentinelSuggestion[]> {
   const groups: Record<MonitorSphere, MockSentinelSuggestion[]> = {
     federal: [],
@@ -183,7 +211,7 @@ export function groupSuggestionsBySphere(
     adversarios: [],
   };
   for (const suggestion of suggestions) {
-    groups[classifySuggestionSphere(suggestion, interestSites)].push(suggestion);
+    groups[classifySuggestionSphere(suggestion, interestSites, profileState)].push(suggestion);
   }
   return groups;
 }
