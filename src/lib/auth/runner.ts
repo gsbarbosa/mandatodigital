@@ -1,17 +1,18 @@
 import { isApiUser, requireApiUser } from "@/lib/auth/api";
-import { getSessionUser, requireSessionUser } from "@/lib/auth/session";
+import { getSessionUser, requireSessionUser, type SessionUser } from "@/lib/auth/session";
 import { getRepository, type Repository } from "@/lib/storage";
 import { runWithStorageOwner } from "@/lib/storage-context";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 
 export async function runWithSessionRepository<T>(
   fn: (repository: Repository) => Promise<T>,
+  sessionUser?: SessionUser | null,
 ): Promise<T> {
   if (!isFirebaseAuthConfigured()) {
     return fn(getRepository());
   }
 
-  const user = await requireSessionUser();
+  const user = sessionUser ?? (await requireSessionUser());
   return runWithStorageOwner(user.id, () => fn(getRepository()));
 }
 
