@@ -704,16 +704,13 @@ function MaterialUploadFilledState({
 export function BaseMaterialsReadiness({
   hasVoice,
   hasPhoto,
-  hasVideo,
   illustratedReadyCount,
 }: {
   hasVoice: boolean;
   hasPhoto: boolean;
-  hasVideo: boolean;
   illustratedReadyCount: number;
 }) {
   const photoRealReady = hasPhoto && hasVoice;
-  const twinReady = hasVoice && hasVideo;
 
   function photoRealStatus() {
     if (photoRealReady) {
@@ -742,19 +739,8 @@ export function BaseMaterialsReadiness({
     return { label: "Falta áudio", tone: "warn" as const };
   }
 
-  function twinStatus() {
-    if (twinReady) {
-      return { label: "Pronto para treinar", tone: "ok" as const };
-    }
-    if (!hasVoice) {
-      return { label: "Falta áudio", tone: "warn" as const };
-    }
-    return { label: "Falta vídeo", tone: "warn" as const };
-  }
-
   const photoReal = photoRealStatus();
   const illustrated = illustratedStatus();
-  const twin = twinStatus();
 
   return (
     <div className="persona-materials-readiness" role="status" aria-live="polite">
@@ -768,12 +754,6 @@ export function BaseMaterialsReadiness({
         <span className="persona-materials-readiness-track">Ilustrados</span>
         <span className={`persona-materials-readiness-badge is-${illustrated.tone}`}>
           {illustrated.label}
-        </span>
-      </div>
-      <div className="persona-materials-readiness-item">
-        <span className="persona-materials-readiness-track">Gêmeo digital</span>
-        <span className={`persona-materials-readiness-badge is-${twin.tone}`}>
-          {twin.label}
         </span>
       </div>
     </div>
