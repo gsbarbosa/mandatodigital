@@ -30,7 +30,7 @@ export function SentinelSuggestionCard({
         </div>
         {showAction ? (
           <Link
-            href={buildCriativoNovoHref(suggestion.id) as Route}
+            href={buildCriativoNovoHref(suggestion.topic) as Route}
             className="persona-sentinel-wire-action"
           >
             <span>Gerar</span>

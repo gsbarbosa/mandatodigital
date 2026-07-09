@@ -1,24 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { flattenExpansionSearchTerms } from "@/lib/sentinel-theme-expansion";
+import { filterGeoExpansionTerms } from "./sentinel-theme-expansion";
+import type { PoliticianProfile } from "./types";
 
-describe("sentinel-theme-expansion", () => {
-  it("limita e deduplica termos de busca da expansao", () => {
-    const terms = flattenExpansionSearchTerms([
-      {
-        sourceTheme: "Saude",
-        expandedTerms: ["UBS", "SUS", "UBS", "vacina"],
-        generatedAt: "2026-06-24T00:00:00.000Z",
-      },
-      {
-        sourceTheme: "Educacao",
-        expandedTerms: Array.from({ length: 25 }, (_, index) => `termo-${index}`),
-        generatedAt: "2026-06-24T00:00:00.000Z",
-      },
-    ]);
+const profile = {
+  city: "Belo Horizonte",
+  state: "MG",
+} as PoliticianProfile;
 
-    expect(terms).toContain("UBS");
-    expect(terms.filter((term) => term === "UBS")).toHaveLength(1);
-    expect(terms.length).toBeLessThanOrEqual(20);
+describe("filterGeoExpansionTerms", () => {
+  it("remove cidade e UF dos termos expandidos", () => {
+    expect(
+      filterGeoExpansionTerms(
+        ["Belo Horizonte", "MG", "venda de estatais", "belo horizonte"],
+        profile,
+      ),
+    ).toEqual(["venda de estatais"]);
   });
 });

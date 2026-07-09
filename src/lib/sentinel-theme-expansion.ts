@@ -40,6 +40,34 @@ function dedupeTerms(terms: string[]) {
   return result.slice(0, MAX_TERMS_PER_THEME);
 }
 
+function normalizeGeoToken(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Remove cidade/UF da lista — geo já entra nas queries; não deve virar "tema". */
+export function filterGeoExpansionTerms(terms: string[], profile: PoliticianProfile) {
+  const city = normalizeGeoToken(profile.city);
+  const state = normalizeGeoToken(profile.state);
+
+  return terms.filter((term) => {
+    const normalized = normalizeGeoToken(term);
+    if (!normalized) {
+      return false;
+    }
+    if (city && (normalized === city || normalized.includes(city))) {
+      return false;
+    }
+    if (state && normalized === state) {
+      return false;
+    }
+    return true;
+  });
+}
+
 function buildExpansionPrompt(theme: string, profile: PoliticianProfile) {
   const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(", ");
 
@@ -77,7 +105,7 @@ export async function generateThemeExpansionTerms(
     return [];
   }
 
-  return dedupeTerms(validated.data.terms);
+  return dedupeTerms(filterGeoExpansionTerms(validated.data.terms, profile));
 }
 
 export function collectExpansionSourceThemes(profile: PoliticianProfile) {

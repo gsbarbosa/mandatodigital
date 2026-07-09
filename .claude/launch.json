@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "start-noauth",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_FIREBASE_API_KEY=",
+        "FIREBASE_SERVICE_ACCOUNT_JSON=",
+        "FIREBASE_CONFIG=",
+        "npm",
+        "run",
+        "start"
+      ],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "dev-noauth",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_FIREBASE_API_KEY=",
+        "FIREBASE_SERVICE_ACCOUNT_JSON=",
+        "FIREBASE_CONFIG=",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

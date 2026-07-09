@@ -39,7 +39,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const isGemeo = tipo.slug === "gemeo-digital";
+  const isVideoTraining = false;
   const hubHref = `/avatares/${tipo.slug}` as Route;
 
   const photoName = useMemo(() => latestAssetName(trainingAssets, "avatar_image"), [trainingAssets]);
@@ -189,7 +189,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
           </div>
 
           {/* VÍDEO DE TREINO — exigido pelo treino real do Gêmeo Digital */}
-          {isGemeo ? (
+          {isVideoTraining ? (
             <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 mb-10">
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-cyan-500/20 text-cyan-400 rounded-lg">

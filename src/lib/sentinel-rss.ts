@@ -32,6 +32,7 @@ export type RssNewsItem = {
 
 const MAX_THEME_QUERIES = 4;
 const MAX_PORTAL_SITES_PER_LIST = 10;
+const MAX_COLLECTED_NEWS_ITEMS = 350;
 const RSS_FETCH_TIMEOUT_MS = 12_000;
 const PORTAL_RSS_PATHS = ["/feed", "/feed/", "/rss", "/rss/", "/feed.xml", "/rss.xml"];
 
@@ -307,12 +308,15 @@ async function fetchPortalSites(
     0,
     MAX_PORTAL_SITES_PER_LIST,
   );
+  const preferGoogleNewsOnly = siteList === "federal" || siteList === "estadual";
 
   const batches = await Promise.all(
     hosts.map(async (host) => {
-      const direct = await discoverPortalFeed(host, siteList);
-      if (direct.length > 0) {
-        return direct;
+      if (!preferGoogleNewsOnly) {
+        const direct = await discoverPortalFeed(host, siteList);
+        if (direct.length > 0) {
+          return direct;
+        }
       }
 
       return fetchGoogleNewsForSite(host, profile).then((items) =>
@@ -356,7 +360,7 @@ export async function fetchSentinelNewsItems(profile: PoliticianProfile) {
     ...federalPortalItems,
     ...estadualPortalItems,
     ...interestPortalItems,
-  ]);
+  ]).slice(0, MAX_COLLECTED_NEWS_ITEMS);
 }
 
 const MAX_SEMANTIC_EXPANSION_QUERIES = 10;

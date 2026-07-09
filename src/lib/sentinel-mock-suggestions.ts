@@ -372,6 +372,6 @@ export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggest
   return parts.join("\n");
 }
 
-export function buildCriativoNovoHref(suggestionId: string) {
-  return `/criativo/novo?sugestao=${encodeURIComponent(suggestionId)}`;
+export function buildCriativoNovoHref(topic: string) {
+  return `/criativo/novo?tema=${encodeURIComponent(topic)}`;
 }

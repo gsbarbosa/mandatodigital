@@ -93,5 +93,16 @@ export function themesInCatalog(selected: string[], groups: readonly SphereTheme
   return selected.filter((theme) => catalog.has(theme));
 }
 
-/** Max distinct selections a sphere section may hold (SPEC decision). */
-export const MAX_THEMES_PER_SPHERE = 10;
+/** Máximo de temas de catálogo (Federal + Estadual somados). */
+export const MAX_RADAR_THEMES_TOTAL = 10;
+
+/** @deprecated Use MAX_RADAR_THEMES_TOTAL — o limite é global, não por esfera. */
+export const MAX_THEMES_PER_SPHERE = MAX_RADAR_THEMES_TOTAL;
+
+export const MAX_MUNICIPAL_PROFILES = 2;
+export const MAX_MUNICIPAL_PORTALS = 2;
+export const MAX_ADVERSARY_PROFILES = 2;
+
+export function countRadarThemes(input: { federal: string[]; estadual: string[] }): number {
+  return input.federal.length + input.estadual.length;
+}

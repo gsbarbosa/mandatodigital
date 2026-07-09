@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { mergeProfileInputForSave } from "@/lib/profile-save";
+import { unionSentinelThemes } from "@/lib/sentinel-profile-themes";
 import { SUPABASE_STANDARD_UPLOAD_MAX_BYTES } from "@/lib/training-asset-upload-client";
 import {
   contentRequestInputSchema,
@@ -278,7 +279,12 @@ export function ProductAppProvider({
         referenceExamples: parseTextarea(profileForm.referenceExamples),
         bio: profileForm.bio,
         personaArchetypes: profileForm.personaArchetypes,
-        sentinelThemes: profileForm.sentinelThemes,
+        sentinelThemesFederal: profileForm.sentinelThemesFederal,
+        sentinelThemesEstadual: profileForm.sentinelThemesEstadual,
+        sentinelThemes: unionSentinelThemes({
+          federal: profileForm.sentinelThemesFederal,
+          estadual: profileForm.sentinelThemesEstadual,
+        }),
         oppositionThemes: profileForm.oppositionThemes,
         customRadarThemes: profileForm.customRadarThemes.filter(Boolean),
         interestProfiles: profileForm.interestProfiles.filter(

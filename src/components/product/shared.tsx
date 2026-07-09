@@ -7,6 +7,7 @@ import {
   defaultFormats,
   defaultIntensities,
 } from "@/lib/constants";
+import { resolveSentinelThemeSpheres, unionSentinelThemes } from "@/lib/sentinel-profile-themes";
 import type { DashboardData } from "@/lib/types";
 import type {
   ContentFormat,
@@ -35,6 +36,8 @@ export type ProfileFormState = {
   bio: string;
   personaArchetypes: string[];
   sentinelThemes: string[];
+  sentinelThemesFederal: string[];
+  sentinelThemesEstadual: string[];
   oppositionThemes: string[];
   customRadarThemes: string[];
   interestProfiles: SocialHandle[];
@@ -119,6 +122,10 @@ export function parseTextarea(value: string) {
 }
 
 export function buildProfileState(data: DashboardData["profile"]): ProfileFormState {
+  const themeSpheres = data
+    ? resolveSentinelThemeSpheres(data)
+    : { federal: [], estadual: [] };
+
   return {
     id: data?.id,
     fullName: data?.fullName ?? "",
@@ -142,7 +149,9 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
         : data?.archetype
           ? [data.archetype]
           : [],
-    sentinelThemes: data?.sentinelThemes ?? [],
+    sentinelThemes: data ? unionSentinelThemes(themeSpheres) : [],
+    sentinelThemesFederal: themeSpheres.federal,
+    sentinelThemesEstadual: themeSpheres.estadual,
     oppositionThemes: data?.oppositionThemes ?? [],
     customRadarThemes: data?.customRadarThemes ?? [],
     interestProfiles: data?.interestProfiles ?? [],

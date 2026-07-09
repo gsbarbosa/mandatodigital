@@ -11,7 +11,7 @@ import {
   parseGoogleNewsRss,
   scoreSentinelArticle,
 } from "@/lib/sentinel-rss";
-import { matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
+import { matchThemesWithSynonyms, pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
 import { buildSuggestionsFromArticles } from "@/lib/sentinel-suggestions";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -32,6 +32,8 @@ const sampleProfile: PoliticianProfile = {
   bio: "Bio de teste com mais de vinte caracteres para validacao.",
   personaArchetypes: [],
   sentinelThemes: ["Seguranca Publica", "Vacinacao", "Reforma Fiscal"],
+  sentinelThemesFederal: ["Vacinacao", "Reforma Fiscal"],
+  sentinelThemesEstadual: ["Seguranca Publica"],
   oppositionThemes: ["Endurecimento de Penas"],
   customRadarThemes: ["fila do SUS"],
   interestProfiles: [],
@@ -66,6 +68,25 @@ describe("sentinel-theme-synonyms", () => {
     );
     expect(matches).toContain("Reforma Fiscal");
   });
+
+  it("nao associa Saneamento Basico a noticia de policiamento por causa de 'falta'", () => {
+    const haystack =
+      "Falta de policiamento e o principal problema de seguranca em Sao Paulo, mostra Datafolha - CBN";
+
+    expect(
+      matchThemesWithSynonyms(haystack, ["Saneamento Basico", "Seguranca Publica"]),
+    ).toEqual(["Seguranca Publica"]);
+
+    expect(pickBestMatchedTheme(haystack, ["Saneamento Basico", "Seguranca Publica"])).toBe(
+      "Seguranca Publica",
+    );
+  });
+
+  it("mantem match de saneamento quando a materia fala de agua", () => {
+    const haystack = "Moradores reclamam da falta de agua potavel no bairro";
+
+    expect(matchThemesWithSynonyms(haystack, ["Saneamento Basico"])).toContain("Saneamento Basico");
+  });
 });
 
 describe("sentinel-rss", () => {
@@ -93,7 +114,10 @@ describe("sentinel-rss", () => {
   it("monta queries por esfera sem temas de oposicao", () => {
     const queries = buildSentinelRssQueries(sampleProfile);
     expect(queries.some((query) => query.includes("Campinas"))).toBe(true);
-    expect(queries.some((query) => query.includes("Seguranca Publica") && query.includes("Brasil"))).toBe(
+    expect(queries.some((query) => query.includes("Seguranca Publica") && query.includes("SP"))).toBe(
+      true,
+    );
+    expect(queries.some((query) => query.includes("Vacinacao") && query.includes("Brasil"))).toBe(
       true,
     );
     expect(queries.some((query) => query.includes("fila do SUS"))).toBe(true);

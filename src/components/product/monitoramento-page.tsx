@@ -11,11 +11,7 @@ import { useProductApp } from "@/components/product/provider";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 import { groupSuggestionsBySphere, type MonitorSphere } from "@/lib/sphere-classifier";
-import {
-  estadualThemeGroups,
-  federalThemeGroups,
-  themesInCatalog,
-} from "@/lib/sphere-theme-catalog";
+import { resolveSentinelThemeSpheres } from "@/lib/sentinel-profile-themes";
 
 const INITIAL_VISIBLE = 3;
 const VISIBLE_STEP = 5;
@@ -136,9 +132,10 @@ export function MonitoramentoPage() {
     const municipalThemes = Array.from(
       new Set(grouped.municipal.flatMap((item) => item.matchedThemes)),
     ).slice(0, 8);
+    const themeSpheres = resolveSentinelThemeSpheres(profileForm);
     return {
-      federal: [...themesInCatalog(profileForm.sentinelThemes, federalThemeGroups), ...customThemes],
-      estadual: themesInCatalog(profileForm.sentinelThemes, estadualThemeGroups),
+      federal: [...themeSpheres.federal, ...customThemes],
+      estadual: themeSpheres.estadual,
       municipal: municipalThemes,
       adversarios: profileForm.oppositionProfiles
         .map((row) => row.handle.trim())
@@ -146,9 +143,10 @@ export function MonitoramentoPage() {
         .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
     };
   }, [
-    profileForm.sentinelThemes,
     profileForm.customRadarThemes,
     profileForm.oppositionProfiles,
+    profileForm.sentinelThemesFederal,
+    profileForm.sentinelThemesEstadual,
     grouped.municipal,
   ]);
 
@@ -184,7 +182,10 @@ export function MonitoramentoPage() {
       ) : null}
 
       {isLoading ? (
-        <p className="text-sm text-slate-400 relative z-10">Carregando sinais do monitoramento...</p>
+        <p className="text-sm text-slate-400 relative z-10" role="status">
+          Carregando sinais do monitoramento… A primeira busca pode levar até 2 minutos enquanto
+          consultamos portais e redes.
+        </p>
       ) : null}
 
       {!isLoading && !suggestions.length ? (
@@ -212,7 +213,9 @@ export function MonitoramentoPage() {
 
               <ThemeChips themes={chipsBySphere[sphere]} />
 
-              {shown.length ? (
+              {isLoading ? (
+                <p className="text-sm text-slate-500">Buscando sinais para esta esfera…</p>
+              ) : shown.length ? (
                 <div className="space-y-4">
                   {shown.map((suggestion) => (
                     <MonitorSignalCard

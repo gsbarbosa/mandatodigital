@@ -32,11 +32,11 @@ const NAV_BLOCKS: NavBlock[] = [
   },
   {
     label: "Avatares",
-    href: "/avatares/gemeo-digital",
+    href: "/avatares/foto-real",
     children: [
-      { label: "3D", href: "/avatares/3d" },
+      { label: "Foto Real", href: "/avatares/foto-real" },
       { label: "Caricato", href: "/avatares/caricato" },
-      { label: "Gêmeo Digital", href: "/avatares/gemeo-digital" },
+      { label: "3D", href: "/avatares/3d" },
     ],
   },
 ];

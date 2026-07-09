@@ -4,7 +4,7 @@ import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
  * Menu-facing avatar types mapped onto the existing tracks/templates
  * (see persona-shared.tsx AVATAR_TYPE_BY_TRACK / ProductionTemplate).
  */
-export type AvatarTipoSlug = "gemeo-digital" | "caricato" | "3d";
+export type AvatarTipoSlug = "foto-real" | "caricato" | "3d";
 
 export type AvatarTipo = {
   slug: AvatarTipoSlug;
@@ -18,14 +18,14 @@ export type AvatarTipo = {
 
 export const AVATAR_TIPOS: AvatarTipo[] = [
   {
-    slug: "gemeo-digital",
-    label: "Gêmeo Digital",
-    avatarType: "Meu Gêmeo Digital",
+    slug: "foto-real",
+    label: "Foto Real",
+    avatarType: "Minha Foto Real",
     caricatureVariant: null,
     heroDescription: [
-      "Modelo de alta fidelidade e simpatia",
-      "Sincronia labial neural",
-      "Expressões faciais humanizadas",
+      "Retrato fotorrealista a partir da sua foto",
+      "Sincronia labial com a voz clonada",
+      "Ideal para pronunciamentos diretos ao eleitor",
     ],
   },
   {

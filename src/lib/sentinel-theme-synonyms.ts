@@ -45,7 +45,7 @@ export const sentinelThemeSynonyms: Record<string, string[]> = {
   "Transicao Energetica": ["energia solar", "energia eolica", "energia renovavel", "carbono"],
   "Protecao de Biomas": ["amazonia", "cerrado", "desmatamento", "queimada", "meio ambiente"],
   "Agricultura Familiar": ["agricultor familiar", "assentamento", "reforma agraria"],
-  "Saneamento Basico": ["esgoto", "agua potavel", "saneamento", "falta d agua"],
+  "Saneamento Basico": ["esgoto", "agua potavel", "saneamento", "falta de agua"],
   "Mobilidade Urbana": ["transporte publico", "metro", "onibus", "mobilidade", "transito"],
 
   "Saude Publica (SUS)": ["sus", "fila do sus", "hospital publico", "upa", "posto de saude"],
@@ -86,20 +86,69 @@ export function getThemeSearchTerms(theme: string) {
   return [trimmed];
 }
 
-export function textMatchesThemeTerm(text: string, term: string) {
+export function scoreThemeTermMatch(text: string, term: string): number {
   const normalized = normalizeSentinelText(text);
   const termNorm = normalizeSentinelText(term);
 
   if (termNorm.length < 3) {
-    return false;
+    return 0;
   }
 
   if (normalized.includes(termNorm)) {
-    return true;
+    return termNorm.length * 10;
   }
 
-  const words = termNorm.split(" ").filter((word) => word.length >= 4);
-  return words.some((word) => normalized.includes(word));
+  const words = termNorm.split(" ").filter(Boolean);
+  if (words.length <= 1) {
+    const word = words[0];
+    if (word && word.length >= 3 && normalized.includes(word)) {
+      return word.length * 5;
+    }
+    return 0;
+  }
+
+  const significant = words.filter((word) => word.length >= 4);
+  const matchedCount = significant.filter((word) => normalized.includes(word)).length;
+
+  if (significant.length >= 2 && matchedCount >= 2) {
+    return matchedCount * 8;
+  }
+
+  if (significant.length === 1 && matchedCount === 1) {
+    return significant[0].length * 5;
+  }
+
+  return 0;
+}
+
+export function textMatchesThemeTerm(text: string, term: string) {
+  return scoreThemeTermMatch(text, term) > 0;
+}
+
+export function scoreThemeMatch(text: string, theme: string): number {
+  const terms = getThemeSearchTerms(theme);
+  let best = 0;
+
+  for (const term of terms) {
+    best = Math.max(best, scoreThemeTermMatch(text, term));
+  }
+
+  return best;
+}
+
+export function pickBestMatchedTheme(text: string, themes: string[]): string {
+  let bestTheme = "";
+  let bestScore = 0;
+
+  for (const theme of themes) {
+    const score = scoreThemeMatch(text, theme);
+    if (score > bestScore) {
+      bestScore = score;
+      bestTheme = theme;
+    }
+  }
+
+  return bestTheme;
 }
 
 export function matchThemesWithSynonyms(text: string, themes: string[]) {

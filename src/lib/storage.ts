@@ -20,6 +20,7 @@ import {
   uploadTrainingBufferViaTus,
 } from "@/lib/training-asset-upload-client";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
+import { migrateFlatSentinelThemes, unionSentinelThemes } from "@/lib/sentinel-profile-themes";
 
 import type {
   ContentRequestInput,
@@ -199,6 +200,8 @@ function buildDefaultWorkflowProfileConfig() {
   return {
     personaArchetypes: [],
     sentinelThemes: [],
+    sentinelThemesFederal: [] as string[],
+    sentinelThemesEstadual: [] as string[],
     oppositionThemes: [],
     customRadarThemes: [],
     interestProfiles: [],
@@ -256,6 +259,8 @@ function pickWorkflowProfileConfig(
   return {
     personaArchetypes: profile.personaArchetypes ?? defaults.personaArchetypes,
     sentinelThemes: profile.sentinelThemes ?? defaults.sentinelThemes,
+    sentinelThemesFederal: profile.sentinelThemesFederal ?? defaults.sentinelThemesFederal,
+    sentinelThemesEstadual: profile.sentinelThemesEstadual ?? defaults.sentinelThemesEstadual,
     oppositionThemes: profile.oppositionThemes ?? defaults.oppositionThemes,
     customRadarThemes: profile.customRadarThemes ?? defaults.customRadarThemes,
     interestProfiles: profile.interestProfiles ?? defaults.interestProfiles,
@@ -286,20 +291,68 @@ function pickWorkflowProfileConfig(
   };
 }
 
+function normalizeWorkflowSentinelThemes<
+  T extends {
+    sentinelThemes: string[];
+    sentinelThemesFederal?: string[];
+    sentinelThemesEstadual?: string[];
+  },
+>(config: T): T {
+  if (
+    config.sentinelThemesFederal !== undefined ||
+    config.sentinelThemesEstadual !== undefined
+  ) {
+    const federal = config.sentinelThemesFederal ?? [];
+    const estadual = config.sentinelThemesEstadual ?? [];
+    const legacyThemes = config.sentinelThemes ?? [];
+
+    if (federal.length === 0 && estadual.length === 0 && legacyThemes.length > 0) {
+      const migrated = migrateFlatSentinelThemes(legacyThemes);
+      return {
+        ...config,
+        sentinelThemesFederal: migrated.federal,
+        sentinelThemesEstadual: migrated.estadual,
+        sentinelThemes: unionSentinelThemes(migrated),
+      };
+    }
+
+    return {
+      ...config,
+      sentinelThemesFederal: federal,
+      sentinelThemesEstadual: estadual,
+      sentinelThemes: unionSentinelThemes({ federal, estadual }),
+    };
+  }
+
+  const migrated = migrateFlatSentinelThemes(config.sentinelThemes);
+  return {
+    ...config,
+    sentinelThemesFederal: migrated.federal,
+    sentinelThemesEstadual: migrated.estadual,
+    sentinelThemes: unionSentinelThemes(migrated),
+  };
+}
+
 function mapWorkflowProfileConfigRow(row: Record<string, unknown> | null | undefined) {
   const defaults = buildDefaultWorkflowProfileConfig();
 
   if (!row) {
-    return defaults;
+    return normalizeWorkflowSentinelThemes(defaults);
   }
 
-  return {
+  return normalizeWorkflowSentinelThemes({
     personaArchetypes: Array.isArray(row.persona_archetypes)
       ? row.persona_archetypes.map(String)
       : defaults.personaArchetypes,
     sentinelThemes: Array.isArray(row.sentinel_themes)
       ? row.sentinel_themes.map(String)
       : defaults.sentinelThemes,
+    sentinelThemesFederal: Array.isArray(row.sentinel_themes_federal)
+      ? row.sentinel_themes_federal.map(String)
+      : undefined,
+    sentinelThemesEstadual: Array.isArray(row.sentinel_themes_estadual)
+      ? row.sentinel_themes_estadual.map(String)
+      : undefined,
     oppositionThemes: Array.isArray(row.opposition_themes)
       ? row.opposition_themes.map(String)
       : defaults.oppositionThemes,
@@ -349,7 +402,7 @@ function mapWorkflowProfileConfigRow(row: Record<string, unknown> | null | undef
       ? row.distribution_windows.map(String)
       : defaults.distributionWindows,
     autoPublish: Boolean(row.auto_publish ?? defaults.autoPublish),
-  };
+  });
 }
 
 function mergeWorkflowProfileConfig(
@@ -1328,7 +1381,12 @@ const supabaseRepository: Repository = {
     const workflowPayload = {
       profile_id: baseProfile.id,
       persona_archetypes: input.personaArchetypes,
-      sentinel_themes: input.sentinelThemes,
+      sentinel_themes: unionSentinelThemes({
+        federal: input.sentinelThemesFederal ?? [],
+        estadual: input.sentinelThemesEstadual ?? [],
+      }),
+      sentinel_themes_federal: input.sentinelThemesFederal ?? [],
+      sentinel_themes_estadual: input.sentinelThemesEstadual ?? [],
       opposition_themes: input.oppositionThemes,
       custom_radar_themes: input.customRadarThemes,
       interest_profiles: input.interestProfiles,

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -7,10 +8,7 @@ import {
   formatStatus,
   parseJsonOrText,
 } from "@/components/product/persona-shared";
-import { SentinelSuggestionsList } from "@/components/product/sentinel-suggestion-row";
 import { formatCreativeProjectTitle } from "@/lib/creative-project-display";
-import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
-import type { SentinelSuggestionsMeta } from "@/lib/sentinel-suggestions";
 import type { CreativeProject } from "@/lib/types";
 
 function formatProjectDate(value: string) {
@@ -41,10 +39,6 @@ export function CriativoListPage() {
   const [projects, setProjects] = useState<CreativeProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [sentinelSuggestions, setSentinelSuggestions] = useState<MockSentinelSuggestion[]>([]);
-  const [sentinelMeta, setSentinelMeta] = useState<SentinelSuggestionsMeta | null>(null);
-  const [isLoadingSentinel, setIsLoadingSentinel] = useState(true);
-  const [sentinelLoadError, setSentinelLoadError] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -71,39 +65,9 @@ export function CriativoListPage() {
     }
   }, []);
 
-  const loadSentinelSuggestions = useCallback(async () => {
-    setIsLoadingSentinel(true);
-    setSentinelLoadError(null);
-
-    try {
-      const response = await fetch("/api/sentinel/suggestions");
-      const payload = await parseJsonOrText<{
-        suggestions?: MockSentinelSuggestion[];
-        meta?: SentinelSuggestionsMeta;
-        message?: string;
-      }>(response);
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel carregar os sinais do Sentinela.");
-      }
-
-      setSentinelSuggestions(payload.suggestions ?? []);
-      setSentinelMeta(payload.meta ?? null);
-    } catch (error) {
-      setSentinelLoadError(
-        error instanceof Error ? error.message : "Nao foi possivel carregar os sinais do Sentinela.",
-      );
-      setSentinelSuggestions([]);
-      setSentinelMeta(null);
-    } finally {
-      setIsLoadingSentinel(false);
-    }
-  }, []);
-
   useEffect(() => {
     void loadProjects();
-    void loadSentinelSuggestions();
-  }, [loadProjects, loadSentinelSuggestions]);
+  }, [loadProjects]);
 
   return (
     <section className="persona-page agent-theme-criativo">
@@ -115,25 +79,20 @@ export function CriativoListPage() {
             <div className="persona-header-icon" aria-hidden="true">
               <PersonaCriativoIcon />
             </div>
-            <h2>Criativos</h2>
+            <h2>Meus criativos</h2>
             <p>
-              Produza vídeos a partir dos temas sugeridos pelo Sentinela. Cada criativo é uma
-              peça independente.
+              Vídeos já produzidos com seus avatares por foto. Para gerar um novo, use um dos
+              modelos Caricato, 3D ou Foto Real.
             </p>
           </div>
 
-          <div className="persona-form-group persona-top-gap">
-            <label className="persona-label">Sinais do Sentinela</label>
-            <p className="persona-helper-text">
-              Temas sugeridos pelo Sentinela com base no Google News e no seu radar. Clique em
-              Gerar criativo para abrir o formulário com o tema já preenchido.
-            </p>
-            <SentinelSuggestionsList
-              suggestions={sentinelSuggestions}
-              isLoading={isLoadingSentinel}
-              loadError={sentinelLoadError}
-              meta={sentinelMeta}
-            />
+          <div className="persona-cta-row persona-top-gap">
+            <Link href="/criativo/novo" className="persona-btn persona-btn-large">
+              Novo criativo
+            </Link>
+            <Link href="/independente" className="persona-btn persona-btn-secondary">
+              Conteúdo independente
+            </Link>
           </div>
 
           <div className="persona-section-header persona-top-gap">
@@ -152,8 +111,7 @@ export function CriativoListPage() {
 
           {!isLoading && !loadError && projects.length === 0 ? (
             <p className="persona-helper-text persona-top-gap">
-              Nenhum criativo gerado ainda. Escolha um tema do Sentinela e clique em Gerar
-              criativo para começar.
+              Nenhum criativo gerado ainda. Clique em Novo criativo para começar.
             </p>
           ) : null}
 

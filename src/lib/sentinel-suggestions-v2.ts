@@ -17,6 +17,8 @@ import {
 } from "@/lib/sentinel-rss";
 import { applyTrendScoreBoost, resolveThemeVolumeTrend } from "@/lib/sentinel-trends";
 import type { SentinelThemeExpansion } from "@/lib/sentinel-theme-expansion";
+import { filterGeoExpansionTerms } from "@/lib/sentinel-theme-expansion";
+import { pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
 import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -96,6 +98,38 @@ type ClassifiedArticle = ScoredArticle & {
   pipeline: SentinelPipeline;
 };
 
+function mapExpandedToSourceThemes(
+  matchedExpanded: string[],
+  expansionByTerm: Map<string, string>,
+): string[] {
+  return [
+    ...new Set(
+      matchedExpanded
+        .map((term) => expansionByTerm.get(term.toLowerCase()))
+        .filter((theme): theme is string => Boolean(theme)),
+    ),
+  ];
+}
+
+function pickThemeLabel(
+  haystack: string,
+  themes: {
+    federal: string[];
+    estadual: string[];
+    custom: string[];
+    fromExpansion: string[];
+  },
+): string {
+  const candidates = [
+    ...themes.federal,
+    ...themes.estadual,
+    ...themes.custom,
+    ...themes.fromExpansion,
+  ];
+
+  return pickBestMatchedTheme(haystack, [...new Set(candidates)]);
+}
+
 function classifyArticle(
   article: RssNewsItem,
   profile: PoliticianProfile,
@@ -103,41 +137,49 @@ function classifyArticle(
 ): ClassifiedArticle | null {
   const haystack = `${article.title} ${article.sourceName ?? ""} ${article.siteHost ?? ""}`;
   const themes = splitProfileThemesBySphere(profile);
+  const expansionByTerm = buildExpansionTermMap(context.expansions);
 
   const matchedCustom = matchLiteralThemes(haystack, themes.municipalCustom);
-  const matchedExpanded = matchExpandedTerms(haystack, context.expandedTerms);
+  const matchedExpanded = filterGeoExpansionTerms(
+    matchExpandedTerms(haystack, context.expandedTerms),
+    profile,
+  );
+  const matchedFromExpansion = mapExpandedToSourceThemes(matchedExpanded, expansionByTerm);
   const matchedFederal = matchSentinelThemes(haystack, themes.federal);
   const matchedEstadual = matchSentinelThemes(haystack, themes.estadual);
   const matchedInterest = [
     ...new Set([...matchedFederal, ...matchedEstadual, ...matchedCustom]),
   ];
-  const matchedThemes = [...new Set([...matchedCustom, ...matchedExpanded, ...matchedInterest])];
+  const matchedThemes = [
+    ...new Set([...matchedInterest, ...matchedFromExpansion]),
+  ];
 
   if (matchedThemes.length === 0) {
     return null;
   }
 
   const sourceList = resolveSourceList({ matchedInterest, article });
-  const expansionByTerm = buildExpansionTermMap(context.expansions);
+  const themeLabel = pickThemeLabel(haystack, {
+    federal: matchedFederal,
+    estadual: matchedEstadual,
+    custom: matchedCustom,
+    fromExpansion: matchedFromExpansion,
+  });
+
+  if (!themeLabel) {
+    return null;
+  }
 
   let pipeline: SentinelPipeline = "semantic";
-  let themeLabel = matchedThemes[0] ?? "";
 
   if (isPortalOriginArticle(article)) {
     pipeline = "portal";
-    themeLabel = matchedInterest[0] ?? matchedCustom[0] ?? themeLabel;
   } else if (matchedCustom.length > 0) {
     pipeline = "manual";
-    themeLabel = matchedCustom[0] ?? themeLabel;
-  } else if (matchedExpanded.length > 0) {
+  } else if (matchedFromExpansion.length > 0 && matchedInterest.length === 0) {
     pipeline = "semantic";
-    themeLabel =
-      expansionByTerm.get(matchedExpanded[0]?.toLowerCase() ?? "") ??
-      matchedInterest[0] ??
-      themeLabel;
   } else {
     pipeline = "semantic";
-    themeLabel = matchedInterest[0] ?? themeLabel;
   }
 
   return {

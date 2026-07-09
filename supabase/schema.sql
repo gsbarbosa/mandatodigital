@@ -75,6 +75,8 @@ create table if not exists mandate_workflow_configs (
   profile_id uuid primary key references politician_profiles(id) on delete cascade,
   persona_archetypes text[] not null default '{}',
   sentinel_themes text[] not null default '{}',
+  sentinel_themes_federal text[] not null default '{}',
+  sentinel_themes_estadual text[] not null default '{}',
   opposition_themes text[] not null default '{}',
   custom_radar_themes text[] not null default '{}',
   interest_profiles jsonb not null default '[]'::jsonb,
@@ -200,6 +202,12 @@ create table if not exists avatar_video_generations (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table if exists mandate_workflow_configs
+  add column if not exists sentinel_themes_federal text[] not null default '{}';
+
+alter table if exists mandate_workflow_configs
+  add column if not exists sentinel_themes_estadual text[] not null default '{}';
 
 alter table if exists mandate_workflow_configs
   add column if not exists persona_archetypes text[] not null default '{}';

@@ -107,7 +107,10 @@ export function avatarTypeToTrack(value: string | undefined): AvatarTrack {
   if (value === "Minha Foto Real") {
     return "photo_real";
   }
-  return "realistic";
+  if (value === "Meu Gêmeo Digital") {
+    return "photo_real";
+  }
+  return "photo_real";
 }
 
 export function formatStatus(status: string | null | undefined) {

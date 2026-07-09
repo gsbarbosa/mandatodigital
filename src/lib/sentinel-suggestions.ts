@@ -20,6 +20,7 @@ import {
   splitProfileThemesBySphere,
 } from "@/lib/sentinel-profile-themes";
 import { buildSocialSentinelSuggestions } from "@/lib/sentinel-social";
+import { pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
 import {
   flattenExpansionSearchTerms,
   loadSentinelThemeExpansions,
@@ -149,7 +150,7 @@ export function buildSuggestionsFromArticles(
         return null;
       }
 
-      const themeLabel = matchedThemes[0] ?? "";
+      const themeLabel = pickBestMatchedTheme(haystack, matchedThemes);
       const sourceList = resolveSourceList({ matchedInterest, article });
 
       return {

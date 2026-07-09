@@ -7,7 +7,12 @@ import {
   isStatePortalHost,
   NATIONAL_PORTAL_HOSTS,
 } from "./sentinel-portal-catalog";
-import { splitProfileThemesBySphere } from "./sentinel-profile-themes";
+import {
+  listOverlappingSentinelThemes,
+  migrateFlatSentinelThemes,
+  resolveSentinelThemeSpheres,
+  splitProfileThemesBySphere,
+} from "./sentinel-profile-themes";
 import type { PoliticianProfile } from "./types";
 
 const baseProfile: PoliticianProfile = {
@@ -26,7 +31,7 @@ const baseProfile: PoliticianProfile = {
   referenceExamples: [],
   bio: "Bio de teste com mais de vinte caracteres para validacao.",
   personaArchetypes: [],
-  sentinelThemes: ["Seguranca Publica", "Desemprego"],
+  sentinelThemes: ["Vacinacao", "Desemprego"],
   oppositionThemes: [],
   customRadarThemes: [],
   interestProfiles: [],
@@ -71,10 +76,48 @@ describe("sentinel-portal-catalog", () => {
   });
 });
 
-describe("splitProfileThemesBySphere", () => {
-  it("separa temas federal e estadual pelos catálogos", () => {
+describe("sentinel-profile-themes", () => {
+  it("separa temas federal e estadual pelos catálogos explícitos", () => {
+    const split = splitProfileThemesBySphere({
+      ...baseProfile,
+      sentinelThemesFederal: ["Reforma Fiscal"],
+      sentinelThemesEstadual: ["Desemprego"],
+      sentinelThemes: ["Reforma Fiscal", "Desemprego"],
+    });
+    expect(split.federal).toEqual(["Reforma Fiscal"]);
+    expect(split.estadual).toEqual(["Desemprego"]);
+  });
+
+  it("nao duplica tema compartilhado entre esferas quando atribuido explicitamente", () => {
+    const spheres = resolveSentinelThemeSpheres({
+      sentinelThemes: ["Contratos Publicos"],
+      sentinelThemesFederal: [],
+      sentinelThemesEstadual: ["Contratos Publicos"],
+    });
+    expect(spheres.federal).toEqual([]);
+    expect(spheres.estadual).toEqual(["Contratos Publicos"]);
+  });
+
+  it("migra sentinelThemes legado quando colunas novas estao vazias", () => {
+    const spheres = resolveSentinelThemeSpheres({
+      sentinelThemes: ["Vacinacao", "Desemprego"],
+      sentinelThemesFederal: [],
+      sentinelThemesEstadual: [],
+    });
+    expect(spheres.federal).toEqual(["Vacinacao"]);
+    expect(spheres.estadual).toEqual(["Desemprego"]);
+  });
+
+  it("migra lista unica priorizando estadual para temas sobrepostos", () => {
+    expect(listOverlappingSentinelThemes()).toContain("Contratos Publicos");
+    const migrated = migrateFlatSentinelThemes(["Contratos Publicos", "Vacinacao"]);
+    expect(migrated.estadual).toEqual(["Contratos Publicos"]);
+    expect(migrated.federal).toEqual(["Vacinacao"]);
+  });
+
+  it("migra perfil legado sem campos por esfera", () => {
     const split = splitProfileThemesBySphere(baseProfile);
-    expect(split.federal).toContain("Seguranca Publica");
+    expect(split.federal).toContain("Vacinacao");
     expect(split.estadual).toContain("Desemprego");
   });
 });

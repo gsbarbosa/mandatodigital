@@ -156,6 +156,10 @@ export type PoliticianProfile = {
   bio: string;
   personaArchetypes: string[];
   sentinelThemes: string[];
+  /** Temas selecionados na esfera federal (persistido separadamente da estadual). */
+  sentinelThemesFederal?: string[];
+  /** Temas selecionados na esfera estadual (persistido separadamente da federal). */
+  sentinelThemesEstadual?: string[];
   oppositionThemes: string[];
   customRadarThemes: string[];
   interestProfiles: SocialHandle[];

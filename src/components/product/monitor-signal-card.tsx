@@ -86,10 +86,10 @@ export function primarySignalActor(
   return suggestion.evidence.actors?.[0] ?? null;
 }
 
-function PautarButton({ suggestionId }: { suggestionId: string }) {
+function PautarButton({ topic }: { topic: string }) {
   return (
     <Link
-      href={buildCriativoNovoHref(suggestionId) as Route}
+      href={buildCriativoNovoHref(topic) as Route}
       className="w-full md:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center justify-center gap-2 no-underline"
     >
       Pautar
@@ -229,7 +229,7 @@ export function MonitorSignalCard({
 
         {showPautar ? (
           <div className="shrink-0 flex items-center justify-center md:pl-4">
-            <PautarButton suggestionId={suggestion.id} />
+            <PautarButton topic={suggestion.topic} />
           </div>
         ) : null}
       </div>

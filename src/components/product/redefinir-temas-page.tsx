@@ -6,12 +6,28 @@ import { useProductApp } from "@/components/product/provider";
 import { ThemeTagPill } from "@/components/product/theme-tag";
 import type { SocialHandle } from "@/lib/types";
 import {
-  MAX_THEMES_PER_SPHERE,
+  MAX_ADVERSARY_PROFILES,
+  MAX_MUNICIPAL_PORTALS,
+  MAX_MUNICIPAL_PROFILES,
+  MAX_RADAR_THEMES_TOTAL,
+  countRadarThemes,
   estadualThemeGroups,
   federalThemeGroups,
-  themesInCatalog,
   type SphereThemeGroup,
 } from "@/lib/sphere-theme-catalog";
+import { unionSentinelThemes } from "@/lib/sentinel-profile-themes";
+
+type MonitorSphereKey = "federal" | "estadual";
+
+function sphereThemesKey(sphere: MonitorSphereKey): "sentinelThemesFederal" | "sentinelThemesEstadual" {
+  return sphere === "federal" ? "sentinelThemesFederal" : "sentinelThemesEstadual";
+}
+
+function otherSphereThemesKey(
+  sphere: MonitorSphereKey,
+): "sentinelThemesFederal" | "sentinelThemesEstadual" {
+  return sphere === "federal" ? "sentinelThemesEstadual" : "sentinelThemesFederal";
+}
 
 const UF_LIST = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -19,8 +35,6 @@ const UF_LIST = [
 ];
 
 const SOCIAL_NETWORKS = ["Instagram", "TikTok", "Twitter/X"];
-
-const MAX_LIST_ITEMS = 10;
 
 type ThemeExpansionRow = {
   sourceTheme: string;
@@ -77,11 +91,13 @@ function SocialHandleRows({
   accent,
   onChange,
   addLabel,
+  maxItems,
 }: {
   values: SocialHandle[];
   accent: "emerald" | "red";
   onChange: (values: SocialHandle[]) => void;
   addLabel: string;
+  maxItems: number;
 }) {
   const focusRing =
     accent === "emerald"
@@ -135,7 +151,7 @@ function SocialHandleRows({
       </div>
       <button
         type="button"
-        disabled={values.length >= MAX_LIST_ITEMS}
+        disabled={values.length >= maxItems}
         onClick={() => onChange([...values, { network: "Instagram", handle: "" }])}
         className={`w-full py-2.5 rounded-xl border border-dashed text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${addClasses}`}
       >
@@ -168,28 +184,61 @@ export function RedefinirTemasPage() {
     void loadExpansions();
   }, [loadExpansions]);
 
-  const federalCount = themesInCatalog(profileForm.sentinelThemes, federalThemeGroups).length;
-  const estadualCount = themesInCatalog(profileForm.sentinelThemes, estadualThemeGroups).length;
+  const federalCount = profileForm.sentinelThemesFederal.length;
+  const estadualCount = profileForm.sentinelThemesEstadual.length;
+  const radarThemesCount = countRadarThemes({
+    federal: profileForm.sentinelThemesFederal,
+    estadual: profileForm.sentinelThemesEstadual,
+  });
   const hasUf = profileForm.state.trim().length === 2;
 
-  function toggleTheme(theme: string, sphereGroups: readonly SphereThemeGroup[], sphereLabel: string) {
+  function toggleTheme(
+    theme: string,
+    sphere: MonitorSphereKey,
+    sphereGroups: readonly SphereThemeGroup[],
+  ) {
     setLimitMessage(null);
-    const isSelected = profileForm.sentinelThemes.includes(theme);
-    if (!isSelected) {
-      const count = themesInCatalog(profileForm.sentinelThemes, sphereGroups).length;
-      if (count >= MAX_THEMES_PER_SPHERE) {
-        setLimitMessage(
-          `Limite de ${MAX_THEMES_PER_SPHERE} temas na esfera ${sphereLabel}. Remova um tema para adicionar outro.`,
-        );
-        return;
-      }
+    const themesKey = sphereThemesKey(sphere);
+    const otherKey = otherSphereThemesKey(sphere);
+    const selectedInSphere = profileForm[themesKey];
+    const isSelected = selectedInSphere.includes(theme);
+
+    if (
+      !isSelected &&
+      countRadarThemes({
+        federal: profileForm.sentinelThemesFederal,
+        estadual: profileForm.sentinelThemesEstadual,
+      }) >= MAX_RADAR_THEMES_TOTAL
+    ) {
+      setLimitMessage(
+        `Limite de ${MAX_RADAR_THEMES_TOTAL} temas no total (Federal + Estadual). Remova um tema para adicionar outro.`,
+      );
+      return;
     }
-    setProfileForm((current) => ({
-      ...current,
-      sentinelThemes: isSelected
-        ? current.sentinelThemes.filter((item) => item !== theme)
-        : [...current.sentinelThemes, theme],
-    }));
+
+    if (!sphereGroups.some((group) => group.options.includes(theme))) {
+      return;
+    }
+
+    setProfileForm((current) => {
+      const currentSphereThemes = current[themesKey];
+      const nextSphereThemes = isSelected
+        ? currentSphereThemes.filter((item) => item !== theme)
+        : [...currentSphereThemes, theme];
+      const nextOtherThemes = isSelected
+        ? current[otherKey]
+        : current[otherKey].filter((item) => item !== theme);
+
+      return {
+        ...current,
+        [themesKey]: nextSphereThemes,
+        [otherKey]: nextOtherThemes,
+        sentinelThemes: unionSentinelThemes({
+          federal: themesKey === "sentinelThemesFederal" ? nextSphereThemes : nextOtherThemes,
+          estadual: themesKey === "sentinelThemesEstadual" ? nextSphereThemes : nextOtherThemes,
+        }),
+      };
+    });
   }
 
   async function handleSave() {
@@ -237,14 +286,14 @@ export function RedefinirTemasPage() {
               Nível <span className="text-cyan-400">Federal</span>
             </h2>
             <span className="text-xs text-slate-500 font-medium">
-              {federalCount}/{MAX_THEMES_PER_SPHERE} temas
+              {federalCount} selecionados · total {radarThemesCount}/{MAX_RADAR_THEMES_TOTAL}
             </span>
           </div>
 
           <SphereThemeSections
             groups={federalThemeGroups}
-            selected={profileForm.sentinelThemes}
-            onToggle={(theme) => toggleTheme(theme, federalThemeGroups, "Federal")}
+            selected={profileForm.sentinelThemesFederal}
+            onToggle={(theme) => toggleTheme(theme, "federal", federalThemeGroups)}
           />
 
           {expansions.length > 0 ? (
@@ -280,7 +329,7 @@ export function RedefinirTemasPage() {
                 Nível <span className="text-purple-400">Estadual</span>
               </h2>
               <span className="text-xs text-slate-500 font-medium">
-                {estadualCount}/{MAX_THEMES_PER_SPHERE} temas
+                {estadualCount} selecionados · total {radarThemesCount}/{MAX_RADAR_THEMES_TOTAL}
               </span>
             </div>
             <div className="flex items-center gap-3 bg-purple-900/10 border border-purple-500/20 p-2.5 rounded-xl">
@@ -327,8 +376,8 @@ export function RedefinirTemasPage() {
           >
             <SphereThemeSections
               groups={estadualThemeGroups}
-              selected={profileForm.sentinelThemes}
-              onToggle={(theme) => toggleTheme(theme, estadualThemeGroups, "Estadual")}
+              selected={profileForm.sentinelThemesEstadual}
+              onToggle={(theme) => toggleTheme(theme, "estadual", estadualThemeGroups)}
             />
             <SemanticExpansionNote />
           </div>
@@ -351,10 +400,11 @@ export function RedefinirTemasPage() {
               <SocialHandleRows
                 values={profileForm.interestProfiles}
                 accent="emerald"
+                maxItems={MAX_MUNICIPAL_PROFILES}
                 onChange={(interestProfiles) =>
                   setProfileForm((current) => ({ ...current, interestProfiles }))
                 }
-                addLabel={`+ Adicionar Perfil (Máx ${MAX_LIST_ITEMS})`}
+                addLabel={`+ Adicionar Perfil (Máx ${MAX_MUNICIPAL_PROFILES})`}
               />
             </div>
 
@@ -397,7 +447,7 @@ export function RedefinirTemasPage() {
               </div>
               <button
                 type="button"
-                disabled={profileForm.interestSites.length >= MAX_LIST_ITEMS}
+                disabled={profileForm.interestSites.length >= MAX_MUNICIPAL_PORTALS}
                 onClick={() =>
                   setProfileForm((current) => ({
                     ...current,
@@ -406,7 +456,7 @@ export function RedefinirTemasPage() {
                 }
                 className="w-full py-2.5 rounded-xl border border-emerald-500/30 border-dashed bg-emerald-950/10 text-emerald-400 text-sm font-semibold hover:bg-emerald-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                + Adicionar Portal (Máx {MAX_LIST_ITEMS})
+                + Adicionar Portal (Máx {MAX_MUNICIPAL_PORTALS})
               </button>
             </div>
           </div>
@@ -429,10 +479,11 @@ export function RedefinirTemasPage() {
           <SocialHandleRows
             values={profileForm.oppositionProfiles}
             accent="red"
+            maxItems={MAX_ADVERSARY_PROFILES}
             onChange={(oppositionProfiles) =>
               setProfileForm((current) => ({ ...current, oppositionProfiles }))
             }
-            addLabel={`+ Adicionar Perfil (Máx ${MAX_LIST_ITEMS})`}
+            addLabel={`+ Adicionar Perfil (Máx ${MAX_ADVERSARY_PROFILES})`}
           />
         </section>
       </div>
@@ -449,10 +500,11 @@ export function RedefinirTemasPage() {
               </span>
             ) : (
               <span>
-                Federal {federalCount}/{MAX_THEMES_PER_SPHERE} · Estadual {estadualCount}/
-                {MAX_THEMES_PER_SPHERE} · Perfis {profileForm.interestProfiles.length}/{MAX_LIST_ITEMS} ·
-                Portais {profileForm.interestSites.length}/{MAX_LIST_ITEMS} · Adversários{" "}
-                {profileForm.oppositionProfiles.length}/{MAX_LIST_ITEMS}
+                Temas {radarThemesCount}/{MAX_RADAR_THEMES_TOTAL} (Federal {federalCount} · Estadual{" "}
+                {estadualCount}) · Perfis {profileForm.interestProfiles.length}/
+                {MAX_MUNICIPAL_PROFILES} · Portais {profileForm.interestSites.length}/
+                {MAX_MUNICIPAL_PORTALS} · Adversários {profileForm.oppositionProfiles.length}/
+                {MAX_ADVERSARY_PROFILES}
               </span>
             )}
           </div>
