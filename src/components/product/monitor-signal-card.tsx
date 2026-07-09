@@ -110,8 +110,12 @@ export function MonitorSignalCard({
 }) {
   const article = primarySignalArticle(suggestion);
   const actor = primarySignalActor(suggestion);
-  const isNewsCard = Boolean(article);
-  const dateLabel = formatSignalDate(article?.publishedAt);
+  const isNewsCard = Boolean(article) && !oppositionCard;
+  const dateLabel = formatSignalDate(article?.publishedAt ?? actor?.publishedAt);
+  const socialHeadline =
+    oppositionCard && suggestion.topic.includes(" · ")
+      ? suggestion.topic.split(" · ").slice(1).join(" · ")
+      : suggestion.topic;
   const engagement = suggestion.engagement;
   const engagementScore = weightedEngagement(
     engagement.likes,
@@ -126,9 +130,7 @@ export function MonitorSignalCard({
           <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
             {oppositionCard ? "Ação da Oposição" : "Tema Principal"}
           </span>
-          {oppositionCard ? null : (
-            <p className="text-cyan-400 text-sm font-medium mb-3">{suggestion.themeLabel}</p>
-          )}
+          <p className="text-cyan-400 text-sm font-medium mb-3">{suggestion.themeLabel}</p>
           {dateLabel ? (
             <div className={`flex items-center gap-2 text-slate-500 text-xs ${oppositionCard ? "mt-2" : ""}`}>
               <ClockIcon />
@@ -171,10 +173,10 @@ export function MonitorSignalCard({
             </>
           ) : (
             <>
-              <h3 className="text-lg font-bold text-slate-100 mb-1">{suggestion.topic}</h3>
+              <h3 className="text-lg font-bold text-slate-100 mb-1">{socialHeadline}</h3>
               <p className="text-sm text-slate-400 mb-3">
                 {actor
-                  ? `Post de @${actor.handle} (${NETWORK_LABELS[actor.network]})`
+                  ? `@${actor.handle} · ${NETWORK_LABELS[actor.network]}`
                   : suggestion.themeLabel}
               </p>
 

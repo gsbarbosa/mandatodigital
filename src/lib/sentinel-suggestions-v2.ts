@@ -19,6 +19,10 @@ import { applyTrendScoreBoost, resolveThemeVolumeTrend } from "@/lib/sentinel-tr
 import type { SentinelThemeExpansion } from "@/lib/sentinel-theme-expansion";
 import { filterGeoExpansionTerms } from "@/lib/sentinel-theme-expansion";
 import { pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
+import {
+  applyThemeVerificationBatch,
+  type ThemeVerificationStats,
+} from "@/lib/sentinel-theme-verify";
 import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -269,15 +273,44 @@ export async function buildV2SuggestionsFromArticles(
   articles: RssNewsItem[],
   profile: PoliticianProfile,
   context: V2BuildContext,
-): Promise<MockSentinelSuggestion[]> {
-  const classified = articles
+): Promise<{
+  suggestions: MockSentinelSuggestion[];
+  themeVerificationStats?: ThemeVerificationStats;
+}> {
+  const ruleClassified = articles
     .map((article) => classifyArticle(article, profile, context))
     .filter((item): item is ClassifiedArticle => item !== null);
+
+  const verificationInput = ruleClassified.map((item) => ({
+    article: item.article,
+    haystack: `${item.article.title} ${item.article.sourceName ?? ""} ${item.article.siteHost ?? ""}`,
+    themeLabel: item.themeLabel,
+    matchedThemes: item.matchedThemes,
+  }));
+
+  const { items: verifiedItems, stats: themeVerificationStats } =
+    await applyThemeVerificationBatch(verificationInput);
+
+  const classifiedByKey = new Map(
+    ruleClassified.map((item) => [`${item.article.title}|${item.article.link}`, item]),
+  );
+  const mergedClassified: ClassifiedArticle[] = verifiedItems.map((verified) => {
+    const key = `${verified.article.title}|${verified.article.link}`;
+    const original = classifiedByKey.get(key);
+    return {
+      article: verified.article,
+      themeLabel: verified.themeLabel,
+      matchedThemes: verified.matchedThemes,
+      sourceList: original?.sourceList ?? "interest",
+      relevanceScore: original?.relevanceScore ?? 0,
+      pipeline: original?.pipeline ?? "semantic",
+    };
+  });
 
   const themes = splitProfileThemesBySphere(profile);
   const interestThemes = themes.interest;
 
-  const clusters = clusterScoredArticles(classified);
+  const clusters = clusterScoredArticles(mergedClassified);
   const suggestions: MockSentinelSuggestion[] = [];
 
   for (const bucket of clusters) {
@@ -332,5 +365,8 @@ export async function buildV2SuggestionsFromArticles(
     );
   }
 
-  return mergeSuggestionsById(suggestions);
+  return {
+    suggestions: mergeSuggestionsById(suggestions),
+    themeVerificationStats,
+  };
 }

@@ -223,8 +223,8 @@ describe("sentinel-rss", () => {
 });
 
 describe("sentinel-suggestions", () => {
-  it("agrupa materias por tema e gera sugestoes com multiplas fontes", () => {
-    const suggestions = buildSuggestionsFromArticles(
+  it("agrupa materias por tema e gera sugestoes com multiplas fontes", async () => {
+    const { suggestions } = await buildSuggestionsFromArticles(
       [
         {
           title: "Campinas reforça segurança pública após operação",

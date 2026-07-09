@@ -210,22 +210,11 @@ export async function buildSocialSentinelSuggestions(
   profile: PoliticianProfile,
 ): Promise<MockSentinelSuggestion[]> {
   const themes = splitProfileThemesBySphere(profile);
-  const [interest, opposition] = await Promise.all([
-    buildSuggestionsForProfiles({
-      profiles: profile.interestProfiles,
-      sourceList: "interest",
-      profile,
-      matchThemes: themes.interest,
-    }),
-    buildSuggestionsForProfiles({
-      profiles: profile.oppositionProfiles,
-      sourceList: "opposition",
-      profile,
-      matchThemes: themes.interest,
-    }),
-  ]);
 
-  return [...interest, ...opposition].sort(
-    (left, right) => right.relevanceScore - left.relevanceScore,
-  );
+  return buildSuggestionsForProfiles({
+    profiles: profile.interestProfiles,
+    sourceList: "interest",
+    profile,
+    matchThemes: themes.interest,
+  });
 }

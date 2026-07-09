@@ -50,7 +50,7 @@ const profile: PoliticianProfile = {
 
 describe("buildV2SuggestionsFromArticles", () => {
   it("nao usa cidade nem termo expandido cru como tema principal", async () => {
-    const suggestions = await buildV2SuggestionsFromArticles(
+    const { suggestions } = await buildV2SuggestionsFromArticles(
       [
         {
           title:
@@ -93,7 +93,7 @@ describe("buildV2SuggestionsFromArticles", () => {
   });
 
   it("prioriza Seguranca Publica sobre Saneamento em noticia de policiamento", async () => {
-    const suggestions = await buildV2SuggestionsFromArticles(
+    const { suggestions } = await buildV2SuggestionsFromArticles(
       [
         {
           title:

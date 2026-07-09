@@ -20,7 +20,16 @@ import {
   splitProfileThemesBySphere,
 } from "@/lib/sentinel-profile-themes";
 import { buildSocialSentinelSuggestions } from "@/lib/sentinel-social";
+import {
+  buildOppositionPostSuggestions,
+  oppositionMonitoringUnavailableReason,
+} from "@/lib/sentinel-opposition-posts";
+import { isApifyConfigured } from "@/lib/sentinel-instagram-posts";
 import { pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
+import {
+  applyThemeVerificationBatch,
+  type ThemeVerificationStats,
+} from "@/lib/sentinel-theme-verify";
 import {
   flattenExpansionSearchTerms,
   loadSentinelThemeExpansions,
@@ -128,10 +137,13 @@ function resolveSourceList(input: {
   return "interest";
 }
 
-export function buildSuggestionsFromArticles(
+export async function buildSuggestionsFromArticles(
   articles: RssNewsItem[],
   profile: PoliticianProfile,
-): MockSentinelSuggestion[] {
+): Promise<{
+  suggestions: MockSentinelSuggestion[];
+  themeVerificationStats?: ThemeVerificationStats;
+}> {
   const themes = splitProfileThemesBySphere(profile);
   const interestThemes = themes.interest;
 
@@ -151,10 +163,15 @@ export function buildSuggestionsFromArticles(
       }
 
       const themeLabel = pickBestMatchedTheme(haystack, matchedThemes);
+      if (!themeLabel) {
+        return null;
+      }
+
       const sourceList = resolveSourceList({ matchedInterest, article });
 
       return {
         article,
+        haystack,
         themeLabel,
         matchedThemes,
         sourceList,
@@ -163,7 +180,32 @@ export function buildSuggestionsFromArticles(
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 
-  const clusters = clusterScoredArticles(scored);
+  const { items: verifiedScored, stats: themeVerificationStats } =
+    await applyThemeVerificationBatch(
+      scored.map((item) => ({
+        article: item.article,
+        haystack: item.haystack,
+        themeLabel: item.themeLabel,
+        matchedThemes: item.matchedThemes,
+      })),
+    );
+
+  const scoredByKey = new Map(
+    scored.map((item) => [`${item.article.title}|${item.article.link}`, item]),
+  );
+  const mergedScored = verifiedScored.map((verified) => {
+    const key = `${verified.article.title}|${verified.article.link}`;
+    const original = scoredByKey.get(key);
+    return {
+      article: verified.article,
+      themeLabel: verified.themeLabel,
+      matchedThemes: verified.matchedThemes,
+      sourceList: original?.sourceList ?? ("interest" as const),
+      relevanceScore: original?.relevanceScore ?? 0,
+    };
+  });
+
+  const clusters = clusterScoredArticles(mergedScored);
   const suggestions: MockSentinelSuggestion[] = [];
 
   for (const bucket of clusters) {
@@ -222,9 +264,12 @@ export function buildSuggestionsFromArticles(
     );
   }
 
-  return suggestions
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_SUGGESTIONS);
+  return {
+    suggestions: suggestions
+      .sort((left, right) => right.relevanceScore - left.relevanceScore)
+      .slice(0, MAX_SUGGESTIONS),
+    themeVerificationStats,
+  };
 }
 
 function getRadarThemesCount(profile: PoliticianProfile) {
@@ -243,22 +288,113 @@ function countMonitoredPortals(profile: PoliticianProfile) {
   });
 }
 
-function mergeSuggestions(
-  articleSuggestions: MockSentinelSuggestion[],
-  socialSuggestions: MockSentinelSuggestion[],
-): MockSentinelSuggestion[] {
-  const byId = new Map<string, MockSentinelSuggestion>();
+function hasOppositionSuggestions(suggestions: MockSentinelSuggestion[]) {
+  return suggestions.some((suggestion) =>
+    (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition"),
+  );
+}
 
-  for (const suggestion of [...articleSuggestions, ...socialSuggestions]) {
+function buildOppositionUnavailableMeta(profile: PoliticianProfile) {
+  const reason = oppositionMonitoringUnavailableReason();
+  return profile.oppositionProfiles.some((row) => row.handle.trim()) && reason
+    ? reason
+    : undefined;
+}
+
+async function hydrateCachedOppositionSuggestions(
+  profile: PoliticianProfile,
+  cacheKey: string,
+  cached: SentinelCacheEntry,
+): Promise<SentinelCacheEntry> {
+  if (!isApifyConfigured()) {
+    return cached;
+  }
+
+  if (!profile.oppositionProfiles.some((row) => row.handle.trim())) {
+    return cached;
+  }
+
+  if (hasOppositionSuggestions(cached.suggestions)) {
+    return cached;
+  }
+
+  const oppositionSuggestions = await buildOppositionPostSuggestions(profile);
+  if (!oppositionSuggestions.length) {
+    return cached;
+  }
+
+  const suggestions = mergeSuggestions(cached.suggestions, oppositionSuggestions);
+  const meta: SentinelSuggestionsMeta = {
+    ...cached.meta,
+    oppositionUnavailableReason: undefined,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  const entry: SentinelCacheEntry = {
+    suggestions,
+    meta,
+    expiresAt: cached.expiresAt,
+  };
+
+  suggestionCache.set(cacheKey, entry);
+
+  if (isPersistableProfileId(cacheKey)) {
+    await sentinelStorage.writeCache(cacheKey, {
+      suggestions,
+      meta,
+      expiresAt: new Date(entry.expiresAt).toISOString(),
+    });
+  }
+
+  return entry;
+}
+
+function withOppositionMeta(
+  profile: PoliticianProfile,
+  meta: SentinelSuggestionsMeta,
+  cached: boolean,
+): SentinelSuggestionsMeta {
+  return {
+    ...meta,
+    cached,
+    oppositionUnavailableReason: buildOppositionUnavailableMeta(profile),
+  };
+}
+
+function isOppositionSuggestion(suggestion: MockSentinelSuggestion) {
+  return (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition");
+}
+
+function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSuggestion[] {
+  const byId = new Map<string, MockSentinelSuggestion>();
+  const oppositionById = new Map<string, MockSentinelSuggestion>();
+
+  for (const suggestion of groups.flat()) {
+    if (isOppositionSuggestion(suggestion)) {
+      const existing = oppositionById.get(suggestion.id);
+      if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
+        oppositionById.set(suggestion.id, suggestion);
+      }
+      continue;
+    }
+
     const existing = byId.get(suggestion.id);
     if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
       byId.set(suggestion.id, suggestion);
     }
   }
 
-  return [...byId.values()]
+  const coreSuggestions = [...byId.values()]
     .sort((left, right) => right.relevanceScore - left.relevanceScore)
     .slice(0, MAX_SUGGESTIONS);
+
+  const oppositionSuggestions = [...oppositionById.values()].sort(
+    (left, right) => right.relevanceScore - left.relevanceScore,
+  );
+
+  return [...coreSuggestions, ...oppositionSuggestions].sort(
+    (left, right) => right.relevanceScore - left.relevanceScore,
+  );
 }
 
 function buildEmptyMeta(
@@ -406,9 +542,10 @@ export async function getSentinelSuggestions(
   const cached = await readCachedSuggestions(cacheKey, options?.forceRefresh);
 
   if (cached) {
+    const hydrated = await hydrateCachedOppositionSuggestions(profile, cacheKey, cached);
     return {
-      suggestions: cached.suggestions,
-      meta: { ...cached.meta, cached: true },
+      suggestions: hydrated.suggestions,
+      meta: withOppositionMeta(profile, hydrated.meta, true),
     };
   }
 
@@ -426,9 +563,18 @@ export async function getSentinelSuggestions(
   }
 
   const articlesBundle = await collectSentinelArticles(profile);
-  const articleSuggestions = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
-  const socialSuggestions = await buildSocialSentinelSuggestions(profile);
-  const suggestions = mergeSuggestions(articleSuggestions, socialSuggestions);
+  const articleBuild = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
+  const articleSuggestions = articleBuild.suggestions;
+  const [socialSuggestions, oppositionSuggestions] = await Promise.all([
+    buildSocialSentinelSuggestions(profile),
+    buildOppositionPostSuggestions(profile),
+  ]);
+  const suggestions = mergeSuggestions(
+    articleSuggestions,
+    socialSuggestions,
+    oppositionSuggestions,
+  );
+  const oppositionUnavailableReason = buildOppositionUnavailableMeta(profile);
   const v2Enabled = isSentinelV2PipelinesEnabled();
 
   const meta: SentinelSuggestionsMeta = {
@@ -440,10 +586,12 @@ export async function getSentinelSuggestions(
     portalsMonitored,
     pipelinesEnabled: v2Enabled,
     expansionTermsCount: articlesBundle.expandedTerms.length,
+    themeVerificationStats: articleBuild.themeVerificationStats,
     emptyReason:
       suggestions.length === 0
         ? "Nenhuma materia recente encontrada para os temas e portais configurados."
         : undefined,
+    oppositionUnavailableReason,
   };
 
   const expiresAt = Date.now() + CACHE_TTL_MS;

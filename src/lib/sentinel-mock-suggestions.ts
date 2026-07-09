@@ -14,6 +14,7 @@ export type SentinelVerifiedActor = {
   postUrl: string;
   profileLabel?: string;
   sourceList: "interest" | "opposition";
+  publishedAt?: string;
 };
 
 export type SentinelNewsArticle = {

@@ -7,6 +7,7 @@ import {
   isNationalPortalHost,
   isStatePortalHost,
 } from "./sentinel-portal-catalog";
+import { estadualThemeGroups, federalThemeGroups } from "./sphere-theme-catalog";
 
 /**
  * The backend has no notion of "sphere" — classification is a frontend heuristic
@@ -38,6 +39,42 @@ const FEDERAL_OUTLET_EXACT = ["cnn", "g1", "globo", "band"];
 const FEDERAL_OUTLET_PARTIAL = ["cnnbrasil", "bandnews", "jovempan", "estadao", "oglobo"];
 
 const AGGREGATOR_DOMAINS = ["news.google.com"];
+
+const FEDERAL_THEME_CATALOG = new Set(
+  federalThemeGroups.flatMap((group) => [...group.options]),
+);
+const ESTADUAL_THEME_CATALOG = new Set(
+  estadualThemeGroups.flatMap((group) => [...group.options]),
+);
+
+/** Esfera pelo catálogo do tema (quando o tema existe só em federal ou só em estadual). */
+export function classifyThemesCatalogSphere(themes: string[]): MonitorSphere | null {
+  const unique = [...new Set(themes.map((theme) => theme.trim()).filter(Boolean))];
+  if (!unique.length) {
+    return null;
+  }
+
+  const inFederal = unique.some((theme) => FEDERAL_THEME_CATALOG.has(theme));
+  const inEstadual = unique.some((theme) => ESTADUAL_THEME_CATALOG.has(theme));
+
+  if (inFederal && !inEstadual) {
+    return "federal";
+  }
+  if (inEstadual && !inFederal) {
+    return "estadual";
+  }
+
+  return null;
+}
+
+function suggestionThemes(suggestion: MockSentinelSuggestion): string[] {
+  return [
+    suggestion.themeLabel,
+    ...suggestion.matchedThemes,
+  ]
+    .map((theme) => theme.trim())
+    .filter(Boolean);
+}
 
 export function normalizeDomain(input: string): string {
   const trimmed = input.trim().toLowerCase();
@@ -151,12 +188,20 @@ export function classifySuggestionSphere(
   suggestion: MockSentinelSuggestion,
   interestSites: string[],
   profileState = "",
+  customRadarThemes: string[] = [],
 ): MonitorSphere {
   const actors = suggestion.evidence.actors ?? [];
   if (actors.some((actor) => actor.sourceList === "opposition")) {
     return "adversarios";
   }
   if (actors.some((actor) => actor.sourceList === "interest")) {
+    return "municipal";
+  }
+
+  const customThemes = new Set(
+    customRadarThemes.map((theme) => theme.trim()).filter(Boolean),
+  );
+  if (suggestionThemes(suggestion).some((theme) => customThemes.has(theme))) {
     return "municipal";
   }
 
@@ -167,6 +212,11 @@ export function classifySuggestionSphere(
 
   if (hintsList.some((hints) => matchesInterestSites(hints, interestDomains))) {
     return "municipal";
+  }
+
+  const themeSphere = classifyThemesCatalogSphere(suggestionThemes(suggestion));
+  if (themeSphere) {
+    return themeSphere;
   }
 
   if (
@@ -203,6 +253,7 @@ export function groupSuggestionsBySphere(
   suggestions: MockSentinelSuggestion[],
   interestSites: string[],
   profileState = "",
+  customRadarThemes: string[] = [],
 ): Record<MonitorSphere, MockSentinelSuggestion[]> {
   const groups: Record<MonitorSphere, MockSentinelSuggestion[]> = {
     federal: [],
@@ -211,7 +262,14 @@ export function groupSuggestionsBySphere(
     adversarios: [],
   };
   for (const suggestion of suggestions) {
-    groups[classifySuggestionSphere(suggestion, interestSites, profileState)].push(suggestion);
+    groups[
+      classifySuggestionSphere(
+        suggestion,
+        interestSites,
+        profileState,
+        customRadarThemes,
+      )
+    ].push(suggestion);
   }
   return groups;
 }

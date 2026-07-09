@@ -123,8 +123,14 @@ export function MonitoramentoPage() {
   }
 
   const grouped = useMemo(
-    () => groupSuggestionsBySphere(suggestions, profileForm.interestSites, profileForm.state),
-    [suggestions, profileForm.interestSites, profileForm.state],
+    () =>
+      groupSuggestionsBySphere(
+        suggestions,
+        profileForm.interestSites,
+        profileForm.state,
+        profileForm.customRadarThemes,
+      ),
+    [suggestions, profileForm.interestSites, profileForm.state, profileForm.customRadarThemes],
   );
 
   const chipsBySphere = useMemo<Record<MonitorSphere, string[]>>(() => {
@@ -137,14 +143,18 @@ export function MonitoramentoPage() {
       federal: [...themeSpheres.federal, ...customThemes],
       estadual: themeSpheres.estadual,
       municipal: municipalThemes,
-      adversarios: profileForm.oppositionProfiles
-        .map((row) => row.handle.trim())
-        .filter(Boolean)
-        .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
+      adversarios: [
+        ...profileForm.oppositionThemes.filter((theme) => theme.trim()),
+        ...profileForm.oppositionProfiles
+          .map((row) => row.handle.trim())
+          .filter(Boolean)
+          .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
+      ],
     };
   }, [
     profileForm.customRadarThemes,
     profileForm.oppositionProfiles,
+    profileForm.oppositionThemes,
     profileForm.sentinelThemesFederal,
     profileForm.sentinelThemesEstadual,
     grouped.municipal,
@@ -228,7 +238,9 @@ export function MonitoramentoPage() {
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">
-                  Nenhum sinal nesta esfera por enquanto.{" "}
+                  {sphere === "adversarios" && meta?.oppositionUnavailableReason
+                    ? meta.oppositionUnavailableReason
+                    : "Nenhum sinal nesta esfera por enquanto."}{" "}
                   <Link href="/monitoramento/temas" className="text-cyan-400 no-underline hover:underline">
                     Ajustar radar
                   </Link>

@@ -4,6 +4,7 @@ import {
   featureFlags,
   isAuditorFactCheckEnabled,
   isSentinelLlmExpansionEnabled,
+  isSentinelLlmThemeVerifyEnabled,
   isSentinelPersistCacheEnabled,
   isSentinelSocialEnabled,
   isSentinelTrendProxyEnabled,
@@ -12,6 +13,7 @@ import {
 
 const ENV_KEYS = [
   "SENTINEL_LLM_EXPANSION",
+  "SENTINEL_LLM_THEME_VERIFY",
   "SENTINEL_V2_PIPELINES",
   "SENTINEL_TREND_PROXY",
   "SENTINEL_SOCIAL_ENABLED",
@@ -41,6 +43,7 @@ describe("feature-flags", () => {
     }
 
     expect(isSentinelLlmExpansionEnabled()).toBe(false);
+    expect(isSentinelLlmThemeVerifyEnabled()).toBe(false);
     expect(isSentinelV2PipelinesEnabled()).toBe(false);
     expect(isSentinelTrendProxyEnabled()).toBe(false);
     expect(isSentinelSocialEnabled()).toBe(false);

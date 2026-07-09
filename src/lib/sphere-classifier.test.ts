@@ -9,12 +9,16 @@ import {
 } from "./sphere-classifier";
 
 function buildSuggestion(
-  overrides: Partial<MockSentinelSuggestion["evidence"]>,
+  overrides: Partial<MockSentinelSuggestion["evidence"]> & {
+    themeLabel?: string;
+    matchedThemes?: string[];
+  } = {},
 ): MockSentinelSuggestion {
+  const { themeLabel, matchedThemes, ...evidenceOverrides } = overrides;
   return {
     id: "sig-test",
-    themeLabel: "Saude Publica (SUS)",
-    matchedThemes: ["Saude Publica (SUS)"],
+    themeLabel: themeLabel ?? "Saude Publica (SUS)",
+    matchedThemes: matchedThemes ?? ["Saude Publica (SUS)"],
     relevanceScore: 80,
     topic: "Tema de teste",
     evidence: {
@@ -23,7 +27,7 @@ function buildSuggestion(
       articles: [],
       postsAnalyzed: 0,
       engagementTrendPercent: 0,
-      ...overrides,
+      ...evidenceOverrides,
     },
     engagement: {
       relevanceScore: 80,
@@ -131,6 +135,51 @@ describe("classifySuggestionSphere", () => {
           title: "Estado anuncia obras - Diário Regional",
           url: "https://news.google.com/rss/articles/jkl012",
           sourceName: "Diário Regional",
+        },
+      ],
+    });
+    expect(classifySuggestionSphere(suggestion, [])).toBe("estadual");
+  });
+
+  it("classifica por catalogo federal mesmo com portal regional", () => {
+    const suggestion = buildSuggestion({
+      themeLabel: "Piso Salarial",
+      matchedThemes: ["Piso Salarial"],
+      articles: [
+        {
+          title: "Comissao do Senado aprova novo piso salarial - Pleno.News",
+          url: "https://news.google.com/rss/articles/piso",
+          sourceName: "Pleno.News",
+        },
+      ],
+    });
+    expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
+  });
+
+  it("classifica Ativismo Judicial (STF) como federal", () => {
+    const suggestion = buildSuggestion({
+      themeLabel: "Ativismo Judicial (STF)",
+      matchedThemes: ["Ativismo Judicial (STF)"],
+      articles: [
+        {
+          title: "Gilmar Mendes promete mais ativismo judicial - Gazeta do Povo",
+          url: "https://news.google.com/rss/articles/stf",
+          sourceName: "Gazeta do Povo",
+        },
+      ],
+    });
+    expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
+  });
+
+  it("mantem tema estadual exclusivo na esfera estadual", () => {
+    const suggestion = buildSuggestion({
+      themeLabel: "Combate ao Trafico",
+      matchedThemes: ["Combate ao Trafico"],
+      articles: [
+        {
+          title: "Operacao apreende drogas - Tribuna do Norte",
+          url: "https://news.google.com/rss/articles/trafico",
+          sourceName: "Tribuna do Norte",
         },
       ],
     });

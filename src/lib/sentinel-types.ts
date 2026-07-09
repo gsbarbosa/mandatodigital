@@ -9,7 +9,14 @@ export type SentinelSuggestionsMeta = {
   portalsMonitored: number;
   pipelinesEnabled?: boolean;
   expansionTermsCount?: number;
+  themeVerificationStats?: {
+    articlesProcessed: number;
+    cacheHits: number;
+    llmCalls: number;
+    articlesRejected: number;
+  };
   emptyReason?: string;
+  oppositionUnavailableReason?: string;
 };
 
 export type SentinelSuggestionsResult = {

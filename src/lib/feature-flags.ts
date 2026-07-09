@@ -17,7 +17,7 @@ export const featureFlags = {
   sentinelSocial: readEnvFlag("SENTINEL_SOCIAL_ENABLED"),
   sentinelSerpApi: Boolean(process.env.SENTINEL_SERPAPI_KEY?.trim()),
   auditorFactCheck: readEnvFlag("AUDITOR_FACTCHECK_ENABLED"),
-  auditorRealQueue: readEnvFlag("AUDITOR_V2_REAL_QUEUE"),
+  sentinelLlmThemeVerify: readEnvFlag("SENTINEL_LLM_THEME_VERIFY"),
 } as const;
 
 /** Cache persistido: Supabase em prod; JSON local em dev; desligavel via env. */
@@ -58,4 +58,8 @@ export function isAuditorFactCheckEnabled() {
 
 export function isAuditorRealQueueEnabled() {
   return featureFlags.auditorRealQueue;
+}
+
+export function isSentinelLlmThemeVerifyEnabled() {
+  return featureFlags.sentinelLlmThemeVerify;
 }
