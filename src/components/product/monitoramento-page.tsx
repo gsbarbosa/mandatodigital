@@ -127,8 +127,8 @@ export function MonitoramentoPage() {
   }
 
   const grouped = useMemo(
-    () => groupSuggestionsBySphere(suggestions, profileForm.interestSites),
-    [suggestions, profileForm.interestSites],
+    () => groupSuggestionsBySphere(suggestions, profileForm.interestSites, profileForm.state),
+    [suggestions, profileForm.interestSites, profileForm.state],
   );
 
   const chipsBySphere = useMemo<Record<MonitorSphere, string[]>>(() => {
@@ -140,9 +140,17 @@ export function MonitoramentoPage() {
       federal: [...themesInCatalog(profileForm.sentinelThemes, federalThemeGroups), ...customThemes],
       estadual: themesInCatalog(profileForm.sentinelThemes, estadualThemeGroups),
       municipal: municipalThemes,
-      adversarios: [],
+      adversarios: profileForm.oppositionProfiles
+        .map((row) => row.handle.trim())
+        .filter(Boolean)
+        .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
     };
-  }, [profileForm.sentinelThemes, profileForm.customRadarThemes, grouped.municipal]);
+  }, [
+    profileForm.sentinelThemes,
+    profileForm.customRadarThemes,
+    profileForm.oppositionProfiles,
+    grouped.municipal,
+  ]);
 
   const interestSitesLabel = profileForm.interestSites.filter(Boolean).join(", ");
 

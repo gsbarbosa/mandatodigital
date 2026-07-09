@@ -204,11 +204,6 @@ export function RedefinirTemasPage() {
     }
   }
 
-  const customThemes = Array.from(
-    { length: 3 },
-    (_, index) => profileForm.customRadarThemes[index] ?? "",
-  );
-
   return (
     <div className="min-h-full relative pb-28">
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[40%] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
@@ -251,35 +246,6 @@ export function RedefinirTemasPage() {
             selected={profileForm.sentinelThemes}
             onToggle={(theme) => toggleTheme(theme, federalThemeGroups, "Federal")}
           />
-
-          <div className="mt-8">
-            <h3 className="text-sm font-semibold text-white mb-1 uppercase tracking-wider">
-              Temas personalizados
-            </h3>
-            <p className="text-xs text-slate-500 mb-3">
-              Até 3 temas extras com busca literal (máximo de 5 palavras cada).
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {customThemes.map((theme, index) => (
-                <input
-                  key={`custom-theme-${index}`}
-                  value={theme}
-                  onChange={(event) =>
-                    setProfileForm((current) => ({
-                      ...current,
-                      customRadarThemes: Array.from({ length: 3 }, (_, itemIndex) =>
-                        itemIndex === index
-                          ? event.target.value
-                          : current.customRadarThemes[itemIndex] ?? "",
-                      ),
-                    }))
-                  }
-                  placeholder={`Tema ${index + 1}...`}
-                  className="bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg p-2 w-full outline-none focus:ring-cyan-500 focus:border-cyan-500"
-                />
-              ))}
-            </div>
-          </div>
 
           {expansions.length > 0 ? (
             <div className="mt-6">
