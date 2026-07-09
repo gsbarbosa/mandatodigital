@@ -58,12 +58,13 @@ function formatMissingTableHint(error: unknown) {
   if (
     normalized.includes("sentinel_suggestion_cache") ||
     normalized.includes("sentinel_signals") ||
-    normalized.includes("sentinel_theme_expansions")
+    normalized.includes("sentinel_theme_expansions") ||
+    normalized.includes("sentinel_article_theme_verdicts")
   ) {
     return (
       "Faltam tabelas do Sentinela no Supabase. " +
-      "No SQL Editor, execute supabase/migrations/20260624_sentinel_foundation.sql " +
-      "(ou rode: npm run db:migrate:sentinel-foundation)."
+      "No SQL Editor, execute as migracoes em supabase/migrations/ " +
+      "(sentinel_foundation e sentinel_article_theme_verdicts quando aplicavel)."
     );
   }
 
