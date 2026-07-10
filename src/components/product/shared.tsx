@@ -272,10 +272,10 @@ export const workflowStages: WorkflowStageDefinition[] = [
     id: "sentinela",
     menuLabel: "Sentinela",
     title: "Sentinela",
-    subtitle: "Radar e sinais",
+    subtitle: "Radar e pautas",
     description:
       "Camada de captura de temas, oposicao, perfis e portais monitorados. Interface em demonstracao com dados simulados.",
-    inputLabel: "Temas de interesse, oposicao, perfis sociais, portais e sinais do time.",
+    inputLabel: "Temas de interesse, oposicao, perfis sociais, portais e pautas do time.",
     outputLabel: "Radar priorizado que alimenta Curador e Criativo.",
     status: "ativo",
   },

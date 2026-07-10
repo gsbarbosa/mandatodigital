@@ -7,6 +7,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import {
   formatAuthClientError,
@@ -177,7 +178,9 @@ export function LoginForm() {
         </div>
       )}
 
-      <h1>Mandato Digital</h1>
+      <div className="login-brand">
+        <BrandLogo width={260} priority className="login-brand-logo" />
+      </div>
 
       <div className="login-social-group">
         <button

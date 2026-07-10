@@ -32,7 +32,7 @@ export const MAX_SCRIPT_WORDS = 140;
 export const AVATAR_TYPE_BY_TRACK = {
   realistic: "Meu Gêmeo Digital",
   caricature: "Minha Caricatura",
-  photo_real: "Minha Foto Real",
+  photo_real: "Meu Gêmeo Digital",
 } as const;
 
 export type AvatarTrack = "realistic" | "caricature" | "photo_real";
@@ -43,8 +43,8 @@ export type ProductionTemplate =
   | "caricature_editorial"
   | "caricature_mascot_3d";
 
-export const PHOTO_REAL_VARIANT_LABEL = "Foto real";
-export const PHOTO_REAL_VARIANT_HINT = "Sua foto, sem filtros ilustrados";
+export const PHOTO_REAL_VARIANT_LABEL = "Gêmeo Digital";
+export const PHOTO_REAL_VARIANT_HINT = "Sua foto com voz clonada";
 
 export function productionTemplateLabel(template: ProductionTemplate) {
   switch (template) {
@@ -53,9 +53,9 @@ export function productionTemplateLabel(template: ProductionTemplate) {
     case "photo_real":
       return PHOTO_REAL_VARIANT_LABEL;
     case "caricature_editorial":
-      return caricatureVariantLabel("editorial");
+      return "Caricato";
     case "caricature_mascot_3d":
-      return caricatureVariantLabel("mascot_3d");
+      return "Mascote 3D";
   }
 }
 
@@ -104,10 +104,7 @@ export function avatarTypeToTrack(value: string | undefined): AvatarTrack {
   if (value === "Minha Caricatura") {
     return "caricature";
   }
-  if (value === "Minha Foto Real") {
-    return "photo_real";
-  }
-  if (value === "Meu Gêmeo Digital") {
+  if (value === "Minha Foto Real" || value === "Meu Gêmeo Digital") {
     return "photo_real";
   }
   return "photo_real";

@@ -8,6 +8,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useProductApp } from "@/components/product/provider";
 import { pickLatestCaricatureForVariant } from "@/lib/caricature-asset-variant";
 import type { AvatarTipo } from "@/lib/avatar-tipos";
+import {
+  readCuradorHeygenPrefs,
+  writeCuradorHeygenPrefs,
+} from "@/lib/curador-heygen-prefs";
 
 function ArrowIcon({ className }: { className?: string }) {
   return (
@@ -25,7 +29,7 @@ function ArrowIcon({ className }: { className?: string }) {
 
 export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
   const router = useRouter();
-  const { trainingAssets } = useProductApp();
+  const { trainingAssets, profile, profileForm } = useProductApp();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [confirmRetrain, setConfirmRetrain] = useState(false);
 
@@ -65,6 +69,33 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
     };
   }, [previewAsset]);
 
+  const profileIdForPrefs = profile?.id ?? profileForm.id ?? null;
+
+  useEffect(() => {
+    if (!profileIdForPrefs) {
+      return;
+    }
+    const current = readCuradorHeygenPrefs(profileIdForPrefs);
+    const overrides: Parameters<typeof writeCuradorHeygenPrefs>[1] = {
+      ...current,
+      lastAvatarTipoSlug: tipo.slug,
+    };
+    if (tipo.slug === "foto-real") {
+      overrides.avatarTrack = "photo_real";
+    } else if (tipo.slug === "caricato") {
+      overrides.avatarTrack = "caricature";
+      if (previewAsset?.id) {
+        overrides.lastCaricatureAssetId = previewAsset.id;
+      }
+    } else if (tipo.slug === "3d") {
+      overrides.avatarTrack = "caricature";
+      if (previewAsset?.id) {
+        overrides.lastCaricatureAssetId = previewAsset.id;
+      }
+    }
+    writeCuradorHeygenPrefs(profileIdForPrefs, overrides);
+  }, [profileIdForPrefs, tipo.slug, previewAsset?.id]);
+
   const treinarHref = `/avatares/${tipo.slug}/treinar` as Route;
   const independenteHref = `/independente?avatar=${tipo.slug}` as Route;
 
@@ -80,7 +111,7 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
             <svg className="h-8 w-8 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
             </svg>
-            {tipo.label === "3D" ? "Avatar 3D" : tipo.label}
+            {tipo.label}
           </h1>
         </header>
 
@@ -123,7 +154,7 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               <span className="text-center leading-snug">
-                Editar avatar / Retreinar {tipo.label === "3D" ? "Avatar 3D" : tipo.label}
+                Editar avatar / Retreinar {tipo.label}
               </span>
             </button>
           </div>

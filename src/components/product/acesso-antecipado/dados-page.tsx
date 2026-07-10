@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useProductApp } from "@/components/product/provider";
 import {
@@ -30,8 +30,118 @@ const CARGOS_2026 = [
   "Presidente",
 ];
 
+const BETA_CARGOS = new Set(["Senador", "Governador", "Presidente"]);
+
 const inputClasses =
   "bg-[#0E1321] border border-slate-700 text-slate-200 text-sm rounded-lg p-2.5 w-full outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed";
+
+const cargoSelectClasses =
+  "bg-[#0E1321] border border-slate-700 text-slate-200 text-base rounded-lg px-3 py-3 min-h-[3rem] w-full outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed";
+
+function BetaVersionBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center rounded-full border border-cyan-500/35 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+      Versão beta
+    </span>
+  );
+}
+
+function CargoSelect({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={`${cargoSelectClasses} flex items-center justify-between gap-2 text-left`}
+        onClick={() => {
+          if (!disabled) {
+            setOpen((current) => !current);
+          }
+        }}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {value && BETA_CARGOS.has(value) ? <BetaVersionBadge /> : null}
+          <span className={value ? "truncate text-slate-200" : "text-slate-500"}>
+            {value || "Selecione"}
+          </span>
+        </span>
+        <svg
+          className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            fillRule="evenodd"
+            d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+            clipRule="evenodd"
+          />
+        </svg>
+      </button>
+
+      {open ? (
+        <ul
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-slate-700 bg-[#0E1321] py-1 shadow-xl"
+          role="listbox"
+        >
+          {CARGOS_2026.map((cargo) => {
+            const selected = value === cargo;
+
+            return (
+              <li key={cargo}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-base transition-colors ${
+                    selected
+                      ? "bg-cyan-950/40 text-cyan-300"
+                      : "text-slate-200 hover:bg-slate-800/80"
+                  }`}
+                  onClick={() => {
+                    onChange(cargo);
+                    setOpen(false);
+                  }}
+                >
+                  {BETA_CARGOS.has(cargo) ? <BetaVersionBadge /> : null}
+                  <span>{cargo}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
 function FieldLabel({ children, required }: { children: string; required?: boolean }) {
   return (
@@ -228,7 +338,7 @@ export function AcessoDadosPage() {
                 Atenção: O CPF deve ser do titular do CNPJ de Campanha.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="md:col-span-2 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(6rem,7.5rem)_minmax(0,1fr)]">
               <div>
                 <FieldLabel required>Estado</FieldLabel>
                 <select
@@ -249,21 +359,11 @@ export function AcessoDadosPage() {
               </div>
               <div>
                 <FieldLabel required>Cargo Pretendido</FieldLabel>
-                <select
-                  className={inputClasses}
+                <CargoSelect
                   value={form.role}
                   disabled={isReserved}
-                  onChange={(event) => setField("role", event.target.value)}
-                >
-                  <option value="" disabled>
-                    Selecione
-                  </option>
-                  {CARGOS_2026.map((cargo) => (
-                    <option key={cargo} value={cargo}>
-                      {cargo}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(role) => setField("role", role)}
+                />
               </div>
             </div>
 

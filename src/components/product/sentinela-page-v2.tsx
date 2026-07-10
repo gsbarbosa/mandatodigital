@@ -13,6 +13,7 @@ import {
   MockToggleSection,
 } from "@/components/product/mock-agent-ui";
 import { PersonaSentinelaIcon } from "@/components/product/persona-shared";
+import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
 import { useProductApp } from "@/components/product/provider";
 import { oppositionThemeGroups, sentinelThemeGroups } from "@/lib/constants";
 
@@ -59,7 +60,7 @@ export function SentinelaPageV2() {
     setSaveMessage(null);
 
     try {
-      await saveProfile({ allowDraftDefaults: true, throwOnError: true });
+      await saveProfile({ allowDraftDefaults: true, silent: true, throwOnError: true });
       await loadExpansions();
       setExpansionsOpen(true);
       setSaveMessage("Radar do Sentinela salvo com sucesso.");
@@ -70,6 +71,10 @@ export function SentinelaPageV2() {
   }
 
   async function handleRefreshSignals() {
+    if (isRefreshing) {
+      return;
+    }
+
     setIsRefreshing(true);
     setRefreshMessage(null);
 
@@ -82,21 +87,21 @@ export function SentinelaPageV2() {
       };
 
       if (!response.ok) {
-        throw new Error(payload.message || "Nao foi possivel atualizar os sinais do Sentinela.");
+        throw new Error(payload.message || "Nao foi possivel atualizar as pautas do Sentinela.");
       }
 
       const count = payload.suggestions?.length ?? 0;
       if (count > 0) {
-        setRefreshMessage(`${count} sinal(is) atualizado(s). Veja no Criativo.`);
+        setRefreshMessage(`${count} pauta(s) atualizada(s). Veja no Criativo.`);
       } else {
         setRefreshMessage(
-          payload.meta?.emptyReason || "Nenhum sinal novo encontrado para o radar atual.",
+          payload.meta?.emptyReason || "Nenhuma pauta nova encontrada para o radar atual.",
         );
       }
       window.setTimeout(() => setRefreshMessage(null), 4200);
     } catch (error) {
       setRefreshMessage(
-        error instanceof Error ? error.message : "Nao foi possivel atualizar os sinais.",
+        error instanceof Error ? error.message : "Nao foi possivel atualizar as pautas.",
       );
     } finally {
       setIsRefreshing(false);
@@ -284,14 +289,11 @@ export function SentinelaPageV2() {
               >
                 {isSavingProfile ? "Salvando radar..." : "Salvar radar"}
               </button>
-              <button
-                type="button"
-                className="persona-btn persona-btn-secondary persona-btn-large"
+              <RefreshPautasButton
+                isLoading={isRefreshing}
+                disabled={isSavingProfile}
                 onClick={() => void handleRefreshSignals()}
-                disabled={isRefreshing || isSavingProfile}
-              >
-                {isRefreshing ? "Atualizando sinais..." : "Atualizar sinais"}
-              </button>
+              />
             </div>
             {saveMessage ? (
               <p className="persona-script-approved" role="status">

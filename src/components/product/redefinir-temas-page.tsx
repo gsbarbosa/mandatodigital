@@ -9,8 +9,7 @@ import {
   MAX_ADVERSARY_PROFILES,
   MAX_MUNICIPAL_PORTALS,
   MAX_MUNICIPAL_PROFILES,
-  MAX_RADAR_THEMES_TOTAL,
-  countRadarThemes,
+  MAX_THEMES_PER_SPHERE,
   estadualThemeGroups,
   federalThemeGroups,
   type SphereThemeGroup,
@@ -53,15 +52,32 @@ function SemanticExpansionNote() {
   );
 }
 
+const REMOVE_ROW_BUTTON_CLASS =
+  "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700/60 bg-transparent text-slate-500 hover:border-slate-600 hover:bg-slate-800/50 hover:text-slate-200 transition-colors shrink-0";
+
+const TEXT_LINK_BUTTON_CLASS =
+  "inline bg-transparent p-0 text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2";
+
+const MUNICIPAL_ADD_PROFILE_LABEL = `+ adicionar perfil (máx ${MAX_MUNICIPAL_PROFILES} na versão convidado)`;
+const MUNICIPAL_ADD_PORTAL_LABEL = `+ adicionar portal (máx ${MAX_MUNICIPAL_PORTALS} na versão convidado)`;
+
+function formatSphereThemeCount(sphereCount: number) {
+  return `${sphereCount}/${MAX_THEMES_PER_SPHERE}`;
+}
+
 function SphereThemeSections({
   groups,
   selected,
   onToggle,
+  selectionLimit = MAX_THEMES_PER_SPHERE,
 }: {
   groups: readonly SphereThemeGroup[];
   selected: string[];
   onToggle: (theme: string) => void;
+  selectionLimit?: number;
 }) {
+  const atSphereLimit = selected.length >= selectionLimit;
+
   return (
     <div className="space-y-8">
       {groups.map((group) => (
@@ -70,15 +86,21 @@ function SphereThemeSections({
             {group.title}
           </h3>
           <div className="flex flex-wrap gap-1">
-            {group.options.map((option) => (
-              <ThemeTagPill
-                key={option}
-                active={selected.includes(option)}
-                onClick={() => onToggle(option)}
-              >
-                {option}
-              </ThemeTagPill>
-            ))}
+            {group.options.map((option) => {
+              const isActive = selected.includes(option);
+              const isDisabled = !isActive && atSphereLimit;
+
+              return (
+                <ThemeTagPill
+                  key={option}
+                  active={isActive}
+                  disabled={isDisabled}
+                  onClick={() => onToggle(option)}
+                >
+                  {option}
+                </ThemeTagPill>
+              );
+            })}
           </div>
         </div>
       ))}
@@ -142,7 +164,7 @@ function SocialHandleRows({
               type="button"
               aria-label="Remover perfil"
               onClick={() => onChange(values.filter((_, i) => i !== index))}
-              className="text-slate-600 hover:text-slate-300 text-lg leading-none px-1 shrink-0"
+              className={REMOVE_ROW_BUTTON_CLASS}
             >
               ×
             </button>
@@ -186,10 +208,6 @@ export function RedefinirTemasPage() {
 
   const federalCount = profileForm.sentinelThemesFederal.length;
   const estadualCount = profileForm.sentinelThemesEstadual.length;
-  const radarThemesCount = countRadarThemes({
-    federal: profileForm.sentinelThemesFederal,
-    estadual: profileForm.sentinelThemesEstadual,
-  });
   const hasUf = profileForm.state.trim().length === 2;
 
   function toggleTheme(
@@ -203,15 +221,9 @@ export function RedefinirTemasPage() {
     const selectedInSphere = profileForm[themesKey];
     const isSelected = selectedInSphere.includes(theme);
 
-    if (
-      !isSelected &&
-      countRadarThemes({
-        federal: profileForm.sentinelThemesFederal,
-        estadual: profileForm.sentinelThemesEstadual,
-      }) >= MAX_RADAR_THEMES_TOTAL
-    ) {
+    if (!isSelected && selectedInSphere.length >= MAX_THEMES_PER_SPHERE) {
       setLimitMessage(
-        `Limite de ${MAX_RADAR_THEMES_TOTAL} temas no total (Federal + Estadual). Remova um tema para adicionar outro.`,
+        `Limite de ${MAX_THEMES_PER_SPHERE} temas no nível ${sphere === "federal" ? "Nacional" : "Estadual"}. Remova um tema para adicionar outro.`,
       );
       return;
     }
@@ -244,10 +256,10 @@ export function RedefinirTemasPage() {
   async function handleSave() {
     setSaveMessage(null);
     try {
-      await saveProfile({ allowDraftDefaults: true, throwOnError: true });
+      await saveProfile({ allowDraftDefaults: true, silent: true, throwOnError: true });
       await loadExpansions();
       setSaveMessage("Radar salvo com sucesso. O monitoramento usa a nova configuração.");
-      window.setTimeout(() => setSaveMessage(null), 4200);
+      window.setTimeout(() => setSaveMessage(null), 2800);
     } catch {
       // Erro exibido pelo provider (banner global).
     }
@@ -283,10 +295,10 @@ export function RedefinirTemasPage() {
         <section className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8">
           <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-8">
             <h2 className="text-2xl font-bold text-white">
-              Nível <span className="text-cyan-400">Federal</span>
+              Nível <span className="text-cyan-400">Nacional</span>
             </h2>
             <span className="text-xs text-slate-500 font-medium">
-              {federalCount} selecionados · total {radarThemesCount}/{MAX_RADAR_THEMES_TOTAL}
+              {formatSphereThemeCount(federalCount)}
             </span>
           </div>
 
@@ -301,7 +313,7 @@ export function RedefinirTemasPage() {
               <button
                 type="button"
                 onClick={() => setExpansionsOpen((current) => !current)}
-                className="text-xs text-cyan-400 hover:text-cyan-300 underline"
+                className={TEXT_LINK_BUTTON_CLASS}
               >
                 {expansionsOpen ? "Ocultar" : "Ver"} termos monitorados (expansão semântica)
               </button>
@@ -329,41 +341,29 @@ export function RedefinirTemasPage() {
                 Nível <span className="text-purple-400">Estadual</span>
               </h2>
               <span className="text-xs text-slate-500 font-medium">
-                {estadualCount} selecionados · total {radarThemesCount}/{MAX_RADAR_THEMES_TOTAL}
+                {formatSphereThemeCount(estadualCount)}
               </span>
             </div>
             <div className="flex items-center gap-3 bg-purple-900/10 border border-purple-500/20 p-2.5 rounded-xl">
-              {hasUf ? (
-                <span className="text-sm text-white font-medium flex items-center gap-2">
-                  Estado:
-                  <span className="bg-[#131C2D] border border-slate-700 text-purple-300 text-sm rounded-lg px-3 py-1.5 font-bold">
-                    {profileForm.state.toUpperCase()}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-normal">do seu cadastro</span>
-                </span>
-              ) : (
-                <>
-                  <label className="text-sm text-white font-medium flex items-center gap-1">
-                    Selecione seu Estado <span className="text-red-400 font-bold">*</span>
-                  </label>
-                  <select
-                    value={profileForm.state}
-                    onChange={(event) =>
-                      setProfileForm((current) => ({ ...current, state: event.target.value }))
-                    }
-                    className="bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg focus:ring-purple-400 focus:border-purple-400 block p-2 outline-none transition-colors"
-                  >
-                    <option value="" disabled>
-                      UF
-                    </option>
-                    {UF_LIST.map((uf) => (
-                      <option key={uf} value={uf}>
-                        {uf}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
+              <label className="text-sm text-white font-medium flex items-center gap-1 shrink-0">
+                Estado {!hasUf ? <span className="text-red-400 font-bold">*</span> : null}
+              </label>
+              <select
+                value={profileForm.state}
+                onChange={(event) =>
+                  setProfileForm((current) => ({ ...current, state: event.target.value }))
+                }
+                className="bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg focus:ring-purple-400 focus:border-purple-400 block min-w-[5.5rem] p-2 outline-none transition-colors"
+              >
+                <option value="" disabled>
+                  UF
+                </option>
+                {UF_LIST.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -404,7 +404,7 @@ export function RedefinirTemasPage() {
                 onChange={(interestProfiles) =>
                   setProfileForm((current) => ({ ...current, interestProfiles }))
                 }
-                addLabel={`+ Adicionar Perfil (Máx ${MAX_MUNICIPAL_PROFILES})`}
+                addLabel={MUNICIPAL_ADD_PROFILE_LABEL}
               />
             </div>
 
@@ -438,7 +438,7 @@ export function RedefinirTemasPage() {
                           interestSites: current.interestSites.filter((_, i) => i !== index),
                         }))
                       }
-                      className="text-slate-600 hover:text-slate-300 text-lg leading-none px-1 shrink-0"
+                      className={REMOVE_ROW_BUTTON_CLASS}
                     >
                       ×
                     </button>
@@ -456,7 +456,7 @@ export function RedefinirTemasPage() {
                 }
                 className="w-full py-2.5 rounded-xl border border-emerald-500/30 border-dashed bg-emerald-950/10 text-emerald-400 text-sm font-semibold hover:bg-emerald-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                + Adicionar Portal (Máx {MAX_MUNICIPAL_PORTALS})
+                {MUNICIPAL_ADD_PORTAL_LABEL}
               </button>
             </div>
           </div>
@@ -500,11 +500,8 @@ export function RedefinirTemasPage() {
               </span>
             ) : (
               <span>
-                Temas {radarThemesCount}/{MAX_RADAR_THEMES_TOTAL} (Federal {federalCount} · Estadual{" "}
-                {estadualCount}) · Perfis {profileForm.interestProfiles.length}/
-                {MAX_MUNICIPAL_PROFILES} · Portais {profileForm.interestSites.length}/
-                {MAX_MUNICIPAL_PORTALS} · Adversários {profileForm.oppositionProfiles.length}/
-                {MAX_ADVERSARY_PROFILES}
+                Nessa versão para convidados, o volume de monitoramento é limitado em todos os
+                níveis
               </span>
             )}
           </div>

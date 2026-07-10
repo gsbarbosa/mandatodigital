@@ -7,6 +7,7 @@ import {
   MonitorSignalCard,
   SignalEvidenceDrawer,
 } from "@/components/product/monitor-signal-card";
+import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
 import { useProductApp } from "@/components/product/provider";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
@@ -27,7 +28,7 @@ const SECTIONS: Array<{
   title: string;
   dotClass: string;
 }> = [
-  { sphere: "federal", title: "Federal", dotClass: "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" },
+  { sphere: "federal", title: "Nacional", dotClass: "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" },
   { sphere: "estadual", title: "Estadual", dotClass: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" },
   { sphere: "municipal", title: "Municipal", dotClass: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" },
   { sphere: "adversarios", title: "Adversários", dotClass: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" },
@@ -81,11 +82,11 @@ export function MonitoramentoPage() {
       setSuggestions(payload.suggestions ?? []);
       setMeta(payload.meta ?? null);
       if (!payload.suggestions?.length) {
-        setLoadMessage(payload.meta?.emptyReason || "Nenhum sinal capturado para o radar atual.");
+        setLoadMessage(payload.meta?.emptyReason || "Nenhuma pauta capturada para o radar atual.");
       }
     } catch {
       setSuggestions([]);
-      setLoadMessage("Não foi possível carregar os sinais do monitoramento.");
+      setLoadMessage("Não foi possível carregar as pautas do monitoramento.");
     } finally {
       setIsLoading(false);
     }
@@ -96,26 +97,30 @@ export function MonitoramentoPage() {
   }, [loadSuggestions]);
 
   async function handleRefresh() {
+    if (isRefreshing) {
+      return;
+    }
+
     setIsRefreshing(true);
     setRefreshMessage(null);
     try {
       const response = await fetch("/api/sentinel/refresh", { method: "POST" });
       const payload = (await response.json()) as SuggestionsPayload;
       if (!response.ok) {
-        throw new Error(payload.message || "Não foi possível atualizar os sinais.");
+        throw new Error(payload.message || "Não foi possível atualizar as pautas.");
       }
       setSuggestions(payload.suggestions ?? []);
       setMeta(payload.meta ?? null);
       const count = payload.suggestions?.length ?? 0;
       setRefreshMessage(
         count > 0
-          ? `${count} sinal(is) atualizado(s).`
-          : payload.meta?.emptyReason || "Nenhum sinal novo encontrado para o radar atual.",
+          ? `${count} pauta(s) atualizada(s).`
+          : payload.meta?.emptyReason || "Nenhuma pauta nova encontrada para o radar atual.",
       );
       window.setTimeout(() => setRefreshMessage(null), 4200);
     } catch (error) {
       setRefreshMessage(
-        error instanceof Error ? error.message : "Não foi possível atualizar os sinais.",
+        error instanceof Error ? error.message : "Não foi possível atualizar as pautas.",
       );
     } finally {
       setIsRefreshing(false);
@@ -166,66 +171,84 @@ export function MonitoramentoPage() {
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 relative z-10">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 relative z-10">
         <h1 className="text-2xl font-bold text-white tracking-tight">Monitoramento de Pautas</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {meta?.refreshedAt ? (
             <span className="text-xs text-slate-500">
               Atualizado em {new Date(meta.refreshedAt).toLocaleString("pt-BR")}
             </span>
           ) : null}
-          <button
-            type="button"
+          <RefreshPautasButton
+            variant="monitor"
+            isLoading={isRefreshing}
             onClick={() => void handleRefresh()}
-            disabled={isRefreshing}
-            className="px-4 py-2 bg-slate-800/80 text-slate-300 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-50"
-          >
-            {isRefreshing ? "Atualizando sinais..." : "Atualizar sinais"}
-          </button>
+          />
         </div>
       </header>
 
-      {refreshMessage ? (
-        <p className="text-sm text-cyan-300 mb-6 relative z-10" role="status">
-          {refreshMessage}
-        </p>
-      ) : null}
-
-      {isLoading ? (
-        <p className="text-sm text-slate-400 relative z-10" role="status">
-          Carregando sinais do monitoramento… A primeira busca pode levar até 2 minutos enquanto
-          consultamos portais e redes.
-        </p>
-      ) : null}
-
-      {!isLoading && !suggestions.length ? (
-        <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl py-4 px-5 mb-10 relative z-10">
-          <p className="text-sm text-blue-200">
-            {loadMessage || "Nenhum sinal capturado ainda."}{" "}
-            <Link href="/monitoramento/temas" className="text-cyan-300 underline hover:text-cyan-200">
-              Redefinir temas do radar
-            </Link>
+      <div className="mb-10 space-y-4 relative z-10">
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-5 py-4">
+          <p className="text-sm leading-relaxed text-slate-300">
+            Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar.
+          </p>
+          <p className="mt-3 border-t border-slate-800/80 pt-3 text-xs leading-relaxed text-slate-400">
+            <span className="font-semibold text-slate-300">Aviso:</span> para assinantes, o
+            monitoramento será em{" "}
+            <strong className="font-semibold text-cyan-300/90">tempo real</strong>. Versão
+            convidados, 01 vez por dia.
           </p>
         </div>
-      ) : null}
 
-      <div className="space-y-16 relative z-10">
+        {refreshMessage ? (
+          <p className="text-sm text-cyan-300 px-1" role="status">
+            {refreshMessage}
+          </p>
+        ) : null}
+
+        {isLoading ? (
+          <div
+            className="flex items-start gap-3 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-5 py-4"
+            role="status"
+          >
+            <span
+              className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-400"
+              aria-hidden="true"
+            />
+            <p className="text-sm leading-relaxed text-slate-300">
+              Carregando pautas do monitoramento… A primeira busca pode levar até 2 minutos enquanto
+              consultamos portais e redes.
+            </p>
+          </div>
+        ) : null}
+
+        {!isLoading && !suggestions.length ? (
+          <div className="rounded-xl border border-blue-500/25 bg-blue-900/20 px-5 py-4">
+            <p className="text-sm leading-relaxed text-blue-200">
+              {loadMessage || "Nenhuma pauta capturada ainda."}{" "}
+              <Link href="/monitoramento/temas" className="text-cyan-300 underline hover:text-cyan-200">
+                Redefinir temas do radar
+              </Link>
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="space-y-12 relative z-10">
         {SECTIONS.map(({ sphere, title, dotClass }) => {
           const items = grouped[sphere];
           const visible = visibleBySphere[sphere];
           const shown = items.slice(0, visible);
           return (
             <section key={sphere} id={sphere}>
-              <h2 className="text-lg font-semibold text-white border-b border-slate-800 pb-2 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-white border-b border-slate-800 pb-3 mb-5 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${dotClass}`} />
                 {title}
               </h2>
 
               <ThemeChips themes={chipsBySphere[sphere]} />
 
-              {isLoading ? (
-                <p className="text-sm text-slate-500">Buscando sinais para esta esfera…</p>
-              ) : shown.length ? (
+              {!isLoading && shown.length ? (
                 <div className="space-y-4">
                   {shown.map((suggestion) => (
                     <MonitorSignalCard
@@ -236,16 +259,16 @@ export function MonitoramentoPage() {
                     />
                   ))}
                 </div>
-              ) : (
+              ) : !isLoading ? (
                 <p className="text-sm text-slate-500">
                   {sphere === "adversarios" && meta?.oppositionUnavailableReason
                     ? meta.oppositionUnavailableReason
-                    : "Nenhum sinal nesta esfera por enquanto."}{" "}
+                    : "Nenhuma pauta nesta esfera por enquanto."}{" "}
                   <Link href="/monitoramento/temas" className="text-cyan-400 no-underline hover:underline">
-                    Ajustar radar
+                    Ajustar pautas
                   </Link>
                 </p>
-              )}
+              ) : null}
 
               {items.length > visible ? (
                 <div className="mt-4 flex justify-center">
@@ -277,7 +300,7 @@ export function MonitoramentoPage() {
             (2 × Comentários) + (3 × Compartilhamentos)
           </p>
           <p>
-            Esfera Federal: www.cnn.com.br, www.bandnews.com.br, www.jovempan.com.br,
+            Esfera Nacional: www.cnn.com.br, www.bandnews.com.br, www.jovempan.com.br,
             https://g1.globo.com, www.estadao.com.br
           </p>
           <p>

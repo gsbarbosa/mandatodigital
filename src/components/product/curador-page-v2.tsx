@@ -592,7 +592,7 @@ export function CuradorPageV2() {
             <label className="persona-label">Materiais base</label>
             <p className="persona-helper-text">
               Comece pelo áudio e depois envie a foto do rosto. Com esses dois materiais você gera
-              vídeos nos modelos Foto Real, Caricato e 3D.
+              vídeos nos modelos Gêmeo Digital, Caricato e Mascote 3D.
             </p>
             <BaseMaterialsReadiness
               hasVoice={Boolean(selectedVoiceAudio)}
@@ -654,6 +654,9 @@ export function CuradorPageV2() {
             <p className="persona-helper-text">
               Arraste na linha para calibrar entre esquerda e direita. O centro representa
               posicionamento moderado.
+              <span className="mt-2 block">
+                O posicionamento é utilizado para calibrar os roteiros dos vídeos.
+              </span>
             </p>
             <IdeologicalSpectrumSlider
               value={profileForm.spectrum}
@@ -670,7 +673,8 @@ export function CuradorPageV2() {
             <label className="persona-label">Glossário de expressões</label>
             <p className="persona-helper-text">
               Inclua características fundamentais da sua expressão, como por exemplo: né, tipo,
-              entendeu, sabe, tá, ok, certo, mano, assim.
+              entendeu, sabe, tá, ok, certo, mano, assim. As expressões do glossário são
+              incorporadas nos roteiros dos vídeos.
             </p>
             <textarea
               className="persona-input-control persona-top-gap"

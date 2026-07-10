@@ -41,6 +41,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
   const {
     statusMessage,
     errorMessage,
+    dismissMessages,
     isFeedbackWidgetOpen,
     setFeedbackWidgetOpen,
     productFeedbacks,
@@ -89,8 +90,20 @@ export function ProductShell({ children }: { children: ReactNode }) {
         />
 
         {(statusMessage || errorMessage) && (
-          <div className={`message-banner ${errorMessage ? "error" : "success"}`}>
-            {errorMessage ?? statusMessage}
+          <div
+            className={`status-toast ${errorMessage ? "error" : "success"}`}
+            role={errorMessage ? "alert" : "status"}
+            aria-live="polite"
+          >
+            <p className="status-toast-text">{errorMessage ?? statusMessage}</p>
+            <button
+              type="button"
+              className="status-toast-dismiss"
+              aria-label="Fechar aviso"
+              onClick={dismissMessages}
+            >
+              ×
+            </button>
           </div>
         )}
 

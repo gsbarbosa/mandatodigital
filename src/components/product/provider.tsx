@@ -33,6 +33,7 @@ import type {
 } from "@/lib/types";
 
 import { uploadTrainingFileToSupabase } from "@/lib/training-asset-upload-client";
+import { clearEarlyAccessBrowserState } from "@/lib/early-access";
 
 import {
   buildEvaluationReportsFromDashboard,
@@ -63,6 +64,7 @@ type ProductAppContextValue = {
   requestsWithContent: ContentRequest[];
   statusMessage: string | null;
   errorMessage: string | null;
+  dismissMessages: () => void;
   isSavingProfile: boolean;
   isGenerating: boolean;
   isSavingContent: boolean;
@@ -163,6 +165,24 @@ export function ProductAppProvider({
   const [isEvaluatingContentRequestId, setIsEvaluatingContentRequestId] = useState<
     string | null
   >(null);
+
+  function dismissMessages() {
+    setStatusMessage(null);
+    setErrorMessage(null);
+  }
+
+  useEffect(() => {
+    if (!statusMessage && !errorMessage) {
+      return;
+    }
+
+    const durationMs = errorMessage ? 4500 : 2800;
+    const timer = window.setTimeout(() => {
+      dismissMessages();
+    }, durationMs);
+
+    return () => window.clearTimeout(timer);
+  }, [statusMessage, errorMessage]);
 
   const isUploadingTrainingAssets = uploadingTrainingRoles.length > 0;
   const isUploadingVoiceAudioAsset =
@@ -786,6 +806,7 @@ export function ProductAppProvider({
   }
 
   async function signOut() {
+    clearEarlyAccessBrowserState();
     await fetch("/api/auth/signout", { method: "POST" });
     window.location.href = "/login";
   }
@@ -806,6 +827,7 @@ export function ProductAppProvider({
     requestsWithContent,
     statusMessage,
     errorMessage,
+    dismissMessages,
     isSavingProfile,
     isGenerating,
     isSavingContent,
