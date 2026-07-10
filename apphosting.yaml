@@ -81,18 +81,33 @@ env:
 
   - variable: OPENAI_API_KEY
     secret: openai-api-key
+    availability:
+      - BUILD
+      - RUNTIME
 
   - variable: SUPABASE_URL
     secret: supabase-url
+    availability:
+      - BUILD
+      - RUNTIME
 
   - variable: SUPABASE_SERVICE_ROLE_KEY
     secret: supabase-service-role-key
+    availability:
+      - BUILD
+      - RUNTIME
 
   - variable: NEXT_PUBLIC_SUPABASE_URL
     secret: supabase-url
+    availability:
+      - BUILD
+      - RUNTIME
 
   - variable: HEYGEN_API_KEY
     secret: heygen-api-key
+    availability:
+      - BUILD
+      - RUNTIME
 
   # Sentinela Fase 1 (migrations aplicadas no Supabase)
   - variable: SENTINEL_V2_PIPELINES
@@ -122,6 +137,9 @@ env:
 
   - variable: APIFY_API_TOKEN
     secret: apify-api-token
+    availability:
+      - BUILD
+      - RUNTIME
 
   # Validador Fase 2 — fact-check no Criativo e top 10 Sentinela
   - variable: AUDITOR_FACTCHECK_ENABLED

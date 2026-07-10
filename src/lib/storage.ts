@@ -20,6 +20,7 @@ import {
   uploadTrainingBufferViaTus,
 } from "@/lib/training-asset-upload-client";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
+import { getRuntimeEnv, isRuntimeEnvSet } from "@/lib/runtime-env";
 import { migrateFlatSentinelThemes, unionSentinelThemes } from "@/lib/sentinel-profile-themes";
 
 import type {
@@ -476,14 +477,14 @@ async function writeLocalDatabase(database: AppDatabase) {
 }
 
 function isSupabaseConfigured() {
-  return Boolean(
-    process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY,
+  return (
+    isRuntimeEnvSet("SUPABASE_URL") && isRuntimeEnvSet("SUPABASE_SERVICE_ROLE_KEY")
   );
 }
 
 function getSupabaseClient() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = getRuntimeEnv("SUPABASE_URL");
+  const key = getRuntimeEnv("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!url || !key) {
     throw new Error("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY sao obrigatorios.");
