@@ -18,7 +18,10 @@ import {
 import { applyTrendScoreBoost, resolveThemeVolumeTrend } from "@/lib/sentinel-trends";
 import type { SentinelThemeExpansion } from "@/lib/sentinel-theme-expansion";
 import { filterGeoExpansionTerms } from "@/lib/sentinel-theme-expansion";
-import { pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
+import {
+  pickBestMatchedTheme,
+  resolveArticleMatchingSearchTerm,
+} from "@/lib/sentinel-theme-synonyms";
 import {
   applyThemeVerificationBatch,
   type ThemeVerificationStats,
@@ -100,6 +103,7 @@ function resolveSourceList(input: {
 
 type ClassifiedArticle = ScoredArticle & {
   pipeline: SentinelPipeline;
+  matchedExpandedTerms: string[];
 };
 
 function mapExpandedToSourceThemes(
@@ -193,6 +197,7 @@ function classifyArticle(
     sourceList,
     relevanceScore: 0,
     pipeline,
+    matchedExpandedTerms: matchedExpanded,
   };
 }
 
@@ -205,8 +210,21 @@ async function buildSuggestionFromCluster(input: {
   pipeline: SentinelPipeline;
   profileId: string;
   geoLabel: string;
+  matchedExpandedTerms?: string[];
 }): Promise<MockSentinelSuggestion> {
-  const { primary, articles, themeLabel, matchedThemes, pipeline, profileId, geoLabel } = input;
+  const {
+    primary,
+    articles,
+    themeLabel,
+    matchedThemes,
+    pipeline,
+    profileId,
+    geoLabel,
+    matchedExpandedTerms = [],
+  } = input;
+  const haystack = `${primary.title} ${primary.sourceName ?? ""} ${primary.siteHost ?? ""}`;
+  const matchingSearchTerm =
+    resolveArticleMatchingSearchTerm(haystack, themeLabel, matchedExpandedTerms) ?? undefined;
   const outletCount = countUniqueOutlets(articles);
   const sortedArticles = [...articles]
     .sort((left, right) => {
@@ -229,6 +247,7 @@ async function buildSuggestionFromCluster(input: {
     id: buildSuggestionId(primary.link, pipeline),
     themeLabel,
     matchedThemes,
+    matchingSearchTerm,
     relevanceScore,
     pipeline,
     topic: buildTopicLabel(themeLabel, primary.title),
@@ -304,6 +323,7 @@ export async function buildV2SuggestionsFromArticles(
       sourceList: original?.sourceList ?? "interest",
       relevanceScore: original?.relevanceScore ?? 0,
       pipeline: original?.pipeline ?? "semantic",
+      matchedExpandedTerms: original?.matchedExpandedTerms ?? [],
     };
   });
 
@@ -316,7 +336,7 @@ export async function buildV2SuggestionsFromArticles(
   for (const bucket of clusters) {
     const articlesInCluster = bucket.map((item) => item.article);
     const outletCount = countUniqueOutlets(articlesInCluster);
-    const primaryItem = [...bucket].sort((left, right) => {
+    const primaryItem = ([...bucket].sort((left, right) => {
       const leftScore = scoreSentinelArticle(
         left.article,
         profile,
@@ -332,7 +352,7 @@ export async function buildV2SuggestionsFromArticles(
         { articleCount: articlesInCluster.length, outletCount },
       );
       return rightScore - leftScore;
-    })[0];
+    })[0] as ClassifiedArticle | undefined);
 
     if (!primaryItem) {
       continue;
@@ -361,6 +381,7 @@ export async function buildV2SuggestionsFromArticles(
         pipeline: (primaryItem.pipeline as SentinelPipeline | undefined) ?? "semantic",
         profileId: context.profileId,
         geoLabel: context.geoLabel,
+        matchedExpandedTerms: primaryItem.matchedExpandedTerms,
       }),
     );
   }

@@ -1,57 +1,58 @@
 import { NextResponse } from "next/server";
 
 import { handleRouteError } from "@/lib/api";
+import { apiRoute } from "@/lib/auth/api-route";
 import { runStoredContentEvaluation } from "@/lib/generation-eval";
 import { evaluationJudgeRequestSchema } from "@/lib/schemas";
-import { getRepository } from "@/lib/storage";
 
 export async function POST(request: Request) {
   try {
-    const payload = evaluationJudgeRequestSchema.parse(await request.json());
-    const repository = getRepository();
-    const dashboard = await repository.getDashboard();
+    return apiRoute(async (repository) => {
+      const payload = evaluationJudgeRequestSchema.parse(await request.json());
+      const dashboard = await repository.getDashboard();
 
-    if (!dashboard.profile) {
-      return NextResponse.json(
-        { message: "Crie e salve um perfil antes de avaliar a geracao." },
-        { status: 400 },
+      if (!dashboard.profile) {
+        return NextResponse.json(
+          { message: "Crie e salve um perfil antes de avaliar a geracao." },
+          { status: 400 },
+        );
+      }
+
+      const contentRequest = await repository.getContentRequestById(
+        payload.contentRequestId,
       );
-    }
 
-    const contentRequest = await repository.getContentRequestById(
-      payload.contentRequestId,
-    );
+      if (!contentRequest) {
+        return NextResponse.json(
+          { message: "Pedido editorial nao encontrado para avaliacao." },
+          { status: 404 },
+        );
+      }
 
-    if (!contentRequest) {
-      return NextResponse.json(
-        { message: "Pedido editorial nao encontrado para avaliacao." },
-        { status: 404 },
+      const generatedContents = await repository.getGeneratedContentsByRequestId(
+        contentRequest.id,
       );
-    }
 
-    const generatedContents = await repository.getGeneratedContentsByRequestId(
-      contentRequest.id,
-    );
+      if (!generatedContents.length) {
+        return NextResponse.json(
+          { message: "Nenhum conteudo gerado foi encontrado para esse briefing." },
+          { status: 404 },
+        );
+      }
 
-    if (!generatedContents.length) {
-      return NextResponse.json(
-        { message: "Nenhum conteudo gerado foi encontrado para esse briefing." },
-        { status: 404 },
-      );
-    }
+      const report = await runStoredContentEvaluation({
+        profile: dashboard.profile,
+        contentRequest,
+        generatedContents,
+        judge: {
+          provider: payload.judgeProvider,
+          model: payload.judgeModel,
+          strict: true,
+        },
+      });
 
-    const report = await runStoredContentEvaluation({
-      profile: dashboard.profile,
-      contentRequest,
-      generatedContents,
-      judge: {
-        provider: payload.judgeProvider,
-        model: payload.judgeModel,
-        strict: true,
-      },
+      return NextResponse.json({ report }, { status: 201 });
     });
-
-    return NextResponse.json({ report }, { status: 201 });
   } catch (error) {
     return handleRouteError(error);
   }

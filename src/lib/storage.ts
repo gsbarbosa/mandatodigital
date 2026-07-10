@@ -574,6 +574,59 @@ function mapRequestRow(row: Record<string, unknown>): ContentRequest {
   };
 }
 
+function emptyDashboardData(): DashboardData {
+  return {
+    profile: null,
+    trainingAssets: [],
+    contentRequests: [],
+    generatedContents: [],
+    feedback: [],
+    productFeedbacks: [],
+    evaluationRuns: [],
+    evaluationCandidates: [],
+    evaluationScores: [],
+  };
+}
+
+async function resolveProfileIdForSave(
+  client: ReturnType<typeof getSupabaseClient>,
+  ownerUserId: string | undefined,
+  inputId: string | undefined,
+  existingId: string | undefined,
+) {
+  if (existingId) {
+    if (inputId && inputId !== existingId) {
+      throw new Error("Nao e permitido salvar o perfil de outro usuario.");
+    }
+
+    return existingId;
+  }
+
+  if (!inputId) {
+    return crypto.randomUUID();
+  }
+
+  if (!ownerUserId) {
+    return inputId;
+  }
+
+  const { data, error } = await client
+    .from("politician_profiles")
+    .select("owner_user_id")
+    .eq("id", inputId)
+    .maybeSingle();
+
+  if (error) {
+    throwSupabaseQueryError(error);
+  }
+
+  if (data?.owner_user_id && data.owner_user_id !== ownerUserId) {
+    return crypto.randomUUID();
+  }
+
+  return inputId;
+}
+
 function mapGeneratedContentRow(row: Record<string, unknown>): GeneratedContent {
   return {
     id: String(row.id),
@@ -1152,6 +1205,11 @@ const supabaseRepository: Repository = {
     if (profileRes.error) throwSupabaseQueryError(profileRes.error);
 
     const baseProfile = profileRes.data ? mapProfileRow(profileRes.data) : null;
+
+    if (ownerUserId && !baseProfile) {
+      return emptyDashboardData();
+    }
+
     const workflowConfigRes = baseProfile
       ? await client
           .from("mandate_workflow_configs")
@@ -1166,9 +1224,38 @@ const supabaseRepository: Repository = {
       .order("created_at", { ascending: false });
 
     const scopedRequestQuery =
-      ownerUserId && baseProfile
+      baseProfile
         ? requestQuery.eq("profile_id", baseProfile.id)
-        : requestQuery;
+        : ownerUserId
+          ? requestQuery.eq("profile_id", "00000000-0000-0000-0000-000000000000")
+          : requestQuery;
+
+    const trainingAssetsQuery = baseProfile
+      ? client
+          .from("profile_training_assets")
+          .select("*")
+          .or(
+            `profile_id.eq.${baseProfile.id},draft_profile_id.eq.${baseProfile.id}`,
+          )
+          .order("created_at", { ascending: false })
+      : ownerUserId
+        ? client
+            .from("profile_training_assets")
+            .select("*")
+            .eq("profile_id", "00000000-0000-0000-0000-000000000000")
+            .order("created_at", { ascending: false })
+        : client
+            .from("profile_training_assets")
+            .select("*")
+            .order("created_at", { ascending: false });
+
+    const productFeedbackQuery = ownerUserId
+      ? client
+          .from("product_feedback")
+          .select("*")
+          .eq("owner_user_id", ownerUserId)
+          .order("created_at", { ascending: false })
+      : client.from("product_feedback").select("*").order("created_at", { ascending: false });
 
     const [
       trainingAssetsRes,
@@ -1180,24 +1267,27 @@ const supabaseRepository: Repository = {
       evaluationCandidatesRes,
       evaluationScoresRes,
     ] = await Promise.all([
-      client
-        .from("profile_training_assets")
-        .select("*")
-        .order("created_at", { ascending: false }),
+      trainingAssetsQuery,
       scopedRequestQuery,
       client
         .from("generated_contents")
         .select("*")
         .order("created_at", { ascending: false }),
       client.from("content_feedback").select("*").order("created_at", { ascending: false }),
-      client.from("product_feedback").select("*").order("created_at", { ascending: false }),
+      productFeedbackQuery,
       baseProfile
         ? client
             .from("evaluation_runs")
             .select("*")
             .eq("profile_id", baseProfile.id)
             .order("created_at", { ascending: false })
-        : client.from("evaluation_runs").select("*").order("created_at", { ascending: false }),
+        : ownerUserId
+          ? client
+              .from("evaluation_runs")
+              .select("*")
+              .eq("profile_id", "00000000-0000-0000-0000-000000000000")
+              .order("created_at", { ascending: false })
+          : client.from("evaluation_runs").select("*").order("created_at", { ascending: false }),
       client
         .from("evaluation_candidates")
         .select("*")
@@ -1254,14 +1344,7 @@ const supabaseRepository: Repository = {
 
     const trainingAssets = trainingAssetsRes.error
       ? localDatabase?.trainingAssets ?? []
-      : trainingAssetsRes.data
-          .filter(
-            (asset) =>
-              !profile ||
-              asset.profile_id === profile.id ||
-              asset.draft_profile_id === profile.id,
-          )
-          .map(mapTrainingAssetRow);
+      : trainingAssetsRes.data.map(mapTrainingAssetRow);
 
     const evaluationRuns = evaluationRunsRes.error
       ? localDatabase?.evaluationRuns ?? []
@@ -1289,7 +1372,9 @@ const supabaseRepository: Repository = {
           return content ? requestIds.has(String(content.content_request_id)) : false;
         }),
       productFeedbacks: productFeedbackRes.error
-        ? localDatabase?.productFeedbacks ?? []
+        ? ownerUserId
+          ? []
+          : localDatabase?.productFeedbacks ?? []
         : productFeedbackRes.data.map(mapProductFeedbackRow),
       evaluationRuns,
       evaluationCandidates: evaluationCandidatesRes.error
@@ -1314,7 +1399,25 @@ const supabaseRepository: Repository = {
       .maybeSingle();
 
     if (error) throw error;
-    return data ? mapRequestRow(data) : null;
+    if (!data) {
+      return null;
+    }
+
+    const ownerUserId = getStorageOwnerUserId();
+    if (ownerUserId) {
+      const profile = await fetchProfileForStorageContext(client);
+      const requestProfileId = data.profile_id ? String(data.profile_id) : null;
+
+      if (!profile) {
+        return null;
+      }
+
+      if (requestProfileId && requestProfileId !== profile.id) {
+        return null;
+      }
+    }
+
+    return mapRequestRow(data);
   },
 
   async getGeneratedContentsByRequestId(contentRequestId) {
@@ -1347,12 +1450,15 @@ const supabaseRepository: Repository = {
 
     if (existing.error) throwSupabaseQueryError(existing.error);
 
-    if (ownerUserId && input.id && existing.data?.id && input.id !== existing.data.id) {
-      throw new Error("Nao e permitido salvar o perfil de outro usuario.");
-    }
+    const profileId = await resolveProfileIdForSave(
+      client,
+      ownerUserId,
+      input.id,
+      existing.data?.id ? String(existing.data.id) : undefined,
+    );
 
     const payload = {
-      id: input.id ?? existing.data?.id ?? crypto.randomUUID(),
+      id: profileId,
       ...(ownerUserId ? { owner_user_id: ownerUserId } : {}),
       full_name: input.fullName,
       role: input.role,
@@ -1759,8 +1865,10 @@ const supabaseRepository: Repository = {
 
   async createProductFeedback(input, analysis) {
     const client = getSupabaseClient();
+    const ownerUserId = getStorageOwnerUserId() ?? "";
     const payload = {
       id: crypto.randomUUID(),
+      owner_user_id: ownerUserId,
       screen: input.screen,
       worked_well: input.workedWell,
       issue_observed: input.issueObserved,
@@ -1782,6 +1890,17 @@ const supabaseRepository: Repository = {
 
     if (error) {
       if (isSchemaCompatibilityError(error)) {
+        const { owner_user_id: _owner, ...legacyPayload } = payload;
+        const legacyInsert = await client
+          .from("product_feedback")
+          .insert(legacyPayload)
+          .select("*")
+          .single();
+
+        if (!legacyInsert.error) {
+          return mapProductFeedbackRow(legacyInsert.data);
+        }
+
         return localRepository.createProductFeedback(input, analysis);
       }
 

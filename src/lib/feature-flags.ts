@@ -46,7 +46,7 @@ export function isSentinelTrendProxyEnabled() {
 }
 
 export function isSentinelSocialEnabled() {
-  return featureFlags.sentinelSocial;
+  return readEnvFlag("SENTINEL_SOCIAL_ENABLED");
 }
 
 export function isSentinelSerpApiEnabled() {

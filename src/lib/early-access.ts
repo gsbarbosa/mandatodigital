@@ -70,6 +70,16 @@ export function writeEarlyAccessState(update: Partial<EarlyAccessState>) {
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
+export function clearEarlyAccessBrowserState() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(STORAGE_KEY);
+  window.sessionStorage.removeItem("mandato-early-access-plan-intent");
+  window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
 export function useEarlyAccess(): [EarlyAccessState, (update: Partial<EarlyAccessState>) => void] {
   const [state, setState] = useState<EarlyAccessState>(emptyState);
 

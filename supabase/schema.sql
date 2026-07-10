@@ -58,6 +58,7 @@ create table if not exists content_feedback (
 
 create table if not exists product_feedback (
   id uuid primary key default gen_random_uuid(),
+  owner_user_id text not null default '',
   screen text not null default '',
   worked_well text not null default '',
   issue_observed text not null,
@@ -310,6 +311,9 @@ create index if not exists content_feedback_generated_content_id_idx
 
 create index if not exists product_feedback_created_at_idx
   on product_feedback(created_at desc);
+
+create index if not exists product_feedback_owner_user_id_idx
+  on product_feedback(owner_user_id);
 
 create index if not exists mandate_workflow_configs_updated_at_idx
   on mandate_workflow_configs(updated_at desc);
