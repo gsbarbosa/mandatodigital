@@ -144,6 +144,15 @@ export const sentinelStorage = {
         return null;
       }
 
+      const currentOwner = resolveOwnerUserId();
+      if (
+        currentOwner &&
+        data.owner_user_id &&
+        String(data.owner_user_id) !== currentOwner
+      ) {
+        return null;
+      }
+
       return mapCacheRow(data);
     }
 

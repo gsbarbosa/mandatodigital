@@ -14,13 +14,13 @@ import {
   archetypeOptions,
   voiceToneOptions,
 } from "@/lib/constants";
+import { PautaContextCard } from "@/components/product/pauta-context-card";
 import { ThemeTagPill } from "@/components/product/theme-tag";
 import { useProductApp } from "@/components/product/provider";
 import {
   AVATAR_TYPE_BY_TRACK,
   CaricatureAssetPreview,
   MAX_SCRIPT_WORDS,
-  PersonaCriativoIcon,
   ProductionTemplateEmptyPreview,
   ProductionTemplateOption,
   ProductionTemplatePendingPreview,
@@ -64,13 +64,33 @@ import {
 } from "@/lib/heygen-avatar-refazer";
 import { resolveCreativeProjectTopicForSave } from "@/lib/creative-project-display";
 import { buildCreativeAiMetadata } from "@/lib/creative-ai-metadata";
+import {
+  avatarSlugFromProductionTemplate,
+  avatarSlugFromSearchParam,
+  productionTemplateFromAvatarSlug,
+  type AvatarTipoSlug,
+} from "@/lib/avatar-tipos";
 import { fetchHeyGenConsentLink } from "@/lib/heygen-consent-client";
 import { fetchHeygenApi } from "@/lib/heygen-client-override";
 import {
   SCRIPT_EDIT_CONSENT_TEXT,
+  SCRIPT_MANUAL_REVIEW_CONSENT_TEXT,
   useScriptFactCheck,
 } from "@/components/product/use-script-fact-check";
+import { isFactCheckHeuristicFallback } from "@/lib/auditor/types";
 import type { ProfileTrainingAsset } from "@/lib/types";
+import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
+
+const CRIATIVO_PANEL_CLASS =
+  "rounded-[1.75rem] border border-slate-800 bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl p-6 md:p-8 shadow-xl mb-8";
+const CRIATIVO_LABEL_CLASS = "block text-sm font-semibold text-white mb-2";
+const CRIATIVO_HELPER_CLASS = "text-sm text-slate-400 leading-relaxed";
+const CRIATIVO_PRIMARY_BTN_CLASS =
+  "inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed";
+const CRIATIVO_SECONDARY_BTN_CLASS =
+  "inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed";
+const CRIATIVO_INPUT_CLASS =
+  "w-full bg-[#0E1321] border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-3 outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 resize-y min-h-[120px]";
 
 type TrainingBannerState =
   | "hidden"
@@ -158,7 +178,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     mode === "independente",
   );
   const [independentTermsAccepted, setIndependentTermsAccepted] = useState(false);
-  const independentAvatarAppliedRef = useRef(false);
+  const pendingAvatarSlugRef = useRef<AvatarTipoSlug | null>(null);
+  const [sentinelSuggestion, setSentinelSuggestion] = useState<MockSentinelSuggestion | null>(
+    null,
+  );
+  const [sentinelLoadError, setSentinelLoadError] = useState<string | null>(null);
+  const [isLoadingSentinelSuggestion, setIsLoadingSentinelSuggestion] = useState(false);
   const [scriptDraft, setScriptDraft] = useState("");
   const [scriptTopicSnapshot, setScriptTopicSnapshot] = useState("");
   const [scriptApproved, setScriptApproved] = useState(false);
@@ -168,6 +193,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     scriptEditedAfterApproval,
     scriptEditConsent,
     setScriptEditConsent,
+    manualReviewConsentRequired,
+    manualReviewConsent,
+    setManualReviewConsent,
     markScriptEditedAfterApproval,
     resetFactCheckState,
     approveWithFactCheck,
@@ -316,17 +344,35 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       trainingBannerState !== "awaiting_consent");
 
   const activeProductionTemplate = useMemo((): ProductionTemplate => {
-    if (avatarTrack === "photo_real") {
+    if (avatarTrack === "photo_real" || avatarTrack === "realistic") {
       return "photo_real";
     }
-    if (avatarTrack === "realistic") {
-      return "photo_real";
+    if (avatarTrack === "caricature") {
+      if (mascotCaricature && selectedCaricatureAssetId === mascotCaricature.id) {
+        return "caricature_mascot_3d";
+      }
+      if (editorialCaricature && selectedCaricatureAssetId === editorialCaricature.id) {
+        return "caricature_editorial";
+      }
+      if (profileIdForPrefs) {
+        const slug = readCuradorHeygenPrefs(profileIdForPrefs).lastAvatarTipoSlug;
+        if (slug === "3d") {
+          return "caricature_mascot_3d";
+        }
+        if (slug === "caricato") {
+          return "caricature_editorial";
+        }
+      }
+      return "caricature_editorial";
     }
-    if (mascotCaricature && selectedCaricatureAssetId === mascotCaricature.id) {
-      return "caricature_mascot_3d";
-    }
-    return "caricature_editorial";
-  }, [avatarTrack, mascotCaricature, selectedCaricatureAssetId]);
+    return "photo_real";
+  }, [
+    avatarTrack,
+    mascotCaricature,
+    editorialCaricature,
+    selectedCaricatureAssetId,
+    profileIdForPrefs,
+  ]);
 
   const digitalTwinTemplateReady =
     Boolean(heygenAvatarId.trim()) && Boolean(productionTwinLook) && twinReadyForVideo;
@@ -343,11 +389,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   const scriptWordCount = countWords(scriptDraft);
   const freePromptWordCount = countWords(freePrompt);
+  const scriptClearedForProduction =
+    scriptApproved &&
+    scriptDraft.trim().length > 0 &&
+    (!manualReviewConsentRequired || manualReviewConsent) &&
+    (!scriptEditedAfterApproval || scriptEditConsent);
   const canProduceContent =
     canGenerateVideo &&
-    (useFreePromptAsTranscript
-      ? freePrompt.trim().length > 0
-      : scriptApproved && scriptDraft.trim().length > 0);
+    (useFreePromptAsTranscript ? freePrompt.trim().length > 0 : scriptClearedForProduction);
 
   function getGenerateDisabledReason(): string | null {
     if (isGenerating) {
@@ -386,13 +435,28 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     if (!scriptApproved) {
       return "Clique em Aprovar Roteiro antes de gerar o conteúdo.";
     }
+    if (manualReviewConsentRequired && !manualReviewConsent) {
+      return "Confirme a revisão manual do roteiro antes de produzir o conteúdo.";
+    }
+    if (scriptEditedAfterApproval && !scriptEditConsent) {
+      return "Confirme o termo de responsabilidade após editar o roteiro aprovado.";
+    }
     return null;
   }
 
   const generateDisabledReason = getGenerateDisabledReason();
 
-  const archetypeHelperText =
-    "Selecione no máximo um arquétipo e um tom. Se não escolher, a IA utiliza a identidade comunicacional identificada nas mídias enviadas.";
+  function renderArchetypeIntro() {
+    return (
+      <div className={`${CRIATIVO_HELPER_CLASS} mb-5 leading-relaxed space-y-2`}>
+        <p>Selecione no máximo um arquétipo e um tom.</p>
+        <p>
+          <span className="text-slate-300">Obs:</span> Por padrão, a IA utiliza a identidade
+          comunicacional identificada nas mídias enviadas (caso não faça nenhuma seleção).
+        </p>
+      </div>
+    );
+  }
 
   function selectAvatarTrack(track: AvatarTrack) {
     const hasExisting =
@@ -463,22 +527,45 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       return;
     }
 
+    const slug = avatarSlugFromProductionTemplate(template);
+
     if (template === "photo_real") {
       selectAvatarTrack("photo_real");
-      persistHeygenPrefs({ avatarTrack: "photo_real" });
+      persistHeygenPrefs({
+        avatarTrack: "photo_real",
+        lastAvatarTipoSlug: slug ?? "foto-real",
+      });
       return;
     }
 
-    if (template === "caricature_editorial" && editorialCaricature) {
+    if (template === "caricature_editorial") {
       selectAvatarTrack("caricature");
-      selectCaricatureForVideo(editorialCaricature.id);
+      if (editorialCaricature) {
+        selectCaricatureForVideo(editorialCaricature.id);
+      }
+      persistHeygenPrefs({
+        avatarTrack: "caricature",
+        lastCaricatureAssetId: editorialCaricature?.id,
+        lastAvatarTipoSlug: slug ?? "caricato",
+      });
       return;
     }
 
-    if (template === "caricature_mascot_3d" && mascotCaricature) {
+    if (template === "caricature_mascot_3d") {
       selectAvatarTrack("caricature");
-      selectCaricatureForVideo(mascotCaricature.id);
+      if (mascotCaricature) {
+        selectCaricatureForVideo(mascotCaricature.id);
+      }
+      persistHeygenPrefs({
+        avatarTrack: "caricature",
+        lastCaricatureAssetId: mascotCaricature?.id,
+        lastAvatarTipoSlug: slug ?? "3d",
+      });
     }
+  }
+
+  function applyAvatarTipoSlug(slug: AvatarTipoSlug) {
+    selectProductionTemplate(productionTemplateFromAvatarSlug(slug));
   }
 
   function invalidateScriptApproval() {
@@ -494,6 +581,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     lastCaricatureAssetId?: string;
     avatarTrack?: AvatarTrack;
     productionSource?: ProductionSource;
+    lastAvatarTipoSlug?: AvatarTipoSlug;
   }) {
     if (!profileIdForPrefs) {
       return;
@@ -511,6 +599,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         sortedCaricatureAssets[0]?.id,
       avatarTrack: overrides?.avatarTrack ?? avatarTrack,
       productionSource: overrides?.productionSource ?? productionSource,
+      lastAvatarTipoSlug:
+        overrides?.lastAvatarTipoSlug ??
+        readCuradorHeygenPrefs(profileIdForPrefs).lastAvatarTipoSlug,
     });
   }
 
@@ -674,7 +765,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     const factCheck = await approveWithFactCheck({
       script: draft,
       topic: creativeForm.topic.trim(),
-      suggestion: null,
+      suggestion: sentinelSuggestion,
       useFreePrompt: useFreePromptAsTranscript,
     });
 
@@ -1000,9 +1091,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       <div className="persona-form-group persona-production-template-section">
         <div className="persona-production-template-header">
           <div>
-            <label className="persona-label">Modelo para este vídeo</label>
-            <p className="persona-helper-text">
-              Do ilustrado ao hiper-realista — escolha o estilo visual do avatar neste conteúdo.
+            <label className={CRIATIVO_LABEL_CLASS}>Avatar do vídeo</label>
+            <p className={CRIATIVO_HELPER_CLASS}>
+              Caso faça sentido para essa pauta, você pode selecionar outro modelo de avatar.
             </p>
           </div>
         </div>
@@ -1011,29 +1102,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           role="radiogroup"
           aria-label="Template para gerar o vídeo"
         >
-          <ProductionTemplateOption
-            label={productionTemplateLabel("caricature_editorial")}
-            description={productionTemplateDescription("caricature_editorial")}
-            tier={productionTemplateTier("caricature_editorial")}
-            isSelected={activeProductionTemplate === "caricature_editorial"}
-            isAvailable={Boolean(editorialCaricature)}
-            unavailableHint="Gerar caricatura no Curador"
-            onSelect={() => selectProductionTemplate("caricature_editorial")}
-            preview={renderCaricaturePreview(
-              editorialCaricature,
-              "Gerar caricatura",
-            )}
-          />
-          <ProductionTemplateOption
-            label={productionTemplateLabel("caricature_mascot_3d")}
-            description={productionTemplateDescription("caricature_mascot_3d")}
-            tier={productionTemplateTier("caricature_mascot_3d")}
-            isSelected={activeProductionTemplate === "caricature_mascot_3d"}
-            isAvailable={Boolean(mascotCaricature)}
-            unavailableHint="Gerar mascote no Curador"
-            onSelect={() => selectProductionTemplate("caricature_mascot_3d")}
-            preview={renderCaricaturePreview(mascotCaricature, "Gerar mascote 3D")}
-          />
           <ProductionTemplateOption
             label={productionTemplateLabel("photo_real")}
             description={productionTemplateDescription("photo_real")}
@@ -1052,6 +1120,29 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 />
               )
             }
+          />
+          <ProductionTemplateOption
+            label={productionTemplateLabel("caricature_editorial")}
+            description={productionTemplateDescription("caricature_editorial")}
+            tier={productionTemplateTier("caricature_editorial")}
+            isSelected={activeProductionTemplate === "caricature_editorial"}
+            isAvailable={Boolean(editorialCaricature)}
+            unavailableHint="Gerar Caricato no Curador"
+            onSelect={() => selectProductionTemplate("caricature_editorial")}
+            preview={renderCaricaturePreview(
+              editorialCaricature,
+              "Gerar Caricato",
+            )}
+          />
+          <ProductionTemplateOption
+            label={productionTemplateLabel("caricature_mascot_3d")}
+            description={productionTemplateDescription("caricature_mascot_3d")}
+            tier={productionTemplateTier("caricature_mascot_3d")}
+            isSelected={activeProductionTemplate === "caricature_mascot_3d"}
+            isAvailable={Boolean(mascotCaricature)}
+            unavailableHint="Gerar Mascote 3D no Curador"
+            onSelect={() => selectProductionTemplate("caricature_mascot_3d")}
+            preview={renderCaricaturePreview(mascotCaricature, "Gerar Mascote 3D")}
           />
         </div>
       </div>
@@ -1436,6 +1527,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           "Confirme o termo de responsabilidade apos editar o roteiro aprovado.",
         );
       }
+      if (manualReviewConsentRequired && !manualReviewConsent) {
+        throw new Error(
+          "Confirme a revisao manual do roteiro antes de produzir o conteudo.",
+        );
+      }
       if (!useFreePromptAsTranscript && !scriptDraft.trim()) {
         throw new Error("Gere e aprove um roteiro antes de produzir o conteudo.");
       }
@@ -1708,11 +1804,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   ]);
 
   useEffect(() => {
-    if (profile?.avatarType) {
-      const track = avatarTypeToTrack(profile.avatarType);
-      setAvatarTrack(track === "realistic" ? "photo_real" : track);
+    if (!profile?.avatarType || !profileIdForPrefs) {
+      return;
     }
-  }, [profile?.avatarType]);
+    const prefs = readCuradorHeygenPrefs(profileIdForPrefs);
+    if (prefs.lastAvatarTipoSlug) {
+      return;
+    }
+    const track = avatarTypeToTrack(profile.avatarType);
+    setAvatarTrack(track === "realistic" ? "photo_real" : track);
+  }, [profile?.avatarType, profileIdForPrefs]);
 
   useEffect(() => {
     if (autoLoadedLooksRef.current) {
@@ -1745,7 +1846,13 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     if (prefs.lastCaricatureAssetId) {
       setSelectedCaricatureAssetId(prefs.lastCaricatureAssetId);
     }
-    if (prefs.avatarTrack) {
+    if (prefs.lastAvatarTipoSlug === "foto-real") {
+      setAvatarTrack("photo_real");
+    } else if (prefs.lastAvatarTipoSlug === "caricato") {
+      setAvatarTrack("caricature");
+    } else if (prefs.lastAvatarTipoSlug === "3d") {
+      setAvatarTrack("caricature");
+    } else if (prefs.avatarTrack) {
       setAvatarTrack(prefs.avatarTrack === "realistic" ? "photo_real" : prefs.avatarTrack);
     }
     const hasPriorTwinTraining = Boolean(
@@ -1883,23 +1990,103 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   }, [selectedCaricature?.id]);
 
   useEffect(() => {
-    if (mode !== "independente" || independentAvatarAppliedRef.current) {
+    if (!profileIdForPrefs) {
       return;
     }
-    independentAvatarAppliedRef.current = true;
-    const avatarParam = searchParams.get("avatar")?.trim();
-    if (avatarParam === "foto-real" || avatarParam === "gemeo-digital") {
-      selectProductionTemplate("photo_real");
-    } else if (avatarParam === "caricato") {
+
+    const avatarParam = avatarSlugFromSearchParam(searchParams.get("avatar"));
+    const prefs = readCuradorHeygenPrefs(profileIdForPrefs);
+    const slug = avatarParam ?? prefs.lastAvatarTipoSlug ?? null;
+    if (!slug) {
+      pendingAvatarSlugRef.current = null;
+      return;
+    }
+
+    pendingAvatarSlugRef.current = slug;
+    applyAvatarTipoSlug(slug);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileIdForPrefs, searchParams]);
+
+  useEffect(() => {
+    const slug = pendingAvatarSlugRef.current;
+    if (!slug || slug === "foto-real") {
+      return;
+    }
+    if (slug === "caricato" && editorialCaricature) {
       selectProductionTemplate("caricature_editorial");
-    } else if (avatarParam === "3d") {
+      pendingAvatarSlugRef.current = null;
+      return;
+    }
+    if (slug === "3d" && mascotCaricature) {
       selectProductionTemplate("caricature_mascot_3d");
+      pendingAvatarSlugRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editorialCaricature?.id, mascotCaricature?.id]);
+
+  useEffect(() => {
+    if (mode === "independente") {
+      return;
+    }
+    const sugestaoId = searchParams.get("sugestao")?.trim();
+    if (!sugestaoId) {
+      setSentinelSuggestion(null);
+      setSentinelLoadError(null);
+      setIsLoadingSentinelSuggestion(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsLoadingSentinelSuggestion(true);
+    setSentinelLoadError(null);
+
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/sentinel/suggestions/${encodeURIComponent(sugestaoId)}`,
+        );
+        const payload = (await response.json()) as {
+          suggestion?: MockSentinelSuggestion;
+          message?: string;
+        };
+        if (cancelled) {
+          return;
+        }
+        if (!response.ok || !payload.suggestion) {
+          setSentinelSuggestion(null);
+          setSentinelLoadError(payload.message || "Não foi possível carregar a pauta selecionada.");
+          return;
+        }
+        setSentinelSuggestion(payload.suggestion);
+        const topic = payload.suggestion.topic.trim();
+        if (topic) {
+          setCreativeForm((current) =>
+            current.topic === topic ? current : { ...current, topic },
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setSentinelSuggestion(null);
+          setSentinelLoadError("Não foi possível carregar a pauta selecionada.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSentinelSuggestion(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [mode, searchParams]);
 
   useEffect(() => {
     if (mode === "independente") {
+      return;
+    }
+    const sugestaoId = searchParams.get("sugestao")?.trim();
+    if (sugestaoId) {
       return;
     }
     const tema = searchParams.get("tema")?.trim();
@@ -1919,58 +2106,75 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   });
 
   return (
-    <section className="persona-page agent-theme-criativo">
-      <div className="persona-container">
-        <div className="persona-card">
-          <h2 className="sr-only">Criativo</h2>
+    <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-          <div className="persona-section-header">
-            <div className="persona-header-icon" aria-hidden="true">
-              <PersonaCriativoIcon />
-            </div>
-            {mode === "independente" ? (
-              <>
-                <h2>Criar conteúdo independente</h2>
-                <p>
-                  <strong>Use seu avatar para falar o que você quiser publicar.</strong> Sem
-                  estúdio, sem gravações demoradas, sem ensaios e sem despesas. E o melhor, é você
-                  falando com a sua voz para o seu público em segundos.
-                </p>
-              </>
-            ) : (
-              <>
-                <h2>Novo criativo</h2>
-                <p>Defina o enquadramento desta peça, gere o roteiro e produza o vídeo.</p>
-              </>
-            )}
-          </div>
-
-          {mode === "padrao" ? (
-            <div className="persona-cta-row">
-              <Link href="/criativo" className="persona-btn persona-btn-secondary">
-                Voltar para a listagem
-              </Link>
-            </div>
-          ) : null}
-
-          {criativoGateReason ? (
-            <div className="persona-form-group">
-              <p className="persona-helper-text persona-helper-highlight">{criativoGateReason}</p>
-              <div className="persona-cta-row persona-top-gap">
-                <Link href="/curador" className="persona-btn">
-                  Ir para o Curador
-                </Link>
-              </div>
-            </div>
-          ) : null}
-
-          {!criativoGateReason ? (
+      <header className="mb-8 relative z-10">
+        {mode === "independente" ? (
           <>
-          <div className="persona-form-group persona-form-panel persona-selection-panel">
-            <p className="persona-helper-text persona-selection-intro">{archetypeHelperText}</p>
+            <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
+              Criar conteúdo independente
+            </h1>
+            <p className="text-slate-400 text-sm md:text-base max-w-3xl leading-relaxed">
+              <strong className="text-slate-300 font-medium">
+                Use seu avatar para falar o que você quiser publicar.
+              </strong>{" "}
+              Sem estúdio, sem gravações demoradas, sem ensaios e sem despesas. E o melhor, é você
+              falando com a sua voz para o seu público em segundos.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Nova pauta</h1>
+            <p className="text-slate-400 text-sm md:text-base max-w-2xl">
+              Defina o enquadramento desta pauta, aprove o roteiro e gere o vídeo.
+            </p>
+          </>
+        )}
+      </header>
 
-            <div className="persona-selection-block">
-              <label className="persona-label persona-selection-label">Arquétipo</label>
+      {mode === "padrao" ? (
+        <div className="mb-6 relative z-10">
+          <Link href="/monitoramento" className={CRIATIVO_SECONDARY_BTN_CLASS}>
+            Voltar para monitoramento
+          </Link>
+        </div>
+      ) : null}
+
+      {mode === "padrao" && isLoadingSentinelSuggestion ? (
+        <div className={`${CRIATIVO_PANEL_CLASS} relative z-10`}>
+          <p className={`${CRIATIVO_HELPER_CLASS} text-center py-2`}>Carregando pauta…</p>
+        </div>
+      ) : null}
+
+      {mode === "padrao" && sentinelLoadError ? (
+        <div className={`${CRIATIVO_PANEL_CLASS} relative z-10 mb-8`}>
+          <p className="text-sm text-amber-300/90 leading-relaxed">{sentinelLoadError}</p>
+        </div>
+      ) : null}
+
+      {mode === "padrao" && sentinelSuggestion ? (
+        <PautaContextCard suggestion={sentinelSuggestion} />
+      ) : null}
+
+      {criativoGateReason ? (
+        <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group relative z-10`}>
+          <p className="text-sm text-amber-300/90 leading-relaxed">{criativoGateReason}</p>
+          <div className="mt-4">
+            <Link href="/curador" className={CRIATIVO_PRIMARY_BTN_CLASS}>
+              Ir para o Curador
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {!criativoGateReason ? (
+      <>
+      <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group persona-selection-panel relative z-10`}>
+        {renderArchetypeIntro()}
+
+        <div className="persona-selection-block">
+          <label className={CRIATIVO_LABEL_CLASS}>Arquétipo</label>
               <div className="flex flex-wrap gap-1 persona-top-gap">
                 {archetypeOptions.map((option) => (
                   <ThemeTagPill
@@ -1992,8 +2196,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               </div>
             </div>
 
-            <div className="persona-selection-block">
-              <label className="persona-label persona-selection-label">Tom de linguagem</label>
+        <div className="persona-selection-block mt-6">
+          <label className={CRIATIVO_LABEL_CLASS}>Tom de linguagem</label>
               <div className="flex flex-wrap gap-1 persona-top-gap">
                 {voiceToneOptions.map((tone) => (
                   <ThemeTagPill
@@ -2014,18 +2218,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           </div>
 
           {mode === "independente" ? (
-            <div className="persona-form-group persona-form-panel persona-script-flow">
+            <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group persona-script-flow relative z-10`}>
               <div className="persona-script-block">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <label className="persona-label persona-selection-label">
-                    Digite o que deseja falar
-                  </label>
+                  <label className={CRIATIVO_LABEL_CLASS}>Digite o que deseja falar</label>
                   <span className="text-xs text-slate-500">
                     Limite de 1 minuto (até {MAX_SCRIPT_WORDS} palavras)
                   </span>
                 </div>
                 <textarea
-                  className="persona-input-control persona-top-gap"
+                  className={`${CRIATIVO_INPUT_CLASS} mt-3`}
                   value={freePrompt}
                   onChange={(event) => setFreePrompt(event.target.value)}
                   rows={5}
@@ -2054,11 +2256,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               </div>
             </div>
           ) : (
-          <div className="persona-form-group persona-form-panel persona-script-flow">
+          <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group persona-script-flow relative z-10`}>
             <div className="persona-script-block">
-              <label className="persona-label persona-selection-label">Tema do vídeo</label>
+              <label className={CRIATIVO_LABEL_CLASS}>Tema do vídeo</label>
               <textarea
-                className="persona-input-control"
+                className={`${CRIATIVO_INPUT_CLASS} mt-3`}
                 value={creativeForm.topic}
                 onChange={(event) => {
                   invalidateScriptApproval();
@@ -2073,7 +2275,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 <div className="persona-script-actions">
                   <button
                     type="button"
-                    className="persona-btn"
+                    className={CRIATIVO_PRIMARY_BTN_CLASS}
                     onClick={() => void handleGenerateScript()}
                     disabled={isGeneratingScript || !creativeForm.topic.trim()}
                   >
@@ -2092,8 +2294,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
             {!useFreePromptAsTranscript ? (
               <div className="persona-script-block">
-                <label className="persona-label persona-selection-label">Aprovação do roteiro</label>
-                <p className="persona-helper-text">
+                <label className={CRIATIVO_LABEL_CLASS}>Aprovação do roteiro</label>
+                <p className={`${CRIATIVO_HELPER_CLASS} mt-1 mb-3`}>
                   Veja o roteiro do vídeo que será produzido. Altere-o conforme necessário. Máximo
                   de {MAX_SCRIPT_WORDS} palavras (ou ~1 minuto).
                 </p>
@@ -2109,7 +2311,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   </span>
                 </div>
                 <textarea
-                  className="persona-input-control persona-top-gap"
+                  className={`${CRIATIVO_INPUT_CLASS} mt-3`}
                   value={scriptDraft}
                   onChange={(event) => {
                     invalidateScriptApproval();
@@ -2135,7 +2337,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   </p>
                   <button
                     type="button"
-                    className="persona-btn"
+                    className={CRIATIVO_PRIMARY_BTN_CLASS}
                     onClick={() => void handleApproveScript()}
                     disabled={
                       !scriptDraft.trim() ||
@@ -2146,11 +2348,36 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     {isFactChecking ? "Validando fatos..." : "Aprovar roteiro"}
                   </button>
                 </div>
-                {factCheckResult && factCheckResult.verdict !== "skipped" ? (
+                {factCheckResult &&
+                factCheckResult.verdict !== "skipped" &&
+                !isFactCheckHeuristicFallback(factCheckResult) ? (
                   <p className="persona-helper-text persona-top-gap">
                     Validador: {factCheckResult.verdict} ({factCheckResult.confidence}%) —{" "}
                     {factCheckResult.summary}
                   </p>
+                ) : null}
+                {manualReviewConsentRequired ? (
+                  <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-slate-800/60">
+                    <p className={`${CRIATIVO_HELPER_CLASS} mb-3 w-full`}>
+                      O validador automático não pôde concluir a checagem factual neste momento.
+                      Revise o roteiro com base nas fontes da pauta antes de produzir o vídeo.
+                    </p>
+                    <label className="persona-checkbox !items-start cursor-pointer">
+                      <input
+                        id="script-manual-review-consent"
+                        type="checkbox"
+                        checked={manualReviewConsent}
+                        onChange={(event) => setManualReviewConsent(event.target.checked)}
+                        className="w-4 h-4 mt-0.5 shrink-0 accent-cyan-500"
+                      />
+                      <span className="text-xs leading-relaxed">
+                        {SCRIPT_MANUAL_REVIEW_CONSENT_TEXT}{" "}
+                        <Link href="/compliance" className="text-cyan-400 no-underline hover:underline">
+                          Ver Compliance TSE
+                        </Link>
+                      </span>
+                    </label>
+                  </div>
                 ) : null}
                 {scriptEditedAfterApproval ? (
                   <div className="persona-checkbox-row persona-top-gap">
@@ -2168,7 +2395,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     </label>
                   </div>
                 ) : null}
-                {scriptApproved ? (
+                {scriptClearedForProduction ? (
                   <p className="persona-script-approved">
                     Roteiro aprovado. Você já pode produzir o conteúdo.
                   </p>
@@ -2198,17 +2425,18 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             </div>
           ) : null}
 
-          <div className="persona-section-header persona-top-gap">
-            <h2>Produzir vídeo</h2>
-          </div>
+          <div className={`${CRIATIVO_PANEL_CLASS} relative z-10`}>
+            <div className="border-b border-slate-800 pb-4 mb-6">
+              <h2 className="text-xl font-bold text-white">Produzir vídeo</h2>
+            </div>
 
           {renderProductionTemplateSelector()}
 
-          <div className="persona-production-actions">
+          <div className="persona-production-actions mt-6">
             <div className="persona-generate-row">
               <button
                 type="button"
-                className="persona-btn persona-btn-large"
+                className={`${CRIATIVO_PRIMARY_BTN_CLASS} px-6 py-3`}
                 onClick={() => void handleGenerate()}
                 disabled={
                   isGenerating ||
@@ -2259,12 +2487,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 </p>
               )}
               {videoUrl && (
-                <div className="persona-video-ready-row">
+                <div className="persona-video-ready-row mt-4">
                   <a
                     href={videoUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="persona-btn persona-btn-large"
+                    className={`${CRIATIVO_PRIMARY_BTN_CLASS} px-6 py-3`}
                   >
                     Ver vídeo
                   </a>
@@ -2279,7 +2507,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   ·{" "}
                   <button
                     type="button"
-                    className="text-cyan-400 hover:underline"
+                    className="inline bg-transparent p-0 text-cyan-400 hover:underline"
                     onClick={() => void navigator.clipboard.writeText(captionUrl)}
                   >
                     Copiar legenda
@@ -2288,11 +2516,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               )}
             </>
           )}
+          </div>
           </>
           ) : null}
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }
 

@@ -65,6 +65,11 @@ export type MockSentinelSuggestion = {
   pipeline?: SentinelPipeline;
   /** Tema curto para pré-preencher o Criativo — derivado do radar, não de LLM. */
   topic: string;
+  /**
+   * Sinônimo ou termo de expansão semântica que casou com a matéria,
+   * quando distinto do themeLabel.
+   */
+  matchingSearchTerm?: string;
   evidence: SentinelVerifiedEvidence;
   engagement: SentinelEngagementMetrics;
 };
@@ -373,6 +378,9 @@ export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggest
   return parts.join("\n");
 }
 
-export function buildCriativoNovoHref(topic: string) {
-  return `/criativo/novo?tema=${encodeURIComponent(topic)}`;
+export function buildCriativoNovoHref(input: { id: string; topic: string } | string) {
+  if (typeof input === "string") {
+    return `/criativo/novo?tema=${encodeURIComponent(input)}`;
+  }
+  return `/criativo/novo?sugestao=${encodeURIComponent(input.id)}&tema=${encodeURIComponent(input.topic)}`;
 }

@@ -3,16 +3,22 @@
 import { useCallback, useRef, useState } from "react";
 
 import type { FactCheckResult } from "@/lib/auditor/types";
+import { isFactCheckHeuristicFallback } from "@/lib/auditor/types";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 
 export const SCRIPT_EDIT_CONSENT_TEXT =
   "Confirmo que alterei o roteiro após a validação factual e assumo responsabilidade pelo conteúdo publicado.";
+
+export const SCRIPT_MANUAL_REVIEW_CONSENT_TEXT =
+  "Confirmo que a validação factual automática não pôde ser concluída, que revisei o roteiro manualmente com base nas fontes da pauta e assumo responsabilidade pelo conteúdo publicado.";
 
 export function useScriptFactCheck() {
   const [isFactChecking, setIsFactChecking] = useState(false);
   const [factCheckResult, setFactCheckResult] = useState<FactCheckResult | null>(null);
   const [scriptEditedAfterApproval, setScriptEditedAfterApproval] = useState(false);
   const [scriptEditConsent, setScriptEditConsent] = useState(false);
+  const [manualReviewConsentRequired, setManualReviewConsentRequired] = useState(false);
+  const [manualReviewConsent, setManualReviewConsent] = useState(false);
   const wasApprovedRef = useRef(false);
 
   const markScriptEditedAfterApproval = useCallback(() => {
@@ -26,6 +32,8 @@ export function useScriptFactCheck() {
     setFactCheckResult(null);
     setScriptEditedAfterApproval(false);
     setScriptEditConsent(false);
+    setManualReviewConsentRequired(false);
+    setManualReviewConsent(false);
     wasApprovedRef.current = false;
   }, []);
 
@@ -53,6 +61,8 @@ export function useScriptFactCheck() {
         if (response.status === 403) {
           wasApprovedRef.current = true;
           setScriptEditedAfterApproval(false);
+          setManualReviewConsentRequired(false);
+          setManualReviewConsent(false);
           return { ok: true };
         }
 
@@ -83,6 +93,13 @@ export function useScriptFactCheck() {
 
         wasApprovedRef.current = true;
         setScriptEditedAfterApproval(false);
+        if (isFactCheckHeuristicFallback(result)) {
+          setManualReviewConsentRequired(true);
+          setManualReviewConsent(false);
+        } else {
+          setManualReviewConsentRequired(false);
+          setManualReviewConsent(false);
+        }
         return { ok: true };
       } catch {
         return { ok: false, message: "Nao foi possivel contatar o validador factual." };
@@ -99,6 +116,9 @@ export function useScriptFactCheck() {
     scriptEditedAfterApproval,
     scriptEditConsent,
     setScriptEditConsent,
+    manualReviewConsentRequired,
+    manualReviewConsent,
+    setManualReviewConsent,
     markScriptEditedAfterApproval,
     resetFactCheckState,
     approveWithFactCheck,

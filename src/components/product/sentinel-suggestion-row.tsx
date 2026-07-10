@@ -30,7 +30,7 @@ export function SentinelSuggestionCard({
         </div>
         {showAction ? (
           <Link
-            href={buildCriativoNovoHref(suggestion.topic) as Route}
+            href={buildCriativoNovoHref({ id: suggestion.id, topic: suggestion.topic }) as Route}
             className="persona-sentinel-wire-action"
           >
             <span>Gerar</span>
@@ -65,7 +65,7 @@ export function SentinelSuggestionsList({
   suggestions,
   isLoading,
   loadError,
-  emptyMessage = "Nenhum sinal do Sentinela disponivel. Configure o radar e atualize os sinais.",
+  emptyMessage = "Nenhuma pauta do Sentinela disponivel. Configure o radar e atualize as pautas.",
   meta,
 }: {
   suggestions: MockSentinelSuggestion[];
@@ -75,7 +75,7 @@ export function SentinelSuggestionsList({
   meta?: SentinelSuggestionsMeta | null;
 }) {
   if (isLoading) {
-    return <p className="persona-helper-text persona-top-gap">Carregando sinais do Sentinela...</p>;
+    return <p className="persona-helper-text persona-top-gap">Carregando pautas do Sentinela...</p>;
   }
 
   if (loadError) {

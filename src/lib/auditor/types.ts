@@ -23,3 +23,8 @@ export type FactCheckInput = {
   articles?: Array<{ title: string; url: string; sourceName?: string }>;
   sentinelBriefing?: string;
 };
+
+/** Fallback local quando a IA nao responde — distinto de inconclusive real da LLM. */
+export function isFactCheckHeuristicFallback(result: FactCheckResult): boolean {
+  return result.verdict === "inconclusive" && result.confidence === 0 && !result.provider;
+}

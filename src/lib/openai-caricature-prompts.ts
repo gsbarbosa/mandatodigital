@@ -49,7 +49,7 @@ export function caricatureVariantFromFilename(filename: string): CaricatureVaria
 }
 
 export function caricatureVariantLabel(variant: CaricatureVariant) {
-  return variant === "editorial" ? "Versão 1 — Caricatura" : "Versão 2 — Mascote 3D";
+  return variant === "editorial" ? "Caricato" : "Mascote 3D";
 }
 
 export function caricatureVariantGeneratingLabel(variant: CaricatureVariant) {

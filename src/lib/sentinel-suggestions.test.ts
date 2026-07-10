@@ -11,7 +11,7 @@ import {
   parseGoogleNewsRss,
   scoreSentinelArticle,
 } from "@/lib/sentinel-rss";
-import { matchThemesWithSynonyms, pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
+import { matchThemesWithSynonyms, pickBestMatchedTheme, resolveArticleMatchingSearchTerm } from "@/lib/sentinel-theme-synonyms";
 import { buildSuggestionsFromArticles } from "@/lib/sentinel-suggestions";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -86,6 +86,30 @@ describe("sentinel-theme-synonyms", () => {
     const haystack = "Moradores reclamam da falta de agua potavel no bairro";
 
     expect(matchThemesWithSynonyms(haystack, ["Saneamento Basico"])).toContain("Saneamento Basico");
+  });
+
+  it("retorna o sinonimo que casou quando distinto do tema principal", () => {
+    const haystack = "Startup de Campinas capta investimento para expandir operacao";
+
+    expect(resolveArticleMatchingSearchTerm(haystack, "Empreendedorismo")).toBe("startup");
+  });
+
+  it("nao exibe termo quando o match veio do proprio tema principal", () => {
+    const haystack =
+      "Qualifica SP encerra inscricoes para curso gratuito de empreendedorismo - G1";
+
+    expect(resolveArticleMatchingSearchTerm(haystack, "Empreendedorismo")).toBeNull();
+  });
+
+  it("prioriza termo de expansao semantica quando ele explica o match", () => {
+    const haystack = "Belo Horizonte avanca plano de venda de estatais locais";
+
+    expect(
+      resolveArticleMatchingSearchTerm(haystack, "Privatizacoes", [
+        "Belo Horizonte",
+        "venda de estatais",
+      ]),
+    ).toBe("venda de estatais");
   });
 });
 

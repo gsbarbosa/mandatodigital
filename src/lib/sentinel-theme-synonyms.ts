@@ -164,3 +164,49 @@ export function matchThemesWithSynonyms(text: string, themes: string[]) {
 
   return matched;
 }
+
+/** Termo concreto (sinônimo ou expansão) que melhor explica o match da matéria com o tema. */
+export function resolveArticleMatchingSearchTerm(
+  haystack: string,
+  themeLabel: string,
+  extraTerms: string[] = [],
+): string | null {
+  const normalizedTheme = normalizeSentinelText(themeLabel);
+  if (!normalizedTheme) {
+    return null;
+  }
+
+  const seen = new Set<string>();
+  const candidateTerms = [...getThemeSearchTerms(themeLabel), ...extraTerms];
+
+  let bestTerm = "";
+  let bestScore = 0;
+
+  for (const rawTerm of candidateTerms) {
+    const term = rawTerm.trim();
+    if (!term) {
+      continue;
+    }
+    const normalizedTerm = normalizeSentinelText(term);
+    if (!normalizedTerm || seen.has(normalizedTerm)) {
+      continue;
+    }
+    seen.add(normalizedTerm);
+
+    const score = scoreThemeTermMatch(haystack, term);
+    if (score > bestScore) {
+      bestScore = score;
+      bestTerm = term;
+    }
+  }
+
+  if (!bestTerm || bestScore === 0) {
+    return null;
+  }
+
+  if (normalizeSentinelText(bestTerm) === normalizedTheme) {
+    return null;
+  }
+
+  return bestTerm;
+}

@@ -86,10 +86,12 @@ export function primarySignalActor(
   return suggestion.evidence.actors?.[0] ?? null;
 }
 
-function PautarButton({ topic }: { topic: string }) {
+function PautarButton({ suggestion }: { suggestion: MockSentinelSuggestion }) {
   return (
     <Link
-      href={buildCriativoNovoHref(topic) as Route}
+      href={
+        buildCriativoNovoHref({ id: suggestion.id, topic: suggestion.topic }) as Route
+      }
       className="w-full md:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center justify-center gap-2 no-underline"
     >
       Pautar
@@ -139,7 +141,7 @@ export function MonitorSignalCard({
           ) : (
             <div className={`flex items-center gap-2 text-slate-500 text-xs ${oppositionCard ? "mt-2" : ""}`}>
               <ClockIcon />
-              Sinal recente
+              Pauta recente
             </div>
           )}
         </div>
@@ -231,7 +233,7 @@ export function MonitorSignalCard({
 
         {showPautar ? (
           <div className="shrink-0 flex items-center justify-center md:pl-4">
-            <PautarButton topic={suggestion.topic} />
+            <PautarButton suggestion={suggestion} />
           </div>
         ) : null}
       </div>
@@ -265,7 +267,7 @@ export function SignalEvidenceDrawer({
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1">
-              Evidências do sinal
+              Evidências da pauta
             </p>
             <h3 className="text-lg font-bold text-white">{suggestion.themeLabel}</h3>
           </div>

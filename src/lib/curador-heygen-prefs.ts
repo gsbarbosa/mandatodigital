@@ -1,3 +1,5 @@
+import type { AvatarTipoSlug } from "@/lib/avatar-tipos";
+
 export type CuradorHeygenPrefs = {
   heygenAvatarId?: string;
   heygenVoiceId?: string;
@@ -6,6 +8,8 @@ export type CuradorHeygenPrefs = {
   lastCaricatureAssetId?: string;
   avatarTrack?: "realistic" | "caricature" | "photo_real";
   productionSource?: "use_existing" | "train_new";
+  /** Último tipo escolhido no hub de avatares (/avatares/[tipo]). */
+  lastAvatarTipoSlug?: AvatarTipoSlug;
 };
 
 function storageKey(profileId: string) {

@@ -25,7 +25,7 @@ import {
   oppositionMonitoringUnavailableReason,
 } from "@/lib/sentinel-opposition-posts";
 import { isApifyConfigured } from "@/lib/sentinel-instagram-posts";
-import { pickBestMatchedTheme } from "@/lib/sentinel-theme-synonyms";
+import { pickBestMatchedTheme, resolveArticleMatchingSearchTerm } from "@/lib/sentinel-theme-synonyms";
 import {
   applyThemeVerificationBatch,
   type ThemeVerificationStats,
@@ -90,6 +90,9 @@ function buildSuggestionFromCluster(input: {
   sourceList: "interest" | "opposition";
 }): MockSentinelSuggestion {
   const { primary, articles, themeLabel, matchedThemes, relevanceScore, sourceList } = input;
+  const haystack = `${primary.title} ${primary.sourceName ?? ""} ${primary.siteHost ?? ""}`;
+  const matchingSearchTerm =
+    resolveArticleMatchingSearchTerm(haystack, themeLabel) ?? undefined;
   const outletCount = countUniqueOutlets(articles);
   const sortedArticles = [...articles]
     .sort((left, right) => {
@@ -103,6 +106,7 @@ function buildSuggestionFromCluster(input: {
     id: buildSuggestionId(primary.link),
     themeLabel,
     matchedThemes,
+    matchingSearchTerm,
     relevanceScore,
     topic: buildTopicLabel(themeLabel, primary.title),
     evidence: {
