@@ -471,6 +471,15 @@ async function readLocalDatabase(): Promise<AppDatabase> {
   }
 }
 
+/** Em serverless (Firebase App Hosting) nao existe data/ — retorna null em vez de 500. */
+async function readLocalDatabaseIfAvailable(): Promise<AppDatabase | null> {
+  if (!canUseLocalFilesystem()) {
+    return null;
+  }
+
+  return readLocalDatabase();
+}
+
 async function writeLocalDatabase(database: AppDatabase) {
   await ensureLocalDatabase();
   await fs.writeFile(DATABASE_PATH, JSON.stringify(database, null, 2));
@@ -1328,7 +1337,7 @@ const supabaseRepository: Repository = {
       evaluationRunsRes.error ||
       evaluationCandidatesRes.error ||
       evaluationScoresRes.error
-        ? await readLocalDatabase()
+        ? await readLocalDatabaseIfAvailable()
         : null;
 
     const profile = mergeWorkflowProfileConfig(
