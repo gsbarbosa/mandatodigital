@@ -13,7 +13,10 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/profile/training-assets/**": ["./node_modules/ffmpeg-static/**/*"],
     "/api/heygen/**": ["./node_modules/ffmpeg-static/**/*"],
-    "/api/media/seal": ["./node_modules/ffmpeg-static/**/*"],
+    "/api/media/seal": [
+      "./node_modules/ffmpeg-static/**/*",
+      "./assets/fonts/DejaVuSans.ttf",
+    ],
   },
   experimental: {
     proxyClientMaxBodySize: "200mb",

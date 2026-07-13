@@ -88,10 +88,10 @@ Documentos relacionados:
 | HeyGen — avatar foto (`photo_real`) | ✅ | |
 | HeyGen — caricatura (OpenAI + HeyGen) | ✅ | |
 | Consent HeyGen | ✅ | |
-| Clone de voz HeyGen | ✅ | |
+| Clone de voz HeyGen | ✅ | Reuso + cap limite 10; path default até Fase 3.3 |
 | Curador v1 / Argil (legado) | 🔶 | Rotas existem; fluxo principal é HeyGen v2 |
-| ElevenLabs como voz default | ❌ | Fase 3.3 |
-| Spike A/B HeyGen vs ElevenLabs | ❌ | Parecer Tars recomenda 1 dia |
+| ElevenLabs como voz default | ❌ | Fase 3.3 — TTS → `audio_url` HeyGen (sai do limite 10) |
+| Spike A/B HeyGen vs ElevenLabs→audio | ❌ | 1 dia; critério: qualidade + custo + latência |
 | Deprecar `/curador-v1` + banner | ❌ | Fase 3.1 |
 
 ---
@@ -202,9 +202,9 @@ Referência detalhada: [sentinela.md](sentinela.md)
 | Item | Status | Notas |
 |------|--------|-------|
 | Selo TSE — metadados JSON | 🔶 | `creative-ai-metadata.ts` |
-| Selo TSE — overlay queimado no vídeo | ❌ | FFmpeg pós-HeyGen |
+| Selo TSE — overlay queimado no vídeo | 🟡 | FFmpeg + fail-closed; guest: `VERSÃO DE TESTE` |
 | Texto selo validado juridicamente | ⏸ | |
-| ElevenLabs via HeyGen API | ❌ | Spike pendente |
+| ElevenLabs → áudio → HeyGen (sai limite 10) | ❌ | Fase 3.3; spike A/B pendente |
 | Backgrounds HeyGen | ❌ | P4 backlog |
 | Spike carga (50 usuários simulados) | ❌ | Fase 3.1 |
 | Congelar treino vídeo longo / escala varejo foto-only | ❌ | Decisão Tars documentada |
@@ -217,7 +217,7 @@ Referência detalhada: [sentinela.md](sentinela.md)
 |---|---------|---------|--------|
 | 1 | Instagram: Apify (rápido) vs julho + Graph API | Pipeline social 1.2.2 | ⏸ |
 | 2 | SerpAPI (~US$ 75/mo) vs só trend proxy grátis | Precisão “em alta” | ⏸ |
-| 3 | ElevenLabs: conta única vs BYOK por cliente | Fase 3.3 | ⏸ |
+| 3 | ElevenLabs: conta única vs BYOK; path default `audio_url` vs clone HeyGen | Fase 3.3 | ⏸ |
 | 4 | Texto selo TSE — revisão jurídica | Overlay legal | ⏸ |
 | 5 | Supabase Pro vs manter free + cron | Infra estável | ⏸ |
 
@@ -234,7 +234,8 @@ Referência detalhada: [sentinela.md](sentinela.md)
 [ ] Decidir Instagram → implementar 1.2.2
 [ ] Auditor UI fila real (AUDITOR_V2_REAL_QUEUE)
 [ ] Selo TSE overlay + jurídico
-[ ] ElevenLabs / Distribuidor / escala (Fase 3)
+[ ] Spike ElevenLabs → `audio_url` HeyGen (Fase 3.3)
+[ ] ElevenLabs default + flag fallback clone HeyGen
 ```
 
 ---
@@ -243,6 +244,7 @@ Referência detalhada: [sentinela.md](sentinela.md)
 
 | Data | Mudança |
 |------|---------|
+| 2026-07-13 | Fase 3.3 refinada: path canônico TTS ElevenLabs → `audio_url` HeyGen (contorna limite 10 clones); selo overlay marcado 🟡 |
 | 2026-06-24 | Criação inicial pós deploy Fase 0+1 e migration Auditor |
 | | Sentinela v2 + LLM + trend proxy **on** em prod |
 | 2026-06-24 | Validador ligado em prod (`AUDITOR_FACTCHECK_ENABLED=true`) |

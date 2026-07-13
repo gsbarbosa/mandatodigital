@@ -86,23 +86,29 @@ O Sentinela **já entrega URLs** das matérias. O Validador não precisa “desc
 
 ## 4. HeyGen + ElevenLabs
 
-### Veredito: **SIM, suportado oficialmente**
+### Veredito: **SIM — e o path certo para produção SaaS é áudio externo**
 
-HeyGen aceita voz ElevenLabs via API:
+Há dois modos na API HeyGen:
 
-- `voice_settings.engine_settings.engine_type = "elevenlabs"`
-- Documentação: [HeyGen Create Video](https://developers.heygen.com/reference/create-video), [integração ElevenLabs](https://help.heygen.com/en/articles/8310663-how-to-integrate-elevenlabs-other-third-party-voices)
+| Modo | Como | Limite 10 clones HeyGen |
+|------|------|-------------------------|
+| A — nativo | `script` + `voice_id` (clone HeyGen) | Consome cota da conta plataforma |
+| B — áudio | `audio_url` / `audio_asset_id` (TTS feito fora) | **Não consome** clone HeyGen |
+| C — bridge | `engine_type: elevenlabs` + voice ElevenLabs na Create Video | Depende do plano; ainda acopla na HeyGen |
 
-### Implementação no Mandato Digital
+Docs: [Image to Video / audio](https://developers.heygen.com/image-to-video-1), [Create Video](https://developers.heygen.com/reference/create-video), [3rd-party voices](https://help.heygen.com/en/articles/8310663-how-to-integrate-elevenlabs-other-third-party-voices).
+
+### Implementação recomendada no Mandato Digital (Fase 3.3)
 
 1. Secret `ELEVENLABS_API_KEY` no Firebase App Hosting.
-2. Fluxo Curador: usuário grava áudio → clone no **ElevenLabs** (qualidade superior, limite próprio da conta ElevenLabs).
-3. Criativo: `POST /api/heygen/videos` passa `voice_id` ElevenLabs + `engine_type: elevenlabs`.
-4. **Desativar** clone HeyGen (`POST /v3/voices/clone`) como path default — mantém fallback com flag.
+2. Curador: amostra de voz → clone no **ElevenLabs**.
+3. Criativo: TTS do roteiro no ElevenLabs → URL → HeyGen com **`audio_url`** (lipsync only).
+4. Clone HeyGen (`POST /v3/voices/clone`) vira **fallback** via flag — default desligado após spike OK.
+5. Até lá: reuso agressivo + cap no limite 10 (já em `heygen-voice-resolve`).
 
-**Limite 10 vozes HeyGen:** deixa de ser gargalo se voz primária for ElevenLabs.
+**Limite 10 vozes HeyGen:** deixa de ser gargalo no path B.
 
-**Spike 1 dia:** provar lip-sync quality A/B HeyGen-native vs ElevenLabs no mesmo avatar foto.
+**Spike 1 dia:** A/B lip-sync qualidade + custo no mesmo avatar foto (HeyGen-native vs ElevenLabs→audio_url).
 
 ---
 

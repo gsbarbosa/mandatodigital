@@ -51,7 +51,11 @@ function resolveDrawtextFontFile() {
     return fromEnv;
   }
 
+  const cwd = process.cwd();
   const candidates = [
+    // Bundled for Cloud Run / App Hosting (sem fontes de sistema).
+    path.join(cwd, "assets", "fonts", "DejaVuSans.ttf"),
+    path.join(cwd, ".next", "standalone", "assets", "fonts", "DejaVuSans.ttf"),
     "/System/Library/Fonts/Supplemental/Arial.ttf",
     "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
     "/Library/Fonts/Arial.ttf",
@@ -63,6 +67,16 @@ function resolveDrawtextFontFile() {
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
+function requireDrawtextFontFile() {
+  const fontFile = resolveDrawtextFontFile();
+  if (!fontFile) {
+    throw new Error(
+      "Fonte para selo TSE ausente. Inclua assets/fonts/DejaVuSans.ttf no deploy ou defina TSE_SEAL_FONT_PATH.",
+    );
+  }
+  return fontFile;
+}
+
 function buildDrawtextFilter(input: {
   text: string;
   fontSize: number;
@@ -70,10 +84,9 @@ function buildDrawtextFilter(input: {
   yExpr: string;
 }) {
   const label = escapeDrawtext(input.text);
-  const fontFile = resolveDrawtextFontFile();
-  const fontPart = fontFile ? `fontfile=${escapeDrawtext(fontFile)}:` : "";
+  const fontFile = requireDrawtextFontFile();
   return (
-    `drawtext=${fontPart}text='${label}':fontsize=${input.fontSize}:fontcolor=white:` +
+    `drawtext=fontfile=${escapeDrawtext(fontFile)}:text='${label}':fontsize=${input.fontSize}:fontcolor=white:` +
     `box=1:boxcolor=black@0.6:boxborderw=8:x=${input.x}:y=${input.yExpr}`
   );
 }

@@ -33,7 +33,7 @@ Documento para alinhamento com **Tars** (avaliação técnica de ferramentas/API
 | 2.x Validador / fact-check | Auditor mock; aprovação roteiro no Criativo **sem** fact-check | Novo serviço + UI gate no Criativo |
 | 3.1 Escala varejo | Cloud Run max 10 inst.; cache Sentinela in-memory | Cache Supabase, filas, rate limit |
 | 3.2 Selo TSE IA | Só marketing (landing) | Overlay vídeo + metadados |
-| 3.3 ElevenLabs voz | Só HeyGen clone | Spike HeyGen+ElevenLabs ou TTS externo |
+| 3.3 ElevenLabs voz | Só HeyGen clone (+reuso/cap 10) | TTS ElevenLabs → `audio_url` na HeyGen (sai do limite 10) |
 | 3.4 Backgrounds | Não existe | HeyGen background / pós-FFmpeg (P4) |
 
 ---
@@ -235,15 +235,25 @@ Aprovar roteiro → fact-check roteiro vs matéria Sentinela (se veio de sinal)
 
 **Não quebrar:** vídeos antigos sem selo continuam reproduzíveis; selo só em novos.
 
-## 3.3 ElevenLabs via HeyGen
+## 3.3 ElevenLabs → áudio → HeyGen (escala de voz)
 
-**Tars deve validar:** HeyGen docs — voice ID externo / ElevenLabs API bridge.
+**Problema:** clone nativo HeyGen (`POST /v3/voices/clone`) tem **limite ~10 por conta da plataforma**. Com key SaaS compartilhada, N usuários retreinando esgotam a cota.
 
-**Plano B se não existir integração nativa:**
-- Gerar áudio ElevenLabs → upload como asset → HeyGen lip-sync (se API permitir audio-driven).
-- **Plano C:** manter HeyGen voice clone com purge automático de clones antigos (LRU na conta).
+**Caminho canônico (pós spike):**
 
-**Eliminar limite 10:** voz compartilhada por campanha + ElevenLabs por usuário pago (modelo SaaS).
+1. Secret `ELEVENLABS_API_KEY` no App Hosting.
+2. Curador: áudio de amostra → **clone Instant Voice / IVC no ElevenLabs** (cota deles).
+3. Criativo: TTS do roteiro no ElevenLabs → URL pública do MP3.
+4. HeyGen: gerar vídeo com **`audio_url` / `audio_asset_id`** (lipsync), **sem** `voice_id` de clone HeyGen.
+5. Flag `HEYGEN_VOICE_PROVIDER=elevenlabs_audio | heygen_clone` — default `heygen_clone` até o spike passar; depois `elevenlabs_audio`.
+
+**Alternativa API (secundária):** `voice_id` ElevenLabs + `engine_type: elevenlabs` na Create Video da HeyGen (se o plano/API da conta permitir sem atrito). Preferir **áudio pronto** — desacopla 100% do limite 10.
+
+**Fallback:** manter reuso agressivo do clone HeyGen (já no código: `heygen-voice-resolve`) + limpeza manual de órfãos no painel (API sem DELETE de voz).
+
+**Modelo comercial (decisão pendente):** conta ElevenLabs única da plataforma vs BYOK por campanha paga.
+
+**Spike 1 dia:** A/B lip-sync no mesmo avatar foto — (A) clone HeyGen + script vs (B) ElevenLabs TTS + `audio_url`. Critério: naturalidade + latência + custo/minuto.
 
 ## 3.4 Backgrounds (P4 — se sobrar tempo)
 
@@ -261,10 +271,11 @@ Semana 2–3    Fase 1.1 + 1.2.1 + 1.2.3 (LLM expansion, manual, portais+trends)
 Semana 4      Fase 1.2.4 (semantic track) + início 1.2.2 se Tars aprovar Instagram
 Semana 5–6    Fase 2 Validador (2.1–2.4)
 Semana 6–7    Fase 3.2 selo metadados + 3.1 rate limit
-Semana 8      Fase 3.2 overlay + 3.3 ElevenLabs (se spike OK)
+Semana 8      Fase 3.3 spike A/B + ElevenLabs TTS → audio_url HeyGen (default pós-OK)
 Backlog       3.4 backgrounds
 ```
 
+**Meta voz SaaS:** após spike, clone HeyGen deixa de ser default — só fallback via flag.
 **Meta 30/:** Instagram pipeline (1.2.2) pode ser branch dedicada paralela à Fase 2 se spike fechar na semana 1.
 
 ---
@@ -310,4 +321,4 @@ Só então iniciar Fase 1.1 (expansão LLM).
 | Validador | Top 10 auto-check; gate roteiro; consent + log TSE; prompt livre exempt |
 | Escala | Rate limits; cache Supabase; spike 50 usuários simulados OK |
 | Selo TSE | 100% novos vídeos com metadados + overlay visível |
-| ElevenLabs | Áudio A/B aprovado vs HeyGen clone OU decisão documentada de manter HeyGen |
+| ElevenLabs | Áudio A/B aprovado (clone HeyGen vs TTS→`audio_url`) **e** default Flag 3.3; OU decisão documentada de manter HeyGen clone |
