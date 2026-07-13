@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatHeyGenAvatarGroupLockMessage,
   formatHeyGenPurgeFailureMessage,
+  formatProviderLimitHint,
   sanitizeProviderFacingMessage,
 } from "./curador-heygen-prefs";
 
@@ -50,5 +51,15 @@ describe("formatHeyGenPurgeFailureMessage", () => {
     expect(formatHeyGenPurgeFailureMessage(undefined, "Falha generica")).toBe(
       "Falha generica",
     );
+  });
+});
+
+describe("formatProviderLimitHint", () => {
+  it("explica limite de clones de voz", () => {
+    const hint = formatProviderLimitHint(
+      "Voice clone limit reached (10). Delete unused clones or contact support to increase your limit.",
+    );
+    expect(hint).toContain("Limite de clones de voz");
+    expect(hint).toContain("biblioteca de vozes");
   });
 });

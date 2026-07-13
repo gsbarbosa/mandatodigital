@@ -1,0 +1,47 @@
+<<<<<< DEMANDAS ATUAIS / PRIORIDADES >>>>>>>
+
+NOS VÍDEOS
+- Marca dagua no rodapé da imagem/vídeo (hardcoded) com contraste Dinâmico e Posicionamento Contínuo do texto: "Imagem e voz sintéticas geradas por IA - Res. TSE 23.732". Contraste Dinâmico: Como você não sabe se o fundo do vídeo será claro ou escuro, o selo precisa ter uma caixa de fundo semitransparente (geralmente preta com 60% de opacidade) e texto branco. Posicionamento canto inferior esquerdo - para não conflitar com as legendas.
+
+NO ACEITE DO CONTRATO (tela informar CNPJ)
+- No momento em que o usuário marca o box "Li e aceito o Contrato de Prestação de Serviços Eleitorais" e clica em assinar/pagar, capturar: O endereço IP do usuário; O Timestamp exato (Data, hora, minuto, segundo e fuso horário); O User Agent (navegador e sistema operacional utilizado); Um hash criptográfico da versão exata que estava no ar naquele segundo. O payload capturado deve acionar um script p montagem do documento. O sistema compila o texto padrão, preenche a qualificação completa das partes (EatEasy e a Campanha) e gera um arquivo PDF formal. Ver documento atuais e partes "em amarelo" para substituição.
+- Disparo automático do e-mail para o cliente (e com cópia para o painel interno da plataforma) contendo: PDF do Contrato consolidado; Dossiê de Transparência de IA; Nota Fiscal da transação (via PIX ou Boleto)
+- Garante que CNPJ possui a natureza jurídica de "Comitê Financeiro" ou "Candidato a Cargo Político Eletivo"
+- Nota-fiscal - Faturamento contra o CNPJ de Campanha em CNAEs autorizado pelo TSE. Boleto Bancário Registrado (com QR Code PIX embutido). QR Code PIX (atrelado à chave CNPJ da EatEasy)
+
+NAS TELAS DE DOWNLOADS??
+- Para os usuários que clicarem no botão "Download" ou "Exportar Material", o sistema deve interceptar a ação com um modal (pop-up) de aceite obrigatório. Exiba a seguinte mensagem com um checkbox obrigatório:
+Aviso de Conformidade - Justiça Eleitoral
+Ao exportar este material para publicação, você assume a responsabilidade integral de incluir na legenda da rede social o aviso de uso de Inteligência Artificial, conforme exigido pela Resolução 23.732 do TSE. O vídeo já contém a marca d'água exigida por lei.
+[ ] Estou ciente e assumo a responsabilidade pela publicação manual.
+[ BOTÃO: Confirmar e Baixar ]
+
+PARTE DE IDENTIFICACAO DO CLIENTE
+No formulário de checkout da EatEasy, quando o cliente inserir o CNPJ, sua aplicação não deve apenas aceitar o número.
+O evento deve acionar um webhook que consulta uma API de dados públicos (como a ReceitaWS ou similar) para garantir que aquele CNPJ possui a natureza jurídica de "Comitê Financeiro" ou "Candidato a Cargo Político Eletivo".
+
+
+
+
+
+<<<<<< DEMANDAS QUE PODEMOS FAZER DEPOIS >>>>>>
+
+SOB DEMANDA DO CANDIDATO (botao escondido para ele solicitar isso daqui para gente)
+- Materialidade contra caixa 2: emissão de relatório mensal com: Log de acessos do candidato; Quantidade de postagens geradas; Screenshots de publicações; entregue junto com a Nota Fiscal.
+
+PARTE DE PAGAMENTO
+- QR Code PIX (atrelado à chave CNPJ da EatEasy). Configure a sua plataforma de pagamentos (via webhook) para liberar as credenciais de acesso ao ecossistema de agentes de IA somente após a liquidação automática do PIX ou do boleto. A transação financeira precisará fechar perfeitamente com a Nota Fiscal do serviço, que deve ser emitida com o valor exato recebido e atrelada ao CNPJ de Campanha do candidato. PIX Copia e Cola: com chave vinculada exclusivamente ao nosso CNPJ corporativo.
+- Boleto Bancário Registrado (com QR Code PIX embutido): documentacao tradicional de campanha e possibilidade de pagamnto e acesso rápico. É a melhor 2ª alternativa de pagamento. Ideal para as rotinas de aprovação da sua tesouraria.
+
+NOTA-FISCAL
+(Faturamento contra o CNPJ de Campanha)
+- O texto no corpo da Nota Fiscal continua o mesmo, pois ele abraça toda a solução do Mandato Digital:  
+"Licenciamento temporário de plataforma de software (SaaS) - Mandato Digital - e provimento de conteúdo digital sob demanda para gestão de comunicação, monitoramento de dados na internet e suporte à presença digital da campanha eleitoral. Período de competência: [MÊS/ANO]. Contrato ref. [NÚMERO].
+- "Na hora de emitir a NF no sistema da prefeitura, você escolherá o CNAE com base no "peso" do serviço vendido:
+- Opção A (Foco na Plataforma como um todo): Se o candidato contratou a linha de montagem completa (todos os agentes).CNAE a selecionar: 62.03-1-00 (Desenvolvimento e licenciamento de programas não-customizáveis).  
+- Opção B (Foco na Produção Visual): Se o candidato contratou o sistema focado majoritariamente na entrega dos Avatares e Vídeos Faceless.  CNAE a selecionar: 63.19-4-00 (Portais, provedores de conteúdo e outros serviços de informação na internet).  
+- Opção C (Foco na Inteligência e Monitoramento): Se o candidato contratou a ferramenta dando ênfase total ao monitoramento de pautas, alertas e mapeamento de adversários executado pelo Agente Sentinela.  CNAE a selecionar: 63.11-9-00 (Tratamento de dados, provedores de serviços de aplicação e serviços de hospedagem na internet).  
+- Aviso para dar ao Contador da Campanha:"Sugerimos lançar esta NF no sistema SPCE do TSE na categoria 'Despesas com criação e inclusão de páginas na internet' ou 'Serviços prestados por terceiros'".
+
+NO SISTEMA
+- "Kill Switch" do Silêncio Eleitoral (Trava de 72 horas antes e 24h após eleição). Sistema fica sem gerar conteúdo. Exibir banner: "Funcionalidade bloqueada em respeito ao silêncio eleitoral (Res. TSE 23.732). O monitoramento do Agente Sentinela continua ativo."

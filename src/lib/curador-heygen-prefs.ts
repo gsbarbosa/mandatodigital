@@ -188,7 +188,7 @@ export function formatProviderLimitHint(message: string): string | null {
   if (normalized.includes("voice clone limit")) {
     hints.push(
       "Limite de clones de voz (10 na conta): remova clones antigos que não usa na biblioteca de vozes do painel. " +
-        "Depois use Refazer no card Caricatura e treine de novo, ou reutilize a voz já vinculada.",
+        "Depois gere de novo reutilizando a voz já vinculada — não apague o vínculo local só para 'Refazer'.",
     );
   }
 

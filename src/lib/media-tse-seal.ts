@@ -4,7 +4,11 @@ import fsPromises from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { TSE_SEAL_OVERLAY_TEXT, TSE_SEAL_VERSION } from "@/lib/creative-ai-metadata";
+import {
+  GUEST_TEST_WATERMARK_TEXT,
+  TSE_SEAL_OVERLAY_TEXT,
+  TSE_SEAL_VERSION,
+} from "@/lib/creative-ai-metadata";
 import { resolveFfmpegBinary } from "@/lib/ffmpeg-binary";
 import { storeComplianceBuffer } from "@/lib/legal/contract-storage";
 
@@ -59,19 +63,49 @@ function resolveDrawtextFontFile() {
   return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
 }
 
-function buildDrawtextFilter(fontSize: number, x: number, yExpr: string) {
-  const label = escapeDrawtext(TSE_SEAL_OVERLAY_TEXT);
+function buildDrawtextFilter(input: {
+  text: string;
+  fontSize: number;
+  x: number;
+  yExpr: string;
+}) {
+  const label = escapeDrawtext(input.text);
   const fontFile = resolveDrawtextFontFile();
   const fontPart = fontFile ? `fontfile=${escapeDrawtext(fontFile)}:` : "";
   return (
-    `drawtext=${fontPart}text='${label}':fontsize=${fontSize}:fontcolor=white:` +
-    `box=1:boxcolor=black@0.6:boxborderw=8:x=${x}:y=${yExpr}`
+    `drawtext=${fontPart}text='${label}':fontsize=${input.fontSize}:fontcolor=white:` +
+    `box=1:boxcolor=black@0.6:boxborderw=8:x=${input.x}:y=${input.yExpr}`
   );
+}
+
+function buildVideoVf(guestTestWatermark: boolean) {
+  const layers = [
+    buildDrawtextFilter({
+      text: TSE_SEAL_OVERLAY_TEXT,
+      fontSize: 18,
+      x: 24,
+      yExpr: "h-th-24",
+    }),
+  ];
+
+  if (guestTestWatermark) {
+    layers.push(
+      buildDrawtextFilter({
+        text: GUEST_TEST_WATERMARK_TEXT,
+        fontSize: 16,
+        x: 24,
+        yExpr: "h-th-56",
+      }),
+    );
+  }
+
+  return layers.join(",");
 }
 
 export async function burnTseSealOnVideoBuffer(input: {
   buffer: Buffer;
   filename?: string;
+  guestTestWatermark?: boolean;
 }): Promise<Buffer> {
   const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "md-tse-seal-"));
   const inputPath = path.join(tmpDir, "input.mp4");
@@ -79,14 +113,14 @@ export async function burnTseSealOnVideoBuffer(input: {
 
   try {
     await fsPromises.writeFile(inputPath, input.buffer);
-    const drawtext = buildDrawtextFilter(18, 24, "h-th-24");
+    const vf = buildVideoVf(Boolean(input.guestTestWatermark));
 
     await runFfmpeg([
       "-y",
       "-i",
       inputPath,
       "-vf",
-      drawtext,
+      vf,
       "-c:v",
       "libx264",
       "-preset",
@@ -109,6 +143,7 @@ export async function burnTseSealOnVideoBuffer(input: {
 export async function sealRemoteVideo(input: {
   videoUrl: string;
   mediaId: string;
+  guestTestWatermark?: boolean;
 }) {
   const response = await fetch(input.videoUrl);
   if (!response.ok) {
@@ -116,7 +151,10 @@ export async function sealRemoteVideo(input: {
   }
 
   const source = Buffer.from(await response.arrayBuffer());
-  const sealed = await burnTseSealOnVideoBuffer({ buffer: source });
+  const sealed = await burnTseSealOnVideoBuffer({
+    buffer: source,
+    guestTestWatermark: input.guestTestWatermark,
+  });
   const stored = await storeComplianceBuffer({
     relativePath: `sealed/${input.mediaId}.mp4`,
     buffer: sealed,
@@ -128,12 +166,14 @@ export async function sealRemoteVideo(input: {
     storagePath: stored.storagePath,
     sealVersion: TSE_SEAL_VERSION,
     overlayText: TSE_SEAL_OVERLAY_TEXT,
+    guestTestWatermark: Boolean(input.guestTestWatermark),
   };
 }
 
 export async function burnTseSealOnImageBuffer(input: {
   buffer: Buffer;
   mimeType: string;
+  guestTestWatermark?: boolean;
 }): Promise<Buffer> {
   const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "md-tse-img-"));
   const ext = input.mimeType.includes("png") ? ".png" : ".jpg";
@@ -142,8 +182,25 @@ export async function burnTseSealOnImageBuffer(input: {
 
   try {
     await fsPromises.writeFile(inputPath, input.buffer);
-    const drawtext = buildDrawtextFilter(16, 16, "h-th-16");
-    await runFfmpeg(["-y", "-i", inputPath, "-vf", drawtext, outputPath]);
+    const layers = [
+      buildDrawtextFilter({
+        text: TSE_SEAL_OVERLAY_TEXT,
+        fontSize: 16,
+        x: 16,
+        yExpr: "h-th-16",
+      }),
+    ];
+    if (input.guestTestWatermark) {
+      layers.push(
+        buildDrawtextFilter({
+          text: GUEST_TEST_WATERMARK_TEXT,
+          fontSize: 14,
+          x: 16,
+          yExpr: "h-th-44",
+        }),
+      );
+    }
+    await runFfmpeg(["-y", "-i", inputPath, "-vf", layers.join(","), outputPath]);
     return await fsPromises.readFile(outputPath);
   } finally {
     await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);

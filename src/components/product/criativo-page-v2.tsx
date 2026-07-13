@@ -469,7 +469,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   function showUserError(setter: (value: string | null) => void, error: unknown) {
     const raw = error instanceof Error ? error.message : "Ocorreu um erro inesperado.";
-    setter(sanitizeProviderFacingMessage(raw));
+    const hint = formatProviderLimitHint(raw);
+    const sanitized = sanitizeProviderFacingMessage(raw);
+    setter(hint && /voice clone limit/i.test(raw) ? hint : sanitized);
   }
 
   function syncTrainingBannerFromTwinLook(look: TwinLookDisplayMeta | null) {
@@ -653,26 +655,25 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     heygenVideoId: string;
     videoUrl: string;
   }) {
-    try {
-      const response = await fetch("/api/media/seal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          videoUrl: input.videoUrl,
-          mediaId: input.heygenVideoId,
-        }),
-      });
-      const payload = await parseJsonOrText<{
-        sealedUrl?: string;
-        message?: string;
-      }>(response);
-      if (!response.ok || !payload.sealedUrl?.trim()) {
-        return { videoUrl: input.videoUrl, sealed: false };
-      }
-      return { videoUrl: payload.sealedUrl.trim(), sealed: true };
-    } catch {
-      return { videoUrl: input.videoUrl, sealed: false };
+    const response = await fetch("/api/media/seal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        videoUrl: input.videoUrl,
+        mediaId: input.heygenVideoId,
+      }),
+    });
+    const payload = await parseJsonOrText<{
+      sealedUrl?: string;
+      message?: string;
+    }>(response);
+    if (!response.ok || !payload.sealedUrl?.trim()) {
+      throw new Error(
+        payload.message?.trim() ||
+          "Nao foi possivel aplicar a marca d'agua TSE no video. O download sem selo nao e liberado.",
+      );
     }
+    return { videoUrl: payload.sealedUrl.trim(), sealed: true as const };
   }
 
   async function persistCreativeProject(input: {
@@ -1439,8 +1440,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     const confirmed = window.confirm(
       isCaricatureTrack
         ? "Refazer a caricatura?\n\n" +
-            "A voz vinculada na plataforma será limpa para um novo treino com foto e áudio. " +
-            "O gêmeo digital não será apagado.\n\n" +
+            "A voz já vinculada na plataforma será reutilizada (não cria clone novo). " +
+            "Só a seleção de caricatura será reiniciada. O gêmeo digital não será apagado.\n\n" +
             "As imagens caricatas já geradas permanecem salvas no perfil."
         : "Refazer o gêmeo digital?\n\n" +
             "Apenas o gêmeo atual será apagado na plataforma. A voz e as caricaturas não serão removidas.\n\n" +
@@ -1453,19 +1454,20 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     setIsDeletingTwinGroup(true);
     try {
       let successMessage = isCaricatureTrack
-        ? "Pronto para gerar novamente. Clique em \"Gerar\" na variante desejada no Curador."
+        ? "Pronto para gerar novamente. Clique em \"Gerar\" na variante desejada. A voz vinculada foi mantida."
         : "Pronto para treinar um novo gêmeo. Envie áudio e vídeo abaixo.";
 
       if (isCaricatureTrack) {
-        setHeygenVoiceId("");
+        // Mantém heygenVoiceId — limpar orphanizaria o clone remoto (limite 10, sem DELETE na API).
         setCaricatureError(null);
         setCaricatureInfo(null);
         setSelectedCaricatureAssetId("");
         setCaricaturePreviewUrl(null);
 
         if (profileIdForPrefs) {
+          const prefs = readCuradorHeygenPrefs(profileIdForPrefs);
           writeCuradorHeygenPrefs(profileIdForPrefs, {
-            heygenVoiceId: "",
+            ...prefs,
             lastCaricatureAssetId: "",
             avatarTrack: "caricature",
             productionSource: "train_new",
@@ -1929,11 +1931,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       savedCaricatureId &&
       !sortedCaricatureAssets.some((asset) => asset.id === savedCaricatureId)
     ) {
-      setHeygenVoiceId("");
+      // Caricatura sumiu: limpa só o vínculo da imagem; mantém a voz (limite HeyGen).
       writeCuradorHeygenPrefs(profileIdForPrefs, {
         ...prefs,
-        heygenVoiceId: "",
-        heygenVoiceAudioAssetId: "",
         lastCaricatureAssetId: "",
       });
     }

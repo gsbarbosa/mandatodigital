@@ -1112,10 +1112,7 @@ export function CuradorPage() {
                   {isVideoReady({ status: videoStatus ?? "", videoUrl }) && videoUrl && (
                     <>
                       <p className="persona-helper-text">
-                        Video final com lip-sync:{" "}
-                        <a href={videoUrl} data-testid="argil-video-final-link">
-                          abrir
-                        </a>
+                        Video final com lip-sync pronto para exportacao com aceite de conformidade.
                       </p>
                       <video
                         className="persona-video-player"
