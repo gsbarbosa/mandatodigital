@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { ExportComplianceModal } from "@/components/product/export-compliance-modal";
 import { formatCreativeProjectTitle } from "@/lib/creative-project-display";
+import { withTseCaptionTag } from "@/lib/creative-ai-metadata";
 import { parseJsonOrText } from "@/components/product/persona-shared";
 import type { CreativeProject } from "@/lib/types";
 
@@ -46,6 +48,11 @@ export function CriativoListPage() {
   const [projects, setProjects] = useState<CreativeProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [exportTarget, setExportTarget] = useState<{
+    mediaId: string;
+    mediaUrl: string;
+    projectId: string;
+  } | null>(null);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -165,19 +172,28 @@ export function CriativoListPage() {
 
                     {project.videoUrl ? (
                       <div className="flex shrink-0 items-center gap-3">
-                        <a
-                          href={project.videoUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExportTarget({
+                              mediaId: project.heygenVideoId || project.id,
+                              mediaUrl: project.videoUrl!,
+                              projectId: project.id,
+                            })
+                          }
                           className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all hover:from-cyan-400 hover:to-blue-500"
                         >
                           Ver vídeo
-                        </a>
+                        </button>
                         {project.captionUrl ? (
                           <button
                             type="button"
                             className="inline bg-transparent p-0 text-xs text-cyan-400 hover:text-cyan-300 hover:underline"
-                            onClick={() => void navigator.clipboard.writeText(project.captionUrl!)}
+                            onClick={() =>
+                              void navigator.clipboard.writeText(
+                                withTseCaptionTag(project.captionUrl!),
+                              )
+                            }
                           >
                             Copiar legenda
                           </button>
@@ -191,6 +207,18 @@ export function CriativoListPage() {
           ) : null}
         </section>
       </div>
+      {exportTarget ? (
+        <ExportComplianceModal
+          open
+          mediaId={exportTarget.mediaId}
+          mediaUrl={exportTarget.mediaUrl}
+          projectId={exportTarget.projectId}
+          onClose={() => setExportTarget(null)}
+          onConfirmed={(url) => {
+            window.open(url, "_blank", "noopener,noreferrer");
+          }}
+        />
+      ) : null}
     </div>
   );
 }

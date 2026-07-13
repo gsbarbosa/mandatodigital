@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
+import { getSessionUser } from "@/lib/auth/session";
+import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
   CARICATURE_VARIANT_FILENAMES,
+  caricatureVariantLabel,
   type CaricatureVariant,
 } from "@/lib/openai-caricature-prompts";
 import {
@@ -19,6 +22,10 @@ import {
   pickAvatarImageAndVoiceAudioAssets,
   resolveAppBaseUrl,
 } from "@/lib/training-asset-urls";
+import {
+  guestCaricatureQuota,
+  MAX_GUEST_CARICATURES_PER_VARIANT,
+} from "@/lib/caricature-asset-variant";
 
 export const maxDuration = 120;
 
@@ -62,6 +69,22 @@ export async function POST(request: Request) {
         }
 
         const assets = await repository.listTrainingAssetsForReference(referenceId);
+        const sessionUser = await getSessionUser();
+        const premium = await isPremiumAccountMode(sessionUser?.email);
+        if (!premium) {
+          const quota = guestCaricatureQuota({ assets, variant });
+          if (quota.reached) {
+            const styleLabel = caricatureVariantLabel(variant);
+            return NextResponse.json(
+              {
+                message: `Limite da versão para convidados atingido: no máximo ${MAX_GUEST_CARICATURES_PER_VARIANT} gerações de ${styleLabel} por conta.`,
+                quota,
+              },
+              { status: 429 },
+            );
+          }
+        }
+
         const sourceAssetId = String(body.sourceAssetId ?? "").trim();
 
         const sourceAsset = sourceAssetId

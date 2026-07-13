@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { isSentinelLlmExpansionEnabled } from "@/lib/feature-flags";
 import { parseJsonResponse, requestStructuredJson } from "@/lib/llm";
+import { resolveSentinelThemeSpheres, unionSentinelThemes } from "@/lib/sentinel-profile-themes";
 import { sentinelStorage, type SentinelThemeExpansionRecord } from "@/lib/sentinel-storage";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -109,9 +110,64 @@ export async function generateThemeExpansionTerms(
 }
 
 export function collectExpansionSourceThemes(profile: PoliticianProfile) {
-  return [...new Set([...profile.sentinelThemes, ...profile.oppositionThemes].map(normalizeTheme))]
+  const spheres = resolveSentinelThemeSpheres(profile);
+  const interest = unionSentinelThemes(spheres);
+  return [...new Set([...interest, ...profile.oppositionThemes].map(normalizeTheme))]
     .filter(Boolean)
     .slice(0, MAX_THEMES_PER_RUN);
+}
+
+function themeKey(theme: string) {
+  return normalizeTheme(theme).toLowerCase();
+}
+
+/** Mantém só expansões dos temas ativos no radar salvo (sem duplicatas). */
+export function filterExpansionsForProfile(
+  expansions: SentinelThemeExpansion[],
+  profile: PoliticianProfile,
+): SentinelThemeExpansion[] {
+  const active = new Set(collectExpansionSourceThemes(profile).map(themeKey));
+  const seen = new Set<string>();
+  const result: SentinelThemeExpansion[] = [];
+
+  for (const row of expansions) {
+    const key = themeKey(row.sourceTheme);
+    if (!active.has(key) || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(row);
+  }
+
+  return result.sort((left, right) =>
+    left.sourceTheme.localeCompare(right.sourceTheme, "pt-BR"),
+  );
+}
+
+export type ThemeExpansionsBySphere = {
+  federal: SentinelThemeExpansion[];
+  estadual: SentinelThemeExpansion[];
+  opposition: SentinelThemeExpansion[];
+};
+
+/** Agrupa expansões filtradas por esfera do radar salvo. */
+export function groupExpansionsBySphere(
+  expansions: SentinelThemeExpansion[],
+  profile: PoliticianProfile,
+): ThemeExpansionsBySphere {
+  const filtered = filterExpansionsForProfile(expansions, profile);
+  const spheres = resolveSentinelThemeSpheres(profile);
+  const federalKeys = new Set(spheres.federal.map(themeKey));
+  const estadualKeys = new Set(spheres.estadual.map(themeKey));
+  const oppositionKeys = new Set(
+    profile.oppositionThemes.map(normalizeTheme).filter(Boolean).map(themeKey),
+  );
+
+  return {
+    federal: filtered.filter((row) => federalKeys.has(themeKey(row.sourceTheme))),
+    estadual: filtered.filter((row) => estadualKeys.has(themeKey(row.sourceTheme))),
+    opposition: filtered.filter((row) => oppositionKeys.has(themeKey(row.sourceTheme))),
+  };
 }
 
 export async function syncSentinelThemeExpansions(profile: PoliticianProfile) {
@@ -171,6 +227,16 @@ export async function loadSentinelThemeExpansions(profileId: string) {
   }
 
   return sentinelStorage.readThemeExpansions(profileId);
+}
+
+export async function loadSentinelThemeExpansionsForProfile(profile: PoliticianProfile) {
+  const profileId = profile.id?.trim();
+  if (!profileId || profileId === "default") {
+    return [];
+  }
+
+  const expansions = await loadSentinelThemeExpansions(profileId);
+  return filterExpansionsForProfile(expansions, profile);
 }
 
 export function flattenExpansionSearchTerms(expansions: SentinelThemeExpansion[]) {

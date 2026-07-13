@@ -135,6 +135,12 @@ env:
     availability:
       - RUNTIME
 
+  # Spike qualidade — off até validar custo/métrica (docs/spike-sentinela-qualidade.md)
+  - variable: SENTINEL_LLM_QUALITY_RANK
+    value: "false"
+    availability:
+      - RUNTIME
+
   - variable: APIFY_API_TOKEN
     secret: apify-api-token
     availability:
@@ -144,6 +150,22 @@ env:
   # Validador Fase 2 — fact-check no Criativo e top 10 Sentinela
   - variable: AUDITOR_FACTCHECK_ENABLED
     value: "true"
+    availability:
+      - RUNTIME
+
+  # Compliance — e-mail Contrato + Dossiê (Resend)
+  - variable: RESEND_API_KEY
+    secret: resend-api-key
+    availability:
+      - RUNTIME
+
+  - variable: EMAIL_FROM
+    value: Mandato Digital <tribeiro81@gmail.com>
+    availability:
+      - RUNTIME
+
+  - variable: EMAIL_INTERNAL_COPY
+    value: tribeiro81@gmail.com
     availability:
       - RUNTIME
 

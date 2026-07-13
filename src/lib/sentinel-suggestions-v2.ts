@@ -145,6 +145,7 @@ function classifyArticle(
 ): ClassifiedArticle | null {
   const haystack = `${article.title} ${article.sourceName ?? ""} ${article.siteHost ?? ""}`;
   const themes = splitProfileThemesBySphere(profile);
+  const activeInterest = new Set(themes.interest.map((theme) => theme.toLowerCase()));
   const expansionByTerm = buildExpansionTermMap(context.expansions);
 
   const matchedCustom = matchLiteralThemes(haystack, themes.municipalCustom);
@@ -152,7 +153,9 @@ function classifyArticle(
     matchExpandedTerms(haystack, context.expandedTerms),
     profile,
   );
-  const matchedFromExpansion = mapExpandedToSourceThemes(matchedExpanded, expansionByTerm);
+  const matchedFromExpansion = mapExpandedToSourceThemes(matchedExpanded, expansionByTerm).filter(
+    (theme) => activeInterest.has(theme.toLowerCase()),
+  );
   const matchedFederal = matchSentinelThemes(haystack, themes.federal);
   const matchedEstadual = matchSentinelThemes(haystack, themes.estadual);
   const matchedInterest = [
@@ -174,7 +177,7 @@ function classifyArticle(
     fromExpansion: matchedFromExpansion,
   });
 
-  if (!themeLabel) {
+  if (!themeLabel || !activeInterest.has(themeLabel.toLowerCase())) {
     return null;
   }
 

@@ -110,7 +110,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                     ref={photoInputRef}
                     type="file"
                     className="hidden"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
                     disabled={isUploadingAvatarImageAsset}
                     onChange={(event) => {
                       const file = event.target.files?.[0];

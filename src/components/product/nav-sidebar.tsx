@@ -6,6 +6,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { APP_VERSION } from "@/lib/app-version";
+import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
 import { useEarlyAccess } from "@/lib/early-access";
 
 type NavChild = {
@@ -59,6 +61,7 @@ const NAV_BLOCKS: NavBlock[] = [
       { label: "Gêmeo Digital", href: "/avatares/foto-real" },
       { label: "Caricato", href: "/avatares/caricato" },
       { label: "Mascote 3D", href: "/avatares/3d" },
+      { label: "Configurar avatar", href: "/avatares/foto-real/treinar", variant: "settings" },
     ],
   },
 ];
@@ -109,7 +112,16 @@ function isChildActive(
     return false;
   }
 
-  return pathname === path || pathname.startsWith(`${path}/`);
+  if (pathname === path) {
+    return true;
+  }
+
+  // Hub do avatar não fica ativo em /treinar (item de configuração separado).
+  if (pathname.startsWith(`${path}/treinar`)) {
+    return false;
+  }
+
+  return pathname.startsWith(`${path}/`);
 }
 
 function navParentClassName(active: boolean) {
@@ -186,7 +198,9 @@ export function NavSidebar({
   }, [pathname, syncActiveHash]);
 
   const [earlyAccess] = useEarlyAccess();
+  const [emailMenuOpen, setEmailMenuOpen] = useState(false);
   const cnpjPending = !earlyAccess.cnpj;
+  const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
 
   const earlyAccessChildren: NavChild[] = [
     { label: "Dados Pessoais", href: "/acesso-antecipado/dados" },
@@ -208,6 +222,12 @@ export function NavSidebar({
         >
           <BrandLogo fluid priority />
         </Link>
+        <p
+          className="mt-2 text-center text-[10px] font-normal tracking-wide text-slate-600 select-none"
+          aria-label={`Versão ${APP_VERSION}`}
+        >
+          v{APP_VERSION}
+        </p>
       </div>
 
       <nav className="flex-1 p-4 space-y-5">
@@ -314,17 +334,39 @@ export function NavSidebar({
       </nav>
 
       {sessionEmail ? (
-        <div className="p-4 border-t border-slate-800/50 flex items-center justify-between gap-2">
-          <span className="text-xs text-slate-500 truncate" title={sessionEmail}>
-            {sessionEmail}
-          </span>
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="text-xs text-slate-400 hover:text-white border border-slate-700 rounded-lg px-2.5 py-1 transition-colors shrink-0"
-          >
-            Sair
-          </button>
+        <div className="p-4 border-t border-slate-800/50 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            {canToggleAccountMode ? (
+              <button
+                type="button"
+                onClick={() => setEmailMenuOpen((open) => !open)}
+                className="text-xs text-slate-500 truncate text-left hover:text-slate-400 transition-colors"
+                title={sessionEmail}
+              >
+                {sessionEmail}
+              </button>
+            ) : (
+              <span className="text-xs text-slate-500 truncate" title={sessionEmail}>
+                {sessionEmail}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="text-xs text-slate-400 hover:text-white border border-slate-700 rounded-lg px-2.5 py-1 transition-colors shrink-0"
+            >
+              Sair
+            </button>
+          </div>
+          {canToggleAccountMode && emailMenuOpen ? (
+            <Link
+              href={"/dev/modo-conta" as Route}
+              className="block text-[10px] tracking-wide text-slate-600 hover:text-slate-400 transition-colors no-underline"
+              onClick={() => setEmailMenuOpen(false)}
+            >
+              Alternar modo da conta
+            </Link>
+          ) : null}
         </div>
       ) : null}
     </aside>

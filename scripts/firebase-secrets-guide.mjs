@@ -24,6 +24,7 @@ const SECRET_MAP = [
   ["ARGIL_API_KEY", "argil-api-key"],
   ["TRAINING_ASSET_ACCESS_SECRET", "training-asset-access-secret"],
   ["FIREBASE_SERVICE_ACCOUNT_JSON", "firebase-service-account-json"],
+  ["RESEND_API_KEY", "resend-api-key"],
 ];
 
 function loadEnvFile(filePath) {

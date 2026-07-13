@@ -35,6 +35,20 @@ function formatSignalDate(iso?: string): string | null {
   return `${day} - ${time}h`;
 }
 
+function formatSignalDateParts(iso?: string): { date: string; time: string } | null {
+  if (!iso) {
+    return null;
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return {
+    date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }),
+    time: `${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}h`,
+  };
+}
+
 function formatCount(value: number): string {
   if (value >= 1000) {
     return `${(value / 1000).toFixed(1).replace(".", ",").replace(",0", "")}k`;
@@ -113,7 +127,9 @@ export function MonitorSignalCard({
   const article = primarySignalArticle(suggestion);
   const actor = primarySignalActor(suggestion);
   const isNewsCard = Boolean(article) && !oppositionCard;
-  const dateLabel = formatSignalDate(article?.publishedAt ?? actor?.publishedAt);
+  const publishedAt = article?.publishedAt ?? actor?.publishedAt;
+  const dateLabel = formatSignalDate(publishedAt);
+  const dateParts = formatSignalDateParts(publishedAt);
   const socialHeadline =
     oppositionCard && suggestion.topic.includes(" · ")
       ? suggestion.topic.split(" · ").slice(1).join(" · ")
@@ -129,17 +145,47 @@ export function MonitorSignalCard({
     <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 transition-colors">
       <div className="flex flex-col md:flex-row justify-between gap-6">
         <div className="shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-700/50 pb-4 md:pb-0 md:pr-6 md:w-48">
-          <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
-            {oppositionCard ? "Ação da Oposição" : "Tema Principal"}
-          </span>
-          <p className="text-cyan-400 text-sm font-medium mb-3">{suggestion.themeLabel}</p>
-          {dateLabel ? (
-            <div className={`flex items-center gap-2 text-slate-500 text-xs ${oppositionCard ? "mt-2" : ""}`}>
+          {oppositionCard ? (
+            <p className="text-cyan-400 text-sm font-medium mb-3">Post da oposição</p>
+          ) : (
+            <>
+              <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
+                Tema Principal
+              </span>
+              <p className="text-cyan-400 text-sm font-medium mb-3">{suggestion.themeLabel}</p>
+            </>
+          )}
+          {oppositionCard ? (
+            dateParts ? (
+              <div className="mt-2 space-y-3">
+                <div>
+                  <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                    Data
+                  </span>
+                  <p className="text-slate-300 text-xs mt-0.5">{dateParts.date}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                    Hora
+                  </span>
+                  <p className="text-slate-300 text-xs mt-0.5">{dateParts.time}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2">
+                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                  Data
+                </span>
+                <p className="text-slate-300 text-xs mt-0.5">Pauta recente</p>
+              </div>
+            )
+          ) : dateLabel ? (
+            <div className="flex items-center gap-2 text-slate-500 text-xs">
               <ClockIcon />
               {dateLabel}
             </div>
           ) : (
-            <div className={`flex items-center gap-2 text-slate-500 text-xs ${oppositionCard ? "mt-2" : ""}`}>
+            <div className="flex items-center gap-2 text-slate-500 text-xs">
               <ClockIcon />
               Pauta recente
             </div>

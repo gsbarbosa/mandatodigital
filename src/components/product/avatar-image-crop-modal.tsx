@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   ARGIL_LANDSCAPE_RATIO,
   ARGIL_PORTRAIT_RATIO,
   clampArgilCrop,
   computeMaxArgilCrop,
-  loadImageElement,
+  loadImageFromFile,
   renderArgilCropToFile,
   type ArgilCropRect,
 } from "@/lib/argil-image";
@@ -34,37 +34,53 @@ export function AvatarImageCropModal({
   const frameRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
 
-  const imageSrc = useMemo(() => URL.createObjectURL(file), [file]);
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
   const [aspect, setAspect] = useState(ARGIL_PORTRAIT_RATIO);
   const [crop, setCrop] = useState<ArgilCropRect>({ x: 0, y: 0, width: 0, height: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingImage, setIsLoadingImage] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => () => URL.revokeObjectURL(imageSrc), [imageSrc]);
 
   useEffect(() => {
     let cancelled = false;
+    setIsLoadingImage(true);
+    setErrorMessage(null);
+    setImageSrc(null);
+    setImageSize({ width: 0, height: 0 });
+    setDisplaySize({ width: 0, height: 0 });
+    setCrop({ x: 0, y: 0, width: 0, height: 0 });
 
-    void loadImageElement(imageSrc).then((image) => {
-      if (cancelled) {
-        return;
-      }
+    void loadImageFromFile(file)
+      .then((loaded) => {
+        if (cancelled) {
+          return;
+        }
 
-      const width = image.naturalWidth;
-      const height = image.naturalHeight;
-      const initialAspect = width >= height ? ARGIL_LANDSCAPE_RATIO : ARGIL_PORTRAIT_RATIO;
+        const initialAspect =
+          loaded.width >= loaded.height ? ARGIL_LANDSCAPE_RATIO : ARGIL_PORTRAIT_RATIO;
 
-      setImageSize({ width, height });
-      setAspect(initialAspect);
-      setCrop(computeMaxArgilCrop(width, height, initialAspect));
-    });
+        setImageSrc(loaded.displaySrc);
+        setImageSize({ width: loaded.width, height: loaded.height });
+        setAspect(initialAspect);
+        setCrop(computeMaxArgilCrop(loaded.width, loaded.height, initialAspect));
+        setIsLoadingImage(false);
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setIsLoadingImage(false);
+        setErrorMessage(
+          error instanceof Error ? error.message : "Nao foi possivel carregar a imagem.",
+        );
+      });
 
     return () => {
       cancelled = true;
     };
-  }, [imageSrc]);
+  }, [file]);
 
   const syncDisplaySize = useCallback(() => {
     const frame = frameRef.current;
@@ -122,8 +138,7 @@ export function AvatarImageCropModal({
     });
   }
 
-  const displayScale =
-    imageSize.width > 0 ? displaySize.width / imageSize.width : 1;
+  const displayScale = imageSize.width > 0 ? displaySize.width / imageSize.width : 1;
 
   function onCropPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (displayScale === 0) {
@@ -248,7 +263,7 @@ export function AvatarImageCropModal({
         </div>
 
         <div className="persona-crop-frame" ref={frameRef}>
-          {imageSrc ? (
+          {imageSrc && displaySize.width > 0 ? (
             <div
               className="persona-crop-stage"
               style={{ width: displaySize.width, height: displaySize.height }}
@@ -275,7 +290,9 @@ export function AvatarImageCropModal({
               </div>
             </div>
           ) : (
-            <p className="persona-helper-text">Carregando imagem...</p>
+            <p className="persona-helper-text">
+              {isLoadingImage ? "Carregando imagem..." : "Aguardando imagem..."}
+            </p>
           )}
         </div>
 
@@ -292,7 +309,7 @@ export function AvatarImageCropModal({
             className="persona-btn"
             data-testid="avatar-crop-confirm"
             onClick={() => void handleConfirm()}
-            disabled={isSubmitting || crop.width <= 0}
+            disabled={isSubmitting || crop.width <= 0 || !imageSrc}
           >
             {isSubmitting ? "Aplicando..." : "Usar este recorte"}
           </button>

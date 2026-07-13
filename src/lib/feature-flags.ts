@@ -19,6 +19,8 @@ export const featureFlags = {
   auditorFactCheck: readEnvFlag("AUDITOR_FACTCHECK_ENABLED"),
   auditorRealQueue: readEnvFlag("AUDITOR_V2_REAL_QUEUE"),
   sentinelLlmThemeVerify: readEnvFlag("SENTINEL_LLM_THEME_VERIFY"),
+  /** Spike qualidade: LLM mini só no top N (off por default). */
+  sentinelLlmQualityRank: readEnvFlag("SENTINEL_LLM_QUALITY_RANK"),
 } as const;
 
 /** Cache persistido: Supabase em prod; JSON local em dev; desligavel via env. */
@@ -63,4 +65,8 @@ export function isAuditorRealQueueEnabled() {
 
 export function isSentinelLlmThemeVerifyEnabled() {
   return featureFlags.sentinelLlmThemeVerify;
+}
+
+export function isSentinelLlmQualityRankEnabled() {
+  return featureFlags.sentinelLlmQualityRank;
 }

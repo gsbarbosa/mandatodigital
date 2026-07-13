@@ -28,6 +28,28 @@ export type SentinelThemeExpansionRecord = {
   generatedAt: string;
 };
 
+function dedupeThemeExpansionsBySource(
+  rows: SentinelThemeExpansionRecord[],
+): SentinelThemeExpansionRecord[] {
+  const byTheme = new Map<string, SentinelThemeExpansionRecord>();
+
+  for (const row of rows) {
+    const key = row.sourceTheme.trim().toLowerCase();
+    if (!key) {
+      continue;
+    }
+
+    const existing = byTheme.get(key);
+    if (!existing || row.generatedAt > existing.generatedAt) {
+      byTheme.set(key, row);
+    }
+  }
+
+  return [...byTheme.values()].sort((left, right) =>
+    left.sourceTheme.localeCompare(right.sourceTheme, "pt-BR"),
+  );
+}
+
 type LocalDatabase = {
   sentinelSuggestionCache?: Record<string, SentinelCacheRecord>;
   sentinelSignalHistory?: SentinelSignalHistoryRow[];
@@ -352,28 +374,32 @@ export const sentinelStorage = {
         if (isSchemaCompatibilityError(error)) {
           throwIfNoLocalSchemaFallback(error);
           const database = await readLocalDatabase();
-          return database.sentinelThemeExpansions?.[profileId] ?? [];
+          return dedupeThemeExpansionsBySource(
+            database.sentinelThemeExpansions?.[profileId] ?? [],
+          );
         }
 
         throw error;
       }
 
-      return (data ?? []).map((row) => ({
-        sourceTheme: String(row.source_theme ?? ""),
-        expandedTerms: Array.isArray(row.expanded_terms)
-          ? row.expanded_terms.map(String).filter(Boolean)
-          : [],
-        generatedAt: String(row.generated_at ?? nowIso()),
-      }));
+      return dedupeThemeExpansionsBySource(
+        (data ?? []).map((row) => ({
+          sourceTheme: String(row.source_theme ?? ""),
+          expandedTerms: Array.isArray(row.expanded_terms)
+            ? row.expanded_terms.map(String).filter(Boolean)
+            : [],
+          generatedAt: String(row.generated_at ?? nowIso()),
+        })),
+      );
     }
 
     assertLocalFilesystemAllowed();
     const database = await readLocalDatabase();
-    return database.sentinelThemeExpansions?.[profileId] ?? [];
+    return dedupeThemeExpansionsBySource(database.sentinelThemeExpansions?.[profileId] ?? []);
   },
 
   async writeThemeExpansions(profileId: string, records: SentinelThemeExpansionRecord[]) {
-    if (!isSentinelPersistCacheEnabled() || records.length === 0) {
+    if (!isSentinelPersistCacheEnabled()) {
       return;
     }
 
@@ -381,21 +407,15 @@ export const sentinelStorage = {
 
     if (isSupabaseConfigured()) {
       const client = getSupabaseClient();
-      const rows = records.map((record) => ({
-        profile_id: profileId,
-        owner_user_id: ownerUserId,
-        source_theme: record.sourceTheme,
-        expanded_terms: record.expandedTerms,
-        generated_at: record.generatedAt || nowIso(),
-      }));
 
-      const { error } = await client.from("sentinel_theme_expansions").upsert(rows, {
-        onConflict: "profile_id,source_theme",
-      });
+      const { error: deleteError } = await client
+        .from("sentinel_theme_expansions")
+        .delete()
+        .eq("profile_id", profileId);
 
-      if (error) {
-        if (isSchemaCompatibilityError(error)) {
-          throwIfNoLocalSchemaFallback(error);
+      if (deleteError) {
+        if (isSchemaCompatibilityError(deleteError)) {
+          throwIfNoLocalSchemaFallback(deleteError);
           const database = await readLocalDatabase();
           database.sentinelThemeExpansions = {
             ...(database.sentinelThemeExpansions ?? {}),
@@ -405,7 +425,36 @@ export const sentinelStorage = {
           return;
         }
 
-        throw error;
+        throw deleteError;
+      }
+
+      if (records.length === 0) {
+        return;
+      }
+
+      const rows = records.map((record) => ({
+        profile_id: profileId,
+        owner_user_id: ownerUserId,
+        source_theme: record.sourceTheme,
+        expanded_terms: record.expandedTerms,
+        generated_at: record.generatedAt || nowIso(),
+      }));
+
+      const { error: insertError } = await client.from("sentinel_theme_expansions").insert(rows);
+
+      if (insertError) {
+        if (isSchemaCompatibilityError(insertError)) {
+          throwIfNoLocalSchemaFallback(insertError);
+          const database = await readLocalDatabase();
+          database.sentinelThemeExpansions = {
+            ...(database.sentinelThemeExpansions ?? {}),
+            [profileId]: records,
+          };
+          await writeLocalDatabase(database);
+          return;
+        }
+
+        throw insertError;
       }
 
       return;

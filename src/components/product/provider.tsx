@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -34,6 +35,16 @@ import type {
 
 import { uploadTrainingFileToSupabase } from "@/lib/training-asset-upload-client";
 import { clearEarlyAccessBrowserState } from "@/lib/early-access";
+import {
+  guestCaricatureQuota,
+  MAX_GUEST_CARICATURES_PER_VARIANT,
+} from "@/lib/caricature-asset-variant";
+import {
+  isDevAccountModeEmail,
+  readDevAccountModeFromDocumentCookie,
+} from "@/lib/dev-account-mode";
+import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
+import { sanitizeProviderFacingMessage } from "@/lib/curador-heygen-prefs";
 
 import {
   buildEvaluationReportsFromDashboard,
@@ -47,6 +58,13 @@ import {
   type ProfileFormState,
   type RequestFormState,
 } from "./shared";
+
+export type CaricatureRegenJob = {
+  status: "idle" | "running" | "success" | "error";
+  message: string | null;
+};
+
+const IDLE_CARICATURE_JOB: CaricatureRegenJob = { status: "idle", message: null };
 
 type ProductAppContextValue = {
   profile: DashboardData["profile"];
@@ -89,6 +107,12 @@ type ProductAppContextValue = {
   ) => Promise<ProfileTrainingAsset[]>;
   appendTrainingAssets: (assets: ProfileTrainingAsset[]) => void;
   removeTrainingAssetsById: (assetIds: string[]) => void;
+  caricatureRegenJobs: Record<CaricatureVariant, CaricatureRegenJob>;
+  regenerateCaricatureVariant: (input: {
+    variant: CaricatureVariant;
+    label: string;
+  }) => Promise<void>;
+  clearCaricatureRegenMessage: (variant: CaricatureVariant) => void;
   generateContent: () => Promise<GeneratedContent[]>;
   updateContent: (
     contentId: string,
@@ -165,6 +189,13 @@ export function ProductAppProvider({
   const [isEvaluatingContentRequestId, setIsEvaluatingContentRequestId] = useState<
     string | null
   >(null);
+  const [caricatureRegenJobs, setCaricatureRegenJobs] = useState<
+    Record<CaricatureVariant, CaricatureRegenJob>
+  >({
+    editorial: IDLE_CARICATURE_JOB,
+    mascot_3d: IDLE_CARICATURE_JOB,
+  });
+  const caricatureRegenInFlightRef = useRef<Partial<Record<CaricatureVariant, boolean>>>({});
 
   function dismissMessages() {
     setStatusMessage(null);
@@ -558,6 +589,135 @@ export function ProductAppProvider({
     setTrainingAssets((current) => current.filter((asset) => !ids.has(asset.id)));
   }
 
+  function clearCaricatureRegenMessage(variant: CaricatureVariant) {
+    setCaricatureRegenJobs((current) => ({
+      ...current,
+      [variant]: {
+        status: current[variant].status === "running" ? "running" : "idle",
+        message: null,
+      },
+    }));
+  }
+
+  async function regenerateCaricatureVariant(input: {
+    variant: CaricatureVariant;
+    label: string;
+  }) {
+    const { variant, label } = input;
+    if (caricatureRegenInFlightRef.current[variant]) {
+      return;
+    }
+    caricatureRegenInFlightRef.current[variant] = true;
+
+    setCaricatureRegenJobs((current) => ({
+      ...current,
+      [variant]: { status: "running", message: null },
+    }));
+
+    const sourcePhoto = [...trainingAssets]
+      .filter((asset) => asset.trainingRole === "avatar_image")
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+    if (!sourcePhoto) {
+      caricatureRegenInFlightRef.current[variant] = false;
+      setCaricatureRegenJobs((current) => ({
+        ...current,
+        [variant]: {
+          status: "error",
+          message:
+            "Envie a foto do Gêmeo Digital em Configurar avatar antes de regenerar este estilo.",
+        },
+      }));
+      return;
+    }
+
+    const referenceId = profile?.id ?? profileForm.id ?? "";
+    if (!referenceId) {
+      caricatureRegenInFlightRef.current[variant] = false;
+      setCaricatureRegenJobs((current) => ({
+        ...current,
+        [variant]: {
+          status: "error",
+          message: "Salve o perfil antes de regenerar o avatar.",
+        },
+      }));
+      return;
+    }
+
+    const quota = guestCaricatureQuota({ assets: trainingAssets, variant });
+    const premiumClient =
+      isDevAccountModeEmail(sessionUser?.email) &&
+      readDevAccountModeFromDocumentCookie() === "premium";
+    if (!premiumClient && quota.reached) {
+      caricatureRegenInFlightRef.current[variant] = false;
+      setCaricatureRegenJobs((current) => ({
+        ...current,
+        [variant]: {
+          status: "error",
+          message: `Limite da versão para convidados atingido: no máximo ${MAX_GUEST_CARICATURES_PER_VARIANT} gerações de ${label} por conta.`,
+        },
+      }));
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/openai/caricature", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceAssetId: sourcePhoto.id,
+          referenceId,
+          variant,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        asset?: ProfileTrainingAsset;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(
+          sanitizeProviderFacingMessage(
+            payload.message || `Não foi possível regenerar ${label}.`,
+          ),
+        );
+      }
+
+      if (!payload.asset) {
+        throw new Error("Resposta inválida: caricatura sem identificador.");
+      }
+
+      // Mantém gerações anteriores para contabilizar o limite da versão convidados.
+      appendTrainingAssets([payload.asset]);
+
+      const successMessage = `${label} regenerado a partir da foto do Gêmeo Digital.`;
+      setCaricatureRegenJobs((current) => ({
+        ...current,
+        [variant]: { status: "success", message: successMessage },
+      }));
+      setStatusMessage(successMessage);
+      window.setTimeout(() => {
+        setCaricatureRegenJobs((current) => {
+          if (current[variant].status !== "success") {
+            return current;
+          }
+          return { ...current, [variant]: IDLE_CARICATURE_JOB };
+        });
+      }, 5000);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : `Não foi possível regenerar ${label}.`;
+      setCaricatureRegenJobs((current) => ({
+        ...current,
+        [variant]: { status: "error", message },
+      }));
+      setErrorMessage(message);
+    } finally {
+      caricatureRegenInFlightRef.current[variant] = false;
+    }
+  }
+
   async function generateContent() {
     if (!profile) {
       setErrorMessage("Salve o perfil do parlamentar antes de gerar conteudo.");
@@ -844,6 +1004,9 @@ export function ProductAppProvider({
     uploadTrainingAssets,
     appendTrainingAssets,
     removeTrainingAssetsById,
+    caricatureRegenJobs,
+    regenerateCaricatureVariant,
+    clearCaricatureRegenMessage,
     generateContent,
     updateContent,
     submitFeedback,

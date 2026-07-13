@@ -24,21 +24,82 @@ function formatCnpj(raw: string): string {
 export function AcessoCnpjPage() {
   const [earlyAccess, updateEarlyAccess] = useEarlyAccess();
   const [cnpjInput, setCnpjInput] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailNote, setEmailNote] = useState<string | null>(null);
   const signed = Boolean(earlyAccess.cnpj);
   const remainingDays = daysUntilDeadline();
+  const reservation = earlyAccess.reservation;
 
-  function handleSign() {
+  async function handleSign() {
     setError(null);
+    setEmailNote(null);
     const digits = cnpjInput.replace(/\D/g, "");
     if (digits.length !== 14) {
       setError("CNPJ inválido — informe os 14 dígitos.");
       return;
     }
-    updateEarlyAccess({
-      cnpj: formatCnpj(digits),
-      cnpjSignedAt: new Date().toISOString(),
-    });
+    if (!accepted) {
+      setError("Marque o aceite do Contrato de Prestação de Serviços Eleitorais.");
+      return;
+    }
+    if (!reservation) {
+      setError("Complete a reserva de dados antes de assinar o contrato.");
+      return;
+    }
+    if (!reservation.address?.trim()) {
+      setError("Endereço da campanha ausente. Volte em Dados e preencha o endereço.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/contract/accept", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cnpj: digits,
+          accepted: true,
+          campaignName: reservation.fullName,
+          campaignAddress: reservation.address,
+          financialResponsible: reservation.fullName,
+          email: reservation.email,
+          planId: reservation.planId,
+          party: reservation.party,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        message?: string;
+        cnpj?: string;
+        acceptedAt?: string;
+        emailSent?: boolean;
+        emailSkipReason?: string;
+        contractPdfUrl?: string;
+        dossierPdfUrl?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Não foi possível registrar o aceite.");
+      }
+
+      updateEarlyAccess({
+        cnpj: payload.cnpj || formatCnpj(digits),
+        cnpjSignedAt: payload.acceptedAt || new Date().toISOString(),
+      });
+
+      if (!payload.emailSent && payload.emailSkipReason) {
+        setEmailNote(
+          `Aceite registrado. E-mail não enviado: ${payload.emailSkipReason}`,
+        );
+      } else if (payload.emailSent) {
+        setEmailNote("Contrato e Dossiê enviados por e-mail.");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao assinar.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -88,7 +149,8 @@ export function AcessoCnpjPage() {
           {signed ? (
             <div className="text-center">
               <p className="text-sm text-slate-400 mb-6">
-                Contrato assinado digitalmente para o CNPJ abaixo. Sua vaga está garantida.
+                Aceite registrado com trilha de auditoria (IP, timestamp de servidor, User-Agent e
+                hash do contrato). Sua vaga está garantida.
               </p>
               <div className="inline-flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-6 py-4 mb-4">
                 <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -104,12 +166,19 @@ export function AcessoCnpjPage() {
                   </p>
                 </div>
               </div>
+              {emailNote ? (
+                <p className="text-xs text-slate-400 mt-2" role="status">
+                  {emailNote}
+                </p>
+              ) : null}
             </div>
           ) : (
             <>
               <p className="text-sm md:text-base text-slate-400 mb-5 leading-relaxed">
                 Se você já possui o CNPJ de campanha registrado no TSE, insira abaixo para assinar o
-                contrato digitalmente e desbloquear a plataforma provisoriamente.
+                Contrato de Prestação de Serviços Eleitorais e desbloquear a plataforma
+                provisoriamente. O CNPJ será validado quanto à natureza jurídica (Comitê Financeiro
+                ou Candidato a Cargo Político Eletivo).
               </p>
 
               <div className="text-left w-full">
@@ -132,6 +201,19 @@ export function AcessoCnpjPage() {
                   reserva.
                 </div>
 
+                <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-slate-600"
+                    checked={accepted}
+                    onChange={(event) => setAccepted(event.target.checked)}
+                  />
+                  <span>
+                    Li e aceito o Contrato de Prestação de Serviços Eleitorais e o Dossiê de
+                    Transparência (Res. TSE 23.732).
+                  </span>
+                </label>
+
                 {error ? (
                   <p className="text-sm text-red-400 mt-3" role="alert">
                     {error}
@@ -140,25 +222,27 @@ export function AcessoCnpjPage() {
 
                 <button
                   type="button"
-                  onClick={handleSign}
-                  className="mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2"
+                  disabled={submitting}
+                  onClick={() => void handleSign()}
+                  className="mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
-                  Realizar Assinatura Digital
+                  {submitting ? "Validando e gerando documentos…" : "Assinar contrato"}
                 </button>
 
                 <p className="text-[10px] text-slate-600 text-center mt-3">
-                  Assinatura com validade jurídica via MP 2.200-2/2001 (Registro IP · Timestamp)
+                  O aceite registra IP, timestamp de servidor, User-Agent e hash SHA-256 da versão
+                  do contrato. Contrato e Dossiê em PDF são gerados automaticamente.
                 </p>
               </div>
             </>
           )}
 
           <p className="mt-5 text-[10px] text-slate-600 text-center">
-            Fase de acesso antecipado: o CNPJ informado fica armazenado neste dispositivo até a
-            ativação do cadastro definitivo.
+            Fase de acesso antecipado: o resumo local fica neste dispositivo; a trilha jurídica
+            completa é gravada no servidor.
           </p>
         </div>
       </div>

@@ -77,20 +77,102 @@ export function clampArgilCrop(
 export function loadImageElement(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
-    image.crossOrigin = "anonymous";
+    // blob:/data: nao usam CORS; crossOrigin="anonymous" quebra o load em varios browsers.
+    if (/^https?:\/\//i.test(source)) {
+      image.crossOrigin = "anonymous";
+    }
     image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Nao foi possivel carregar a imagem."));
+    image.onerror = () =>
+      reject(
+        new Error(
+          "Nao foi possivel carregar a imagem. Use JPG, PNG ou WEBP (HEIC do iPhone nao e suportado).",
+        ),
+      );
     image.src = source;
   });
 }
 
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string" && reader.result.startsWith("data:")) {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Nao foi possivel ler o arquivo da imagem."));
+    };
+    reader.onerror = () => reject(new Error("Nao foi possivel ler o arquivo da imagem."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function isLikelyUnsupportedImage(file: File) {
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  return (
+    type.includes("heic") ||
+    type.includes("heif") ||
+    name.endsWith(".heic") ||
+    name.endsWith(".heif")
+  );
+}
+
+export type LoadedArgilImage = {
+  /** Fonte segura para <img> e canvas (data URL). */
+  displaySrc: string;
+  width: number;
+  height: number;
+};
+
+/** Carrega foto local de forma robusta (FileReader + createImageBitmap). */
+export async function loadImageFromFile(file: File): Promise<LoadedArgilImage> {
+  if (isLikelyUnsupportedImage(file)) {
+    throw new Error(
+      "Formato HEIC/HEIF nao e suportado no navegador. Exporte a foto como JPG ou PNG e tente de novo.",
+    );
+  }
+
+  if (!file.size) {
+    throw new Error("O arquivo da imagem esta vazio.");
+  }
+
+  // createImageBitmap decodifica o File direto (mais confiavel que blob: + Image).
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file);
+      const displaySrc = await readFileAsDataUrl(file);
+      const width = bitmap.width;
+      const height = bitmap.height;
+      bitmap.close();
+      if (width > 0 && height > 0) {
+        return { displaySrc, width, height };
+      }
+    } catch {
+      // Cai no fallback via data URL.
+    }
+  }
+
+  const displaySrc = await readFileAsDataUrl(file);
+  const image = await loadImageElement(displaySrc);
+  return {
+    displaySrc,
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  };
+}
+
 export async function renderArgilCropToFile(
-  imageSource: string,
+  imageSource: string | File,
   crop: ArgilCropRect,
   fileName: string,
   mimeType = "image/jpeg",
 ) {
-  const image = await loadImageElement(imageSource);
+  const source =
+    imageSource instanceof File
+      ? (await loadImageFromFile(imageSource)).displaySrc
+      : imageSource;
+  const image = await loadImageElement(source);
   const rounded: ArgilCropRect = {
     x: Math.round(crop.x),
     y: Math.round(crop.y),

@@ -15,6 +15,7 @@ export type EarlyAccessReservation = {
   cpf: string;
   uf: string;
   role: string;
+  address: string;
   phone: string;
   email: string;
   teamEmail: string;
@@ -50,8 +51,17 @@ export function readEarlyAccessState(): EarlyAccessState {
       return emptyState;
     }
     const parsed = JSON.parse(raw) as Partial<EarlyAccessState>;
+    const reservation = parsed.reservation
+      ? {
+          ...parsed.reservation,
+          address:
+            typeof parsed.reservation.address === "string"
+              ? parsed.reservation.address
+              : "",
+        }
+      : null;
     return {
-      reservation: parsed.reservation ?? null,
+      reservation,
       cnpj: typeof parsed.cnpj === "string" ? parsed.cnpj : "",
       cnpjSignedAt: typeof parsed.cnpjSignedAt === "string" ? parsed.cnpjSignedAt : "",
       reservationPopupSeen: Boolean(parsed.reservationPopupSeen),

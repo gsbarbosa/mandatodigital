@@ -11,6 +11,7 @@ import {
 import type { AvatarVideoGeneration } from "@/lib/types";
 
 import { AvatarImageCropModal } from "./avatar-image-crop-modal";
+import { ExportComplianceModal } from "./export-compliance-modal";
 import { useProductApp } from "./provider";
 
 type VideoGenerationPayload = {
@@ -118,6 +119,7 @@ export function CuradorPage() {
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const autoPollStartedRef = useRef(false);
   const [avatarImageToCrop, setAvatarImageToCrop] = useState<File | null>(null);
@@ -1123,14 +1125,14 @@ export function CuradorPage() {
                         data-testid="argil-video-player"
                       />
                       <p className="persona-helper-text persona-top-gap">
-                        <a
+                        <button
+                          type="button"
                           className="persona-btn"
-                          href={videoUrl}
-                          download={`avatar-${(profileForm.fullName || "politico").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(profileForm.avatarVideoTopic || "tema").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`}
+                          onClick={() => setExportModalOpen(true)}
                           data-testid="argil-video-download-link"
                         >
                           Baixar video
-                        </a>
+                        </button>
                       </p>
                     </>
                   )}
@@ -1152,6 +1154,24 @@ export function CuradorPage() {
         </div>
       </div>
     </section>
+    {videoUrl ? (
+      <ExportComplianceModal
+        open={exportModalOpen}
+        mediaId={videoUrl}
+        mediaUrl={videoUrl}
+        onClose={() => setExportModalOpen(false)}
+        onConfirmed={(url) => {
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = `avatar-${(profileForm.fullName || "politico").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${(profileForm.avatarVideoTopic || "tema").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.mp4`;
+          anchor.rel = "noreferrer";
+          anchor.target = "_blank";
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
+        }}
+      />
+    ) : null}
     </>
   );
 }

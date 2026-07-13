@@ -123,4 +123,40 @@ describe("buildV2SuggestionsFromArticles", () => {
     expect(suggestions).toHaveLength(1);
     expect(suggestions[0]?.themeLabel).toBe("Seguranca Publica");
   });
+
+  it("ignora expansao orfa de tema removido do radar", async () => {
+    const { suggestions } = await buildV2SuggestionsFromArticles(
+      [
+        {
+          title:
+            "Video de cameras corporais mostra PM rezando apos disparar contra homem – Terra",
+          link: "https://news.google.com/articles/cameras-corporais",
+          pubDate: "Tue, 17 Jun 2026 04:00:00 GMT",
+          publishedAt: new Date("2026-06-17T04:00:00Z"),
+          sourceName: "Terra",
+          origin: "google-news",
+        },
+      ],
+      {
+        ...profile,
+        sentinelThemesFederal: ["Reforma Fiscal", "Subsidios Estatais", "Privatizacoes"],
+        sentinelThemesEstadual: [],
+        sentinelThemes: ["Reforma Fiscal", "Subsidios Estatais", "Privatizacoes"],
+      },
+      {
+        profileId: profile.id,
+        geoLabel: "Sao Paulo, SP",
+        expansions: [
+          {
+            sourceTheme: "Cameras Corporais",
+            expandedTerms: ["camera corporal", "cameras corporais", "body cam"],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+        expandedTerms: ["camera corporal", "cameras corporais", "body cam"],
+      },
+    );
+
+    expect(suggestions).toHaveLength(0);
+  });
 });

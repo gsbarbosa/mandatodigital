@@ -15,8 +15,41 @@ export type SentinelSuggestionsMeta = {
     llmCalls: number;
     articlesRejected: number;
   };
+  /** Diagnóstico da coleta RSS (Google News + portais) no refresh. */
+  rssFetchStats?: {
+    attempted: number;
+    succeeded: number;
+    failed: number;
+    emptyBody: number;
+    httpErrors: number;
+    aborted: number;
+    items: number;
+  };
+  /** Spike qualidade — % pautável (heurística) + custo LLM estimado. */
+  qualityReport?: {
+    newsTotal: number;
+    newsPautavel: number;
+    newsPautavelPercent: number;
+    oppositionTotal: number;
+  };
+  qualityRankStats?: {
+    considered: number;
+    ranked: number;
+    llmCalls: number;
+    kept: number;
+    dropped: number;
+  };
+  llmCostEstimate?: {
+    expansionCalls: number;
+    verifyLlmCalls: number;
+    qualityRankCalls: number;
+    estimatedUsd: number;
+    model: string;
+  };
   emptyReason?: string;
   oppositionUnavailableReason?: string;
+  /** Hash dos temas ativos no radar quando o cache foi gravado. */
+  radarThemesSignature?: string;
 };
 
 export type SentinelSuggestionsResult = {

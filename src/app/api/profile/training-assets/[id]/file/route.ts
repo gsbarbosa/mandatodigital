@@ -29,7 +29,7 @@ export async function GET(_request: Request, context: RouteContext) {
         headers: {
           "Content-Type": mimeType,
           "Content-Length": String(buffer.byteLength),
-          "Cache-Control": "private, max-age=300",
+          "Cache-Control": "private, max-age=3600, stale-while-revalidate=86400",
         },
       });
     });

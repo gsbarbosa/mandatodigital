@@ -76,8 +76,18 @@ Depois conecte o dominio `madatodigital.web.app` no console (Hosting & Serverles
 
 ### Deploy automatico via GitHub
 
-No Firebase console: **Hosting & Serverless → App Hosting → Create backend** (se ainda nao existir),
-conecte o repositorio GitHub, branch `main`, root directory `/` e habilite rollouts automaticos.
+O backend `mandatodigital` ja existe. Para CI/CD nativo do App Hosting:
+
+1. Abra [App Hosting](https://console.firebase.google.com/project/madatodigital/apphosting) → backend **mandatodigital** → **Deployment** (ou Settings).
+2. Conecte o repositorio GitHub `gsbarbosa/mandatodigital` (instale o Firebase GitHub App se pedido).
+3. Configure:
+   - **Root directory:** `/` (raiz do repo)
+   - **Live branch:** `main`
+   - **Automatic rollouts:** ligado
+4. Push em `main` dispara build + rollout. Push em `staging` (ou qualquer outra branch) **nao** faz deploy.
+
+Deploy local de emergencia continua disponivel com `npm run deploy:firebase`
+(o `firebase.json` tem `alwaysDeployFromSource: true`).
 
 ### Firebase Auth — dominios autorizados
 

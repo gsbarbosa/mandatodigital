@@ -17,7 +17,7 @@ export { normalizeSentinelText } from "@/lib/sentinel-text";
 
 export type SentinelSiteList = "federal" | "estadual" | "interest" | "opposition";
 
-export type RssNewsOrigin = "google-news" | "portal-rss" | "google-news-site";
+export type RssNewsOrigin = "google-news" | "bing-news" | "portal-rss" | "google-news-site";
 
 export type RssNewsItem = {
   title: string;
@@ -34,7 +34,113 @@ const MAX_THEME_QUERIES = 4;
 const MAX_PORTAL_SITES_PER_LIST = 10;
 const MAX_COLLECTED_NEWS_ITEMS = 350;
 const RSS_FETCH_TIMEOUT_MS = 12_000;
-const PORTAL_RSS_PATHS = ["/feed", "/feed/", "/rss", "/rss/", "/feed.xml", "/rss.xml"];
+const RSS_FETCH_MAX_ATTEMPTS = 2;
+const RSS_FETCH_CONCURRENCY = 3;
+const RSS_RETRY_BASE_DELAY_MS = 600;
+const GOOGLE_CIRCUIT_FAILURE_THRESHOLD = 3;
+const PORTAL_RSS_PATHS = [
+  "/rss/g1/",
+  "/feed",
+  "/feed/",
+  "/rss",
+  "/rss/",
+  "/feed.xml",
+  "/rss.xml",
+];
+
+/**
+ * Feeds canônicos — descoberta genérica (/feed) falha em vários veículos grandes.
+ * Ordem: tentar estes antes dos paths genéricos.
+ */
+const KNOWN_PORTAL_FEED_URLS: Record<string, readonly string[]> = {
+  "g1.globo.com": ["https://g1.globo.com/rss/g1/"],
+  "cnnbrasil.com.br": ["https://www.cnnbrasil.com.br/feed/", "https://cnnbrasil.com.br/feed/"],
+  "folha.uol.com.br": [
+    "https://feeds.folha.uol.com.br/poder/rss091.xml",
+    "https://feeds.folha.uol.com.br/folha/rss091.xml",
+  ],
+  "uol.com.br": ["https://rss.uol.com.br/feed/noticias.xml"],
+};
+
+/** Headers que o Google News costuma aceitar melhor em datacenter (Cloud Run). */
+const RSS_FETCH_HEADERS: HeadersInit = {
+  Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
+  "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+  "User-Agent":
+    "Mozilla/5.0 (compatible; MandatoDigitalBot/1.1; +https://mandatodigital.web.app) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+};
+
+export type RssFetchAttemptStats = {
+  attempted: number;
+  succeeded: number;
+  failed: number;
+  emptyBody: number;
+  httpErrors: number;
+  aborted: number;
+  items: number;
+};
+
+function createEmptyFetchStats(): RssFetchAttemptStats {
+  return {
+    attempted: 0,
+    succeeded: 0,
+    failed: 0,
+    emptyBody: 0,
+    httpErrors: 0,
+    aborted: 0,
+    items: 0,
+  };
+}
+
+let rssFetchStats = createEmptyFetchStats();
+let googleNewsCircuitOpen = false;
+let googleNewsConsecutiveFailures = 0;
+
+/** Reseta e devolve o acumulador de diagnóstico do processo atual de coleta. */
+export function beginRssFetchStats() {
+  rssFetchStats = createEmptyFetchStats();
+  googleNewsCircuitOpen = false;
+  googleNewsConsecutiveFailures = 0;
+  return rssFetchStats;
+}
+
+export function getRssFetchStats(): RssFetchAttemptStats {
+  return { ...rssFetchStats };
+}
+
+export function isGoogleNewsCircuitOpen() {
+  return googleNewsCircuitOpen;
+}
+
+function noteGoogleNewsSuccess() {
+  googleNewsConsecutiveFailures = 0;
+  googleNewsCircuitOpen = false;
+}
+
+function noteGoogleNewsFailure() {
+  googleNewsConsecutiveFailures += 1;
+  if (googleNewsConsecutiveFailures >= GOOGLE_CIRCUIT_FAILURE_THRESHOLD && !googleNewsCircuitOpen) {
+    googleNewsCircuitOpen = true;
+    console.warn(
+      "[sentinel-rss] circuit breaker Google News aberto apos",
+      googleNewsConsecutiveFailures,
+      "falhas — usando Bing/portais",
+    );
+  }
+}
+
+type RssFetchOutcome =
+  | "succeeded"
+  | "failed"
+  | "emptyBody"
+  | "httpErrors"
+  | "aborted";
+
+function recordFetchStat(outcome: RssFetchOutcome, itemCount = 0) {
+  rssFetchStats.attempted += 1;
+  rssFetchStats[outcome] += 1;
+  rssFetchStats.items += itemCount;
+}
 
 const TITLE_STOP_WORDS = new Set([
   "para",
@@ -126,6 +232,64 @@ export function buildGoogleNewsRssUrl(query: string) {
     ceid: "BR:pt-419",
   });
   return `https://news.google.com/rss/search?${params.toString()}`;
+}
+
+export function buildBingNewsRssUrl(query: string) {
+  const params = new URLSearchParams({
+    q: query,
+    format: "rss",
+    mkt: "pt-BR",
+  });
+  return `https://www.bing.com/news/search?${params.toString()}`;
+}
+
+/** True quando o body parece feed RSS/Atom (não HTML de consent/captcha). */
+export function looksLikeRssFeed(body: string) {
+  const head = body.slice(0, 4_000).toLowerCase();
+  if (!head.trim()) {
+    return false;
+  }
+  if (head.includes("<html") || head.includes("<!doctype html")) {
+    return false;
+  }
+  return (
+    head.includes("<rss") ||
+    head.includes("<feed") ||
+    head.includes("<item>") ||
+    head.includes("<entry>")
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const results: R[] = new Array(items.length);
+  let index = 0;
+
+  async function worker() {
+    while (index < items.length) {
+      const current = index;
+      index += 1;
+      results[current] = await mapper(items[current] as T);
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(Math.max(1, concurrency), items.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+  return results;
 }
 
 export function normalizePortalHost(site: string) {
@@ -235,41 +399,139 @@ function dedupeNewsItems(items: RssNewsItem[]) {
   return deduped;
 }
 
-async function fetchRssUrl(url: string, metadata?: Partial<RssNewsItem>) {
+async function fetchRssUrlOnce(
+  url: string,
+  metadata?: Partial<RssNewsItem>,
+): Promise<{ items: RssNewsItem[]; retryable: boolean; status?: number }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), RSS_FETCH_TIMEOUT_MS);
+  const isGoogle = url.includes("news.google.com");
 
   try {
     const response = await fetch(url, {
-      headers: {
-        Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
-        "User-Agent": "MandatoDigital-Sentinela/1.0",
-      },
+      headers: RSS_FETCH_HEADERS,
       signal: controller.signal,
-      next: { revalidate: 0 },
+      cache: "no-store",
+      redirect: "follow",
     });
 
     if (!response.ok) {
-      return [];
+      recordFetchStat("httpErrors");
+      console.warn("[sentinel-rss] HTTP", response.status, url.slice(0, 160));
+      if (isGoogle) {
+        noteGoogleNewsFailure();
+      }
+      return {
+        items: [],
+        retryable: response.status === 429 || response.status >= 500,
+        status: response.status,
+      };
     }
 
     const xml = await response.text();
-    return parseRssFeed(xml).map((item) => ({
+    if (!looksLikeRssFeed(xml)) {
+      recordFetchStat("emptyBody");
+      console.warn(
+        "[sentinel-rss] corpo nao-RSS",
+        `bytes=${xml.length}`,
+        url.slice(0, 160),
+      );
+      if (isGoogle) {
+        noteGoogleNewsFailure();
+      }
+      return { items: [], retryable: isGoogle, status: response.status };
+    }
+
+    const items = parseRssFeed(xml).map((item) => ({
       ...item,
       ...metadata,
     }));
-  } catch {
-    return [];
+
+    if (items.length === 0) {
+      recordFetchStat("emptyBody");
+      if (isGoogle) {
+        noteGoogleNewsFailure();
+      }
+      return { items: [], retryable: isGoogle, status: response.status };
+    }
+
+    recordFetchStat("succeeded", items.length);
+    if (isGoogle) {
+      noteGoogleNewsSuccess();
+    }
+    return { items, retryable: false, status: response.status };
+  } catch (error) {
+    const aborted =
+      (error instanceof Error && error.name === "AbortError") ||
+      (typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        (error as { name?: string }).name === "AbortError");
+    recordFetchStat(aborted ? "aborted" : "failed");
+    if (isGoogle) {
+      noteGoogleNewsFailure();
+    }
+    console.warn(
+      "[sentinel-rss] fetch falhou",
+      aborted ? "timeout/abort" : error instanceof Error ? error.message : "erro",
+      url.slice(0, 160),
+    );
+    return { items: [], retryable: true };
   } finally {
     clearTimeout(timeout);
   }
 }
 
-async function fetchGoogleNewsQuery(query: string) {
-  return fetchRssUrl(buildGoogleNewsRssUrl(query), { origin: "google-news" });
+async function fetchRssUrl(url: string, metadata?: Partial<RssNewsItem>) {
+  let last: RssNewsItem[] = [];
+
+  for (let attempt = 1; attempt <= RSS_FETCH_MAX_ATTEMPTS; attempt += 1) {
+    if (url.includes("news.google.com") && googleNewsCircuitOpen) {
+      return [];
+    }
+
+    const result = await fetchRssUrlOnce(url, metadata);
+    last = result.items;
+    if (last.length > 0) {
+      return last;
+    }
+
+    if (!result.retryable || attempt >= RSS_FETCH_MAX_ATTEMPTS || googleNewsCircuitOpen) {
+      break;
+    }
+
+    await sleep(RSS_RETRY_BASE_DELAY_MS * attempt);
+  }
+
+  return last;
+}
+
+async function fetchBingNewsQuery(query: string) {
+  return fetchRssUrl(buildBingNewsRssUrl(query), { origin: "bing-news" });
+}
+
+/**
+ * Busca notícias por query de tema.
+ * Google News primeiro; se o circuit breaker abrir ou vier vazio, cai no Bing News.
+ */
+export async function fetchGoogleNewsQuery(query: string) {
+  if (!googleNewsCircuitOpen) {
+    const googleItems = await fetchRssUrl(buildGoogleNewsRssUrl(query), {
+      origin: "google-news",
+    });
+    if (googleItems.length > 0) {
+      return googleItems;
+    }
+  }
+
+  return fetchBingNewsQuery(query);
 }
 
 async function fetchGoogleNewsForSite(host: string, profile: PoliticianProfile) {
+  if (googleNewsCircuitOpen) {
+    return [];
+  }
+
   const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
   const query = geo ? `site:${host} ${geo}` : `site:${host}`;
   return fetchRssUrl(buildGoogleNewsRssUrl(query), {
@@ -281,6 +543,19 @@ async function fetchGoogleNewsForSite(host: string, profile: PoliticianProfile) 
 async function discoverPortalFeed(host: string, siteList: SentinelSiteList) {
   if (!host) {
     return [];
+  }
+
+  const knownUrls = KNOWN_PORTAL_FEED_URLS[host] ?? [];
+  for (const url of knownUrls) {
+    const items = await fetchRssUrl(url, {
+      origin: "portal-rss",
+      siteList,
+      siteHost: host,
+      sourceName: host,
+    });
+    if (items.length > 0) {
+      return items;
+    }
   }
 
   const base = `https://${host}`;
@@ -308,22 +583,18 @@ async function fetchPortalSites(
     0,
     MAX_PORTAL_SITES_PER_LIST,
   );
-  const preferGoogleNewsOnly = siteList === "federal" || siteList === "estadual";
 
-  const batches = await Promise.all(
-    hosts.map(async (host) => {
-      if (!preferGoogleNewsOnly) {
-        const direct = await discoverPortalFeed(host, siteList);
-        if (direct.length > 0) {
-          return direct;
-        }
-      }
+  const batches = await mapWithConcurrency(hosts, RSS_FETCH_CONCURRENCY, async (host) => {
+    // Sempre tenta RSS direto primeiro — Google News costuma retornar 503 no Cloud Run.
+    const direct = await discoverPortalFeed(host, siteList);
+    if (direct.length > 0) {
+      return direct;
+    }
 
-      return fetchGoogleNewsForSite(host, profile).then((items) =>
-        items.map((item) => ({ ...item, siteList, siteHost: host })),
-      );
-    }),
-  );
+    return fetchGoogleNewsForSite(host, profile).then((items) =>
+      items.map((item) => ({ ...item, siteList, siteHost: host })),
+    );
+  });
 
   return batches.flat();
 }
@@ -349,7 +620,9 @@ export async function fetchSentinelNewsItems(profile: PoliticianProfile) {
 
   const [googleNewsBatches, federalPortalItems, estadualPortalItems, interestPortalItems] =
     await Promise.all([
-      Promise.all(queries.map((query) => fetchGoogleNewsQuery(query))),
+      mapWithConcurrency(queries, RSS_FETCH_CONCURRENCY, (query) =>
+        fetchGoogleNewsQuery(query),
+      ),
       fetchPortalSites(catalogHosts.federal, "federal", profile),
       fetchPortalSites(catalogHosts.estadual, "estadual", profile),
       fetchPortalSites(profile.interestSites, "interest", profile),
@@ -380,7 +653,9 @@ export async function fetchSemanticExpansionNewsItems(
 
   const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
   const queries = terms.map((term) => (geo ? `${term} ${geo}` : term));
-  const batches = await Promise.all(queries.map((query) => fetchGoogleNewsQuery(query)));
+  const batches = await mapWithConcurrency(queries, RSS_FETCH_CONCURRENCY, (query) =>
+    fetchGoogleNewsQuery(query),
+  );
 
   return dedupeNewsItems(batches.flat());
 }

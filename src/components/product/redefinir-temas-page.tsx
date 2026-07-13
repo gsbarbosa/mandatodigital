@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useProductApp } from "@/components/product/provider";
+import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
+import { ThemeExpansionsPanel, type ThemeExpansionRow } from "@/components/product/theme-expansions-panel";
 import { ThemeTagPill } from "@/components/product/theme-tag";
 import type { SocialHandle } from "@/lib/types";
 import {
@@ -17,6 +20,9 @@ import {
 import { unionSentinelThemes } from "@/lib/sentinel-profile-themes";
 
 type MonitorSphereKey = "federal" | "estadual";
+
+/** Teto prático no premium (UI + schema); convidado usa os MAX_* do catálogo. */
+const PREMIUM_SELECTION_CAP = 50;
 
 function sphereThemesKey(sphere: MonitorSphereKey): "sentinelThemesFederal" | "sentinelThemesEstadual" {
   return sphere === "federal" ? "sentinelThemesFederal" : "sentinelThemesEstadual";
@@ -35,12 +41,6 @@ const UF_LIST = [
 
 const SOCIAL_NETWORKS = ["Instagram", "TikTok", "Twitter/X"];
 
-type ThemeExpansionRow = {
-  sourceTheme: string;
-  expandedTerms: string[];
-  generatedAt: string;
-};
-
 function SemanticExpansionNote() {
   return (
     <div className="mt-6 pt-6 border-t border-slate-800">
@@ -58,25 +58,37 @@ const REMOVE_ROW_BUTTON_CLASS =
 const TEXT_LINK_BUTTON_CLASS =
   "inline bg-transparent p-0 text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2";
 
-const MUNICIPAL_ADD_PROFILE_LABEL = `+ adicionar perfil (máx ${MAX_MUNICIPAL_PROFILES} na versão convidado)`;
-const MUNICIPAL_ADD_PORTAL_LABEL = `+ adicionar portal (máx ${MAX_MUNICIPAL_PORTALS} na versão convidado)`;
+type ThemeExpansionsBySphere = {
+  federal: ThemeExpansionRow[];
+  estadual: ThemeExpansionRow[];
+  opposition: ThemeExpansionRow[];
+};
 
-function formatSphereThemeCount(sphereCount: number) {
-  return `${sphereCount}/${MAX_THEMES_PER_SPHERE}`;
+const EMPTY_EXPANSION_GROUPS: ThemeExpansionsBySphere = {
+  federal: [],
+  estadual: [],
+  opposition: [],
+};
+
+function formatSphereThemeCount(sphereCount: number, limit: number | null) {
+  if (limit === null) {
+    return `${sphereCount} selecionado${sphereCount === 1 ? "" : "s"}`;
+  }
+  return `${sphereCount}/${limit}`;
 }
 
 function SphereThemeSections({
   groups,
   selected,
   onToggle,
-  selectionLimit = MAX_THEMES_PER_SPHERE,
+  selectionLimit,
 }: {
   groups: readonly SphereThemeGroup[];
   selected: string[];
   onToggle: (theme: string) => void;
-  selectionLimit?: number;
+  selectionLimit: number | null;
 }) {
-  const atSphereLimit = selected.length >= selectionLimit;
+  const atSphereLimit = selectionLimit !== null && selected.length >= selectionLimit;
 
   return (
     <div className="space-y-8">
@@ -184,21 +196,42 @@ function SocialHandleRows({
 }
 
 export function RedefinirTemasPage() {
-  const { profileForm, setProfileForm, saveProfile, isSavingProfile } = useProductApp();
+  const router = useRouter();
+  const { profileForm, setProfileForm, saveProfile, isSavingProfile, sessionUser } =
+    useProductApp();
+  const { isPremium } = useDevAccountMode(sessionUser?.email);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
-  const [expansions, setExpansions] = useState<ThemeExpansionRow[]>([]);
-  const [expansionsOpen, setExpansionsOpen] = useState(false);
+  const [showMonitoramentoPrompt, setShowMonitoramentoPrompt] = useState(false);
+  const [expansionGroups, setExpansionGroups] =
+    useState<ThemeExpansionsBySphere>(EMPTY_EXPANSION_GROUPS);
+
+  const themeLimit = isPremium ? null : MAX_THEMES_PER_SPHERE;
+  const municipalProfilesLimit = isPremium ? PREMIUM_SELECTION_CAP : MAX_MUNICIPAL_PROFILES;
+  const municipalPortalsLimit = isPremium ? PREMIUM_SELECTION_CAP : MAX_MUNICIPAL_PORTALS;
+  const adversaryProfilesLimit = isPremium ? PREMIUM_SELECTION_CAP : MAX_ADVERSARY_PROFILES;
+
+  const municipalAddProfileLabel = isPremium
+    ? "+ adicionar perfil"
+    : `+ adicionar perfil (máx ${MAX_MUNICIPAL_PROFILES} na versão convidado)`;
+  const municipalAddPortalLabel = isPremium
+    ? "+ adicionar portal"
+    : `+ adicionar portal (máx ${MAX_MUNICIPAL_PORTALS} na versão convidado)`;
+  const adversaryAddLabel = isPremium
+    ? "+ Adicionar Perfil"
+    : `+ Adicionar Perfil (Máx ${MAX_ADVERSARY_PROFILES})`;
 
   const loadExpansions = useCallback(async () => {
     try {
       const response = await fetch("/api/sentinel/expansions");
-      const payload = (await response.json()) as { expansions?: ThemeExpansionRow[] };
+      const payload = (await response.json()) as {
+        bySphere?: ThemeExpansionsBySphere;
+      };
       if (response.ok) {
-        setExpansions(payload.expansions ?? []);
+        setExpansionGroups(payload.bySphere ?? EMPTY_EXPANSION_GROUPS);
       }
     } catch {
-      setExpansions([]);
+      setExpansionGroups(EMPTY_EXPANSION_GROUPS);
     }
   }, []);
 
@@ -221,9 +254,9 @@ export function RedefinirTemasPage() {
     const selectedInSphere = profileForm[themesKey];
     const isSelected = selectedInSphere.includes(theme);
 
-    if (!isSelected && selectedInSphere.length >= MAX_THEMES_PER_SPHERE) {
+    if (!isSelected && themeLimit !== null && selectedInSphere.length >= themeLimit) {
       setLimitMessage(
-        `Limite de ${MAX_THEMES_PER_SPHERE} temas no nível ${sphere === "federal" ? "Nacional" : "Estadual"}. Remova um tema para adicionar outro.`,
+        `Limite de ${themeLimit} temas no nível ${sphere === "federal" ? "Nacional" : "Estadual"}. Remova um tema para adicionar outro.`,
       );
       return;
     }
@@ -259,7 +292,7 @@ export function RedefinirTemasPage() {
       await saveProfile({ allowDraftDefaults: true, silent: true, throwOnError: true });
       await loadExpansions();
       setSaveMessage("Radar salvo com sucesso. O monitoramento usa a nova configuração.");
-      window.setTimeout(() => setSaveMessage(null), 2800);
+      setShowMonitoramentoPrompt(true);
     } catch {
       // Erro exibido pelo provider (banner global).
     }
@@ -279,61 +312,33 @@ export function RedefinirTemasPage() {
             Defina os temas para monitoramento e criação de conteúdo com{" "}
             <span className="whitespace-nowrap">seu avatar</span>.
           </p>
-
-          <div className="inline-flex items-center gap-3 bg-blue-900/20 border border-blue-500/30 rounded-xl py-3 px-5">
-            <svg className="h-5 w-5 text-cyan-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="text-sm text-blue-200 font-medium text-left">
-              <strong className="text-white">Aviso:</strong> Nessa versão de demonstração (não
-              assinantes), o monitoramento das pautas não é em real-time.
-            </span>
-          </div>
         </header>
 
-        {/* FEDERAL */}
         <section className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8">
           <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-8">
             <h2 className="text-2xl font-bold text-white">
               Nível <span className="text-cyan-400">Nacional</span>
             </h2>
             <span className="text-xs text-slate-500 font-medium">
-              {formatSphereThemeCount(federalCount)}
+              {formatSphereThemeCount(federalCount, themeLimit)}
             </span>
           </div>
 
           <SphereThemeSections
             groups={federalThemeGroups}
             selected={profileForm.sentinelThemesFederal}
+            selectionLimit={themeLimit}
             onToggle={(theme) => toggleTheme(theme, "federal", federalThemeGroups)}
           />
 
-          {expansions.length > 0 ? (
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={() => setExpansionsOpen((current) => !current)}
-                className={TEXT_LINK_BUTTON_CLASS}
-              >
-                {expansionsOpen ? "Ocultar" : "Ver"} termos monitorados (expansão semântica)
-              </button>
-              {expansionsOpen ? (
-                <ul className="mt-3 space-y-1 text-xs text-slate-500">
-                  {expansions.map((row) => (
-                    <li key={row.sourceTheme}>
-                      <strong className="text-slate-400">{row.sourceTheme}:</strong>{" "}
-                      {row.expandedTerms.join(", ")}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          ) : null}
+          <ThemeExpansionsPanel
+            rows={expansionGroups.federal}
+            linkClassName={TEXT_LINK_BUTTON_CLASS}
+          />
 
           <SemanticExpansionNote />
         </section>
 
-        {/* ESTADUAL */}
         <section className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 relative">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6 mb-8">
             <div className="flex items-center gap-4">
@@ -341,7 +346,7 @@ export function RedefinirTemasPage() {
                 Nível <span className="text-purple-400">Estadual</span>
               </h2>
               <span className="text-xs text-slate-500 font-medium">
-                {formatSphereThemeCount(estadualCount)}
+                {formatSphereThemeCount(estadualCount, themeLimit)}
               </span>
             </div>
             <div className="flex items-center gap-3 bg-purple-900/10 border border-purple-500/20 p-2.5 rounded-xl">
@@ -377,13 +382,19 @@ export function RedefinirTemasPage() {
             <SphereThemeSections
               groups={estadualThemeGroups}
               selected={profileForm.sentinelThemesEstadual}
+              selectionLimit={themeLimit}
               onToggle={(theme) => toggleTheme(theme, "estadual", estadualThemeGroups)}
             />
+
+            <ThemeExpansionsPanel
+              rows={expansionGroups.estadual}
+              linkClassName={TEXT_LINK_BUTTON_CLASS}
+            />
+
             <SemanticExpansionNote />
           </div>
         </section>
 
-        {/* MUNICIPAL */}
         <section className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8">
           <h2 className="text-2xl font-bold text-white mb-2">
             Nível <span className="text-emerald-400">Municipal</span>
@@ -400,11 +411,11 @@ export function RedefinirTemasPage() {
               <SocialHandleRows
                 values={profileForm.interestProfiles}
                 accent="emerald"
-                maxItems={MAX_MUNICIPAL_PROFILES}
+                maxItems={municipalProfilesLimit}
                 onChange={(interestProfiles) =>
                   setProfileForm((current) => ({ ...current, interestProfiles }))
                 }
-                addLabel={MUNICIPAL_ADD_PROFILE_LABEL}
+                addLabel={municipalAddProfileLabel}
               />
             </div>
 
@@ -447,7 +458,7 @@ export function RedefinirTemasPage() {
               </div>
               <button
                 type="button"
-                disabled={profileForm.interestSites.length >= MAX_MUNICIPAL_PORTALS}
+                disabled={profileForm.interestSites.length >= municipalPortalsLimit}
                 onClick={() =>
                   setProfileForm((current) => ({
                     ...current,
@@ -456,7 +467,7 @@ export function RedefinirTemasPage() {
                 }
                 className="w-full py-2.5 rounded-xl border border-emerald-500/30 border-dashed bg-emerald-950/10 text-emerald-400 text-sm font-semibold hover:bg-emerald-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {MUNICIPAL_ADD_PORTAL_LABEL}
+                {municipalAddPortalLabel}
               </button>
             </div>
           </div>
@@ -466,7 +477,6 @@ export function RedefinirTemasPage() {
           </p>
         </section>
 
-        {/* ADVERSÁRIOS */}
         <section className="bg-slate-900/40 backdrop-blur-xl border border-red-900/30 rounded-[1.75rem] p-6 md:p-8 shadow-[0_0_20px_rgba(153,27,27,0.1)]">
           <h2 className="text-2xl font-bold text-white mb-2">Adversários Políticos</h2>
           <p className="text-slate-400 text-sm mb-6 border-b border-slate-800 pb-4">
@@ -479,16 +489,15 @@ export function RedefinirTemasPage() {
           <SocialHandleRows
             values={profileForm.oppositionProfiles}
             accent="red"
-            maxItems={MAX_ADVERSARY_PROFILES}
+            maxItems={adversaryProfilesLimit}
             onChange={(oppositionProfiles) =>
               setProfileForm((current) => ({ ...current, oppositionProfiles }))
             }
-            addLabel={`+ Adicionar Perfil (Máx ${MAX_ADVERSARY_PROFILES})`}
+            addLabel={adversaryAddLabel}
           />
         </section>
       </div>
 
-      {/* Sticky save bar */}
       <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-slate-800 bg-[#0B0F19]/90 backdrop-blur-md z-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-slate-500">
@@ -498,10 +507,12 @@ export function RedefinirTemasPage() {
               <span className="text-emerald-400" role="status">
                 {saveMessage}
               </span>
+            ) : isPremium ? (
+              <span>Modo premium — sem limite de seleção de temas e perfis nesta tela.</span>
             ) : (
               <span>
                 Nessa versão para convidados, o volume de monitoramento é limitado em todos os
-                níveis
+                níveis, o monitoramento das pautas não é em real-time.
               </span>
             )}
           </div>
@@ -515,6 +526,43 @@ export function RedefinirTemasPage() {
           </button>
         </div>
       </div>
+
+      {showMonitoramentoPrompt ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Fechar"
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setShowMonitoramentoPrompt(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="monitoramento-prompt-title"
+            className="relative bg-[#0F1623] border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+          >
+            <h3 id="monitoramento-prompt-title" className="text-lg font-bold text-white mb-6">
+              Gostaria de ir para o Monitoramento de Pautas?
+            </h3>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowMonitoramentoPrompt(false)}
+                className="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors"
+              >
+                Não (N)
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/monitoramento")}
+                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-semibold transition-all"
+              >
+                Sim (S)
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

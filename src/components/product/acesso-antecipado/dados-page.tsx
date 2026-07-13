@@ -171,6 +171,7 @@ export function AcessoDadosPage() {
     cpf: "",
     uf: "",
     role: "",
+    address: "",
     phone: "",
     email: "",
     teamEmail: "",
@@ -188,6 +189,7 @@ export function AcessoDadosPage() {
         cpf: reservation.cpf,
         uf: reservation.uf,
         role: reservation.role,
+        address: reservation.address ?? "",
         phone: reservation.phone,
         email: reservation.email,
         teamEmail: reservation.teamEmail,
@@ -210,7 +212,16 @@ export function AcessoDadosPage() {
 
   function handleReserve() {
     setFormError(null);
-    if (!form.fullName.trim() || !form.party || !form.cpf.trim() || !form.uf || !form.role || !form.phone.trim() || !form.email.trim()) {
+    if (
+      !form.fullName.trim() ||
+      !form.party ||
+      !form.cpf.trim() ||
+      !form.uf ||
+      !form.role ||
+      !form.address.trim() ||
+      !form.phone.trim() ||
+      !form.email.trim()
+    ) {
       setFormError("Preencha todos os campos obrigatórios (*) para reservar a vaga.");
       return;
     }
@@ -228,6 +239,7 @@ export function AcessoDadosPage() {
       cpf: form.cpf.trim(),
       uf: form.uf,
       role: form.role,
+      address: form.address.trim(),
       phone: form.phone.trim(),
       email: form.email.trim(),
       teamEmail: form.teamEmail.trim(),
@@ -365,6 +377,17 @@ export function AcessoDadosPage() {
                   onChange={(role) => setField("role", role)}
                 />
               </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <FieldLabel required>Endereço da Campanha</FieldLabel>
+              <input
+                className={inputClasses}
+                value={form.address}
+                disabled={isReserved}
+                placeholder="Rua, número, bairro, cidade - UF, CEP"
+                onChange={(event) => setField("address", event.target.value)}
+              />
             </div>
 
             <div>

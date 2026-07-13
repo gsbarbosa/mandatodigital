@@ -4,14 +4,21 @@ import {
   isSentinelV2PipelinesEnabled,
 } from "@/lib/feature-flags";
 import {
+  beginRssFetchStats,
   clusterScoredArticles,
   countUniqueOutlets,
   fetchSemanticExpansionNewsItems,
   fetchSentinelNewsItems,
+  getRssFetchStats,
   matchSentinelThemes,
   scoreSentinelArticle,
   type RssNewsItem,
 } from "@/lib/sentinel-rss";
+import {
+  buildSentinelQualityReport,
+  estimateSentinelLlmCost,
+} from "@/lib/sentinel-quality";
+import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import {
   countCatalogPortalHosts,
@@ -32,7 +39,7 @@ import {
 } from "@/lib/sentinel-theme-verify";
 import {
   flattenExpansionSearchTerms,
-  loadSentinelThemeExpansions,
+  loadSentinelThemeExpansionsForProfile,
 } from "@/lib/sentinel-theme-expansion";
 import { buildV2SuggestionsFromArticles } from "@/lib/sentinel-suggestions-v2";
 import type { PoliticianProfile } from "@/lib/types";
@@ -45,6 +52,12 @@ import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 export type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
+
+type ReadCacheOptions = {
+  forceRefresh?: boolean;
+  /** Quando true, devolve cache mesmo com TTL vencido (só invalida por assinatura do radar). */
+  allowStale?: boolean;
+};
 const MAX_SUGGESTIONS = 20;
 const MAX_ARTICLES_PER_SUGGESTION = 4;
 
@@ -415,6 +428,7 @@ function buildEmptyMeta(
     cached: false,
     refreshedAt: new Date().toISOString(),
     radarThemesCount: getRadarThemesCount(profile),
+    radarThemesSignature: buildRadarThemesSignature(profile),
     articlesScanned: options?.articlesScanned ?? 0,
     portalsMonitored: countMonitoredPortals(profile),
     pipelinesEnabled: options?.pipelinesEnabled,
@@ -430,18 +444,65 @@ export function invalidateSentinelCache(profileId: string) {
   }
 }
 
+/** Só memória — não apaga cache persistido (evita convidado ficar sem pautas se o refresh falhar). */
+export function invalidateSentinelMemoryCache(profileId: string) {
+  suggestionCache.delete(profileId);
+}
+
+export async function invalidateSentinelCacheAsync(profileId: string) {
+  suggestionCache.delete(profileId);
+  if (isPersistableProfileId(profileId)) {
+    await sentinelStorage.clearCache(profileId);
+  }
+}
+
+/** Identidade do radar salvo — invalida cache quando temas mudam. */
+export function buildRadarThemesSignature(profile: PoliticianProfile) {
+  const themes = splitProfileThemesBySphere(profile);
+  const payload = [
+    themes.federal.join("\n"),
+    themes.estadual.join("\n"),
+    themes.municipalCustom.join("\n"),
+    profile.oppositionThemes.join("\n"),
+    profile.oppositionProfiles
+      .map((row) => `${row.network}:${row.handle}`.trim())
+      .join("\n"),
+    profile.interestSites.join("\n"),
+  ].join("\n::\n");
+
+  return createHash("sha256").update(payload).digest("hex").slice(0, 16);
+}
+
+function cacheMatchesProfile(cached: SentinelCacheEntry, profile: PoliticianProfile) {
+  const currentSignature = buildRadarThemesSignature(profile);
+  if (!cached.meta.radarThemesSignature) {
+    return false;
+  }
+
+  return cached.meta.radarThemesSignature === currentSignature;
+}
+
 function isPersistableProfileId(profileId: string) {
   return profileId.trim().length > 0 && profileId !== "default";
 }
 
-async function readCachedSuggestions(cacheKey: string, forceRefresh?: boolean) {
-  if (forceRefresh) {
+async function readCachedSuggestions(
+  cacheKey: string,
+  profile: PoliticianProfile,
+  options?: ReadCacheOptions,
+) {
+  if (options?.forceRefresh) {
     return null;
   }
 
-  const memoryCached = suggestionCache.get(cacheKey);
+  const allowStale = options?.allowStale ?? true;
   const now = Date.now();
-  if (memoryCached && memoryCached.expiresAt > now) {
+  const memoryCached = suggestionCache.get(cacheKey);
+  if (memoryCached && (allowStale || memoryCached.expiresAt > now)) {
+    if (!cacheMatchesProfile(memoryCached, profile)) {
+      invalidateSentinelCache(cacheKey);
+      return null;
+    }
     return memoryCached;
   }
 
@@ -450,7 +511,11 @@ async function readCachedSuggestions(cacheKey: string, forceRefresh?: boolean) {
   }
 
   const persisted = await sentinelStorage.readCache(cacheKey);
-  if (!persisted || isSentinelCacheExpired(persisted, now)) {
+  if (!persisted) {
+    return null;
+  }
+
+  if (!allowStale && isSentinelCacheExpired(persisted, now)) {
     return null;
   }
 
@@ -459,6 +524,15 @@ async function readCachedSuggestions(cacheKey: string, forceRefresh?: boolean) {
     meta: persisted.meta,
     expiresAt: Date.parse(persisted.expiresAt),
   };
+
+  if (!Number.isFinite(entry.expiresAt)) {
+    entry.expiresAt = now + CACHE_TTL_MS;
+  }
+
+  if (!cacheMatchesProfile(entry, profile)) {
+    await invalidateSentinelCacheAsync(cacheKey);
+    return null;
+  }
 
   suggestionCache.set(cacheKey, entry);
   return entry;
@@ -490,16 +564,24 @@ async function persistSuggestionsCache(
 }
 
 async function collectSentinelArticles(profile: PoliticianProfile) {
+  beginRssFetchStats();
   const v2Enabled = isSentinelV2PipelinesEnabled();
   const baseArticles = await fetchSentinelNewsItems(profile);
 
   if (!v2Enabled) {
-    return { articles: baseArticles, expansions: [], expandedTerms: [] };
+    return {
+      articles: baseArticles,
+      expansions: [],
+      expandedTerms: [],
+      rssFetchStats: getRssFetchStats(),
+    };
   }
 
   const profileId = profile.id?.trim() || "default";
+  // Só expansões dos temas ativos — órfãos (ex.: Cameras Corporais após troca do radar)
+  // não podem buscar nem rotular pautas.
   const expansions =
-    profileId !== "default" ? await loadSentinelThemeExpansions(profileId) : [];
+    profileId !== "default" ? await loadSentinelThemeExpansionsForProfile(profile) : [];
   const expandedTerms = flattenExpansionSearchTerms(expansions);
   const semanticArticles = await fetchSemanticExpansionNewsItems(profile, expandedTerms);
 
@@ -515,7 +597,12 @@ async function collectSentinelArticles(profile: PoliticianProfile) {
     articles.push(item);
   }
 
-  return { articles, expansions, expandedTerms };
+  return {
+    articles,
+    expansions,
+    expandedTerms,
+    rssFetchStats: getRssFetchStats(),
+  };
 }
 
 async function buildSuggestions(
@@ -543,12 +630,17 @@ export async function getSentinelSuggestions(
   options?: { forceRefresh?: boolean },
 ) {
   const cacheKey = profile.id || "default";
-  const cached = await readCachedSuggestions(cacheKey, options?.forceRefresh);
+  const forceRefresh = Boolean(options?.forceRefresh);
+  const cached = await readCachedSuggestions(cacheKey, profile, {
+    forceRefresh,
+    allowStale: true,
+  });
 
   if (cached) {
     const hydrated = await hydrateCachedOppositionSuggestions(profile, cacheKey, cached);
+    const suggestions = filterSuggestionsForProfile(profile, hydrated.suggestions);
     return {
-      suggestions: hydrated.suggestions,
+      suggestions,
       meta: withOppositionMeta(profile, hydrated.meta, true),
     };
   }
@@ -566,6 +658,15 @@ export async function getSentinelSuggestions(
     return { suggestions: [], meta };
   }
 
+  // GET do monitoramento só lê cache. Varredura nova: Atualizar pautas ou troca do radar.
+  if (!forceRefresh) {
+    const meta = buildEmptyMeta(profile, {
+      emptyReason:
+        "Nenhuma pauta em cache para este radar. Clique em Atualizar pautas para buscar notícias.",
+    });
+    return { suggestions: [], meta };
+  }
+
   const articlesBundle = await collectSentinelArticles(profile);
   const articleBuild = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
   const articleSuggestions = articleBuild.suggestions;
@@ -573,30 +674,64 @@ export async function getSentinelSuggestions(
     buildSocialSentinelSuggestions(profile),
     buildOppositionPostSuggestions(profile),
   ]);
-  const suggestions = mergeSuggestions(
-    articleSuggestions,
-    socialSuggestions,
-    oppositionSuggestions,
+  const suggestionsFiltered = filterSuggestionsForProfile(
+    profile,
+    mergeSuggestions(articleSuggestions, socialSuggestions, oppositionSuggestions),
   );
+
+  const qualityRank = await applySentinelQualityRank(suggestionsFiltered, {
+    profileLabel: [profile.fullName, profile.city, profile.state].filter(Boolean).join(" · "),
+  });
+  const suggestions = qualityRank.suggestions;
+
   const oppositionUnavailableReason = buildOppositionUnavailableMeta(profile);
   const v2Enabled = isSentinelV2PipelinesEnabled();
+  const rssFetchStats = articlesBundle.rssFetchStats;
+  const fetchLooksBroken =
+    articlesBundle.articles.length === 0 &&
+    rssFetchStats.attempted > 0 &&
+    rssFetchStats.succeeded === 0;
+
+  const qualityReport = buildSentinelQualityReport(suggestions);
+  const llmCostEstimate = estimateSentinelLlmCost({
+    // Expansões costumam vir do cache; o custo variável do refresh é verify + quality rank.
+    expansionCalls: 0,
+    verifyLlmCalls: articleBuild.themeVerificationStats?.llmCalls ?? 0,
+    qualityRankCalls: qualityRank.stats.llmCalls,
+  });
 
   const meta: SentinelSuggestionsMeta = {
     source: v2Enabled ? "sentinel-v2-pipelines" : "google-news-rss+portals",
     cached: false,
     refreshedAt: new Date().toISOString(),
     radarThemesCount,
+    radarThemesSignature: buildRadarThemesSignature(profile),
     articlesScanned: articlesBundle.articles.length,
     portalsMonitored,
     pipelinesEnabled: v2Enabled,
     expansionTermsCount: articlesBundle.expandedTerms.length,
     themeVerificationStats: articleBuild.themeVerificationStats,
+    rssFetchStats,
+    qualityReport: {
+      newsTotal: qualityReport.newsTotal,
+      newsPautavel: qualityReport.newsPautavel,
+      newsPautavelPercent: qualityReport.newsPautavelPercent,
+      oppositionTotal: qualityReport.oppositionTotal,
+    },
+    qualityRankStats: qualityRank.stats.llmCalls > 0 ? qualityRank.stats : undefined,
+    llmCostEstimate,
     emptyReason:
       suggestions.length === 0
-        ? "Nenhuma materia recente encontrada para os temas e portais configurados."
+        ? fetchLooksBroken
+          ? "Falha ao consultar fontes de noticias (Google News/portais). Tente atualizar novamente em alguns minutos."
+          : "Nenhuma materia recente encontrada para os temas e portais configurados."
         : undefined,
     oppositionUnavailableReason,
   };
+
+  if (fetchLooksBroken) {
+    console.warn("[sentinel] coleta RSS zerada", rssFetchStats);
+  }
 
   const expiresAt = Date.now() + CACHE_TTL_MS;
   await persistSuggestionsCache(cacheKey, suggestions, meta, expiresAt);
@@ -613,23 +748,37 @@ export async function getSentinelSuggestionById(
   return suggestions.find((suggestion) => suggestion.id === suggestionId) ?? null;
 }
 
-export function filterMockSentinelSuggestions(
+export function filterSuggestionsForProfile(
   profile: PoliticianProfile,
-  mocks: MockSentinelSuggestion[],
+  suggestions: MockSentinelSuggestion[],
 ) {
-  const radarThemes = new Set(
+  const interestThemes = new Set(
     splitProfileThemesBySphere(profile).interest.map((theme) => theme.toLowerCase()),
   );
 
-  if (radarThemes.size === 0) {
-    return mocks.filter((suggestion) =>
+  if (interestThemes.size === 0) {
+    return suggestions.filter((suggestion) =>
       (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition"),
     );
   }
 
-  return mocks.filter(
-    (suggestion) =>
-      suggestion.matchedThemes.some((theme) => radarThemes.has(theme.toLowerCase())) ||
-      (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition"),
-  );
+  return suggestions.filter((suggestion) => {
+    if ((suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition")) {
+      return true;
+    }
+
+    // O tema exibido no card precisa ser um tema ativo do radar.
+    // matchedThemes sozinho não basta: expansão órfã pode rotular "Cameras Corporais"
+    // e ainda assim cruzar um tema fiscal por falso positivo de sinônimo.
+    const themeLabel = suggestion.themeLabel.trim().toLowerCase();
+    return Boolean(themeLabel && interestThemes.has(themeLabel));
+  });
+}
+
+/** @deprecated Use filterSuggestionsForProfile */
+export function filterMockSentinelSuggestions(
+  profile: PoliticianProfile,
+  mocks: MockSentinelSuggestion[],
+) {
+  return filterSuggestionsForProfile(profile, mocks);
 }

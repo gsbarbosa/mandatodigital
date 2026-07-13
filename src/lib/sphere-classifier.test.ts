@@ -186,6 +186,34 @@ describe("classifySuggestionSphere", () => {
     expect(classifySuggestionSphere(suggestion, [])).toBe("estadual");
   });
 
+  it("respeita o radar do perfil quando o tema existe nos dois catalogos", () => {
+    const suggestion = buildSuggestion({
+      themeLabel: "Cameras Corporais",
+      matchedThemes: ["Cameras Corporais"],
+      articles: [
+        {
+          title: "Video de cameras corporais mostra PM – Terra",
+          url: "https://news.google.com/rss/articles/cameras",
+          sourceName: "Terra",
+        },
+      ],
+    });
+
+    expect(
+      classifySuggestionSphere(suggestion, [], "SP", [], {
+        federal: ["Reforma Fiscal"],
+        estadual: ["Cameras Corporais"],
+      }),
+    ).toBe("estadual");
+
+    expect(
+      classifySuggestionSphere(suggestion, [], "SP", [], {
+        federal: ["Cameras Corporais"],
+        estadual: [],
+      }),
+    ).toBe("federal");
+  });
+
   it("prioritizes opposition over article domains", () => {
     const suggestion = buildSuggestion({
       actors: [

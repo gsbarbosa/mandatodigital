@@ -6,9 +6,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { useProductApp } from "@/components/product/provider";
-import { pickLatestCaricatureForVariant } from "@/lib/caricature-asset-variant";
+import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
+import { trainingAssetFileUrl } from "@/components/product/persona-shared";
+import {
+  guestCaricatureQuota,
+  pickLatestCaricatureForVariant,
+} from "@/lib/caricature-asset-variant";
 import type { AvatarTipo } from "@/lib/avatar-tipos";
 import {
+  formatProviderLimitHint,
   readCuradorHeygenPrefs,
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
@@ -29,45 +35,49 @@ function ArrowIcon({ className }: { className?: string }) {
 
 export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
   const router = useRouter();
-  const { trainingAssets, profile, profileForm } = useProductApp();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const {
+    trainingAssets,
+    profile,
+    profileForm,
+    sessionUser,
+    caricatureRegenJobs,
+    regenerateCaricatureVariant,
+  } = useProductApp();
+  const { isPremium } = useDevAccountMode(sessionUser?.email);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const [confirmRetrain, setConfirmRetrain] = useState(false);
+
+  const sourcePhoto = useMemo(
+    () =>
+      [...trainingAssets]
+        .filter((asset) => asset.trainingRole === "avatar_image")
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ??
+      null,
+    [trainingAssets],
+  );
 
   const previewAsset = useMemo(() => {
     if (tipo.caricatureVariant) {
       return pickLatestCaricatureForVariant(trainingAssets, tipo.caricatureVariant);
     }
-    return (
-      [...trainingAssets]
-        .filter((asset) => asset.trainingRole === "avatar_image")
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ??
-      null
-    );
-  }, [trainingAssets, tipo.caricatureVariant]);
+    return sourcePhoto;
+  }, [trainingAssets, tipo.caricatureVariant, sourcePhoto]);
+
+  const previewSrc = previewAsset ? trainingAssetFileUrl(previewAsset.id) : null;
+  const regenJob = tipo.caricatureVariant
+    ? caricatureRegenJobs[tipo.caricatureVariant]
+    : null;
+  const isRegenerating = regenJob?.status === "running";
+  const regenerateError = regenJob?.status === "error" ? regenJob.message : null;
+  const regenerateSuccess = regenJob?.status === "success" ? regenJob.message : null;
+  const caricatureQuota = tipo.caricatureVariant
+    ? guestCaricatureQuota({ assets: trainingAssets, variant: tipo.caricatureVariant })
+    : null;
+  const guestQuotaReached = Boolean(caricatureQuota?.reached) && !isPremium;
 
   useEffect(() => {
-    let cancelled = false;
-    setPreviewUrl(null);
-    if (!previewAsset) {
-      return;
-    }
-    void (async () => {
-      try {
-        const response = await fetch(
-          `/api/profile/training-assets/${encodeURIComponent(previewAsset.id)}/preview-url`,
-        );
-        const payload = (await response.json()) as { previewUrl?: string };
-        if (!cancelled && response.ok && payload.previewUrl) {
-          setPreviewUrl(payload.previewUrl);
-        }
-      } catch {
-        // Mantém o placeholder.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [previewAsset]);
+    setPreviewFailed(false);
+  }, [previewAsset?.id]);
 
   const profileIdForPrefs = profile?.id ?? profileForm.id ?? null;
 
@@ -96,8 +106,17 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
     writeCuradorHeygenPrefs(profileIdForPrefs, overrides);
   }, [profileIdForPrefs, tipo.slug, previewAsset?.id]);
 
-  const treinarHref = `/avatares/${tipo.slug}/treinar` as Route;
+  const isDerivedFromGemeo = Boolean(tipo.caricatureVariant);
+  const treinarHref = "/avatares/foto-real/treinar" as Route;
   const independenteHref = `/independente?avatar=${tipo.slug}` as Route;
+
+  function handleRegenerateCaricature() {
+    const variant = tipo.caricatureVariant;
+    if (!variant) {
+      return;
+    }
+    void regenerateCaricatureVariant({ variant, label: tipo.label });
+  }
 
   return (
     <div className="min-h-full relative overflow-hidden pb-24">
@@ -119,44 +138,135 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
           {/* Avatar */}
           <div className="bg-slate-900/30 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-8 flex flex-col items-center justify-center shadow-xl relative transition-all duration-300 hover:border-cyan-500/40 hover:shadow-[0_0_40px_rgba(6,182,212,0.15)] group">
             <div className="relative w-full max-w-[280px] aspect-square rounded-2xl overflow-hidden border-2 border-slate-700/80 group-hover:border-cyan-400/60 transition-colors shadow-2xl bg-gradient-to-b from-slate-900 to-slate-950 flex items-center justify-center">
-              {previewUrl ? (
+              {previewSrc && !previewFailed ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={previewUrl}
+                  src={previewSrc}
                   alt={`Avatar ${tipo.label}`}
                   className="w-full h-full object-cover btn-transition group-hover:scale-105"
+                  decoding="async"
+                  fetchPriority="high"
+                  onError={() => setPreviewFailed(true)}
                 />
               ) : (
                 <div className="text-center px-6">
                   <p className="text-slate-500 text-sm">
-                    {previewAsset
-                      ? "Carregando pré-visualização..."
-                      : "Nenhum avatar treinado ainda. Use “Editar avatar” para enviar foto e voz."}
+                    {previewFailed
+                      ? "Não foi possível carregar a pré-visualização."
+                      : isDerivedFromGemeo
+                        ? "Este estilo é gerado a partir da foto do Gêmeo Digital. Configure o avatar para começar."
+                        : "Nenhum avatar treinado ainda. Use “Editar avatar” para enviar foto e voz."}
                   </p>
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F19] via-transparent to-transparent opacity-60 pointer-events-none" />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setConfirmRetrain(true)}
-              className="w-full max-w-[280px] mt-4 group/edit inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700/70 bg-slate-950/50 px-4 py-2.5 text-sm font-medium text-slate-200 shadow-sm transition-all hover:border-cyan-500/45 hover:bg-cyan-950/25 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
-            >
-              <svg
-                className="h-4 w-4 shrink-0 text-cyan-400 transition-colors group-hover/edit:text-cyan-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden="true"
+            {isDerivedFromGemeo ? (
+              <div className="w-full max-w-[280px] mt-4 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleRegenerateCaricature()}
+                  disabled={
+                    isRegenerating || !sourcePhoto || guestQuotaReached
+                  }
+                  className="w-full group/edit inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700/70 bg-slate-950/50 px-4 py-2.5 text-sm font-medium text-slate-200 shadow-sm transition-all hover:border-cyan-500/45 hover:bg-cyan-950/25 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg
+                    className={`h-4 w-4 shrink-0 text-cyan-400 ${isRegenerating ? "animate-spin" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span className="text-center leading-snug">
+                    {isRegenerating
+                      ? `Regenerando ${tipo.label}…`
+                      : guestQuotaReached
+                        ? `Limite de ${tipo.label} atingido`
+                        : previewAsset
+                          ? `Regenerar ${tipo.label}`
+                          : `Gerar ${tipo.label}`}
+                  </span>
+                </button>
+                <p className="text-center text-xs text-slate-500 leading-relaxed">
+                  {caricatureQuota && !isPremium ? (
+                    guestQuotaReached ? (
+                      <>
+                        Versão para convidados: {caricatureQuota.used}/{caricatureQuota.limit}{" "}
+                        gerações de {tipo.label} usadas.
+                      </>
+                    ) : (
+                      <>
+                        Versão para convidados: {caricatureQuota.used}/{caricatureQuota.limit}{" "}
+                        gerações de {tipo.label}.
+                        {!sourcePhoto ? (
+                          <>
+                            {" "}
+                            <Link
+                              href={treinarHref}
+                              className="text-cyan-400 no-underline hover:underline"
+                            >
+                              Configurar avatar
+                            </Link>
+                          </>
+                        ) : null}
+                      </>
+                    )
+                  ) : isPremium ? (
+                    <span>Modo premium — sem limite de gerações de {tipo.label}.</span>
+                  ) : null}
+                </p>
+                {regenerateError ? (
+                  <p className="text-center text-xs text-amber-300/90 leading-relaxed" role="status">
+                    {regenerateError}
+                    {formatProviderLimitHint(regenerateError) ? (
+                      <>
+                        <br />
+                        {formatProviderLimitHint(regenerateError)}
+                      </>
+                    ) : null}
+                  </p>
+                ) : null}
+                {regenerateSuccess ? (
+                  <p className="text-center text-xs text-emerald-400 leading-relaxed" role="status">
+                    {regenerateSuccess}
+                  </p>
+                ) : null}
+                {isRegenerating ? (
+                  <p className="text-center text-xs text-cyan-300/90 leading-relaxed" role="status">
+                    Regeneração em andamento — pode sair desta tela; o processo continua.
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmRetrain(true)}
+                className="w-full max-w-[280px] mt-4 group/edit inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700/70 bg-slate-950/50 px-4 py-2.5 text-sm font-medium text-slate-200 shadow-sm transition-all hover:border-cyan-500/45 hover:bg-cyan-950/25 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              <span className="text-center leading-snug">
-                Editar avatar / Retreinar {tipo.label}
-              </span>
-            </button>
+                <svg
+                  className="h-4 w-4 shrink-0 text-cyan-400 transition-colors group-hover/edit:text-cyan-300"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span className="text-center leading-snug">
+                  Editar avatar / Retreinar {tipo.label}
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Ações */}
@@ -217,8 +327,8 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
         </div>
       </div>
 
-      {/* Pop-up de confirmação de retreino */}
-      {confirmRetrain ? (
+      {/* Pop-up de confirmação de retreino — só Gêmeo Digital */}
+      {!isDerivedFromGemeo && confirmRetrain ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button
             type="button"

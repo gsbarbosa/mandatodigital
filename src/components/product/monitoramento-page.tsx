@@ -127,16 +127,27 @@ export function MonitoramentoPage() {
     }
   }
 
-  const grouped = useMemo(
-    () =>
-      groupSuggestionsBySphere(
-        suggestions,
-        profileForm.interestSites,
-        profileForm.state,
-        profileForm.customRadarThemes,
-      ),
-    [suggestions, profileForm.interestSites, profileForm.state, profileForm.customRadarThemes],
-  );
+  const grouped = useMemo(() => {
+    const themeSpheres = resolveSentinelThemeSpheres(profileForm);
+    return groupSuggestionsBySphere(
+      suggestions,
+      profileForm.interestSites,
+      profileForm.state,
+      profileForm.customRadarThemes,
+      {
+        federal: themeSpheres.federal,
+        estadual: themeSpheres.estadual,
+      },
+    );
+  }, [
+    suggestions,
+    profileForm.interestSites,
+    profileForm.state,
+    profileForm.customRadarThemes,
+    profileForm.sentinelThemesFederal,
+    profileForm.sentinelThemesEstadual,
+    profileForm.sentinelThemes,
+  ]);
 
   const chipsBySphere = useMemo<Record<MonitorSphere, string[]>>(() => {
     const customThemes = profileForm.customRadarThemes.filter((theme) => theme.trim().length > 0);
@@ -171,9 +182,22 @@ export function MonitoramentoPage() {
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 relative z-10">
-        <h1 className="text-2xl font-bold text-white tracking-tight">Monitoramento de Pautas</h1>
-        <div className="flex items-center gap-3 shrink-0">
+      <header className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 relative z-10">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
+            Monitoramento de Pautas
+          </h1>
+          <p className="text-sm leading-snug text-slate-300">
+            Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar.
+          </p>
+          <p className="text-xs leading-snug text-slate-400">
+            <span className="font-semibold text-slate-300">Aviso:</span> para assinantes, o
+            monitoramento será em{" "}
+            <strong className="font-semibold text-cyan-300/90">tempo real</strong>. Versão
+            convidados, 01 vez por dia.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 md:pt-1">
           {meta?.refreshedAt ? (
             <span className="text-xs text-slate-500">
               Atualizado em {new Date(meta.refreshedAt).toLocaleString("pt-BR")}
@@ -188,18 +212,6 @@ export function MonitoramentoPage() {
       </header>
 
       <div className="mb-10 space-y-4 relative z-10">
-        <div className="rounded-xl border border-slate-800 bg-slate-900/40 px-5 py-4">
-          <p className="text-sm leading-relaxed text-slate-300">
-            Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar.
-          </p>
-          <p className="mt-3 border-t border-slate-800/80 pt-3 text-xs leading-relaxed text-slate-400">
-            <span className="font-semibold text-slate-300">Aviso:</span> para assinantes, o
-            monitoramento será em{" "}
-            <strong className="font-semibold text-cyan-300/90">tempo real</strong>. Versão
-            convidados, 01 vez por dia.
-          </p>
-        </div>
-
         {refreshMessage ? (
           <p className="text-sm text-cyan-300 px-1" role="status">
             {refreshMessage}
@@ -208,16 +220,17 @@ export function MonitoramentoPage() {
 
         {isLoading ? (
           <div
-            className="flex items-start gap-3 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-5 py-4"
+            className="flex flex-col items-center justify-center gap-4 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-5 py-8 text-center"
             role="status"
           >
             <span
-              className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-400"
+              className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-400"
               aria-hidden="true"
             />
             <p className="text-sm leading-relaxed text-slate-300">
-              Carregando pautas do monitoramento… A primeira busca pode levar até 2 minutos enquanto
-              consultamos portais e redes.
+              Carregando pautas do monitoramento…
+              <br />
+              A primeira busca pode levar até 2 minutos enquanto consultamos portais e redes.
             </p>
           </div>
         ) : null}

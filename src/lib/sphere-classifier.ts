@@ -17,8 +17,24 @@ import { estadualThemeGroups, federalThemeGroups } from "./sphere-theme-catalog"
  * Article URLs frequently point at the Google News aggregator, so the real
  * outlet must be inferred from `sourceName` (RSS <source>) or from the
  * " - Outlet" suffix Google News appends to titles.
+ *
+ * Prioridade: adversários/municipal → **radar do perfil** (onde o tema foi
+ * marcado) → catálogo estático → portal/outlet → fallback estadual.
  */
 export type MonitorSphere = "federal" | "estadual" | "municipal" | "adversarios";
+
+export type ProfileRadarThemes = {
+  federal?: string[];
+  estadual?: string[];
+};
+
+function themeKey(theme: string) {
+  return theme.trim().toLowerCase();
+}
+
+function toThemeSet(themes: string[] | undefined) {
+  return new Set((themes ?? []).map(themeKey).filter(Boolean));
+}
 
 /** National outlets listed in the monitoring footer (mock LandingPage.html). */
 const FEDERAL_PORTAL_DOMAINS = [
@@ -62,6 +78,48 @@ export function classifyThemesCatalogSphere(themes: string[]): MonitorSphere | n
   }
   if (inEstadual && !inFederal) {
     return "estadual";
+  }
+
+  return null;
+}
+
+/**
+ * Esfera conforme o radar salvo do perfil — resolve temas que existem nos dois
+ * catálogos (ex.: Cameras Corporais) quando o usuário marcou só em Estadual ou só em Nacional.
+ */
+export function classifyThemesProfileSphere(
+  themeLabel: string,
+  matchedThemes: string[],
+  profileRadar: ProfileRadarThemes = {},
+): MonitorSphere | null {
+  const federalKeys = toThemeSet(profileRadar.federal);
+  const estadualKeys = toThemeSet(profileRadar.estadual);
+
+  if (federalKeys.size === 0 && estadualKeys.size === 0) {
+    return null;
+  }
+
+  const label = themeKey(themeLabel);
+  if (label) {
+    const inFederal = federalKeys.has(label);
+    const inEstadual = estadualKeys.has(label);
+    if (inEstadual && !inFederal) {
+      return "estadual";
+    }
+    if (inFederal && !inEstadual) {
+      return "federal";
+    }
+  }
+
+  const matched = [...new Set([themeLabel, ...matchedThemes].map(themeKey).filter(Boolean))];
+  const matchedFederal = matched.filter((theme) => federalKeys.has(theme));
+  const matchedEstadual = matched.filter((theme) => estadualKeys.has(theme));
+
+  if (matchedEstadual.length > 0 && matchedFederal.length === 0) {
+    return "estadual";
+  }
+  if (matchedFederal.length > 0 && matchedEstadual.length === 0) {
+    return "federal";
   }
 
   return null;
@@ -189,6 +247,7 @@ export function classifySuggestionSphere(
   interestSites: string[],
   profileState = "",
   customRadarThemes: string[] = [],
+  profileRadar: ProfileRadarThemes = {},
 ): MonitorSphere {
   const actors = suggestion.evidence.actors ?? [];
   if (actors.some((actor) => actor.sourceList === "opposition")) {
@@ -212,6 +271,15 @@ export function classifySuggestionSphere(
 
   if (hintsList.some((hints) => matchesInterestSites(hints, interestDomains))) {
     return "municipal";
+  }
+
+  const profileSphere = classifyThemesProfileSphere(
+    suggestion.themeLabel,
+    suggestion.matchedThemes,
+    profileRadar,
+  );
+  if (profileSphere) {
+    return profileSphere;
   }
 
   const themeSphere = classifyThemesCatalogSphere(suggestionThemes(suggestion));
@@ -254,6 +322,7 @@ export function groupSuggestionsBySphere(
   interestSites: string[],
   profileState = "",
   customRadarThemes: string[] = [],
+  profileRadar: ProfileRadarThemes = {},
 ): Record<MonitorSphere, MockSentinelSuggestion[]> {
   const groups: Record<MonitorSphere, MockSentinelSuggestion[]> = {
     federal: [],
@@ -268,6 +337,7 @@ export function groupSuggestionsBySphere(
         interestSites,
         profileState,
         customRadarThemes,
+        profileRadar,
       )
     ].push(suggestion);
   }

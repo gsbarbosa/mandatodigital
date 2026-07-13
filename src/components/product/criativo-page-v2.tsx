@@ -63,7 +63,8 @@ import {
   resolveActiveTwinGroupId,
 } from "@/lib/heygen-avatar-refazer";
 import { resolveCreativeProjectTopicForSave } from "@/lib/creative-project-display";
-import { buildCreativeAiMetadata } from "@/lib/creative-ai-metadata";
+import { buildCreativeAiMetadata, withTseCaptionTag } from "@/lib/creative-ai-metadata";
+import { ExportComplianceModal } from "@/components/product/export-compliance-modal";
 import {
   avatarSlugFromProductionTemplate,
   avatarSlugFromSearchParam,
@@ -172,12 +173,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [captionUrl, setCaptionUrl] = useState<string | null>(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [freePrompt, setFreePrompt] = useState<string>("");
   const [useFreePromptAsTranscript, setUseFreePromptAsTranscript] = useState(
     mode === "independente",
   );
-  const [independentTermsAccepted, setIndependentTermsAccepted] = useState(false);
   const pendingAvatarSlugRef = useRef<AvatarTipoSlug | null>(null);
   const [sentinelSuggestion, setSentinelSuggestion] = useState<MockSentinelSuggestion | null>(
     null,
@@ -426,15 +427,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     if (avatarTrack === "caricature" && isTraining) {
       return "Preparando a voz na plataforma. Aguarde.";
     }
-    if (useFreePromptAsTranscript) {
-      return freePrompt.trim() ? null : "Preencha o Prompt livre (modo teste) ou desmarque a opção.";
-    }
-    if (!scriptDraft.trim()) {
-      return "Gere ou escreva um roteiro na seção de aprovação.";
-    }
-    if (!scriptApproved) {
-      return "Clique em Aprovar Roteiro antes de gerar o conteúdo.";
-    }
     if (manualReviewConsentRequired && !manualReviewConsent) {
       return "Confirme a revisão manual do roteiro antes de produzir o conteúdo.";
     }
@@ -448,11 +440,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   function renderArchetypeIntro() {
     return (
-      <div className={`${CRIATIVO_HELPER_CLASS} mb-5 leading-relaxed space-y-2`}>
-        <p>Selecione no máximo um arquétipo e um tom.</p>
-        <p>
-          <span className="text-slate-300">Obs:</span> Por padrão, a IA utiliza a identidade
-          comunicacional identificada nas mídias enviadas (caso não faça nenhuma seleção).
+      <div className="mb-3">
+        <p className={CRIATIVO_LABEL_CLASS}>Selecione no máximo um arquétipo e um tom.</p>
+        <p className={`${CRIATIVO_HELPER_CLASS} mt-1`}>
+          Por padrão, a IA utiliza a identidade comunicacional identificada nas mídias enviadas
+          (caso não faça nenhuma seleção).
         </p>
       </div>
     );
@@ -657,12 +649,39 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     throw new Error("O video ainda esta em processamento. Atualize a pagina em alguns minutos.");
   }
 
+  async function sealVideoIfPossible(input: {
+    heygenVideoId: string;
+    videoUrl: string;
+  }) {
+    try {
+      const response = await fetch("/api/media/seal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl: input.videoUrl,
+          mediaId: input.heygenVideoId,
+        }),
+      });
+      const payload = await parseJsonOrText<{
+        sealedUrl?: string;
+        message?: string;
+      }>(response);
+      if (!response.ok || !payload.sealedUrl?.trim()) {
+        return { videoUrl: input.videoUrl, sealed: false };
+      }
+      return { videoUrl: payload.sealedUrl.trim(), sealed: true };
+    } catch {
+      return { videoUrl: input.videoUrl, sealed: false };
+    }
+  }
+
   async function persistCreativeProject(input: {
     heygenVideoId: string;
     videoUrl: string;
     captionUrl: string;
     status: "ready" | "failed";
     errorMessage?: string;
+    sealed?: boolean;
   }) {
     const response = await fetch("/api/creative-projects", {
       method: "POST",
@@ -689,6 +708,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           factCheckVerdict: factCheckResult?.verdict,
           usedFreePrompt: useFreePromptAsTranscript,
           technologies: ["HeyGen"],
+          sealed: input.sealed,
         }),
       }),
     });
@@ -1516,9 +1536,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             : "Escreva o roteiro completo antes de gerar o conteúdo.",
         );
       }
-      if (mode === "independente" && !independentTermsAccepted) {
-        throw new Error("Aceite os termos de responsabilidade (TSE) antes de criar o conteúdo.");
-      }
       if (!useFreePromptAsTranscript && !scriptApproved) {
         throw new Error("Aprove o roteiro antes de produzir o conteudo.");
       }
@@ -1614,11 +1631,17 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       setVideoId(id);
       setVideoStatus("pending");
       const result = await pollVideo(id);
-      await persistCreativeProject({
+      const sealed = await sealVideoIfPossible({
         heygenVideoId: id,
         videoUrl: result.videoUrl,
+      });
+      setVideoUrl(sealed.videoUrl);
+      await persistCreativeProject({
+        heygenVideoId: id,
+        videoUrl: sealed.videoUrl,
         captionUrl: result.captionUrl,
         status: "ready",
+        sealed: sealed.sealed,
       });
       router.push("/criativo");
     } catch (error) {
@@ -2106,16 +2129,17 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   });
 
   return (
+    <>
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <header className="mb-8 relative z-10">
+      <header className={`relative z-10 ${mode === "independente" ? "mb-5" : "mb-8"}`}>
         {mode === "independente" ? (
           <>
             <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
               Criar conteúdo independente
             </h1>
-            <p className="text-slate-400 text-sm md:text-base max-w-3xl leading-relaxed">
+            <p className="text-slate-400 text-sm md:text-base max-w-3xl leading-snug">
               <strong className="text-slate-300 font-medium">
                 Use seu avatar para falar o que você quiser publicar.
               </strong>{" "}
@@ -2405,26 +2429,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           </div>
           )}
 
-          {mode === "independente" ? (
-            <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-slate-800/60">
-              <label className="persona-checkbox !items-start cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={independentTermsAccepted}
-                  onChange={(event) => setIndependentTermsAccepted(event.target.checked)}
-                  className="w-4 h-4 mt-0.5 shrink-0 accent-cyan-500"
-                />
-                <span className="text-xs leading-relaxed">
-                  Li e aceito os termos de uso dessa mídia, me responsabilizando legalmente e
-                  exclusivamente pelo teor do conteúdo, em conformidade com as diretrizes do TSE.{" "}
-                  <Link href="/compliance" className="text-cyan-400 no-underline hover:underline">
-                    Ver Compliance TSE
-                  </Link>
-                </span>
-              </label>
-            </div>
-          ) : null}
-
           <div className={`${CRIATIVO_PANEL_CLASS} relative z-10`}>
             <div className="border-b border-slate-800 pb-4 mb-6">
               <h2 className="text-xl font-bold text-white">Produzir vídeo</h2>
@@ -2444,9 +2448,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   !canProduceContent ||
                   ((avatarTrack === "caricature" || avatarTrack === "photo_real") && isTraining) ||
                   (mode === "independente" &&
-                    (!independentTermsAccepted ||
-                      !freePrompt.trim() ||
-                      freePromptWordCount > MAX_SCRIPT_WORDS))
+                    (!freePrompt.trim() || freePromptWordCount > MAX_SCRIPT_WORDS))
                 }
               >
                 {isGenerating ? (
@@ -2461,11 +2463,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               {generateDisabledReason && !isGenerating ? (
                 <p className="persona-helper-text persona-helper-highlight persona-top-gap">
                   {generateDisabledReason}
-                </p>
-              ) : null}
-              {mode === "independente" && !isGenerating && !independentTermsAccepted ? (
-                <p className="persona-helper-text persona-top-gap">
-                  Aceite os termos de responsabilidade (TSE) para liberar a produção.
                 </p>
               ) : null}
               {isGenerating && <div className="persona-progress" />}
@@ -2488,14 +2485,13 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               )}
               {videoUrl && (
                 <div className="persona-video-ready-row mt-4">
-                  <a
-                    href={videoUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => setExportModalOpen(true)}
                     className={`${CRIATIVO_PRIMARY_BTN_CLASS} px-6 py-3`}
                   >
                     Ver vídeo
-                  </a>
+                  </button>
                 </div>
               )}
               {captionUrl && (
@@ -2508,7 +2504,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   <button
                     type="button"
                     className="inline bg-transparent p-0 text-cyan-400 hover:underline"
-                    onClick={() => void navigator.clipboard.writeText(captionUrl)}
+                    onClick={() =>
+                      void navigator.clipboard.writeText(withTseCaptionTag(captionUrl))
+                    }
                   >
                     Copiar legenda
                   </button>
@@ -2520,6 +2518,18 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           </>
           ) : null}
     </div>
+    {videoUrl && videoId ? (
+      <ExportComplianceModal
+        open={exportModalOpen}
+        mediaId={videoId}
+        mediaUrl={videoUrl}
+        onClose={() => setExportModalOpen(false)}
+        onConfirmed={(url) => {
+          window.open(url, "_blank", "noopener,noreferrer");
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 

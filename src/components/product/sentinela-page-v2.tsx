@@ -14,15 +14,22 @@ import {
 } from "@/components/product/mock-agent-ui";
 import { PersonaSentinelaIcon } from "@/components/product/persona-shared";
 import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
+import { ThemeExpansionsPanel, type ThemeExpansionRow } from "@/components/product/theme-expansions-panel";
 import { useProductApp } from "@/components/product/provider";
 import { oppositionThemeGroups, sentinelThemeGroups } from "@/lib/constants";
 
 type SentinelaTab = "temas" | "adversarios";
 
-type ThemeExpansionRow = {
-  sourceTheme: string;
-  expandedTerms: string[];
-  generatedAt: string;
+type ThemeExpansionsBySphere = {
+  federal: ThemeExpansionRow[];
+  estadual: ThemeExpansionRow[];
+  opposition: ThemeExpansionRow[];
+};
+
+const EMPTY_EXPANSION_GROUPS: ThemeExpansionsBySphere = {
+  federal: [],
+  estadual: [],
+  opposition: [],
 };
 
 export function SentinelaPageV2() {
@@ -31,22 +38,25 @@ export function SentinelaPageV2() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
-  const [expansions, setExpansions] = useState<ThemeExpansionRow[]>([]);
-  const [expansionsOpen, setExpansionsOpen] = useState(false);
+  const [expansionGroups, setExpansionGroups] =
+    useState<ThemeExpansionsBySphere>(EMPTY_EXPANSION_GROUPS);
   const [isLoadingExpansions, setIsLoadingExpansions] = useState(false);
 
   const customThemes = Array.from({ length: 3 }, (_, index) => profileForm.customRadarThemes[index] ?? "");
+  const interestExpansions = [...expansionGroups.federal, ...expansionGroups.estadual];
 
   const loadExpansions = useCallback(async () => {
     setIsLoadingExpansions(true);
     try {
       const response = await fetch("/api/sentinel/expansions");
-      const payload = (await response.json()) as { expansions?: ThemeExpansionRow[] };
+      const payload = (await response.json()) as {
+        bySphere?: ThemeExpansionsBySphere;
+      };
       if (response.ok) {
-        setExpansions(payload.expansions ?? []);
+        setExpansionGroups(payload.bySphere ?? EMPTY_EXPANSION_GROUPS);
       }
     } catch {
-      setExpansions([]);
+      setExpansionGroups(EMPTY_EXPANSION_GROUPS);
     } finally {
       setIsLoadingExpansions(false);
     }
@@ -62,7 +72,6 @@ export function SentinelaPageV2() {
     try {
       await saveProfile({ allowDraftDefaults: true, silent: true, throwOnError: true });
       await loadExpansions();
-      setExpansionsOpen(true);
       setSaveMessage("Radar do Sentinela salvo com sucesso.");
       window.setTimeout(() => setSaveMessage(null), 3200);
     } catch {
@@ -210,28 +219,13 @@ export function SentinelaPageV2() {
                 cadastrados entram via RSS ou busca Google News por domínio.
               </MockDidacticBox>
 
-              {expansions.length > 0 ? (
-                <div className="persona-form-group persona-top-gap">
-                  <button
-                    type="button"
-                    className="persona-btn persona-btn-secondary"
-                    onClick={() => setExpansionsOpen((current) => !current)}
-                  >
-                    {expansionsOpen ? "Ocultar" : "Ver"} termos monitorados (expansão)
-                  </button>
-                  {expansionsOpen ? (
-                    <ul className="persona-helper-text persona-top-gap">
-                      {expansions.map((row) => (
-                        <li key={row.sourceTheme}>
-                          <strong>{row.sourceTheme}:</strong> {row.expandedTerms.join(", ")}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  {isLoadingExpansions ? (
-                    <p className="persona-helper-text persona-top-gap">Carregando expansões...</p>
-                  ) : null}
-                </div>
+              <ThemeExpansionsPanel
+                rows={interestExpansions}
+                linkClassName="persona-btn persona-btn-secondary"
+                listClassName="persona-helper-text persona-top-gap"
+              />
+              {isLoadingExpansions ? (
+                <p className="persona-helper-text persona-top-gap">Carregando expansões...</p>
               ) : null}
             </>
           ) : (
@@ -276,6 +270,12 @@ export function SentinelaPageV2() {
                   placeholder="www.blog_oposicao.com.br"
                 />
               </div>
+
+              <ThemeExpansionsPanel
+                rows={expansionGroups.opposition}
+                linkClassName="persona-btn persona-btn-secondary"
+                listClassName="persona-helper-text persona-top-gap"
+              />
             </>
           )}
 

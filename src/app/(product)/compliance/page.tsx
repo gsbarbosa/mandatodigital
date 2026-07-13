@@ -6,7 +6,8 @@ export const metadata = {
 
 /*
  * Honest-copy rule (SPEC): pillars only claim what the product does today
- * (fact-check with sources, human approval, event log). Everything else is
+ * (fact-check with sources, human approval, event log, TSE watermark burn-in,
+ * export liability modal, contract acceptance trail + PDFs). Everything else is
  * explicitly marked "Em breve".
  */
 
@@ -141,15 +142,15 @@ export default function ComplianceRoute() {
 
           <PillarCard
             title="Marca d'água “Conteúdo Sintético” (Res. 23.732 TSE)"
-            comingSoon
             icon={
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             }
           >
-            Rotulagem automática de conteúdo gerado por IA em todos os vídeos, em conformidade com a
-            Resolução 23.732 do TSE. Recurso em implantação antes do período eleitoral.
+            Rotulagem automática queimada nos vídeos gerados: caixa semitransparente no canto
+            inferior esquerdo com o texto exigido pela Resolução 23.732 do TSE, do primeiro ao
+            último frame.
           </PillarCard>
 
           <PillarCard
@@ -218,12 +219,16 @@ export default function ComplianceRoute() {
                   <ChecklistItem title="Histórico de aprovações">
                     Registro de quem aprovou cada roteiro, quando e com qual resultado de checagem.
                   </ChecklistItem>
+                  <ChecklistItem title="Aceite no download/exportação">
+                    Antes de abrir ou baixar o material, o sistema exige checkbox de responsabilidade
+                    pela legenda TSE e registra o aceite na trilha de auditoria.
+                  </ChecklistItem>
                   <ChecklistItem title="Atestado de Apagão (Silêncio Eleitoral)" comingSoon>
                     Garantia documentada do bloqueio do sistema nas 72h antes do pleito.
                   </ChecklistItem>
-                  <ChecklistItem title="Contrato Automatizado" comingSoon>
-                    Documentação formal de Prestação de Serviços gerada na contratação e enviada por
-                    e-mail.
+                  <ChecklistItem title="Contrato Automatizado">
+                    No aceite do CNPJ, o sistema valida a natureza jurídica, captura IP/User-Agent/
+                    timestamp/hash e gera PDF do Contrato e do Dossiê de Transparência.
                   </ChecklistItem>
                 </div>
               </div>

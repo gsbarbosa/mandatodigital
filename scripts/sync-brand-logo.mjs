@@ -4,12 +4,12 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
-const source = path.join(root, "mandato_digital_logo_transparente.svg");
-const output = path.join(root, "public", "brand-logo.svg");
+const source = path.join(root, "mandato_digital_logo.png");
+const output = path.join(root, "public", "brand-logo.png");
 
 function main() {
   if (!fs.existsSync(source)) {
-    console.error("Arquivo mandato_digital_logo_transparente.svg nao encontrado na raiz do projeto.");
+    console.error("Arquivo mandato_digital_logo.png nao encontrado na raiz do projeto.");
     process.exit(1);
   }
 

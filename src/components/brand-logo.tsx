@@ -6,8 +6,8 @@ type BrandLogoProps = {
   fluid?: boolean;
 };
 
-const LOGO_WIDTH = 2139;
-const LOGO_HEIGHT = 735;
+const LOGO_WIDTH = 2096;
+const LOGO_HEIGHT = 612;
 
 export function BrandLogo({ className, width = 188, priority = false, fluid = false }: BrandLogoProps) {
   const height = Math.round((width * LOGO_HEIGHT) / LOGO_WIDTH);
@@ -16,7 +16,7 @@ export function BrandLogo({ className, width = 188, priority = false, fluid = fa
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/brand-logo.svg"
+      src="/brand-logo.png"
       alt="Mandato Digital"
       width={fluid ? LOGO_WIDTH : width}
       height={fluid ? LOGO_HEIGHT : height}

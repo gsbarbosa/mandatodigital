@@ -5,7 +5,9 @@ import { handleRouteError } from "@/lib/api";
 import { mergeProfileInputForSave } from "@/lib/profile-save";
 import { profileInputSchema } from "@/lib/schemas";
 import {
-  invalidateSentinelCache,
+  buildRadarThemesSignature,
+  getSentinelSuggestions,
+  invalidateSentinelCacheAsync,
 } from "@/lib/sentinel-suggestions";
 import { syncSentinelThemeExpansions } from "@/lib/sentinel-theme-expansion";
 
@@ -26,6 +28,9 @@ export async function PUT(request: Request) {
       delete body.draftSave;
 
       const dashboard = await repository.getDashboard();
+      const previousSignature = dashboard.profile
+        ? buildRadarThemesSignature(dashboard.profile)
+        : "";
       const merged = draftSave
         ? mergeProfileInputForSave(
             body as Parameters<typeof mergeProfileInputForSave>[0],
@@ -36,14 +41,17 @@ export async function PUT(request: Request) {
 
       const payload = profileInputSchema.parse(merged);
       const profile = await repository.saveProfile(payload);
+      const radarChanged =
+        Boolean(profile.id) && buildRadarThemesSignature(profile) !== previousSignature;
 
-      void syncSentinelThemeExpansions(profile)
-        .then(() => {
-          if (profile.id) {
-            invalidateSentinelCache(profile.id);
-          }
-        })
-        .catch(() => undefined);
+      if (radarChanged && profile.id) {
+        await invalidateSentinelCacheAsync(profile.id);
+        void (async () => {
+          await syncSentinelThemeExpansions(profile);
+          await invalidateSentinelCacheAsync(profile.id);
+          await getSentinelSuggestions(profile, { forceRefresh: true });
+        })().catch(() => undefined);
+      }
 
       return NextResponse.json({ profile });
     });

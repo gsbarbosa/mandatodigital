@@ -6,10 +6,9 @@ import type {
   SentinelVerifiedActor,
 } from "@/lib/sentinel-mock-suggestions";
 import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
-import { buildGoogleNewsRssUrl, matchSentinelThemes, parseRssFeed } from "@/lib/sentinel-rss";
+import { fetchGoogleNewsQuery, matchSentinelThemes } from "@/lib/sentinel-rss";
 import type { PoliticianProfile, SocialHandle } from "@/lib/types";
 
-const RSS_FETCH_TIMEOUT_MS = 12_000;
 const MAX_SOCIAL_SUGGESTIONS = 8;
 
 function normalizeNetwork(network: string): SentinelSocialNetwork {
@@ -47,30 +46,7 @@ function buildActor(
 }
 
 async function fetchGoogleNewsRss(query: string) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), RSS_FETCH_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(buildGoogleNewsRssUrl(query), {
-      headers: {
-        Accept: "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
-        "User-Agent": "MandatoDigital-Sentinela/1.0",
-      },
-      signal: controller.signal,
-      next: { revalidate: 0 },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const xml = await response.text();
-    return parseRssFeed(xml);
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(timeout);
-  }
+  return fetchGoogleNewsQuery(query);
 }
 
 function buildSocialQueries(row: SocialHandle, geo: string): string[] {
