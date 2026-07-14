@@ -16,6 +16,8 @@ const nextConfig: NextConfig = {
     "/api/media/seal": [
       "./node_modules/ffmpeg-static/**/*",
       "./assets/fonts/DejaVuSans.ttf",
+      "./assets/seals/tse-seal.png",
+      "./assets/seals/guest-test-seal.png",
     ],
   },
   experimental: {

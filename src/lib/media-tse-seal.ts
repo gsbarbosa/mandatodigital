@@ -12,6 +12,13 @@ import {
 import { resolveFfmpegBinary } from "@/lib/ffmpeg-binary";
 import { storeComplianceBuffer } from "@/lib/legal/contract-storage";
 
+/**
+ * O binário `ffmpeg-static` no Cloud Run **não** inclui o filtro `drawtext`
+ * (sem libfreetype). Por isso o selo é PNG pré-renderizado + `overlay`.
+ */
+const TSE_SEAL_PNG = "assets/seals/tse-seal.png";
+const GUEST_SEAL_PNG = "assets/seals/guest-test-seal.png";
+
 async function runFfmpeg(args: string[]) {
   const binary = resolveFfmpegBinary();
 
@@ -37,82 +44,34 @@ async function runFfmpeg(args: string[]) {
   });
 }
 
-function escapeDrawtext(text: string) {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/:/g, "\\:")
-    .replace(/'/g, "\\'")
-    .replace(/%/g, "\\%");
-}
-
-function resolveDrawtextFontFile() {
-  const fromEnv = process.env.TSE_SEAL_FONT_PATH?.trim();
-  if (fromEnv && fs.existsSync(fromEnv)) {
-    return fromEnv;
-  }
-
+function resolveAssetPath(relativePath: string) {
   const cwd = process.cwd();
   const candidates = [
-    // Bundled for Cloud Run / App Hosting (sem fontes de sistema).
-    path.join(cwd, "assets", "fonts", "DejaVuSans.ttf"),
-    path.join(cwd, ".next", "standalone", "assets", "fonts", "DejaVuSans.ttf"),
-    "/System/Library/Fonts/Supplemental/Arial.ttf",
-    "/System/Library/Fonts/Supplemental/Arial Unicode.ttf",
-    "/Library/Fonts/Arial.ttf",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    path.join(cwd, relativePath),
+    path.join(cwd, ".next", "standalone", relativePath),
   ];
-
-  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
-}
-
-function requireDrawtextFontFile() {
-  const fontFile = resolveDrawtextFontFile();
-  if (!fontFile) {
-    throw new Error(
-      "Fonte para selo TSE ausente. Inclua assets/fonts/DejaVuSans.ttf no deploy ou defina TSE_SEAL_FONT_PATH.",
-    );
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!found) {
+    throw new Error(`Asset de selo ausente: ${relativePath}`);
   }
-  return fontFile;
+  return found;
 }
 
-function buildDrawtextFilter(input: {
-  text: string;
-  fontSize: number;
-  x: number;
-  yExpr: string;
-}) {
-  const label = escapeDrawtext(input.text);
-  const fontFile = requireDrawtextFontFile();
-  return (
-    `drawtext=fontfile=${escapeDrawtext(fontFile)}:text='${label}':fontsize=${input.fontSize}:fontcolor=white:` +
-    `box=1:boxcolor=black@0.6:boxborderw=8:x=${input.x}:y=${input.yExpr}`
-  );
-}
-
-function buildVideoVf(guestTestWatermark: boolean) {
-  const layers = [
-    buildDrawtextFilter({
-      text: TSE_SEAL_OVERLAY_TEXT,
-      fontSize: 18,
-      x: 24,
-      yExpr: "h-th-24",
-    }),
-  ];
-
+function buildOverlayFilterComplex(guestTestWatermark: boolean) {
+  // Escala a faixa ~90% da largura do vídeo (máx ~1000px) e ancora no canto inf. esquerdo.
   if (guestTestWatermark) {
-    layers.push(
-      buildDrawtextFilter({
-        text: GUEST_TEST_WATERMARK_TEXT,
-        fontSize: 16,
-        x: 24,
-        yExpr: "h-th-56",
-      }),
+    return (
+      "[1:v][0:v]scale2ref=w=min(iw\\,main_w*0.92):h=ow/mdar[tse][base];" +
+      "[2:v][base]scale2ref=w=min(iw\\,main_w*0.85):h=ow/mdar[guest][base2];" +
+      "[base2][tse]overlay=24:H-h-56[tmp];" +
+      "[tmp][guest]overlay=24:H-h-24"
     );
   }
 
-  return layers.join(",");
+  return (
+    "[1:v][0:v]scale2ref=w=min(iw\\,main_w*0.92):h=ow/mdar[wm][base];" +
+    "[base][wm]overlay=24:H-h-24"
+  );
 }
 
 export async function burnTseSealOnVideoBuffer(input: {
@@ -123,17 +82,21 @@ export async function burnTseSealOnVideoBuffer(input: {
   const tmpDir = await fsPromises.mkdtemp(path.join(os.tmpdir(), "md-tse-seal-"));
   const inputPath = path.join(tmpDir, "input.mp4");
   const outputPath = path.join(tmpDir, "sealed.mp4");
+  const tsePng = resolveAssetPath(TSE_SEAL_PNG);
+  const guest = Boolean(input.guestTestWatermark);
+  const guestPng = guest ? resolveAssetPath(GUEST_SEAL_PNG) : null;
 
   try {
     await fsPromises.writeFile(inputPath, input.buffer);
-    const vf = buildVideoVf(Boolean(input.guestTestWatermark));
+    const filterComplex = buildOverlayFilterComplex(guest);
 
-    await runFfmpeg([
-      "-y",
-      "-i",
-      inputPath,
-      "-vf",
-      vf,
+    const args = ["-y", "-i", inputPath, "-i", tsePng];
+    if (guestPng) {
+      args.push("-i", guestPng);
+    }
+    args.push(
+      "-filter_complex",
+      filterComplex,
       "-c:v",
       "libx264",
       "-preset",
@@ -145,8 +108,9 @@ export async function burnTseSealOnVideoBuffer(input: {
       "-movflags",
       "+faststart",
       outputPath,
-    ]);
+    );
 
+    await runFfmpeg(args);
     return await fsPromises.readFile(outputPath);
   } finally {
     await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
@@ -180,6 +144,7 @@ export async function sealRemoteVideo(input: {
     sealVersion: TSE_SEAL_VERSION,
     overlayText: TSE_SEAL_OVERLAY_TEXT,
     guestTestWatermark: Boolean(input.guestTestWatermark),
+    guestOverlayText: input.guestTestWatermark ? GUEST_TEST_WATERMARK_TEXT : undefined,
   };
 }
 
@@ -192,28 +157,19 @@ export async function burnTseSealOnImageBuffer(input: {
   const ext = input.mimeType.includes("png") ? ".png" : ".jpg";
   const inputPath = path.join(tmpDir, `input${ext}`);
   const outputPath = path.join(tmpDir, `sealed${ext}`);
+  const tsePng = resolveAssetPath(TSE_SEAL_PNG);
+  const guest = Boolean(input.guestTestWatermark);
+  const guestPng = guest ? resolveAssetPath(GUEST_SEAL_PNG) : null;
 
   try {
     await fsPromises.writeFile(inputPath, input.buffer);
-    const layers = [
-      buildDrawtextFilter({
-        text: TSE_SEAL_OVERLAY_TEXT,
-        fontSize: 16,
-        x: 16,
-        yExpr: "h-th-16",
-      }),
-    ];
-    if (input.guestTestWatermark) {
-      layers.push(
-        buildDrawtextFilter({
-          text: GUEST_TEST_WATERMARK_TEXT,
-          fontSize: 14,
-          x: 16,
-          yExpr: "h-th-44",
-        }),
-      );
+    const filterComplex = buildOverlayFilterComplex(guest);
+    const args = ["-y", "-i", inputPath, "-i", tsePng];
+    if (guestPng) {
+      args.push("-i", guestPng);
     }
-    await runFfmpeg(["-y", "-i", inputPath, "-vf", layers.join(","), outputPath]);
+    args.push("-filter_complex", filterComplex, outputPath);
+    await runFfmpeg(args);
     return await fsPromises.readFile(outputPath);
   } finally {
     await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
