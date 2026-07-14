@@ -5,7 +5,34 @@ import {
   formatHeyGenPurgeFailureMessage,
   formatProviderLimitHint,
   sanitizeProviderFacingMessage,
+  shouldInvalidateHeygenVoiceClone,
 } from "./curador-heygen-prefs";
+
+describe("shouldInvalidateHeygenVoiceClone", () => {
+  it("invalida quando o asset de audio mudou", () => {
+    expect(
+      shouldInvalidateHeygenVoiceClone(
+        { heygenVoiceId: "v1", heygenVoiceAudioAssetId: "audio-a" },
+        "audio-b",
+      ),
+    ).toBe(true);
+  });
+
+  it("mantem quando o asset e o mesmo", () => {
+    expect(
+      shouldInvalidateHeygenVoiceClone(
+        { heygenVoiceId: "v1", heygenVoiceAudioAssetId: "audio-a" },
+        "audio-a",
+      ),
+    ).toBe(false);
+  });
+
+  it("invalida se ha voz salva sem vinculo de audio (estado legado)", () => {
+    expect(
+      shouldInvalidateHeygenVoiceClone({ heygenVoiceId: "v1" }, "audio-a"),
+    ).toBe(true);
+  });
+});
 
 describe("formatHeyGenAvatarGroupLockMessage", () => {
   it("traduz bloqueio de modificacao com data", () => {

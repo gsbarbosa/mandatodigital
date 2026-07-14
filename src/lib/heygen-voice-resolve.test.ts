@@ -20,6 +20,7 @@ import {
 import {
   HEYGEN_PRIVATE_VOICE_CLONE_LIMIT,
   HEYGEN_VOICE_CLONE_LIMIT_MESSAGE,
+  buildHeyGenCloneVoiceName,
   pickReusablePrivateVoice,
   resolveHeyGenClonedVoiceId,
   resolveHeyGenClonedVoiceIdWithRetry,
@@ -38,17 +39,23 @@ describe("pickReusablePrivateVoice", () => {
       pickReusablePrivateVoice(
         [
           { voice_id: "a", name: "Outro" },
-          { voice_id: "b", name: "Maria (clone)" },
+          { voice_id: "b", name: "Maria (ab12cd34)" },
         ],
-        "Maria (clone)",
+        "Maria (ab12cd34)",
       ),
     ).toBe("b");
   });
 
-  it("aceita partial com base sem (clone)", () => {
+  it("nao faz match parcial pelo nome base (evita voz antiga apos troca de audio)", () => {
     expect(
-      pickReusablePrivateVoice([{ voice_id: "x", name: "Maria Campaign Voice" }], "Maria (clone)"),
-    ).toBe("x");
+      pickReusablePrivateVoice([{ voice_id: "x", name: "Maria (clone)" }], "Maria (deadbeef)"),
+    ).toBeNull();
+  });
+});
+
+describe("buildHeyGenCloneVoiceName", () => {
+  it("inclui prefixo do asset id", () => {
+    expect(buildHeyGenCloneVoiceName("Maria", "deadbeef-uuid")).toBe("Maria (deadbeef)");
   });
 });
 

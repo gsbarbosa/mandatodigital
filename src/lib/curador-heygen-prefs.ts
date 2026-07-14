@@ -28,8 +28,13 @@ export function shouldInvalidateHeygenVoiceClone(
     return false;
   }
 
-  if (!savedAudioAssetId || !currentAudioAssetId) {
+  if (!currentAudioAssetId) {
     return false;
+  }
+
+  // Sem vínculo áudio↔clone, não dá pra saber se a voz ainda bate com a amostra atual.
+  if (!savedAudioAssetId) {
+    return true;
   }
 
   return savedAudioAssetId !== currentAudioAssetId;

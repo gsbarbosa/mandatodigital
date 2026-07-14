@@ -846,7 +846,20 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         action: trainAction,
         avatarGroupId: isTwinSync ? heygenAvatarGroupId : undefined,
         avatarLookId: isTwinSync ? heygenAvatarId : undefined,
-        voiceId: heygenVoiceId.trim() || undefined,
+        voiceId: (() => {
+          const currentAudioId = voiceAudioAssets[0]?.id ?? "";
+          const prefs = profileIdForPrefs
+            ? readCuradorHeygenPrefs(profileIdForPrefs)
+            : {};
+          const linked = {
+            heygenVoiceId: heygenVoiceId.trim() || prefs.heygenVoiceId,
+            heygenVoiceAudioAssetId: prefs.heygenVoiceAudioAssetId,
+          };
+          if (shouldInvalidateHeygenVoiceClone(linked, currentAudioId)) {
+            return undefined;
+          }
+          return heygenVoiceId.trim() || undefined;
+        })(),
         caricatureAssetId:
           trainMode === "caricature" ? selectedCaricatureAssetId : undefined,
       }),

@@ -9,7 +9,10 @@ import {
   heygenCreateVideoFromImage,
   heygenGetAvatarLook,
 } from "@/lib/heygen";
-import { resolveHeyGenClonedVoiceIdWithRetry } from "@/lib/heygen-voice-resolve";
+import {
+  buildHeyGenCloneVoiceName,
+  resolveHeyGenClonedVoiceIdWithRetry,
+} from "@/lib/heygen-voice-resolve";
 import { resolveAvatarTrainingName } from "@/lib/heygen-twin-display";
 import {
   checkHeyGenWalletForVideo,
@@ -132,7 +135,7 @@ export async function POST(request: Request) {
         const { voiceId: resolvedVoiceId, value: result } =
           await resolveHeyGenClonedVoiceIdWithRetry({
           requestedVoiceId: voiceId,
-          voiceName: `${avatarName} (clone)`,
+          voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
           audio: { type: "url", url: voiceAudioUrl },
           run: async (activeVoiceId) =>
             heygenCreateVideoFromImage({
@@ -303,7 +306,7 @@ export async function POST(request: Request) {
         });
         const { value: fallbackResult } = await resolveHeyGenClonedVoiceIdWithRetry({
           requestedVoiceId: voiceId,
-          voiceName: `${avatarName} (clone)`,
+          voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
           audio: { type: "url", url: voiceAudioUrl },
           run: async (activeVoiceId) =>
             heygenCreateVideoFromImage({

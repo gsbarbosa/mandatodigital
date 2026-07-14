@@ -17,6 +17,19 @@ function normalizeVoiceName(name: string) {
   return name.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+/**
+ * Nome estável por áudio: mesmo asset → reuso; áudio novo → outro nome → clone novo.
+ * (Evita o bug de reutilizar qualquer privado "Nome (clone)" após troca de amostra.)
+ */
+export function buildHeyGenCloneVoiceName(avatarName: string, voiceAudioAssetId: string) {
+  const base = avatarName.trim() || "Avatar";
+  const shortId = voiceAudioAssetId.trim().slice(0, 8).toLowerCase();
+  if (!shortId) {
+    return `${base} (clone)`;
+  }
+  return `${base} (${shortId})`;
+}
+
 /** Escolhe um clone privado existente compatível com o nome do avatar. */
 export function pickReusablePrivateVoice(
   voices: HeyGenVoiceListItem[],
@@ -36,19 +49,8 @@ export function pickReusablePrivateVoice(
     return exact.voice_id.trim();
   }
 
-  // Fallback: qualquer privado cujo nome contenha o nome base (sem sufixo " (clone)").
-  const base = target.replace(/\s*\(clone\)\s*$/i, "").trim();
-  if (base) {
-    const partial = voices.find(
-      (voice) =>
-        Boolean(voice.voice_id?.trim()) &&
-        normalizeVoiceName(String(voice.name ?? "")).includes(base),
-    );
-    if (partial?.voice_id?.trim()) {
-      return partial.voice_id.trim();
-    }
-  }
-
+  // Fallback só para nomes legado "... (clone)" ou novos "... (abcd1234)".
+  // Não usa includes(base) amplo — pegava qualquer voz do mesmo político.
   return null;
 }
 

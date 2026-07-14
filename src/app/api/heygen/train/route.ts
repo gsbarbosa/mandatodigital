@@ -12,7 +12,10 @@ import {
   heygenListAvatarLooks,
 } from "@/lib/heygen";
 import { resolveHeyGenAvatarConsentLink } from "@/lib/heygen-consent-resolve";
-import { resolveHeyGenClonedVoiceId } from "@/lib/heygen-voice-resolve";
+import {
+  buildHeyGenCloneVoiceName,
+  resolveHeyGenClonedVoiceId,
+} from "@/lib/heygen-voice-resolve";
 import {
   resolveAvatarTrainingName,
   resolveDigitalTwinTrainingPhase,
@@ -157,7 +160,7 @@ export async function POST(request: Request) {
 
         if (!voiceId && voiceAudioAsset) {
           voiceId = await resolveHeyGenClonedVoiceId({
-            voiceName: `${avatarName} (clone)`,
+            voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
             audio: { type: "url", url: voiceAudioUrl },
           });
         }
@@ -242,7 +245,7 @@ export async function POST(request: Request) {
 
       voiceId = await resolveHeyGenClonedVoiceId({
         requestedVoiceId: voiceId,
-        voiceName: `${avatarName} (clone)`,
+        voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
         audio: { type: "url", url: voiceAudioUrl },
       });
 
