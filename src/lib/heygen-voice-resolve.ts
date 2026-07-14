@@ -1,6 +1,7 @@
 import type { HeyGenAssetInput, HeyGenVoiceListItem } from "@/lib/heygen";
 import {
   heygenCloneVoice,
+  heygenDeleteVoice,
   heygenGetVoiceReadiness,
   heygenListAllPrivateVoices,
   heygenWaitForVoiceReady,
@@ -54,6 +55,56 @@ export function pickReusablePrivateVoice(
   return null;
 }
 
+/**
+ * Órfãos elegíveis a limpeza quando a cota está cheia.
+ * Protege o voiceId solicitado e o clone cujo nome bate com o áudio atual.
+ */
+export function pickPrivateVoicesEligibleForPrune(
+  voices: HeyGenVoiceListItem[],
+  protectVoiceIds: string[],
+): HeyGenVoiceListItem[] {
+  const protect = new Set(
+    protectVoiceIds.map((id) => id.trim()).filter(Boolean),
+  );
+
+  return voices.filter((voice) => {
+    const id = voice.voice_id?.trim();
+    if (!id || protect.has(id)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+async function freePrivateVoiceSlot(input: {
+  privateVoices: HeyGenVoiceListItem[];
+  protectVoiceIds: string[];
+}) {
+  const candidates = pickPrivateVoicesEligibleForPrune(
+    input.privateVoices,
+    input.protectVoiceIds,
+  );
+  if (candidates.length === 0) {
+    return false;
+  }
+
+  // Remove um órfão (primeiro da lista) para abrir slot; se falhar, tenta o próximo.
+  for (const candidate of candidates) {
+    const id = candidate.voice_id?.trim();
+    if (!id) {
+      continue;
+    }
+    try {
+      await heygenDeleteVoice(id);
+      return true;
+    } catch {
+      // template ativo / 403 → tenta outro
+    }
+  }
+
+  return false;
+}
+
 export async function resolveHeyGenClonedVoiceId(input: {
   requestedVoiceId?: string | null;
   voiceName: string;
@@ -90,7 +141,25 @@ export async function resolveHeyGenClonedVoiceId(input: {
   }
 
   if (privateVoices.length >= HEYGEN_PRIVATE_VOICE_CLONE_LIMIT) {
-    throw new Error(HEYGEN_VOICE_CLONE_LIMIT_MESSAGE);
+    const protect = [
+      String(input.requestedVoiceId ?? "").trim(),
+      pickReusablePrivateVoice(privateVoices, input.voiceName) ?? "",
+    ];
+    const freed = await freePrivateVoiceSlot({
+      privateVoices,
+      protectVoiceIds: protect,
+    });
+    if (!freed) {
+      throw new Error(HEYGEN_VOICE_CLONE_LIMIT_MESSAGE);
+    }
+    try {
+      privateVoices = await heygenListAllPrivateVoices();
+    } catch {
+      // segue mesmo assim — a cota pode ter aberto
+    }
+    if (privateVoices.length >= HEYGEN_PRIVATE_VOICE_CLONE_LIMIT) {
+      throw new Error(HEYGEN_VOICE_CLONE_LIMIT_MESSAGE);
+    }
   }
 
   const cloned = await heygenCloneVoice({

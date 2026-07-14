@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/heygen", () => ({
   heygenCloneVoice: vi.fn(),
+  heygenDeleteVoice: vi.fn(),
   heygenGetVoiceReadiness: vi.fn(),
   heygenListAllPrivateVoices: vi.fn(),
   heygenWaitForVoiceReady: vi.fn(async (id: string) => id),
@@ -13,6 +14,7 @@ vi.mock("@/lib/heygen", () => ({
 
 import {
   heygenCloneVoice,
+  heygenDeleteVoice,
   heygenGetVoiceReadiness,
   heygenListAllPrivateVoices,
   heygenWaitForVoiceReady,
@@ -21,12 +23,14 @@ import {
   HEYGEN_PRIVATE_VOICE_CLONE_LIMIT,
   HEYGEN_VOICE_CLONE_LIMIT_MESSAGE,
   buildHeyGenCloneVoiceName,
+  pickPrivateVoicesEligibleForPrune,
   pickReusablePrivateVoice,
   resolveHeyGenClonedVoiceId,
   resolveHeyGenClonedVoiceIdWithRetry,
 } from "@/lib/heygen-voice-resolve";
 
 const cloneVoice = vi.mocked(heygenCloneVoice);
+const deleteVoice = vi.mocked(heygenDeleteVoice);
 const getReadiness = vi.mocked(heygenGetVoiceReadiness);
 const listPrivate = vi.mocked(heygenListAllPrivateVoices);
 const waitReady = vi.mocked(heygenWaitForVoiceReady);
@@ -53,6 +57,19 @@ describe("pickReusablePrivateVoice", () => {
   });
 });
 
+describe("pickPrivateVoicesEligibleForPrune", () => {
+  it("exclui ids protegidos", () => {
+    const eligible = pickPrivateVoicesEligibleForPrune(
+      [
+        { voice_id: "keep", name: "A" },
+        { voice_id: "drop", name: "B" },
+      ],
+      ["keep"],
+    );
+    expect(eligible.map((v) => v.voice_id)).toEqual(["drop"]);
+  });
+});
+
 describe("buildHeyGenCloneVoiceName", () => {
   it("inclui prefixo do asset id", () => {
     expect(buildHeyGenCloneVoiceName("Maria", "deadbeef-uuid")).toBe("Maria (deadbeef)");
@@ -63,6 +80,7 @@ describe("resolveHeyGenClonedVoiceId", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     waitReady.mockImplementation(async (id: string) => id);
+    deleteVoice.mockResolvedValue({ voiceId: "v-0", alreadyGone: false });
   });
 
   it("reutiliza requestedVoiceId ready sem listar/clonar", async () => {
@@ -88,13 +106,35 @@ describe("resolveHeyGenClonedVoiceId", () => {
     expect(cloneVoice).not.toHaveBeenCalled();
   });
 
-  it("bloqueia clone novo no limite 10", async () => {
+  it("no limite 10, apaga orfao e clona", async () => {
+    const full = Array.from({ length: HEYGEN_PRIVATE_VOICE_CLONE_LIMIT }, (_, i) => ({
+      voice_id: `v-${i}`,
+      name: `Other ${i}`,
+    }));
+    listPrivate
+      .mockResolvedValueOnce(full)
+      .mockResolvedValueOnce(full.slice(1));
+    cloneVoice.mockResolvedValue({ voiceId: "new-voice", raw: {} });
+
+    const id = await resolveHeyGenClonedVoiceId({
+      voiceName: "Maria (clone)",
+      audio,
+    });
+
+    expect(deleteVoice).toHaveBeenCalledWith("v-0");
+    expect(cloneVoice).toHaveBeenCalledOnce();
+    expect(id).toBe("new-voice");
+  });
+
+  it("bloqueia se no limite e delete falha em todos os orfaos", async () => {
     listPrivate.mockResolvedValue(
       Array.from({ length: HEYGEN_PRIVATE_VOICE_CLONE_LIMIT }, (_, i) => ({
         voice_id: `v-${i}`,
         name: `Other ${i}`,
       })),
     );
+    deleteVoice.mockRejectedValue(new Error("Voice is associated with an active template"));
+
     await expect(
       resolveHeyGenClonedVoiceId({
         voiceName: "Maria (clone)",
@@ -102,6 +142,7 @@ describe("resolveHeyGenClonedVoiceId", () => {
       }),
     ).rejects.toThrow(HEYGEN_VOICE_CLONE_LIMIT_MESSAGE);
     expect(cloneVoice).not.toHaveBeenCalled();
+    expect(deleteVoice).toHaveBeenCalled();
   });
 
   it("clona quando há slot e nenhum reuso", async () => {

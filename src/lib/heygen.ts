@@ -417,6 +417,31 @@ export async function heygenGetVoice(voiceId: string) {
   );
 }
 
+/**
+ * Remove um clone privado. 404 voice_not_found conta como sucesso
+ * (docs HeyGen: delete-then-list deve tratar 404 como já removido).
+ */
+export async function heygenDeleteVoice(voiceId: string) {
+  const id = voiceId.trim();
+  if (!id) {
+    throw new Error("voice_id ausente para exclusao.");
+  }
+
+  try {
+    await heygenFetch<{ data?: { voice_id?: string } }>(
+      `/v3/voices/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    );
+    return { voiceId: id, alreadyGone: false as const };
+  } catch (error) {
+    const message = formatHeyGenError(error).toLowerCase();
+    if (message.includes("voice_not_found") || message.includes("not found")) {
+      return { voiceId: id, alreadyGone: true as const };
+    }
+    throw error;
+  }
+}
+
 export type HeyGenVoiceListItem = {
   voice_id?: string;
   name?: string;
@@ -447,7 +472,7 @@ export async function heygenListVoices(input?: {
   });
 }
 
-/** Lista todos os clones privados (paginado). A API HeyGen nao expoe DELETE de voz. */
+/** Lista todos os clones privados (paginado). */
 export async function heygenListAllPrivateVoices() {
   const voices: HeyGenVoiceListItem[] = [];
   let token: string | undefined;

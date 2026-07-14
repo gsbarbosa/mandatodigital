@@ -249,7 +249,7 @@ Aprovar roteiro → fact-check roteiro vs matéria Sentinela (se veio de sinal)
 
 **Alternativa API (secundária):** `voice_id` ElevenLabs + `engine_type: elevenlabs` na Create Video da HeyGen (se o plano/API da conta permitir sem atrito). Preferir **áudio pronto** — desacopla 100% do limite 10.
 
-**Fallback:** manter reuso agressivo do clone HeyGen (já no código: `heygen-voice-resolve`) + limpeza manual de órfãos no painel (API sem DELETE de voz).
+**Fallback:** manter reuso agressivo do clone HeyGen (já no código: `heygen-voice-resolve`) + `DELETE /v3/voices/{id}` para liberar órfãos quando a cota chega a 10.
 
 **Modelo comercial (decisão pendente):** conta ElevenLabs única da plataforma vs BYOK por campanha paga.
 

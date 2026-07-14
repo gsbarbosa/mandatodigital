@@ -87,6 +87,6 @@ describe("formatProviderLimitHint", () => {
       "Voice clone limit reached (10). Delete unused clones or contact support to increase your limit.",
     );
     expect(hint).toContain("Limite de clones de voz");
-    expect(hint).toContain("biblioteca de vozes");
+    expect(hint).toContain("automaticamente via API");
   });
 });
