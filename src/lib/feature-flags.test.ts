@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   featureFlags,
+  getHeyGenVoiceProvider,
   isAuditorFactCheckEnabled,
   isSentinelLlmExpansionEnabled,
   isSentinelLlmThemeVerifyEnabled,
@@ -21,6 +22,7 @@ const ENV_KEYS = [
   "SENTINEL_SOCIAL_ENABLED",
   "SENTINEL_PERSIST_CACHE",
   "AUDITOR_FACTCHECK_ENABLED",
+  "HEYGEN_VOICE_PROVIDER",
   "SUPABASE_URL",
   "SUPABASE_SERVICE_ROLE_KEY",
 ] as const;
@@ -67,5 +69,15 @@ describe("feature-flags", () => {
     process.env.SENTINEL_PERSIST_CACHE = "false";
 
     expect(isSentinelPersistCacheEnabled()).toBe(false);
+  });
+
+  it("default HeyGen voice provider e heygen_clone", () => {
+    delete process.env.HEYGEN_VOICE_PROVIDER;
+    expect(getHeyGenVoiceProvider()).toBe("heygen_clone");
+  });
+
+  it("aceita HEYGEN_VOICE_PROVIDER=elevenlabs_audio", () => {
+    process.env.HEYGEN_VOICE_PROVIDER = "elevenlabs_audio";
+    expect(getHeyGenVoiceProvider()).toBe("elevenlabs_audio");
   });
 });

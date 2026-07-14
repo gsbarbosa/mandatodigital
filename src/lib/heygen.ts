@@ -605,6 +605,8 @@ export async function heygenCreateVideo(input: {
   avatarId: string;
   voiceId?: string;
   script?: string;
+  /** URL pública de áudio pré-gerado (mutuamente exclusivo com script/voiceId). */
+  audioUrl?: string;
   title?: string;
   aspectRatio?: "9:16" | "16:9";
   resolution?: "720p" | "1080p" | "4k";
@@ -613,13 +615,14 @@ export async function heygenCreateVideo(input: {
   expressiveness?: "low" | "medium" | "high";
   engine?: "avatar_iv" | "avatar_v";
 }) {
+  const audioUrl = input.audioUrl?.trim();
+  const hasAudio = Boolean(audioUrl);
   const hasMotionControls =
-    Boolean(input.motionPrompt?.trim()) || Boolean(input.expressiveness);
+    !hasAudio &&
+    (Boolean(input.motionPrompt?.trim()) || Boolean(input.expressiveness));
   const payload: Record<string, unknown> = {
     type: "avatar",
     avatar_id: input.avatarId,
-    ...(input.voiceId ? { voice_id: input.voiceId } : null),
-    script: input.script ?? "",
     title: input.title ?? undefined,
     aspect_ratio: input.aspectRatio ?? "9:16",
     resolution: input.resolution ?? "1080p",
@@ -632,6 +635,15 @@ export async function heygenCreateVideo(input: {
         }
       : null),
   };
+
+  if (hasAudio) {
+    payload.audio_url = audioUrl;
+  } else {
+    if (input.voiceId) {
+      payload.voice_id = input.voiceId;
+    }
+    payload.script = input.script ?? "";
+  }
 
   const response = await heygenFetch<HeyGenCreateVideoResponse>("/v3/videos", {
     method: "POST",
@@ -648,23 +660,30 @@ export async function heygenCreateVideo(input: {
 
 export async function heygenCreateVideoFromImage(input: {
   image: HeyGenAssetInput;
-  voiceId: string;
-  script: string;
   title?: string;
   aspectRatio?: "9:16" | "16:9" | "auto";
   resolution?: "720p" | "1080p" | "4k";
   callbackUrl?: string;
-}) {
+} & (
+  | { voiceId: string; script: string; audioUrl?: undefined }
+  | { audioUrl: string; voiceId?: undefined; script?: undefined }
+)) {
+  const audioUrl = input.audioUrl?.trim();
   const payload: Record<string, unknown> = {
     type: "image",
     image: input.image,
-    voice_id: input.voiceId,
-    script: input.script,
     title: input.title ?? undefined,
     aspect_ratio: input.aspectRatio ?? "9:16",
     resolution: input.resolution ?? "1080p",
     callback_url: input.callbackUrl ?? undefined,
   };
+
+  if (audioUrl) {
+    payload.audio_url = audioUrl;
+  } else {
+    payload.voice_id = input.voiceId;
+    payload.script = input.script;
+  }
 
   const response = await heygenFetch<HeyGenCreateVideoResponse>("/v3/videos", {
     method: "POST",

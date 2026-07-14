@@ -5,6 +5,7 @@ import {
   formatHeyGenPurgeFailureMessage,
   formatProviderLimitHint,
   sanitizeProviderFacingMessage,
+  shouldInvalidateElevenLabsVoiceClone,
   shouldInvalidateHeygenVoiceClone,
 } from "./curador-heygen-prefs";
 
@@ -31,6 +32,26 @@ describe("shouldInvalidateHeygenVoiceClone", () => {
     expect(
       shouldInvalidateHeygenVoiceClone({ heygenVoiceId: "v1" }, "audio-a"),
     ).toBe(true);
+  });
+});
+
+describe("shouldInvalidateElevenLabsVoiceClone", () => {
+  it("invalida quando o asset de audio mudou", () => {
+    expect(
+      shouldInvalidateElevenLabsVoiceClone(
+        { elevenLabsVoiceId: "el1", elevenLabsVoiceAudioAssetId: "audio-a" },
+        "audio-b",
+      ),
+    ).toBe(true);
+  });
+
+  it("mantem quando o asset e o mesmo", () => {
+    expect(
+      shouldInvalidateElevenLabsVoiceClone(
+        { elevenLabsVoiceId: "el1", elevenLabsVoiceAudioAssetId: "audio-a" },
+        "audio-a",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -86,7 +107,7 @@ describe("formatProviderLimitHint", () => {
     const hint = formatProviderLimitHint(
       "Voice clone limit reached (10). Delete unused clones or contact support to increase your limit.",
     );
-    expect(hint).toContain("Limite de clones de voz");
-    expect(hint).toContain("automaticamente via API");
+    expect(hint).toContain("Limite de clones de voz HeyGen");
+    expect(hint).toContain("elevenlabs_audio");
   });
 });

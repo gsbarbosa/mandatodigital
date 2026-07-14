@@ -109,6 +109,19 @@ env:
       - BUILD
       - RUNTIME
 
+  # Fase 3.3 — default stg/prod após smoke: elevenlabs_audio (fallback: heygen_clone)
+  - variable: HEYGEN_VOICE_PROVIDER
+    value: "elevenlabs_audio"
+    availability:
+      - RUNTIME
+
+  # Cadastre o secret: npm run firebase:secrets:guide / --apply
+  - variable: ELEVENLABS_API_KEY
+    secret: elevenlabs-api-key
+    availability:
+      - BUILD
+      - RUNTIME
+
   # Sentinela Fase 1 (migrations aplicadas no Supabase)
   - variable: SENTINEL_V2_PIPELINES
     value: "true"

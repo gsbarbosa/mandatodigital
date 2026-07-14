@@ -16,6 +16,11 @@ import {
   buildHeyGenCloneVoiceName,
   resolveHeyGenClonedVoiceId,
 } from "@/lib/heygen-voice-resolve";
+import { isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
+import {
+  buildElevenLabsCloneVoiceName,
+  resolveElevenLabsVoiceId,
+} from "@/lib/voice-provider-resolve";
 import {
   resolveAvatarTrainingName,
   resolveDigitalTwinTrainingPhase,
@@ -48,6 +53,7 @@ export async function POST(request: Request) {
         avatarGroupId?: string;
         avatarLookId?: string;
         voiceId?: string;
+        elevenLabsVoiceId?: string;
       };
 
       const dashboard = await repository.getDashboard();
@@ -99,6 +105,7 @@ export async function POST(request: Request) {
       let needsConsent = false;
       let avatarGroupStatus: string | null = null;
       let voiceId = String(body.voiceId ?? "").trim();
+      let elevenLabsVoiceId = String(body.elevenLabsVoiceId ?? "").trim();
       let digitalTwinLookForPhase: HeyGenAvatarLookListItem | null = null;
 
       const trainAction = body.action === "sync" ? "sync" : "create";
@@ -156,13 +163,6 @@ export async function POST(request: Request) {
         if (!needsConsent || isConsentApproved(consentStatus)) {
           consentUrl = null;
           needsConsent = false;
-        }
-
-        if (!voiceId && voiceAudioAsset) {
-          voiceId = await resolveHeyGenClonedVoiceId({
-            voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
-            audio: { type: "url", url: voiceAudioUrl },
-          });
         }
       } else if (mode === "digital_twin") {
         if (!trainingVideoAsset) {
@@ -243,23 +243,33 @@ export async function POST(request: Request) {
         avatarId = photo.avatarId;
       }
 
-      voiceId = await resolveHeyGenClonedVoiceId({
-        requestedVoiceId: voiceId,
-        voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
-        audio: { type: "url", url: voiceAudioUrl },
-      });
-
-      try {
-        void buildAvatarVideoTranscript({
-          topic: "Teste",
-          profile: dashboard.profile,
+      if (isElevenLabsAudioVoiceProvider()) {
+        elevenLabsVoiceId = await resolveElevenLabsVoiceId({
+          requestedVoiceId: elevenLabsVoiceId || undefined,
+          voiceName: buildElevenLabsCloneVoiceName(avatarName, voiceAudioAsset.id),
+          audioUrl: voiceAudioUrl,
         });
-        await Promise.race([
-          heygenGetVoice(voiceId),
-          new Promise((resolve) => setTimeout(resolve, 2500)),
-        ]);
-      } catch {
-        // ignore
+        voiceId = "";
+      } else {
+        voiceId = await resolveHeyGenClonedVoiceId({
+          requestedVoiceId: voiceId,
+          voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
+          audio: { type: "url", url: voiceAudioUrl },
+        });
+        elevenLabsVoiceId = "";
+
+        try {
+          void buildAvatarVideoTranscript({
+            topic: "Teste",
+            profile: dashboard.profile,
+          });
+          await Promise.race([
+            heygenGetVoice(voiceId),
+            new Promise((resolve) => setTimeout(resolve, 2500)),
+          ]);
+        } catch {
+          // ignore
+        }
       }
 
       const trainingPhase =
@@ -293,7 +303,8 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           avatarId: avatarId || null,
-          voiceId,
+          voiceId: voiceId || null,
+          elevenLabsVoiceId: elevenLabsVoiceId || null,
           avatarGroupId,
           consentUrl,
           consentStatus,
@@ -303,6 +314,9 @@ export async function POST(request: Request) {
           mode,
           action: trainAction,
           caricatureAssetId: caricatureAsset?.id ?? null,
+          voiceProvider: isElevenLabsAudioVoiceProvider()
+            ? "elevenlabs_audio"
+            : "heygen_clone",
           message: messageByMode[mode],
         },
         { status: 201 },

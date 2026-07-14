@@ -239,21 +239,21 @@ Aprovar roteiro → fact-check roteiro vs matéria Sentinela (se veio de sinal)
 
 **Problema:** clone nativo HeyGen (`POST /v3/voices/clone`) tem **limite ~10 por conta da plataforma**. Com key SaaS compartilhada, N usuários retreinando esgotam a cota.
 
-**Caminho canônico (pós spike):**
+**Status (2026-07-13):** implementado no código. Flag `HEYGEN_VOICE_PROVIDER` — stg default `elevenlabs_audio`; fallback `heygen_clone`.
+
+**Caminho canônico:**
 
 1. Secret `ELEVENLABS_API_KEY` no App Hosting.
 2. Curador: áudio de amostra → **clone Instant Voice / IVC no ElevenLabs** (cota deles).
 3. Criativo: TTS do roteiro no ElevenLabs → URL pública do MP3.
-4. HeyGen: gerar vídeo com **`audio_url` / `audio_asset_id`** (lipsync), **sem** `voice_id` de clone HeyGen.
-5. Flag `HEYGEN_VOICE_PROVIDER=elevenlabs_audio | heygen_clone` — default `heygen_clone` até o spike passar; depois `elevenlabs_audio`.
+4. HeyGen: gerar vídeo com **`audio_url`** (lipsync), **sem** `voice_id` de clone HeyGen.
+5. Bridge nativa HeyGen↔EL (`engine_type: elevenlabs`) **não** usada — ainda acopla conta/plano HeyGen.
 
-**Alternativa API (secundária):** `voice_id` ElevenLabs + `engine_type: elevenlabs` na Create Video da HeyGen (se o plano/API da conta permitir sem atrito). Preferir **áudio pronto** — desacopla 100% do limite 10.
+**Fallback:** reuso agressivo do clone HeyGen + `DELETE /v3/voices/{id}` para órfãos.
 
-**Fallback:** manter reuso agressivo do clone HeyGen (já no código: `heygen-voice-resolve`) + `DELETE /v3/voices/{id}` para liberar órfãos quando a cota chega a 10.
+**Modelo comercial (decidido para demo):** conta ElevenLabs **única da plataforma**. BYOK por campanha = backlog.
 
-**Modelo comercial (decisão pendente):** conta ElevenLabs única da plataforma vs BYOK por campanha paga.
-
-**Spike 1 dia:** A/B lip-sync no mesmo avatar foto — (A) clone HeyGen + script vs (B) ElevenLabs TTS + `audio_url`. Critério: naturalidade + latência + custo/minuto.
+**Smoke:** `node scripts/voice-ab-smoke.mjs` + 1 vídeo A/B em staging.
 
 ## 3.4 Backgrounds (P4 — se sobrar tempo)
 

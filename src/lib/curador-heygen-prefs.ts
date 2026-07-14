@@ -4,6 +4,10 @@ export type CuradorHeygenPrefs = {
   heygenAvatarId?: string;
   heygenVoiceId?: string;
   heygenVoiceAudioAssetId?: string;
+  /** Clone Instant Voice na ElevenLabs (path audio_url). */
+  elevenLabsVoiceId?: string;
+  /** Asset de áudio que gerou o elevenLabsVoiceId. */
+  elevenLabsVoiceAudioAssetId?: string;
   heygenAvatarGroupId?: string;
   lastCaricatureAssetId?: string;
   avatarTrack?: "realistic" | "caricature" | "photo_real";
@@ -33,6 +37,30 @@ export function shouldInvalidateHeygenVoiceClone(
   }
 
   // Sem vínculo áudio↔clone, não dá pra saber se a voz ainda bate com a amostra atual.
+  if (!savedAudioAssetId) {
+    return true;
+  }
+
+  return savedAudioAssetId !== currentAudioAssetId;
+}
+
+/** Invalida vínculo ElevenLabs quando a amostra de áudio mudou. */
+export function shouldInvalidateElevenLabsVoiceClone(
+  prefs: CuradorHeygenPrefs,
+  voiceAudioAssetId: string,
+) {
+  const savedVoiceId = prefs.elevenLabsVoiceId?.trim();
+  const savedAudioAssetId = prefs.elevenLabsVoiceAudioAssetId?.trim();
+  const currentAudioAssetId = voiceAudioAssetId.trim();
+
+  if (!savedVoiceId) {
+    return false;
+  }
+
+  if (!currentAudioAssetId) {
+    return false;
+  }
+
   if (!savedAudioAssetId) {
     return true;
   }
@@ -192,9 +220,9 @@ export function formatProviderLimitHint(message: string): string | null {
 
   if (normalized.includes("voice clone limit")) {
     hints.push(
-      "Limite de clones de voz (10 na conta): a plataforma tenta liberar órfãos automaticamente via API. " +
-        "Se ainda falhar, remova clones antigos no painel ou gere reutilizando a voz já vinculada — " +
-        "não apague o vínculo local só para 'Refazer'.",
+      "Limite de clones de voz HeyGen (10 na conta): use HEYGEN_VOICE_PROVIDER=elevenlabs_audio " +
+        "(TTS ElevenLabs → audio_url) ou remova clones órfãos no painel. " +
+        "Não apague o vínculo local só para 'Refazer'.",
     );
   }
 

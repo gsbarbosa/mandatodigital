@@ -20,6 +20,7 @@ const SECRET_MAP = [
   ["NEXT_PUBLIC_SUPABASE_ANON_KEY", "supabase-anon-key"],
   ["SUPABASE_ANON_KEY", "supabase-anon-key"],
   ["HEYGEN_API_KEY", "heygen-api-key"],
+  ["ELEVENLABS_API_KEY", "elevenlabs-api-key"],
   ["APIFY_API_TOKEN", "apify-api-token"],
   ["ARGIL_API_KEY", "argil-api-key"],
   ["TRAINING_ASSET_ACCESS_SECRET", "training-asset-access-secret"],

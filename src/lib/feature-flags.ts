@@ -10,6 +10,21 @@ function readEnvFlag(name: string) {
   return value === "1" || value === "true" || value === "yes" || value === "on";
 }
 
+/** Voz do Criativo: TTS ElevenLabs → audio_url HeyGen, ou clone nativo HeyGen. */
+export type HeyGenVoiceProvider = "elevenlabs_audio" | "heygen_clone";
+
+export function getHeyGenVoiceProvider(): HeyGenVoiceProvider {
+  const value = process.env.HEYGEN_VOICE_PROVIDER?.trim().toLowerCase();
+  if (value === "elevenlabs_audio") {
+    return "elevenlabs_audio";
+  }
+  return "heygen_clone";
+}
+
+export function isElevenLabsAudioVoiceProvider() {
+  return getHeyGenVoiceProvider() === "elevenlabs_audio";
+}
+
 export const featureFlags = {
   sentinelLlmExpansion: readEnvFlag("SENTINEL_LLM_EXPANSION"),
   sentinelV2Pipelines: readEnvFlag("SENTINEL_V2_PIPELINES"),
@@ -21,6 +36,7 @@ export const featureFlags = {
   sentinelLlmThemeVerify: readEnvFlag("SENTINEL_LLM_THEME_VERIFY"),
   /** Spike qualidade: LLM mini só no top N (off por default). */
   sentinelLlmQualityRank: readEnvFlag("SENTINEL_LLM_QUALITY_RANK"),
+  heygenVoiceProvider: getHeyGenVoiceProvider(),
 } as const;
 
 /** Cache persistido: Supabase em prod; JSON local em dev; desligavel via env. */

@@ -45,6 +45,7 @@ import {
   readCuradorHeygenPrefs,
   sanitizeProviderFacingMessage,
   shouldInvalidateHeygenVoiceClone,
+  shouldInvalidateElevenLabsVoiceClone,
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
 import { pickLatestCaricatureForVariant } from "@/lib/caricature-asset-variant";
@@ -144,6 +145,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   const [heygenAvatarId, setHeygenAvatarId] = useState<string>("");
   const [heygenAvatarGroupId, setHeygenAvatarGroupId] = useState<string>("");
   const [heygenVoiceId, setHeygenVoiceId] = useState<string>("");
+  const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState<string>("");
   const [heygenConsentUrl, setHeygenConsentUrl] = useState<string>("");
   const [selectedCaricatureAssetId, setSelectedCaricatureAssetId] = useState<string>("");
   const [avatarTrack, setAvatarTrack] = useState<AvatarTrack>("photo_real");
@@ -297,11 +299,13 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       Boolean(heygenAvatarGroupId.trim()) ||
       Boolean(heygenConsentUrl.trim()));
   const hasCaricatureAssets = caricatureAssets.length > 0;
-  /** Caricato pronto para produção: voz clonada na plataforma + imagem caricata no perfil. */
+  /** Caricato pronto: voz (HeyGen ou ElevenLabs) + imagem caricata. */
   const hasUsableCaricaturePerson =
-    Boolean(heygenVoiceId.trim()) && hasCaricatureAssets;
-  /** Voz caricatura já clonada na plataforma (único caso em que "Refazer caricatura" faz sentido). */
-  const showRefazerCaricatura = Boolean(heygenVoiceId.trim());
+    (Boolean(heygenVoiceId.trim()) || Boolean(elevenLabsVoiceId.trim())) &&
+    hasCaricatureAssets;
+  /** Voz já vinculada (único caso em que "Refazer caricatura" faz sentido). */
+  const showRefazerCaricatura =
+    Boolean(heygenVoiceId.trim()) || Boolean(elevenLabsVoiceId.trim());
   const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
   const canStartTwinTraining = !hasAnyTwinOnPlatform && canTrainRealistic;
   const editorialCaricature = useMemo(
@@ -572,6 +576,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     heygenAvatarId?: string;
     heygenVoiceId?: string;
     heygenVoiceAudioAssetId?: string;
+    elevenLabsVoiceId?: string;
+    elevenLabsVoiceAudioAssetId?: string;
     heygenAvatarGroupId?: string;
     lastCaricatureAssetId?: string;
     avatarTrack?: AvatarTrack;
@@ -587,6 +593,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       heygenVoiceId: overrides?.heygenVoiceId ?? heygenVoiceId,
       heygenVoiceAudioAssetId:
         overrides?.heygenVoiceAudioAssetId ?? voiceAudioAssets[0]?.id ?? "",
+      elevenLabsVoiceId: overrides?.elevenLabsVoiceId ?? elevenLabsVoiceId,
+      elevenLabsVoiceAudioAssetId:
+        overrides?.elevenLabsVoiceAudioAssetId ?? voiceAudioAssets[0]?.id ?? "",
       heygenAvatarGroupId: overrides?.heygenAvatarGroupId ?? heygenAvatarGroupId,
       lastCaricatureAssetId:
         overrides?.lastCaricatureAssetId ??
@@ -676,6 +685,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     status: "ready" | "failed";
     errorMessage?: string;
     sealed?: boolean;
+    technologies?: string[];
   }) {
     const response = await fetch("/api/creative-projects", {
       method: "POST",
@@ -701,7 +711,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         metadata: buildCreativeAiMetadata({
           factCheckVerdict: factCheckResult?.verdict,
           usedFreePrompt: useFreePromptAsTranscript,
-          technologies: ["HeyGen"],
+          technologies: input.technologies ?? ["HeyGen"],
           sealed: input.sealed,
         }),
       }),
@@ -803,7 +813,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   type HeyGenTrainPayload = {
     avatarId?: string;
     avatarGroupId?: string | null;
-    voiceId?: string;
+    voiceId?: string | null;
+    elevenLabsVoiceId?: string | null;
     consentUrl?: string | null;
     consentStatus?: string | null;
     needsConsent?: boolean;
@@ -859,6 +870,20 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             return undefined;
           }
           return heygenVoiceId.trim() || undefined;
+        })(),
+        elevenLabsVoiceId: (() => {
+          const currentAudioId = voiceAudioAssets[0]?.id ?? "";
+          const prefs = profileIdForPrefs
+            ? readCuradorHeygenPrefs(profileIdForPrefs)
+            : {};
+          const linked = {
+            elevenLabsVoiceId: elevenLabsVoiceId.trim() || prefs.elevenLabsVoiceId,
+            elevenLabsVoiceAudioAssetId: prefs.elevenLabsVoiceAudioAssetId,
+          };
+          if (shouldInvalidateElevenLabsVoiceClone(linked, currentAudioId)) {
+            return undefined;
+          }
+          return elevenLabsVoiceId.trim() || undefined;
         })(),
         caricatureAssetId:
           trainMode === "caricature" ? selectedCaricatureAssetId : undefined,
@@ -917,6 +942,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       setHeygenAvatarGroupId(nextGroupId);
     }
     setHeygenVoiceId(payload.voiceId?.trim() || heygenVoiceId);
+    if (payload.elevenLabsVoiceId?.trim()) {
+      setElevenLabsVoiceId(payload.elevenLabsVoiceId.trim());
+    }
     setHeygenConsentUrl(String(payload.consentUrl ?? "").trim());
     setTrainingInfo(payload.message?.trim() || null);
 
@@ -944,6 +972,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       heygenAvatarId: nextAvatarId || heygenAvatarId,
       heygenVoiceId: payload.voiceId?.trim() || heygenVoiceId,
       heygenVoiceAudioAssetId: voiceAudioAssets[0]?.id ?? "",
+      elevenLabsVoiceId:
+        payload.elevenLabsVoiceId?.trim() || elevenLabsVoiceId,
+      elevenLabsVoiceAudioAssetId: voiceAudioAssets[0]?.id ?? "",
       heygenAvatarGroupId: nextGroupId || heygenAvatarGroupId,
       lastCaricatureAssetId: selectedCaricatureAssetId || sortedCaricatureAssets[0]?.id,
     });
@@ -1040,7 +1071,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   async function handleTrainHeyGen(options?: {
     mode?: "digital_twin" | "caricature" | "photo_real";
-  }): Promise<string | undefined> {
+  }): Promise<{ voiceId?: string; elevenLabsVoiceId?: string } | undefined> {
     const trainMode =
       options?.mode ??
       (avatarTrack === "realistic"
@@ -1077,7 +1108,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         void pollHeyGenTwinUntilReady();
       }
 
-      return payload.voiceId?.trim() || undefined;
+      return {
+        voiceId: payload.voiceId?.trim() || undefined,
+        elevenLabsVoiceId: payload.elevenLabsVoiceId?.trim() || undefined,
+      };
     } catch (error) {
       setTrainingStarted(false);
       showUserError(setTrainingError, error);
@@ -1562,6 +1596,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         throw new Error("Gere e aprove um roteiro antes de produzir o conteudo.");
       }
       let resolvedVoiceId = heygenVoiceId;
+      let resolvedElevenLabsVoiceId = elevenLabsVoiceId;
       if (
         avatarTrack === "caricature" ||
         avatarTrack === "photo_real" ||
@@ -1580,11 +1615,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           avatarTrack === "photo_real" || avatarTrack === "realistic"
             ? "photo_real"
             : "caricature";
-        const syncedVoiceId = (await handleTrainHeyGen({ mode: trainMode })) ?? "";
-        if (syncedVoiceId) {
-          resolvedVoiceId = syncedVoiceId;
+        const synced = await handleTrainHeyGen({ mode: trainMode });
+        if (synced?.voiceId) {
+          resolvedVoiceId = synced.voiceId;
         }
-        if (!resolvedVoiceId) {
+        if (synced?.elevenLabsVoiceId) {
+          resolvedElevenLabsVoiceId = synced.elevenLabsVoiceId;
+        }
+        if (!resolvedVoiceId.trim() && !resolvedElevenLabsVoiceId.trim()) {
           throw new Error(
             "Não foi possível preparar a voz na plataforma. Verifique o áudio enviado.",
           );
@@ -1596,7 +1634,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic: useFreePromptAsTranscript ? undefined : topic || scriptTopicSnapshot,
-          voiceId: resolvedVoiceId || undefined,
+          voiceId: resolvedVoiceId.trim() || undefined,
+          elevenLabsVoiceId: resolvedElevenLabsVoiceId.trim() || undefined,
           generateMode:
             avatarTrack === "caricature"
               ? "caricature"
@@ -1616,6 +1655,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       const payload = await parseJsonOrText<{
         videoId?: string;
         voiceId?: string;
+        elevenLabsVoiceId?: string;
+        voiceProvider?: string;
         message?: string;
       }>(response);
       if (!response.ok) {
@@ -1628,11 +1669,19 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       }
 
       const nextVoiceId = payload.voiceId?.trim();
-      if (nextVoiceId) {
-        setHeygenVoiceId(nextVoiceId);
+      const nextElevenLabsVoiceId = payload.elevenLabsVoiceId?.trim();
+      if (nextVoiceId || nextElevenLabsVoiceId) {
+        if (nextVoiceId) {
+          setHeygenVoiceId(nextVoiceId);
+        }
+        if (nextElevenLabsVoiceId) {
+          setElevenLabsVoiceId(nextElevenLabsVoiceId);
+        }
         persistHeygenPrefs({
-          heygenVoiceId: nextVoiceId,
+          heygenVoiceId: nextVoiceId || heygenVoiceId,
           heygenVoiceAudioAssetId: voiceAudioAssets[0]?.id ?? "",
+          elevenLabsVoiceId: nextElevenLabsVoiceId || elevenLabsVoiceId,
+          elevenLabsVoiceAudioAssetId: voiceAudioAssets[0]?.id ?? "",
         });
       }
 
@@ -1659,6 +1708,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         captionUrl: result.captionUrl,
         status: "ready",
         sealed: sealed.sealed,
+        technologies:
+          payload.voiceProvider === "elevenlabs_audio" ||
+          Boolean(nextElevenLabsVoiceId || resolvedElevenLabsVoiceId.trim())
+            ? ["HeyGen", "ElevenLabs"]
+            : ["HeyGen"],
       });
       router.push("/criativo");
     } catch (error) {
@@ -1881,6 +1935,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     ) {
       setHeygenVoiceId(prefs.heygenVoiceId);
     }
+    if (
+      prefs.elevenLabsVoiceId &&
+      !shouldInvalidateElevenLabsVoiceClone(prefs, currentVoiceAudioAssetId)
+    ) {
+      setElevenLabsVoiceId(prefs.elevenLabsVoiceId);
+    }
     if (prefs.heygenAvatarGroupId) {
       setHeygenAvatarGroupId(prefs.heygenAvatarGroupId);
     }
@@ -1913,15 +1973,32 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
     const currentVoiceAudioAssetId = voiceAudioAssets[0]?.id ?? "";
     const prefs = readCuradorHeygenPrefs(profileIdForPrefs);
-    if (!shouldInvalidateHeygenVoiceClone(prefs, currentVoiceAudioAssetId)) {
+    const invalidateHg = shouldInvalidateHeygenVoiceClone(
+      prefs,
+      currentVoiceAudioAssetId,
+    );
+    const invalidateEl = shouldInvalidateElevenLabsVoiceClone(
+      prefs,
+      currentVoiceAudioAssetId,
+    );
+    if (!invalidateHg && !invalidateEl) {
       return;
     }
 
-    setHeygenVoiceId("");
+    if (invalidateHg) {
+      setHeygenVoiceId("");
+    }
+    if (invalidateEl) {
+      setElevenLabsVoiceId("");
+    }
     writeCuradorHeygenPrefs(profileIdForPrefs, {
       ...prefs,
-      heygenVoiceId: "",
-      heygenVoiceAudioAssetId: "",
+      ...(invalidateHg
+        ? { heygenVoiceId: "", heygenVoiceAudioAssetId: "" }
+        : null),
+      ...(invalidateEl
+        ? { elevenLabsVoiceId: "", elevenLabsVoiceAudioAssetId: "" }
+        : null),
     });
   }, [profileIdForPrefs, voiceAudioAssets]);
 
@@ -1985,6 +2062,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     profileIdForPrefs,
     heygenAvatarId,
     heygenVoiceId,
+    elevenLabsVoiceId,
     heygenAvatarGroupId,
     selectedCaricature?.id,
     avatarTrack,

@@ -9,10 +9,6 @@ import {
   heygenCreateVideoFromImage,
   heygenGetAvatarLook,
 } from "@/lib/heygen";
-import {
-  buildHeyGenCloneVoiceName,
-  resolveHeyGenClonedVoiceIdWithRetry,
-} from "@/lib/heygen-voice-resolve";
 import { resolveAvatarTrainingName } from "@/lib/heygen-twin-display";
 import {
   checkHeyGenWalletForVideo,
@@ -25,6 +21,13 @@ import {
   resolveAppBaseUrl,
   resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
+import {
+  resolveHeyGenVoiceWithRetryForImageVideo,
+  resolveVideoSpeechForGeneration,
+} from "@/lib/voice-provider-resolve";
+import { isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
+
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   try {
@@ -33,6 +36,7 @@ export async function POST(request: Request) {
         topic?: string;
         avatarId?: string;
         voiceId?: string;
+        elevenLabsVoiceId?: string;
         transcript?: string;
         name?: string;
         freePrompt?: string;
@@ -50,6 +54,8 @@ export async function POST(request: Request) {
       const topic = String(body.topic ?? "").trim();
       const avatarId = String(body.avatarId ?? "").trim();
       const voiceId = String(body.voiceId ?? "").trim() || undefined;
+      const elevenLabsVoiceId =
+        String(body.elevenLabsVoiceId ?? "").trim() || undefined;
       const explicitTranscript = String(body.transcript ?? "").trim();
       const freePrompt = String(body.freePrompt ?? "").trim();
       const name = String(body.name ?? "").trim() || undefined;
@@ -132,35 +138,77 @@ export async function POST(request: Request) {
           role: dashboard.profile?.role,
           city: dashboard.profile?.city,
         });
-        const { voiceId: resolvedVoiceId, value: result } =
-          await resolveHeyGenClonedVoiceIdWithRetry({
-          requestedVoiceId: voiceId,
-          voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
-          audio: { type: "url", url: voiceAudioUrl },
-          run: async (activeVoiceId) =>
-            heygenCreateVideoFromImage({
-              image: { type: "url", url: imageUrl },
-              voiceId: activeVoiceId,
-              script: transcript,
-              title:
-                name ??
-                (topic
-                  ? generateMode === "photo_real"
-                    ? `Curador v2 (foto real) - ${topic}`
-                    : `Curador v2 (caricato) - ${topic}`
-                  : generateMode === "photo_real"
-                    ? "Curador v2 (foto real)"
-                    : "Curador v2 (caricato)"),
-              aspectRatio: "9:16",
-              resolution: "1080p",
-              callbackUrl,
-            }),
+        const videoTitle =
+          name ??
+          (topic
+            ? generateMode === "photo_real"
+              ? `Curador v2 (foto real) - ${topic}`
+              : `Curador v2 (caricato) - ${topic}`
+            : generateMode === "photo_real"
+              ? "Curador v2 (foto real)"
+              : "Curador v2 (caricato)");
+
+        const speech = await resolveVideoSpeechForGeneration({
+          transcript,
+          avatarName,
+          voiceAudioAssetId: voiceAudioAsset.id,
+          voiceAudioUrl,
+          requestedHeygenVoiceId: voiceId,
+          requestedElevenLabsVoiceId: elevenLabsVoiceId,
+          mediaId: `image-${Date.now()}`,
         });
+
+        let result: { videoId: string };
+        if (speech.provider === "elevenlabs_audio") {
+          result = await heygenCreateVideoFromImage({
+            image: { type: "url", url: imageUrl },
+            audioUrl: speech.audioUrl,
+            title: videoTitle,
+            aspectRatio: "9:16",
+            resolution: "1080p",
+            callbackUrl,
+          });
+          return NextResponse.json(
+            {
+              videoId: result.videoId,
+              elevenLabsVoiceId: speech.elevenLabsVoiceId,
+              voiceId: null,
+              voiceProvider: "elevenlabs_audio",
+              providerMode:
+                generateMode === "photo_real" ? "photo_real_image" : "caricature_image",
+              message:
+                generateMode === "photo_real"
+                  ? "Vídeo com foto real enviado para renderização. Aguarde."
+                  : "Vídeo caricato enviado para renderização. Aguarde.",
+            },
+            { status: 201 },
+          );
+        }
+
+        const { voiceId: resolvedVoiceId, value } =
+          await resolveHeyGenVoiceWithRetryForImageVideo({
+            requestedVoiceId: voiceId,
+            avatarName,
+            voiceAudioAssetId: voiceAudioAsset.id,
+            voiceAudioUrl,
+            run: async (activeVoiceId) =>
+              heygenCreateVideoFromImage({
+                image: { type: "url", url: imageUrl },
+                voiceId: activeVoiceId,
+                script: transcript,
+                title: videoTitle,
+                aspectRatio: "9:16",
+                resolution: "1080p",
+                callbackUrl,
+              }),
+          });
 
         return NextResponse.json(
           {
-            videoId: result.videoId,
+            videoId: value.videoId,
             voiceId: resolvedVoiceId,
+            elevenLabsVoiceId: null,
+            voiceProvider: "heygen_clone",
             providerMode:
               generateMode === "photo_real" ? "photo_real_image" : "caricature_image",
             message:
@@ -178,7 +226,6 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      // voiceId e opcional: se omitido, a HeyGen usa a voz padrao do avatar look (quando existir).
 
       const baseTranscript = explicitTranscript
         ? explicitTranscript
@@ -223,17 +270,61 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: walletCheck.message }, { status: 402 });
       }
 
+      // Gêmeo digital: se ElevenLabs estiver ativo e houver amostra, usa audio_url;
+      // senão mantém script+voiceId (voz padrão do look ou clone HeyGen enviado).
+      const twinAssets = await repository.listTrainingAssetsForReference(
+        dashboard.profile?.id ?? "",
+      );
+      const { voiceAudioAsset: twinVoiceAsset } =
+        pickAvatarImageAndVoiceAudioAssets(twinAssets);
+
       try {
-        // `motion_prompt`/`expressiveness` nao sao suportados para video avatars (Digital Twin).
-        // Para evitar regressao quando nao conseguimos inferir o avatar_type, so habilitamos
-        // motion_prompt quando o look for explicitamente photo_avatar.
         const supportsMotionPrompt = engine === "avatar_iv" && avatarType === "photo_avatar";
+        const videoTitle = name ?? (topic ? `Curador v2 - ${topic}` : "Curador v2 - prompt livre");
+
+        if (twinVoiceAsset && isElevenLabsAudioVoiceProvider()) {
+          const speech = await resolveVideoSpeechForGeneration({
+            transcript,
+            avatarName: resolveAvatarTrainingName({
+              fullName: dashboard.profile?.fullName,
+              role: dashboard.profile?.role,
+              city: dashboard.profile?.city,
+            }),
+            voiceAudioAssetId: twinVoiceAsset.id,
+            voiceAudioUrl: await getTrainingAssetPublicUrl(twinVoiceAsset, appBaseUrl),
+            requestedHeygenVoiceId: voiceId,
+            requestedElevenLabsVoiceId: elevenLabsVoiceId,
+            mediaId: `avatar-${avatarId}`,
+          });
+
+          if (speech.provider === "elevenlabs_audio") {
+            const result = await heygenCreateVideo({
+              avatarId,
+              audioUrl: speech.audioUrl,
+              title: videoTitle,
+              aspectRatio: "9:16",
+              resolution: "1080p",
+              callbackUrl,
+              engine,
+            });
+            return NextResponse.json(
+              {
+                videoId: result.videoId,
+                elevenLabsVoiceId: speech.elevenLabsVoiceId,
+                voiceProvider: "elevenlabs_audio",
+                providerMode: "avatar",
+                message: "Vídeo enviado para renderização. Aguarde.",
+              },
+              { status: 201 },
+            );
+          }
+        }
 
         const baseCreatePayload = {
           avatarId,
           voiceId,
           script: transcript,
-          title: name ?? (topic ? `Curador v2 - ${topic}` : "Curador v2 - prompt livre"),
+          title: videoTitle,
           aspectRatio: "9:16" as const,
           resolution: "1080p" as const,
           callbackUrl,
@@ -245,12 +336,11 @@ export async function POST(request: Request) {
           result = await heygenCreateVideo({
             ...baseCreatePayload,
             ...(supportsMotionPrompt
-              ? { motionPrompt: "nodding gently", expressiveness: "medium" }
+              ? { motionPrompt: "nodding gently", expressiveness: "medium" as const }
               : null),
           });
         } catch (error) {
           const message = formatHeyGenError(error);
-          // Se a HeyGen rejeitar controles de motion, tenta novamente sem eles.
           if (
             message.includes("motion_prompt is not supported") ||
             message.includes("expressiveness is not supported")
@@ -265,6 +355,7 @@ export async function POST(request: Request) {
           {
             videoId: result.videoId,
             providerMode: "avatar",
+            voiceProvider: "heygen_clone",
             message: "Vídeo enviado para renderização. Aguarde.",
           },
           { status: 201 },
@@ -278,36 +369,69 @@ export async function POST(request: Request) {
           throw error;
         }
 
-        // Fallback: se o look nao for elegivel, gera via input direto de imagem.
         const assets = await repository.listTrainingAssetsForReference(
           dashboard.profile?.id ?? "",
         );
-        const { avatarImageAsset } = pickAvatarImageAndVoiceAudioAssets(assets);
+        const { avatarImageAsset, voiceAudioAsset } =
+          pickAvatarImageAndVoiceAudioAssets(assets);
         if (!avatarImageAsset) {
           throw new Error(
             `${message} (e nao foi encontrada foto para fallback de imagem).`,
           );
         }
-
-        const imageUrlBase = resolveAppBaseUrl(request);
-        const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
-        const { voiceAudioAsset } = pickAvatarImageAndVoiceAudioAssets(assets);
         if (!voiceAudioAsset) {
           throw new Error(
             `${message} (fallback por imagem exige áudio de voz enviado no Curador).`,
           );
         }
 
+        const imageUrlBase = resolveAppBaseUrl(request);
+        const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
         const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, imageUrlBase);
         const avatarName = resolveAvatarTrainingName({
           fullName: dashboard.profile?.fullName,
           role: dashboard.profile?.role,
           city: dashboard.profile?.city,
         });
-        const { value: fallbackResult } = await resolveHeyGenClonedVoiceIdWithRetry({
+
+        const speech = await resolveVideoSpeechForGeneration({
+          transcript,
+          avatarName,
+          voiceAudioAssetId: voiceAudioAsset.id,
+          voiceAudioUrl,
+          requestedHeygenVoiceId: voiceId,
+          requestedElevenLabsVoiceId: elevenLabsVoiceId,
+          mediaId: `fallback-${Date.now()}`,
+        });
+
+        if (speech.provider === "elevenlabs_audio") {
+          const fallbackResult = await heygenCreateVideoFromImage({
+            image: { type: "url", url: imageUrl },
+            audioUrl: speech.audioUrl,
+            title: name ?? `Curador v2 (fallback imagem) - ${topic}`,
+            aspectRatio: "9:16",
+            resolution: "1080p",
+            callbackUrl,
+          });
+          return NextResponse.json(
+            {
+              videoId: fallbackResult.videoId,
+              elevenLabsVoiceId: speech.elevenLabsVoiceId,
+              voiceProvider: "elevenlabs_audio",
+              providerMode: "image_fallback",
+              message:
+                "O avatar treinado não foi aceito pela plataforma (consentimento ou estado do personagem). " +
+                "Geramos via imagem direta para você ver o resultado.",
+            },
+            { status: 201 },
+          );
+        }
+
+        const { value: fallbackResult } = await resolveHeyGenVoiceWithRetryForImageVideo({
           requestedVoiceId: voiceId,
-          voiceName: buildHeyGenCloneVoiceName(avatarName, voiceAudioAsset.id),
-          audio: { type: "url", url: voiceAudioUrl },
+          avatarName,
+          voiceAudioAssetId: voiceAudioAsset.id,
+          voiceAudioUrl,
           run: async (activeVoiceId) =>
             heygenCreateVideoFromImage({
               image: { type: "url", url: imageUrl },
@@ -324,6 +448,7 @@ export async function POST(request: Request) {
           {
             videoId: fallbackResult.videoId,
             providerMode: "image_fallback",
+            voiceProvider: "heygen_clone",
             message:
               "O avatar treinado não foi aceito pela plataforma (consentimento ou estado do personagem). " +
               "Geramos via imagem direta para você ver o resultado.",
@@ -336,4 +461,3 @@ export async function POST(request: Request) {
     return handleRouteError(new Error(formatHeyGenError(error)));
   }
 }
-

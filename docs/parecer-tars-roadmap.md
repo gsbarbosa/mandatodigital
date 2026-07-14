@@ -170,7 +170,7 @@ Backlog      3.4 backgrounds, SerpAPI trends, Perplexity fact-check
 
 1. **30/06:** Instagram via Apify (rápido, pago, risco) **ou** slip para julho?
 2. **Budget:** SerpAPI (~US$ 75/mês) vale na v1 **ou** só trend proxy gratuito?
-3. **ElevenLabs:** conta única Kenlo **vs** BYOK por cliente?
+3. **ElevenLabs:** ~~conta única vs BYOK?~~ → **conta única da plataforma** (demo/guest); BYOK backlog. Path canônico: TTS → `audio_url` (não bridge nativa UI).
 4. **Texto selo TSE:** revisão jurídica antes de implementar overlay.
 
 ---
