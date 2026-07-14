@@ -169,6 +169,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   const [privateTwinLooks, setPrivateTwinLooks] = useState<PrivateTwinLook[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSealing, setIsSealing] = useState(false);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -1525,6 +1526,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     setCaptionUrl(null);
     setVideoId(null);
     setIsGenerating(true);
+    setIsSealing(false);
     autoPollStartedRef.current = false;
     let startedVideoId: string | null = null;
 
@@ -1633,11 +1635,19 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       setVideoId(id);
       setVideoStatus("pending");
       const result = await pollVideo(id);
+
+      // HeyGen terminou: tira "Gerando...", mostra fase de selo (sem liberar URL sem watermark).
+      setIsGenerating(false);
+      setIsSealing(true);
+      setVideoStatus("sealing");
+      setVideoUrl(null);
+
       const sealed = await sealVideoIfPossible({
         heygenVideoId: id,
         videoUrl: result.videoUrl,
       });
       setVideoUrl(sealed.videoUrl);
+      setVideoStatus("completed");
       await persistCreativeProject({
         heygenVideoId: id,
         videoUrl: sealed.videoUrl,
@@ -1675,6 +1685,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       }
     } finally {
       setIsGenerating(false);
+      setIsSealing(false);
     }
   }
 
@@ -2444,6 +2455,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 onClick={() => void handleGenerate()}
                 disabled={
                   isGenerating ||
+                  isSealing ||
                   (isPollingTwinTraining && !twinReadyForVideo) ||
                   !canProduceContent ||
                   ((avatarTrack === "caricature" || avatarTrack === "photo_real") && isTraining) ||
@@ -2456,16 +2468,21 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     <span className="persona-spinner" aria-hidden="true" />
                     Gerando...
                   </span>
+                ) : isSealing ? (
+                  <span className="persona-loading-row">
+                    <span className="persona-spinner" aria-hidden="true" />
+                    Aplicando selo TSE...
+                  </span>
                 ) : (
                   "Gerar Conteúdo a partir do Avatar selecionado"
                 )}
               </button>
-              {generateDisabledReason && !isGenerating ? (
+              {generateDisabledReason && !isGenerating && !isSealing ? (
                 <p className="persona-helper-text persona-helper-highlight persona-top-gap">
                   {generateDisabledReason}
                 </p>
               ) : null}
-              {isGenerating && <div className="persona-progress" />}
+              {(isGenerating || isSealing) && <div className="persona-progress" />}
             </div>
           </div>
 
@@ -2481,6 +2498,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               {(videoStatus || videoId) && (
                 <p className="persona-helper-text">
                   Status: {formatStatus(videoStatus)} {videoId ? `| Job: ${videoId}` : ""}
+                  {isSealing ? " — aplicando marca d'água…" : ""}
                 </p>
               )}
               {videoUrl && (

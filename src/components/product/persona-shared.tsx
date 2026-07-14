@@ -116,6 +116,8 @@ export function formatStatus(status: string | null | undefined) {
       return "Aguardando";
     case "processing":
       return "Gerando";
+    case "sealing":
+      return "Aplicando selo";
     case "completed":
       return "Concluído";
     case "failed":

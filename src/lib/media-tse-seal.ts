@@ -58,20 +58,21 @@ function resolveAssetPath(relativePath: string) {
 }
 
 function buildOverlayFilterComplex(guestTestWatermark: boolean) {
-  // Escala a faixa ~90% da largura do vídeo e ancora no canto inf. esquerdo.
-  // eof_action=repeat: se o PNG acabar no 1º frame, mantém o overlay (não encerra o vídeo).
+  // Escala a faixa e ancora no canto inf. esquerdo.
+  // eof_action=repeat: PNG de 1 frame permanece até o fim do vídeo
+  // (sem -loop 1 infinito, que pode travar o encode no Cloud Run).
   if (guestTestWatermark) {
     return (
-      "[1:v][0:v]scale2ref=w=min(iw\\,main_w*0.92):h=ow/mdar[tse][base];" +
-      "[2:v][base]scale2ref=w=min(iw\\,main_w*0.85):h=ow/mdar[guest][base2];" +
-      "[base2][tse]overlay=24:H-h-56:eof_action=repeat[tmp];" +
+      "[1:v]scale=min(900\\,iw):-1[tse];" +
+      "[2:v]scale=min(800\\,iw):-1[guest];" +
+      "[0:v][tse]overlay=24:H-h-56:eof_action=repeat[tmp];" +
       "[tmp][guest]overlay=24:H-h-24:eof_action=repeat[vout]"
     );
   }
 
   return (
-    "[1:v][0:v]scale2ref=w=min(iw\\,main_w*0.92):h=ow/mdar[wm][base];" +
-    "[base][wm]overlay=24:H-h-24:eof_action=repeat[vout]"
+    "[1:v]scale=min(900\\,iw):-1[wm];" +
+    "[0:v][wm]overlay=24:H-h-24:eof_action=repeat[vout]"
   );
 }
 
@@ -81,11 +82,9 @@ function buildVideoSealArgs(input: {
   tsePng: string;
   guestPng: string | null;
 }) {
-  // PNG estático tem 1 frame: sem -loop 1 o overlay pode terminar no 1º frame
-  // (vídeo “foto” + áudio inteiro no container).
-  const args = ["-y", "-i", input.inputPath, "-loop", "1", "-i", input.tsePng];
+  const args = ["-y", "-i", input.inputPath, "-i", input.tsePng];
   if (input.guestPng) {
-    args.push("-loop", "1", "-i", input.guestPng);
+    args.push("-i", input.guestPng);
   }
   args.push(
     "-filter_complex",
@@ -103,8 +102,9 @@ function buildVideoSealArgs(input: {
     "-pix_fmt",
     "yuv420p",
     "-c:a",
-    "copy",
-    "-shortest",
+    "aac",
+    "-b:a",
+    "128k",
     "-movflags",
     "+faststart",
     input.outputPath,
