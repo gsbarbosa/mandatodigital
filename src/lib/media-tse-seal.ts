@@ -58,20 +58,58 @@ function resolveAssetPath(relativePath: string) {
 }
 
 function buildOverlayFilterComplex(guestTestWatermark: boolean) {
-  // Escala a faixa ~90% da largura do vídeo (máx ~1000px) e ancora no canto inf. esquerdo.
+  // Escala a faixa ~90% da largura do vídeo e ancora no canto inf. esquerdo.
+  // eof_action=repeat: se o PNG acabar no 1º frame, mantém o overlay (não encerra o vídeo).
   if (guestTestWatermark) {
     return (
       "[1:v][0:v]scale2ref=w=min(iw\\,main_w*0.92):h=ow/mdar[tse][base];" +
       "[2:v][base]scale2ref=w=min(iw\\,main_w*0.85):h=ow/mdar[guest][base2];" +
-      "[base2][tse]overlay=24:H-h-56[tmp];" +
-      "[tmp][guest]overlay=24:H-h-24"
+      "[base2][tse]overlay=24:H-h-56:eof_action=repeat[tmp];" +
+      "[tmp][guest]overlay=24:H-h-24:eof_action=repeat[vout]"
     );
   }
 
   return (
     "[1:v][0:v]scale2ref=w=min(iw\\,main_w*0.92):h=ow/mdar[wm][base];" +
-    "[base][wm]overlay=24:H-h-24"
+    "[base][wm]overlay=24:H-h-24:eof_action=repeat[vout]"
   );
+}
+
+function buildVideoSealArgs(input: {
+  inputPath: string;
+  outputPath: string;
+  tsePng: string;
+  guestPng: string | null;
+}) {
+  // PNG estático tem 1 frame: sem -loop 1 o overlay pode terminar no 1º frame
+  // (vídeo “foto” + áudio inteiro no container).
+  const args = ["-y", "-i", input.inputPath, "-loop", "1", "-i", input.tsePng];
+  if (input.guestPng) {
+    args.push("-loop", "1", "-i", input.guestPng);
+  }
+  args.push(
+    "-filter_complex",
+    buildOverlayFilterComplex(Boolean(input.guestPng)),
+    "-map",
+    "[vout]",
+    "-map",
+    "0:a?",
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-crf",
+    "23",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "copy",
+    "-shortest",
+    "-movflags",
+    "+faststart",
+    input.outputPath,
+  );
+  return args;
 }
 
 export async function burnTseSealOnVideoBuffer(input: {
@@ -88,29 +126,14 @@ export async function burnTseSealOnVideoBuffer(input: {
 
   try {
     await fsPromises.writeFile(inputPath, input.buffer);
-    const filterComplex = buildOverlayFilterComplex(guest);
-
-    const args = ["-y", "-i", inputPath, "-i", tsePng];
-    if (guestPng) {
-      args.push("-i", guestPng);
-    }
-    args.push(
-      "-filter_complex",
-      filterComplex,
-      "-c:v",
-      "libx264",
-      "-preset",
-      "veryfast",
-      "-crf",
-      "23",
-      "-c:a",
-      "copy",
-      "-movflags",
-      "+faststart",
-      outputPath,
+    await runFfmpeg(
+      buildVideoSealArgs({
+        inputPath,
+        outputPath,
+        tsePng,
+        guestPng,
+      }),
     );
-
-    await runFfmpeg(args);
     return await fsPromises.readFile(outputPath);
   } finally {
     await fsPromises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
