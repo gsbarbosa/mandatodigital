@@ -600,14 +600,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     });
   }
 
-  async function parseJsonOrText<T>(response: Response): Promise<T> {
-    const contentType = response.headers.get("content-type") ?? "";
-    if (contentType.includes("application/json")) {
-      return (await response.json()) as T;
-    }
-    return { message: await response.text() } as T;
-  }
-
   async function pollVideo(id: string) {
     const pollIntervalMs = 5000;
     const maxAttempts = 180;

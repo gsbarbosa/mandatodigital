@@ -148,12 +148,29 @@ export function buildCuradorContextPayload(profileForm: {
   };
 }
 
+function gatewayHtmlErrorMessage(status: number, body: string) {
+  const head = body.slice(0, 200).toLowerCase();
+  const looksHtml =
+    head.includes("<!doctype html") || head.includes("<html") || head.includes("internal server error");
+  if (!looksHtml) {
+    return body.trim() || `Erro HTTP ${status}.`;
+  }
+  if (status === 504 || head.includes("gateway timeout")) {
+    return "O servidor demorou demais (timeout). Tente gerar de novo em instantes.";
+  }
+  if (status === 502 || status === 503) {
+    return "Servico temporariamente indisponivel. Tente de novo em instantes.";
+  }
+  return "Erro interno no servidor. Tente de novo em instantes.";
+}
+
 export async function parseJsonOrText<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type") ?? "";
   if (contentType.includes("application/json")) {
     return (await response.json()) as T;
   }
-  return { message: await response.text() } as T;
+  const text = await response.text();
+  return { message: gatewayHtmlErrorMessage(response.status, text) } as T;
 }
 
 export function PersonaTag({

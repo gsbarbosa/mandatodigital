@@ -19,22 +19,41 @@ import { storeComplianceBuffer } from "@/lib/legal/contract-storage";
 const TSE_SEAL_PNG = "assets/seals/tse-seal.png";
 const GUEST_SEAL_PNG = "assets/seals/guest-test-seal.png";
 
-async function runFfmpeg(args: string[]) {
+/** Evita comer o timeout do Cloud Run (300s) se o encode travar. */
+const FFMPEG_SEAL_TIMEOUT_MS = 90_000;
+
+async function runFfmpeg(args: string[], timeoutMs = FFMPEG_SEAL_TIMEOUT_MS) {
   const binary = resolveFfmpegBinary();
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn(binary, args, { stdio: ["ignore", "ignore", "pipe"] });
     let stderr = "";
+    let timedOut = false;
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, timeoutMs);
 
     child.stderr.on("data", (chunk: Buffer) => {
       stderr += chunk.toString();
     });
 
     child.on("error", (error) => {
+      clearTimeout(timer);
       reject(new Error(`FFmpeg indisponivel (${binary}). ${error.message}`));
     });
 
     child.on("close", (code) => {
+      clearTimeout(timer);
+      if (timedOut) {
+        reject(
+          new Error(
+            `FFmpeg excedeu ${Math.round(timeoutMs / 1000)}s na selagem. Tente de novo com um video mais curto.`,
+          ),
+        );
+        return;
+      }
       if (code === 0) {
         resolve();
         return;
@@ -96,15 +115,14 @@ function buildVideoSealArgs(input: {
     "-c:v",
     "libx264",
     "-preset",
-    "veryfast",
+    "ultrafast",
     "-crf",
     "23",
     "-pix_fmt",
     "yuv420p",
+    // Sem reencode de audio: menos CPU e menos risco de dessincronizar o fim do filtro.
     "-c:a",
-    "aac",
-    "-b:a",
-    "128k",
+    "copy",
     "-movflags",
     "+faststart",
     input.outputPath,

@@ -7,7 +7,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import { sealRemoteVideo } from "@/lib/media-tse-seal";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const bodySchema = z.object({
   videoUrl: z.string().min(1),
