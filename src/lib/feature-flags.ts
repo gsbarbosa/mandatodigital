@@ -3,7 +3,7 @@
  * Defaults conservadores: tudo desligado = comportamento atual em producao.
  */
 
-import { canUseLocalFilesystem } from "@/lib/server-runtime";
+import { hasFirebaseServiceAccount } from "@/lib/firebase/env";
 
 function readEnvFlag(name: string) {
   const value = process.env[name]?.trim().toLowerCase();
@@ -32,23 +32,19 @@ export const featureFlags = {
   sentinelSocial: readEnvFlag("SENTINEL_SOCIAL_ENABLED"),
   sentinelSerpApi: Boolean(process.env.SENTINEL_SERPAPI_KEY?.trim()),
   auditorFactCheck: readEnvFlag("AUDITOR_FACTCHECK_ENABLED"),
-  auditorRealQueue: readEnvFlag("AUDITOR_V2_REAL_QUEUE"),
   sentinelLlmThemeVerify: readEnvFlag("SENTINEL_LLM_THEME_VERIFY"),
   /** Spike qualidade: LLM mini só no top N (off por default). */
   sentinelLlmQualityRank: readEnvFlag("SENTINEL_LLM_QUALITY_RANK"),
   heygenVoiceProvider: getHeyGenVoiceProvider(),
 } as const;
 
-/** Cache persistido: Supabase em prod; JSON local em dev; desligavel via env. */
+/** Cache persistido no Firestore; desligavel via SENTINEL_PERSIST_CACHE=false. */
 export function isSentinelPersistCacheEnabled() {
   if (process.env.SENTINEL_PERSIST_CACHE?.trim()) {
     return readEnvFlag("SENTINEL_PERSIST_CACHE");
   }
 
-  return Boolean(
-    (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) ||
-      canUseLocalFilesystem(),
-  );
+  return hasFirebaseServiceAccount();
 }
 
 export function isSentinelLlmExpansionEnabled() {
@@ -75,14 +71,20 @@ export function isAuditorFactCheckEnabled() {
   return featureFlags.auditorFactCheck;
 }
 
-export function isAuditorRealQueueEnabled() {
-  return featureFlags.auditorRealQueue;
-}
-
 export function isSentinelLlmThemeVerifyEnabled() {
   return featureFlags.sentinelLlmThemeVerify;
 }
 
 export function isSentinelLlmQualityRankEnabled() {
   return featureFlags.sentinelLlmQualityRank;
+}
+
+/** Selagem FFmpeg via job async (Pub/Sub / worker). */
+export function isAsyncSealEnabled() {
+  return readEnvFlag("ASYNC_SEAL_ENABLED") || readEnvFlag("NEXT_PUBLIC_ASYNC_SEAL_ENABLED");
+}
+
+/** TTS ElevenLabs + create video via job async (Fase 2). */
+export function isAsyncVoiceEnabled() {
+  return readEnvFlag("ASYNC_VOICE_ENABLED") || readEnvFlag("NEXT_PUBLIC_ASYNC_VOICE_ENABLED");
 }

@@ -1,10 +1,19 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { isSentinelCacheExpired, sentinelStorage } from "@/lib/sentinel-storage";
+import { isSentinelCacheExpired } from "@/lib/sentinel-storage";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 
-const sampleSuggestion: MockSentinelSuggestion = {
+const sampleMeta: SentinelSuggestionsMeta = {
+  source: "google-news-rss+portals",
+  cached: false,
+  refreshedAt: "2026-06-24T12:00:00.000Z",
+  radarThemesCount: 1,
+  articlesScanned: 1,
+  portalsMonitored: 0,
+};
+
+const _sampleSuggestion: MockSentinelSuggestion = {
   id: "sentinela-rss-test",
   themeLabel: "Saude",
   matchedThemes: ["Saude"],
@@ -29,20 +38,7 @@ const sampleSuggestion: MockSentinelSuggestion = {
   },
 };
 
-const sampleMeta: SentinelSuggestionsMeta = {
-  source: "google-news-rss+portals",
-  cached: false,
-  refreshedAt: "2026-06-24T12:00:00.000Z",
-  radarThemesCount: 1,
-  articlesScanned: 1,
-  portalsMonitored: 0,
-};
-
 describe("sentinel-storage", () => {
-  afterEach(async () => {
-    await sentinelStorage.clearCache("profile-test-1");
-  });
-
   it("detecta cache expirado", () => {
     expect(
       isSentinelCacheExpired({
@@ -52,24 +48,6 @@ describe("sentinel-storage", () => {
         refreshedAt: sampleMeta.refreshedAt,
       }),
     ).toBe(true);
-  });
-
-  it("persiste e le cache local quando habilitado", async () => {
-    process.env.SENTINEL_PERSIST_CACHE = "true";
-    delete process.env.SUPABASE_URL;
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    const expiresAt = new Date(Date.now() + 60_000).toISOString();
-
-    await sentinelStorage.writeCache("profile-test-1", {
-      suggestions: [sampleSuggestion],
-      meta: sampleMeta,
-      expiresAt,
-    });
-
-    const cached = await sentinelStorage.readCache("profile-test-1");
-    expect(cached?.suggestions[0]?.id).toBe("sentinela-rss-test");
-    expect(cached?.meta.radarThemesCount).toBe(1);
   });
 });
 

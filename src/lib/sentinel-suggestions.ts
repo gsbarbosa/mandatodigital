@@ -774,11 +774,3 @@ export function filterSuggestionsForProfile(
     return Boolean(themeLabel && interestThemes.has(themeLabel));
   });
 }
-
-/** @deprecated Use filterSuggestionsForProfile */
-export function filterMockSentinelSuggestions(
-  profile: PoliticianProfile,
-  mocks: MockSentinelSuggestion[],
-) {
-  return filterSuggestionsForProfile(profile, mocks);
-}

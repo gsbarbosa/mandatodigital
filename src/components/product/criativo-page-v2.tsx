@@ -657,6 +657,62 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     heygenVideoId: string;
     videoUrl: string;
   }) {
+    const asyncSeal =
+      process.env.NEXT_PUBLIC_ASYNC_SEAL_ENABLED === "true" ||
+      process.env.NEXT_PUBLIC_ASYNC_SEAL_ENABLED === "1";
+
+    if (asyncSeal) {
+      const enqueue = await fetch("/api/jobs/seal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl: input.videoUrl,
+          mediaId: input.heygenVideoId,
+        }),
+      });
+      const enqueued = await parseJsonOrText<{
+        jobId?: string;
+        message?: string;
+      }>(enqueue);
+      if (!enqueue.ok || !enqueued.jobId?.trim()) {
+        throw new Error(
+          enqueued.message?.trim() ||
+            "Nao foi possivel enfileirar a marca d'agua TSE.",
+        );
+      }
+
+      const jobId = enqueued.jobId.trim();
+      const pollIntervalMs = 2500;
+      const maxAttempts = 120;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const statusRes = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
+        const statusPayload = await parseJsonOrText<{
+          status?: string;
+          result?: { sealedUrl?: string };
+          lastError?: string;
+          message?: string;
+        }>(statusRes);
+        if (!statusRes.ok) {
+          throw new Error(statusPayload.message || "Falha ao consultar job de selo.");
+        }
+        if (statusPayload.status === "succeeded") {
+          const sealedUrl = statusPayload.result?.sealedUrl?.trim();
+          if (!sealedUrl) {
+            throw new Error("Job de selo concluiu sem sealedUrl.");
+          }
+          return { videoUrl: sealedUrl, sealed: true as const };
+        }
+        if (statusPayload.status === "failed" || statusPayload.status === "dead") {
+          throw new Error(
+            statusPayload.lastError?.trim() ||
+              "Nao foi possivel aplicar a marca d'agua TSE no video.",
+          );
+        }
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      }
+      throw new Error("Selagem demorou demais. Tente novamente em instantes.");
+    }
+
     const response = await fetch("/api/media/seal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1654,6 +1710,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
       const payload = await parseJsonOrText<{
         videoId?: string;
+        jobId?: string;
+        async?: boolean;
         voiceId?: string;
         elevenLabsVoiceId?: string;
         voiceProvider?: string;
@@ -1663,7 +1721,58 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         throw new Error(payload.message || "Nao foi possivel gerar o video.");
       }
 
-      const id = payload.videoId?.trim();
+      let id = payload.videoId?.trim() || "";
+      let voiceProviderHint = payload.voiceProvider;
+
+      if (!id && payload.jobId?.trim()) {
+        const voiceJobId = payload.jobId.trim();
+        const pollIntervalMs = 2500;
+        const maxAttempts = 120;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          const statusRes = await fetch(`/api/jobs/${encodeURIComponent(voiceJobId)}`);
+          const statusPayload = await parseJsonOrText<{
+            status?: string;
+            result?: {
+              heygenVideoId?: string;
+              elevenLabsVoiceId?: string;
+            };
+            lastError?: string;
+            message?: string;
+          }>(statusRes);
+          if (!statusRes.ok) {
+            throw new Error(statusPayload.message || "Falha ao consultar job de voz.");
+          }
+          if (statusPayload.status === "succeeded") {
+            id = statusPayload.result?.heygenVideoId?.trim() || "";
+            if (!id) {
+              throw new Error("Job de voz concluiu sem heygenVideoId.");
+            }
+            const nextEleven = statusPayload.result?.elevenLabsVoiceId?.trim();
+            if (nextEleven) {
+              setElevenLabsVoiceId(nextEleven);
+              persistHeygenPrefs({
+                heygenVoiceId,
+                heygenVoiceAudioAssetId: voiceAudioAssets[0]?.id ?? "",
+                elevenLabsVoiceId: nextEleven,
+                elevenLabsVoiceAudioAssetId: voiceAudioAssets[0]?.id ?? "",
+              });
+            }
+            voiceProviderHint = "elevenlabs_audio";
+            break;
+          }
+          if (statusPayload.status === "failed" || statusPayload.status === "dead") {
+            throw new Error(
+              statusPayload.lastError?.trim() ||
+                "Nao foi possivel preparar a voz/video de forma assincrona.",
+            );
+          }
+          await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+        if (!id) {
+          throw new Error("Job de voz demorou demais. Tente novamente em instantes.");
+        }
+      }
+
       if (!id) {
         throw new Error("Resposta invalida: videoId ausente.");
       }
@@ -1709,7 +1818,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         status: "ready",
         sealed: sealed.sealed,
         technologies:
-          payload.voiceProvider === "elevenlabs_audio" ||
+          voiceProviderHint === "elevenlabs_audio" ||
           Boolean(nextElevenLabsVoiceId || resolvedElevenLabsVoiceId.trim())
             ? ["HeyGen", "ElevenLabs"]
             : ["HeyGen"],

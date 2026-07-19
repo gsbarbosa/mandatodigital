@@ -17,7 +17,7 @@ function caricatureAsset(
     draftProfileId: null,
     sourceType: "upload",
     trainingRole: "avatar_caricature",
-    storageProvider: "local",
+    storageProvider: "firebase",
     storageBucket: null,
     storagePath: id,
     originalFilename: filename,

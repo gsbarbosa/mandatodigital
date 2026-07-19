@@ -25,7 +25,13 @@ import {
   resolveHeyGenVoiceWithRetryForImageVideo,
   resolveVideoSpeechForGeneration,
 } from "@/lib/voice-provider-resolve";
-import { isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
+import { isAsyncVoiceEnabled, isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
+import { getSessionUser } from "@/lib/auth/session";
+import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
+import {
+  AsyncJobQuotaError,
+  enqueueVoiceCreateVideoJob,
+} from "@/lib/async-jobs-enqueue";
 
 export const maxDuration = 300;
 
@@ -147,6 +153,49 @@ export async function POST(request: Request) {
             : generateMode === "photo_real"
               ? "Curador v2 (foto real)"
               : "Curador v2 (caricato)");
+
+        if (isAsyncVoiceEnabled() && isElevenLabsAudioVoiceProvider()) {
+          const sessionUser = await getSessionUser();
+          if (!sessionUser?.id) {
+            return NextResponse.json({ message: "Nao autenticado." }, { status: 401 });
+          }
+          try {
+            const enqueued = await enqueueVoiceCreateVideoJob({
+              ownerUserId: toDatabaseOwnerUserId(sessionUser.id),
+              payload: {
+                transcript,
+                avatarName,
+                voiceAudioAssetId: voiceAudioAsset.id,
+                voiceAudioUrl,
+                requestedElevenLabsVoiceId: elevenLabsVoiceId,
+                requestedHeygenVoiceId: voiceId,
+                createVideo: {
+                  generateMode,
+                  imageUrl,
+                  title: videoTitle,
+                  caricatureAssetId: body.caricatureAssetId?.trim() || undefined,
+                },
+              },
+            });
+            return NextResponse.json(
+              {
+                jobId: enqueued.jobId,
+                async: true,
+                voiceProvider: "elevenlabs_audio",
+                providerMode:
+                  generateMode === "photo_real" ? "photo_real_image" : "caricature_image",
+                message:
+                  "Voz e video enfileirados. Aguarde o processamento assincrono.",
+              },
+              { status: 202 },
+            );
+          } catch (error) {
+            if (error instanceof AsyncJobQuotaError) {
+              return NextResponse.json({ message: error.message }, { status: 429 });
+            }
+            throw error;
+          }
+        }
 
         const speech = await resolveVideoSpeechForGeneration({
           transcript,

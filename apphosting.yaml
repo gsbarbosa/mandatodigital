@@ -64,11 +64,6 @@ env:
       - BUILD
       - RUNTIME
 
-  - variable: ARGIL_DRY_RUN
-    value: "false"
-    availability:
-      - RUNTIME
-
   - variable: EVAL_JUDGE_ENABLED
     value: "true"
     availability:
@@ -81,24 +76,6 @@ env:
 
   - variable: OPENAI_API_KEY
     secret: openai-api-key
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: SUPABASE_URL
-    secret: supabase-url
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: SUPABASE_SERVICE_ROLE_KEY
-    secret: supabase-service-role-key
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_SUPABASE_URL
-    secret: supabase-url
     availability:
       - BUILD
       - RUNTIME
@@ -122,7 +99,7 @@ env:
       - BUILD
       - RUNTIME
 
-  # Sentinela Fase 1 (migrations aplicadas no Supabase)
+  # Sentinela Fase 1
   - variable: SENTINEL_V2_PIPELINES
     value: "true"
     availability:
@@ -182,13 +159,45 @@ env:
     availability:
       - RUNTIME
 
+  # Async jobs (ADR docs/adr-async-jobs-pubsub.md) — off ate smoke sync
+  - variable: ASYNC_SEAL_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_ASYNC_SEAL_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: ASYNC_VOICE_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_ASYNC_VOICE_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: PUBSUB_JOBS_ENABLED
+    value: "false"
+    availability:
+      - RUNTIME
+
+  # Cadastre: npm run firebase:secrets:guide / --apply
+  # - variable: JOBS_WORKER_SHARED_SECRET
+  #   secret: jobs-worker-shared-secret
+  #   availability:
+  #     - RUNTIME
+
   # Opcional — descomente apos cadastrar com npm run firebase:secrets:apply:
   # - variable: ANTHROPIC_API_KEY
   #   secret: anthropic-api-key
-  # - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
-  #   secret: supabase-anon-key
-  # - variable: ARGIL_API_KEY
-  #   secret: argil-api-key
   # - variable: TRAINING_ASSET_ACCESS_SECRET
   #   secret: training-asset-access-secret
 

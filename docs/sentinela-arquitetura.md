@@ -214,7 +214,7 @@ Eval offline: `npm run sentinel:quality-eval`.
 |---|---|
 | Monitoramento | `monitoramento-page.tsx` + `RefreshPautasButton` |
 | Redefinir temas | `redefinir-temas-page.tsx` |
-| Sentinela v2 | `sentinela-page-v2.tsx` |
+| Sentinela (legado) | `/sentinela` → redirect `/monitoramento` |
 | Card | `monitor-signal-card.tsx` |
 | Criativo | deep-link `buildCriativoNovoHref` |
 

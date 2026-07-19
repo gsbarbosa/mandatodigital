@@ -38,7 +38,7 @@ Amostragem humana: 20 cards ranqueados, label sim/não “eu pautaria no Criativ
 
 1. Harness de qualidade + custo no `meta` do refresh  
 2. Flag `SENTINEL_LLM_QUALITY_RANK` — reordena/filtra top N com LLM mini + briefing curto  
-3. Script `npm run sentinel:quality-eval` sobre cache Supabase  
+3. Script `npm run sentinel:quality-eval` sobre cache Firestore  
 4. Comparar baseline (flag off) vs tratamento (flag on) em 2–3 contas
 
 ### Fora (próxima iteração)

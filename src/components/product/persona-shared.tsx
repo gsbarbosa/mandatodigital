@@ -251,61 +251,6 @@ export function IdeologicalSpectrumSlider({
   );
 }
 
-export function PersonaHeaderIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="persona-header-icon-svg" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm0 2c-3.31 0-6 1.79-6 4v1h12v-1c0-2.21-2.69-4-6-4Zm7.78-3.65-1.41-1.41L16 11.31l1.41 1.41 1.41-1.41 1.41 1.41 1.41-1.41-1.41-1.41 1.41-1.41Z"
-      />
-    </svg>
-  );
-}
-
-export function PersonaCriativoIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="persona-header-icon-svg" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="m19 3-1.5 1.5L16 3l-1.5 1.5L13 3l-1.5 1.5L10 3 8.5 4.5 7 3 5.5 4.5 4 3v18l1.5-1.5L7 21l1.5-1.5L10 21l1.5-1.5L13 21l1.5-1.5L16 21l1.5-1.5L19 21V3ZM11 17H8v-2h3v2Zm0-4H8v-2h3v2Zm0-4H8V7h3v2Zm5 8h-3v-2h3v2Zm0-4h-3v-2h3v2Zm0-4h-3V7h3v2Z"
-      />
-    </svg>
-  );
-}
-
-export function PersonaSentinelaIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="persona-header-icon-svg" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 2a7 7 0 0 0-7 7v1.1A5.9 5.9 0 0 0 3 15v2h18v-2a5.9 5.9 0 0 0-2-4.9V9a7 7 0 0 0-7-7Zm0 2a5 5 0 0 1 5 5v1.1c0 1.2.5 2.3 1.3 3.1L17 14H7l.7-2.8A4 4 0 0 0 8 10.1V9a5 5 0 0 1 5-5Zm-1 16h2v2h-2v-2Z"
-      />
-    </svg>
-  );
-}
-
-export function PersonaAuditorIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="persona-header-icon-svg" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4Zm0 2.18 7 3.11v4.71c0 4.52-3.07 8.86-7 9.93-3.93-1.07-7-5.41-7-9.93V6.29l7-3.11Zm-1 5.32-3 3 1.41 1.41L11 11.41V17h2v-5.59l1.59 1.59 1.41-1.41-3-3a1 1 0 0 0-1.41 0Z"
-      />
-    </svg>
-  );
-}
-
-export function PersonaDistribuidorIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="persona-header-icon-svg" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7a3.27 3.27 0 0 0 0-1.39l7.05-4.11A2.99 2.99 0 1 0 15 5a2.99 2.99 0 0 0 .04.49L7.99 9.6a3 3 0 1 0 0 4.8l7.05 4.11A2.99 2.99 0 1 0 18 22a2.99 2.99 0 0 0-.04-.49l7.01-4.11a3 3 0 1 0 0-1.39l-7.01-4.11A2.99 2.99 0 0 0 18 4a3 3 0 1 0 0 8Zm0 12a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm0-8.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2ZM6 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
-      />
-    </svg>
-  );
-}
-
 export function trainingAssetFileUrl(assetId: string) {
   return `/api/profile/training-assets/${encodeURIComponent(assetId)}/file`;
 }

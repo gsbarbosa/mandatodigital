@@ -14,10 +14,8 @@ import {
 
 import { mergeProfileInputForSave } from "@/lib/profile-save";
 import { unionSentinelThemes } from "@/lib/sentinel-profile-themes";
-import { SUPABASE_STANDARD_UPLOAD_MAX_BYTES } from "@/lib/training-asset-upload-client";
 import {
   contentRequestInputSchema,
-  productFeedbackInputSchema,
   profileInputSchema,
 } from "@/lib/schemas";
 import type { ProfileInput } from "@/lib/schemas";
@@ -26,14 +24,12 @@ import type { SessionUser } from "@/lib/auth/session";
 import type {
   ContentRequest,
   ContentStatus,
-  EvaluationReport,
   GeneratedContent,
   ProfileTrainingAsset,
-  ProductFeedback,
   TrainingAssetRole,
 } from "@/lib/types";
 
-import { uploadTrainingFileToSupabase } from "@/lib/training-asset-upload-client";
+import { uploadTrainingFileToSignedStorage } from "@/lib/training-asset-upload-client";
 import { clearEarlyAccessBrowserState } from "@/lib/early-access";
 import {
   guestCaricatureQuota,
@@ -47,14 +43,11 @@ import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
 import { sanitizeProviderFacingMessage } from "@/lib/curador-heygen-prefs";
 
 import {
-  buildEvaluationReportsFromDashboard,
-  buildProductFeedbackState,
   buildProfileState,
   buildRequestState,
   formatApiError,
   parseTextarea,
   type ApiErrorPayload,
-  type ProductFeedbackFormState,
   type ProfileFormState,
   type RequestFormState,
 } from "./shared";
@@ -74,10 +67,7 @@ type ProductAppContextValue = {
   setRequestForm: Dispatch<SetStateAction<RequestFormState>>;
   requests: ContentRequest[];
   contents: GeneratedContent[];
-  feedback: DashboardData["feedback"];
   trainingAssets: ProfileTrainingAsset[];
-  productFeedbacks: ProductFeedback[];
-  evaluationReports: EvaluationReport[];
   latestApprovedContent: GeneratedContent | null;
   requestsWithContent: ContentRequest[];
   statusMessage: string | null;
@@ -86,15 +76,10 @@ type ProductAppContextValue = {
   isSavingProfile: boolean;
   isGenerating: boolean;
   isSavingContent: boolean;
-  isSubmittingProductFeedback: boolean;
   isUploadingTrainingAssets: boolean;
   isUploadingVoiceAudioAsset: boolean;
   isUploadingAvatarImageAsset: boolean;
   isUploadingTrainingVideoAsset: boolean;
-  isLoadingEvaluations: boolean;
-  isFeedbackWidgetOpen: boolean;
-  isEvaluatingContentRequestId: string | null;
-  setFeedbackWidgetOpen: Dispatch<SetStateAction<boolean>>;
   saveProfile: (options?: {
     allowDraftDefaults?: boolean;
     silent?: boolean;
@@ -118,32 +103,14 @@ type ProductAppContextValue = {
     contentId: string,
     input: { body?: string; status?: ContentStatus },
   ) => Promise<GeneratedContent | null>;
-  submitFeedback: (
-    contentId: string,
-    note: string,
-  ) => Promise<DashboardData["feedback"][number] | null>;
-  submitProductFeedback: (
-    input: ProductFeedbackFormState,
-  ) => Promise<ProductFeedback | null>;
-  reloadEvaluationReports: () => Promise<void>;
-  evaluateContentRequest: (contentRequestId: string) => Promise<EvaluationReport | null>;
   getContentById: (contentId: string) => GeneratedContent | null;
   getRequestById: (requestId: string) => ContentRequest | null;
   getRequestForContentId: (contentId: string) => ContentRequest | null;
-  getFeedbackForContentId: (contentId: string) => DashboardData["feedback"];
-  getEvaluationReportById: (runId: string) => EvaluationReport | null;
   sessionUser: SessionUser | null;
   signOut: () => Promise<void>;
 };
 
 const ProductAppContext = createContext<ProductAppContextValue | null>(null);
-
-function sortReportsByDate(reports: EvaluationReport[]) {
-  return [...reports].sort(
-    (left, right) =>
-      new Date(right.run.createdAt).getTime() - new Date(left.run.createdAt).getTime(),
-  );
-}
 
 export function ProductAppProvider({
   initialData,
@@ -154,7 +121,6 @@ export function ProductAppProvider({
   sessionUser?: SessionUser | null;
   children: ReactNode;
 }) {
-  const initialEvaluationReports = buildEvaluationReportsFromDashboard(initialData);
   const [profile, setProfile] = useState(initialData.profile);
   const [profileForm, setProfileForm] = useState(() =>
     buildProfileState(initialData.profile),
@@ -164,31 +130,17 @@ export function ProductAppProvider({
   const [contents, setContents] = useState<GeneratedContent[]>(
     initialData.generatedContents,
   );
-  const [feedback, setFeedback] = useState(initialData.feedback);
   const [trainingAssets, setTrainingAssets] = useState<ProfileTrainingAsset[]>(
     initialData.trainingAssets ?? [],
-  );
-  const [productFeedbacks, setProductFeedbacks] = useState<ProductFeedback[]>(
-    initialData.productFeedbacks ?? [],
-  );
-  const [evaluationReports, setEvaluationReports] = useState<EvaluationReport[]>(
-    sortReportsByDate(initialEvaluationReports),
   );
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingContent, setIsSavingContent] = useState(false);
-  const [isSubmittingProductFeedback, setIsSubmittingProductFeedback] =
-    useState(false);
   const [uploadingTrainingRoles, setUploadingTrainingRoles] = useState<
     TrainingAssetRole[]
   >([]);
-  const [isLoadingEvaluations, setIsLoadingEvaluations] = useState(false);
-  const [isFeedbackWidgetOpen, setFeedbackWidgetOpen] = useState(false);
-  const [isEvaluatingContentRequestId, setIsEvaluatingContentRequestId] = useState<
-    string | null
-  >(null);
   const [caricatureRegenJobs, setCaricatureRegenJobs] = useState<
     Record<CaricatureVariant, CaricatureRegenJob>
   >({
@@ -231,46 +183,6 @@ export function ProductAppProvider({
     const requestIds = new Set(contents.map((item) => item.contentRequestId));
     return requests.filter((item) => requestIds.has(item.id));
   }, [contents, requests]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadInitialReports() {
-      setIsLoadingEvaluations(true);
-
-      try {
-        const response = await fetch("/api/evals/runs?limit=20");
-        const payload = (await response.json()) as {
-          reports?: EvaluationReport[];
-          message?: string;
-        };
-
-        if (!response.ok) {
-          throw new Error(payload.message || "Nao foi possivel carregar as avaliacoes.");
-        }
-
-        if (!isMounted) {
-          return;
-        }
-
-        setEvaluationReports(sortReportsByDate(payload.reports ?? []));
-      } catch {
-        if (!isMounted) {
-          return;
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingEvaluations(false);
-        }
-      }
-    }
-
-    void loadInitialReports();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   async function handleApi<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
     setErrorMessage(null);
@@ -360,10 +272,6 @@ export function ProductAppProvider({
         distributionChannels: profileForm.distributionChannels,
         distributionWindows: profileForm.distributionWindows,
         autoPublish: profileForm.autoPublish,
-        argilAvatarId: profileForm.argilAvatarId,
-        argilVoiceId: profileForm.argilVoiceId,
-        avatarTrainingStatus: (profileForm.avatarTrainingStatus ||
-          "") as ProfileInput["avatarTrainingStatus"],
       };
 
       const payload = mergeProfileInputForSave(rawPayload, profile, {
@@ -451,72 +359,66 @@ export function ProductAppProvider({
       const uploadedAssets: ProfileTrainingAsset[] = [];
 
       for (const file of files) {
-        const useServerUpload = file.size > SUPABASE_STANDARD_UPLOAD_MAX_BYTES;
+        const signed = await handleApi<{
+          signedUrl?: string;
+          storageProvider?: "firebase";
+          storageBucket?: string;
+          storagePath?: string;
+          contentType?: string;
+          uploadMethod?: "put";
+          message?: string;
+        }>("/api/profile/training-assets/signed-upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            profileId,
+            draftProfileId,
+            trainingRole,
+            filename: file.name,
+            mimeType: file.type || "application/octet-stream",
+          }),
+        }).catch(() => null);
 
-        if (!useServerUpload) {
-          const signed = await handleApi<{
-            signedUrl?: string;
-            token?: string;
-            resumableEndpoint?: string;
-            storageApiKey?: string;
-            storageProvider?: "supabase";
-            storageBucket?: string;
-            storagePath?: string;
-            message?: string;
-          }>("/api/profile/training-assets/signed-upload", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              profileId,
-              draftProfileId,
-              trainingRole,
-              filename: file.name,
-            }),
-          }).catch(() => null);
+        const canDirectUpload = Boolean(
+          signed?.signedUrl && signed.storagePath && signed.storageBucket,
+        );
 
-          if (
-            signed?.signedUrl &&
-            signed?.token &&
-            signed.storagePath &&
-            signed.storageBucket &&
-            signed.resumableEndpoint
-          ) {
-            await uploadTrainingFileToSupabase({
-              signedUrl: signed.signedUrl,
-              token: signed.token,
-              storageBucket: signed.storageBucket,
-              storagePath: signed.storagePath,
-              resumableEndpoint: signed.resumableEndpoint,
-              storageApiKey: signed.storageApiKey,
-              file,
-            });
+        if (canDirectUpload && signed?.signedUrl && signed.storagePath && signed.storageBucket) {
+          await uploadTrainingFileToSignedStorage({
+            signedUrl: signed.signedUrl,
+            storageBucket: signed.storageBucket,
+            storagePath: signed.storagePath,
+            storageProvider: "firebase",
+            contentType: signed.contentType,
+            uploadMethod: "put",
+            file,
+          });
 
-            const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
-              "/api/profile/training-assets/register",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  profileId,
-                  draftProfileId,
-                  trainingRole,
-                  storageProvider: "supabase",
-                  storageBucket: signed.storageBucket ?? null,
-                  storagePath: signed.storagePath,
-                  originalFilename: file.name,
-                  mimeType: file.type,
-                  sizeBytes: file.size,
-                }),
+          const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
+            "/api/profile/training-assets/register",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
               },
-            );
+              body: JSON.stringify({
+                profileId,
+                draftProfileId,
+                trainingRole,
+                storageProvider: "firebase",
+                storageBucket: signed.storageBucket ?? null,
+                storagePath: signed.storagePath,
+                originalFilename: file.name,
+                mimeType: file.type,
+                sizeBytes: file.size,
+              }),
+            },
+          );
 
-            uploadedAssets.push(...registered.assets);
-            continue;
-          }
+          uploadedAssets.push(...registered.assets);
+          continue;
         }
 
         const uploadParams = new URLSearchParams({
@@ -815,135 +717,6 @@ export function ProductAppProvider({
     }
   }
 
-  async function submitFeedback(contentId: string, note: string) {
-    if (!note.trim()) {
-      return null;
-    }
-
-    try {
-      const result = await handleApi<{ feedback: DashboardData["feedback"][number] }>(
-        `/api/generated-contents/${contentId}/feedback`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ note }),
-        },
-      );
-
-      setFeedback((current) => [result.feedback, ...current]);
-      setStatusMessage("Feedback registrado para calibrar as proximas geracoes.");
-
-      return result.feedback;
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel registrar o feedback.",
-      );
-      return null;
-    }
-  }
-
-  async function submitProductFeedback(input: ProductFeedbackFormState) {
-    setIsSubmittingProductFeedback(true);
-    setStatusMessage(null);
-
-    try {
-      const parsedPayload = productFeedbackInputSchema.safeParse(input);
-
-      if (!parsedPayload.success) {
-        throw new Error(
-          formatApiError({
-            issues: parsedPayload.error.flatten(),
-          }),
-        );
-      }
-
-      const result = await handleApi<{ feedback: ProductFeedback }>(
-        "/api/product-feedback",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(input),
-        },
-      );
-
-      setProductFeedbacks((current) => [result.feedback, ...current]);
-      setFeedbackWidgetOpen(true);
-      setStatusMessage(
-        "Feedback analisado. A IA classificou a observacao e registrou o proximo passo sugerido.",
-      );
-
-      return result.feedback;
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Nao foi possivel analisar o feedback de produto.",
-      );
-      return null;
-    } finally {
-      setIsSubmittingProductFeedback(false);
-    }
-  }
-
-  async function reloadEvaluationReports() {
-    setIsLoadingEvaluations(true);
-
-    try {
-      const result = await handleApi<{ reports: EvaluationReport[] }>("/api/evals/runs?limit=20");
-      setEvaluationReports(sortReportsByDate(result.reports));
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Nao foi possivel carregar as avaliacoes do core.",
-      );
-    } finally {
-      setIsLoadingEvaluations(false);
-    }
-  }
-
-  async function evaluateContentRequest(contentRequestId: string) {
-    setIsEvaluatingContentRequestId(contentRequestId);
-    setStatusMessage(null);
-
-    try {
-      const result = await handleApi<{ report: EvaluationReport }>("/api/evals/judge", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contentRequestId,
-        }),
-      });
-
-      setEvaluationReports((current) =>
-        sortReportsByDate([
-          result.report,
-          ...current.filter((item) => item.run.id !== result.report.run.id),
-        ]),
-      );
-      setStatusMessage(
-        "Avaliacao concluida. O juiz da LLM atribuiu nota e registrou o racional da execucao.",
-      );
-
-      return result.report;
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Nao foi possivel avaliar a geracao selecionada.",
-      );
-      return null;
-    } finally {
-      setIsEvaluatingContentRequestId(null);
-    }
-  }
-
   function getContentById(contentId: string) {
     return contents.find((item) => item.id === contentId) ?? null;
   }
@@ -955,14 +728,6 @@ export function ProductAppProvider({
   function getRequestForContentId(contentId: string) {
     const content = getContentById(contentId);
     return content ? getRequestById(content.contentRequestId) : null;
-  }
-
-  function getFeedbackForContentId(contentId: string) {
-    return feedback.filter((item) => item.generatedContentId === contentId);
-  }
-
-  function getEvaluationReportById(runId: string) {
-    return evaluationReports.find((item) => item.run.id === runId) ?? null;
   }
 
   async function signOut() {
@@ -979,10 +744,7 @@ export function ProductAppProvider({
     setRequestForm,
     requests,
     contents,
-    feedback,
     trainingAssets,
-    productFeedbacks,
-    evaluationReports,
     latestApprovedContent,
     requestsWithContent,
     statusMessage,
@@ -991,15 +753,10 @@ export function ProductAppProvider({
     isSavingProfile,
     isGenerating,
     isSavingContent,
-    isSubmittingProductFeedback,
     isUploadingTrainingAssets,
     isUploadingVoiceAudioAsset,
     isUploadingAvatarImageAsset,
     isUploadingTrainingVideoAsset,
-    isLoadingEvaluations,
-    isFeedbackWidgetOpen,
-    isEvaluatingContentRequestId,
-    setFeedbackWidgetOpen,
     saveProfile,
     uploadTrainingAssets,
     appendTrainingAssets,
@@ -1009,15 +766,9 @@ export function ProductAppProvider({
     clearCaricatureRegenMessage,
     generateContent,
     updateContent,
-    submitFeedback,
-    submitProductFeedback,
-    reloadEvaluationReports,
-    evaluateContentRequest,
     getContentById,
     getRequestById,
     getRequestForContentId,
-    getFeedbackForContentId,
-    getEvaluationReportById,
     sessionUser,
     signOut,
   };
@@ -1035,6 +786,3 @@ export function useProductApp() {
   return context;
 }
 
-export function useInitialProductFeedbackForm() {
-  return useState<ProductFeedbackFormState>(buildProductFeedbackState());
-}

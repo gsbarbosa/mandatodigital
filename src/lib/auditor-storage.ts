@@ -1,25 +1,8 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
-import { createClient } from "@supabase/supabase-js";
-
 import type { FactCheckResult } from "@/lib/auditor/types";
 import { isAuditorFactCheckEnabled } from "@/lib/feature-flags";
+import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
-import {
-  assertLocalFilesystemAllowed,
-  canUseLocalFilesystem,
-  supabaseSchemaOutdatedMessage,
-} from "@/lib/server-runtime";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
-
-const DATABASE_PATH = path.join(process.cwd(), "data", "mandato-digital.json");
-
-type LocalDatabase = {
-  sentinelFactChecks?: Record<string, Record<string, FactCheckRecord>>;
-  auditLog?: AuditLogRow[];
-  [key: string]: unknown;
-};
 
 type FactCheckRecord = {
   signalId: string;
@@ -47,55 +30,12 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function isSupabaseConfigured() {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-}
-
-function getSupabaseClient() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY sao obrigatorios.");
-  }
-
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function isSchemaCompatibilityError(error: unknown) {
-  if (!error || typeof error !== "object" || !("code" in error)) {
-    return false;
-  }
-
-  const code = String(error.code);
-  return code === "PGRST205" || code === "PGRST204" || code === "42703" || code === "42P01";
-}
-
-function throwIfNoLocalSchemaFallback(error: unknown) {
-  if (!canUseLocalFilesystem()) {
-    throw new Error(supabaseSchemaOutdatedMessage(error));
-  }
-}
-
-async function readLocalDatabase(): Promise<LocalDatabase> {
-  try {
-    const raw = await fs.readFile(DATABASE_PATH, "utf8");
-    return raw.trim() ? (JSON.parse(raw) as LocalDatabase) : {};
-  } catch {
-    return {};
-  }
-}
-
-async function writeLocalDatabase(database: LocalDatabase) {
-  assertLocalFilesystemAllowed();
-  await fs.mkdir(path.dirname(DATABASE_PATH), { recursive: true });
-  await fs.writeFile(DATABASE_PATH, JSON.stringify(database, null, 2));
-}
-
 function resolveOwnerUserId() {
   return getStorageOwnerUserId()?.trim() || "";
+}
+
+function factCheckDocId(profileId: string, signalId: string) {
+  return `${profileId}|${signalId}`;
 }
 
 export const auditorStorage = {
@@ -116,53 +56,9 @@ export const auditorStorage = {
       checkedAt: result.checkedAt || nowIso(),
     };
 
-    if (isSupabaseConfigured()) {
-      const client = getSupabaseClient();
-      const { error } = await client.from("sentinel_fact_checks").upsert(
-        {
-          signal_id: signalId,
-          profile_id: profileId,
-          owner_user_id: ownerUserId,
-          status: record.status,
-          verdict: record.verdict,
-          confidence: record.confidence,
-          result,
-          checked_at: record.checkedAt,
-        },
-        { onConflict: "profile_id,signal_id" },
-      );
-
-      if (error) {
-        if (isSchemaCompatibilityError(error)) {
-          throwIfNoLocalSchemaFallback(error);
-          const database = await readLocalDatabase();
-          database.sentinelFactChecks = {
-            ...(database.sentinelFactChecks ?? {}),
-            [profileId]: {
-              ...(database.sentinelFactChecks?.[profileId] ?? {}),
-              [signalId]: record,
-            },
-          };
-          await writeLocalDatabase(database);
-          return;
-        }
-
-        throw error;
-      }
-
-      return;
-    }
-
-    assertLocalFilesystemAllowed();
-    const database = await readLocalDatabase();
-    database.sentinelFactChecks = {
-      ...(database.sentinelFactChecks ?? {}),
-      [profileId]: {
-        ...(database.sentinelFactChecks?.[profileId] ?? {}),
-        [signalId]: record,
-      },
-    };
-    await writeLocalDatabase(database);
+    await col(COLLECTIONS.sentinelFactChecks)
+      .doc(factCheckDocId(profileId, signalId))
+      .set(record);
   },
 
   async appendAuditLog(input: {
@@ -184,37 +80,7 @@ export const auditorStorage = {
       createdAt: nowIso(),
     };
 
-    if (isSupabaseConfigured()) {
-      const client = getSupabaseClient();
-      const { error } = await client.from("audit_log").insert({
-        owner_user_id: ownerUserId,
-        profile_id: input.profileId ?? null,
-        project_id: input.projectId ?? null,
-        event_type: input.eventType,
-        payload: input.payload ?? {},
-        consent_text_version: input.consentTextVersion ?? "v1",
-        created_at: row.createdAt,
-      });
-
-      if (error) {
-        if (isSchemaCompatibilityError(error)) {
-          throwIfNoLocalSchemaFallback(error);
-          const database = await readLocalDatabase();
-          database.auditLog = [row, ...(database.auditLog ?? [])].slice(0, 500);
-          await writeLocalDatabase(database);
-          return;
-        }
-
-        throw error;
-      }
-
-      return;
-    }
-
-    assertLocalFilesystemAllowed();
-    const database = await readLocalDatabase();
-    database.auditLog = [row, ...(database.auditLog ?? [])].slice(0, 500);
-    await writeLocalDatabase(database);
+    await col(COLLECTIONS.auditLog).doc(row.id).set(row);
   },
 };
 

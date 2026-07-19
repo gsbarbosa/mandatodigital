@@ -80,6 +80,7 @@ describe("sentinel-theme-verify", () => {
       title: "Falta de policiamento em Sao Paulo",
       link: "https://example.com/1",
       pubDate: "Wed, 09 Jul 2026 10:44:00 GMT",
+      publishedAt: new Date("2026-07-09T10:44:00.000Z"),
       sourceName: "CBN",
     };
     const fingerprint = buildArticleFingerprint(article);

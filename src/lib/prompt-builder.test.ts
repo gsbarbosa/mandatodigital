@@ -24,6 +24,28 @@ const profile: PoliticianProfile = {
   redLines: ["nao inventar dado", "nao atacar servidor publico"],
   referenceExamples: ["fala curta, direta e com exemplos locais"],
   bio: "Atua com fiscalizacao, defesa de entregas concretas e linguagem acessivel.",
+  personaArchetypes: [],
+  sentinelThemes: [],
+  oppositionThemes: [],
+  customRadarThemes: [],
+  interestProfiles: [],
+  interestSites: [],
+  oppositionProfiles: [],
+  oppositionSites: [],
+  glossaryTerms: [],
+  trainingReferenceLinks: [],
+  youtubeVideoUrl: "",
+  avatarType: "",
+  avatarVideoTopic: "",
+  notificationEmail: "",
+  avatarEmotions: [],
+  voicePace: "Manter velocidade original",
+  editingStyles: [],
+  factCheckingSources: [],
+  hardDataSources: [],
+  distributionChannels: [],
+  distributionWindows: [],
+  autoPublish: false,
   updatedAt: "2026-05-25T00:00:00.000Z",
 };
 
@@ -35,6 +57,7 @@ const request: ContentRequestInput = {
   context: "os moradores relataram perda de moveis e transito travado",
   keyFacts: ["dois bairros ficaram ilhados", "comerciantes perderam estoque"],
   desiredCallToAction: "mande este post para quem esta cobrando providencias",
+  mandatoryTerms: [],
 };
 
 describe("buildGenerationPrompt", () => {

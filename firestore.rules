@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Fase 0: provisão. App ainda não usa Firestore como DB.
+    // Negar tudo no client; Admin SDK (App Hosting) ignora estas rules.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

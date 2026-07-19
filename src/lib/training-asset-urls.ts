@@ -1,7 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { createClient } from "@supabase/supabase-js";
-
+import { createFirebaseTrainingReadUrl } from "@/lib/training-asset-storage";
 import type { ProfileTrainingAsset } from "@/lib/types";
 
 const TOKEN_TTL_SECONDS = 3600;
@@ -9,29 +8,9 @@ const TOKEN_TTL_SECONDS = 3600;
 function getAccessSecret() {
   return (
     process.env.TRAINING_ASSET_ACCESS_SECRET?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    process.env.FIREBASE_TRAINING_ASSETS_BUCKET?.trim() ||
     "mandato-digital-dev-secret"
   );
-}
-
-function getSupabaseClient() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    throw new Error("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY sao obrigatorios.");
-  }
-
-  return createClient(url, key, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-}
-
-function getTrainingAssetBucketName() {
-  return process.env.SUPABASE_TRAINING_ASSETS_BUCKET || "persona-training-videos";
 }
 
 export function resolveAppBaseUrl(request?: Request) {
@@ -94,33 +73,20 @@ export function verifyTrainingAssetAccessToken(assetId: string, token: string) {
 
 export async function getTrainingAssetPublicUrl(
   asset: ProfileTrainingAsset,
-  baseUrl: string,
+  _baseUrl: string,
 ) {
-  if (asset.storageProvider === "supabase") {
-    const client = getSupabaseClient();
-    const bucketName = asset.storageBucket ?? getTrainingAssetBucketName();
-    const { data, error } = await client.storage
-      .from(bucketName)
-      .createSignedUrl(asset.storagePath, TOKEN_TTL_SECONDS);
-
-    if (error || !data?.signedUrl) {
-      throw new Error(
-        `Nao foi possivel gerar URL assinada para o asset ${asset.id}: ${error?.message ?? "URL vazia"}`,
-      );
-    }
-
-    return data.signedUrl;
-  }
-
-  const token = createTrainingAssetAccessToken(asset.id);
-  return `${baseUrl}/api/profile/training-assets/${asset.id}/stream?token=${encodeURIComponent(token)}`;
+  return createFirebaseTrainingReadUrl(
+    asset.storageBucket,
+    asset.storagePath,
+    TOKEN_TTL_SECONDS * 1000,
+  );
 }
 
 function pickLatestAsset(assets: ProfileTrainingAsset[]) {
   return [...assets].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
 }
 
-/** Foto (IMAGE) + audio de voz (clone via POST /voices) para treino na Argil. */
+/** Foto (IMAGE) + audio de voz para treino HeyGen / clone de voz. */
 export function pickAvatarImageAndVoiceAudioAssets(assets: ProfileTrainingAsset[]) {
   const avatarImageAssets = assets.filter(
     (asset) => asset.trainingRole === "avatar_image",
@@ -156,19 +122,4 @@ export function resolveCaricatureAsset(
   }
 
   return pickCaricatureAsset(assets);
-}
-
-/** @deprecated Use pickAvatarImageAndVoiceAudioAssets */
-export function pickAvatarImageAndConsentAssets(assets: ProfileTrainingAsset[]) {
-  return pickAvatarImageAndVoiceAudioAssets(assets);
-}
-
-/** @deprecated Use pickAvatarImageAndVoiceAudioAssets */
-export function pickDatasetAndConsentAssets(assets: ProfileTrainingAsset[]) {
-  const { avatarImageAsset, voiceAudioAsset } = pickAvatarImageAndVoiceAudioAssets(assets);
-  const datasetAssets = assets.filter((asset) => asset.trainingRole === "dataset");
-  const datasetAsset =
-    avatarImageAsset ?? pickLatestAsset(datasetAssets);
-
-  return { datasetAsset, consentAsset: voiceAudioAsset };
 }

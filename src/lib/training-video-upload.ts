@@ -1,7 +1,7 @@
 /** Limite da HeyGen para vídeo de treino passado por URL (digital twin). */
 export const HEYGEN_TRAINING_VIDEO_MAX_BYTES = 32 * 1024 * 1024;
 
-/** Limite de upload no app (Supabase free tier / validação client). */
+/** Limite de upload no app (validação client). */
 export const TRAINING_VIDEO_UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
 
 function formatMegabytes(bytes: number) {

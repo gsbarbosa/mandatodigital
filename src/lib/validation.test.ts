@@ -20,6 +20,28 @@ const profile: PoliticianProfile = {
   redLines: ["nao inventar numero", "nao prometer o que depende de outro ente"],
   referenceExamples: ["fala objetiva", "cobranca com proposta"],
   bio: "Parlamentar focado em entrega, fiscalizacao e linguagem simples para conectar problema local com solucao pratica.",
+  personaArchetypes: [],
+  sentinelThemes: [],
+  oppositionThemes: [],
+  customRadarThemes: [],
+  interestProfiles: [],
+  interestSites: [],
+  oppositionProfiles: [],
+  oppositionSites: [],
+  glossaryTerms: [],
+  trainingReferenceLinks: [],
+  youtubeVideoUrl: "",
+  avatarType: "",
+  avatarVideoTopic: "",
+  notificationEmail: "",
+  avatarEmotions: [],
+  voicePace: "Manter velocidade original",
+  editingStyles: [],
+  factCheckingSources: [],
+  hardDataSources: [],
+  distributionChannels: [],
+  distributionWindows: [],
+  autoPublish: false,
   updatedAt: "2026-05-25T00:00:00.000Z",
 };
 
@@ -34,6 +56,7 @@ describe("validacao do fluxo de geracao", () => {
         context: "a equipe quer tom objetivo, sem perder proximidade com quem mora na cidade",
         keyFacts: ["ha impacto local direto", "a cobranca precisa vir com caminho de solucao"],
         desiredCallToAction: "comente como isso afeta o seu bairro",
+        mandatoryTerms: [],
       };
 
       const variants = buildFallbackVariants(profile, request, "preview");

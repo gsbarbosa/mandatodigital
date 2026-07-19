@@ -188,24 +188,22 @@ Todas exigem sessão autenticada (401 sem login).
 
 ## Infraestrutura (Fase 0)
 
-O Sentinela persiste cache e histórico de sinais quando Supabase está configurado (produção) ou em `data/mandato-digital.json` (dev local).
-
-**Migration Supabase (rodar uma vez):**
+O Sentinela persiste cache e histórico de sinais no Firestore (Firebase Admin).
 
 ```bash
-npm run db:migrate:sentinel-foundation
-# ou cole supabase/migrations/20260624_sentinel_foundation.sql no SQL Editor
+# Indexes compostos (signals, verdicts, etc.)
+npm run firebase:indexes:deploy
 ```
 
-Tabelas: `sentinel_suggestion_cache`, `sentinel_signals`, `sentinel_theme_expansions` (expansões LLM na Fase 1).
+Collections: `sentinelSuggestionCache`, `sentinelSignals`, `sentinelThemeExpansions` (expansões LLM na Fase 1).
 
 **Feature flags** (todas desligadas por default — ver `src/lib/feature-flags.ts`):
 
 - `SENTINEL_V2_PIPELINES` — 4 pipelines (manual, portal, semântico, social stub)
 - `SENTINEL_LLM_EXPANSION` — expansão semântica LLM ao salvar radar
-- `SENTINEL_TREND_PROXY` — trend proxy via histórico `sentinel_signals` (volume D vs D-7)
+- `SENTINEL_TREND_PROXY` — trend proxy via histórico `sentinelSignals` (volume D vs D-7)
 - `SENTINEL_SOCIAL_ENABLED` — Instagram (em breve)
-- `SENTINEL_PERSIST_CACHE=false` — desliga persistência mesmo com Supabase
+- `SENTINEL_PERSIST_CACHE=false` — desliga persistência no Firestore
 - `AUDITOR_FACTCHECK_ENABLED` — Validador (Fase 2)
 
 ---
@@ -221,7 +219,7 @@ Com `SENTINEL_V2_PIPELINES=true`:
 | **Semântico** | Temas do radar + expansão LLM | Termos correlatos gerados ao salvar |
 | **Social** | Perfis @ | Stub até `SENTINEL_SOCIAL_ENABLED` |
 
-Expansão LLM (`SENTINEL_LLM_EXPANSION=true`): ao **Salvar radar**, gera 8–15 termos por tema e persiste em `sentinel_theme_expansions`. UI: bloco “Termos monitorados (expansão)”.
+Expansão LLM (`SENTINEL_LLM_EXPANSION=true`): ao **Salvar radar**, gera 8–15 termos por tema e persiste em `sentinelThemeExpansions`. UI: bloco “Termos monitorados (expansão)”.
 
 Trend proxy (`SENTINEL_TREND_PROXY=true`): compara volume de sinais nos últimos 7 dias vs 7 dias anteriores (badge “↑ volume” no Criativo).
 
@@ -250,7 +248,7 @@ Com `AUDITOR_FACTCHECK_ENABLED=true` (ligado em prod desde 2026-06-24):
 **Migration:**
 
 ```bash
-npm run db:migrate:auditor-foundation
+npm run db:apply
 ```
 
 API: `POST /api/auditor/fact-check`

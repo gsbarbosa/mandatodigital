@@ -1,5 +1,5 @@
-import { DistribuidorPageV2 } from "@/components/product/distribuidor-page-v2";
+import { redirect } from "next/navigation";
 
 export default function DistribuidorRoute() {
-  return <DistribuidorPageV2 />;
+  redirect("/monitoramento");
 }

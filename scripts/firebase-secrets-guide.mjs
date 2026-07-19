@@ -1,6 +1,6 @@
 /**
  * Imprime os comandos para cadastrar secrets no Firebase App Hosting
- * a partir de variaveis em .env.local / .env.vercel.production.
+ * a partir de variaveis em .env.local / .env.
  *
  * Uso:
  *   npm run firebase:secrets:guide
@@ -15,17 +15,13 @@ import { spawnSync } from "node:child_process";
 const SECRET_MAP = [
   ["OPENAI_API_KEY", "openai-api-key"],
   ["ANTHROPIC_API_KEY", "anthropic-api-key"],
-  ["SUPABASE_URL", "supabase-url"],
-  ["SUPABASE_SERVICE_ROLE_KEY", "supabase-service-role-key"],
-  ["NEXT_PUBLIC_SUPABASE_ANON_KEY", "supabase-anon-key"],
-  ["SUPABASE_ANON_KEY", "supabase-anon-key"],
   ["HEYGEN_API_KEY", "heygen-api-key"],
   ["ELEVENLABS_API_KEY", "elevenlabs-api-key"],
   ["APIFY_API_TOKEN", "apify-api-token"],
-  ["ARGIL_API_KEY", "argil-api-key"],
   ["TRAINING_ASSET_ACCESS_SECRET", "training-asset-access-secret"],
   ["FIREBASE_SERVICE_ACCOUNT_JSON", "firebase-service-account-json"],
   ["RESEND_API_KEY", "resend-api-key"],
+  ["JOBS_WORKER_SHARED_SECRET", "jobs-worker-shared-secret"],
 ];
 
 function loadEnvFile(filePath) {
@@ -88,7 +84,7 @@ function setSecret(secretId, value) {
 function main() {
   const apply = process.argv.includes("--apply");
 
-  for (const file of [".env.local", ".env.vercel.production", ".env"]) {
+  for (const file of [".env.local", ".env.prod", ".env.stg", ".env"]) {
     loadEnvFile(resolve(process.cwd(), file));
   }
 

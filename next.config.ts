@@ -19,6 +19,13 @@ const nextConfig: NextConfig = {
       "./assets/seals/tse-seal.png",
       "./assets/seals/guest-test-seal.png",
     ],
+    "/api/workers/seal": [
+      "./node_modules/ffmpeg-static/**/*",
+      "./assets/fonts/DejaVuSans.ttf",
+      "./assets/seals/tse-seal.png",
+      "./assets/seals/guest-test-seal.png",
+    ],
+    "/api/jobs/**": ["./node_modules/ffmpeg-static/**/*"],
   },
   experimental: {
     proxyClientMaxBodySize: "200mb",

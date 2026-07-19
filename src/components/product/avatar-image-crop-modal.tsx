@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  ARGIL_LANDSCAPE_RATIO,
-  ARGIL_PORTRAIT_RATIO,
-  clampArgilCrop,
-  computeMaxArgilCrop,
+  AVATAR_LANDSCAPE_RATIO,
+  AVATAR_PORTRAIT_RATIO,
+  clampAvatarCrop,
+  computeMaxAvatarCrop,
   loadImageFromFile,
-  renderArgilCropToFile,
-  type ArgilCropRect,
-} from "@/lib/argil-image";
+  renderAvatarCropToFile,
+  type AvatarCropRect,
+} from "@/lib/avatar-image-crop";
 
 type AvatarImageCropModalProps = {
   file: File;
@@ -37,8 +37,8 @@ export function AvatarImageCropModal({
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
   const [displaySize, setDisplaySize] = useState({ width: 0, height: 0 });
-  const [aspect, setAspect] = useState(ARGIL_PORTRAIT_RATIO);
-  const [crop, setCrop] = useState<ArgilCropRect>({ x: 0, y: 0, width: 0, height: 0 });
+  const [aspect, setAspect] = useState(AVATAR_PORTRAIT_RATIO);
+  const [crop, setCrop] = useState<AvatarCropRect>({ x: 0, y: 0, width: 0, height: 0 });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingImage, setIsLoadingImage] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -59,12 +59,12 @@ export function AvatarImageCropModal({
         }
 
         const initialAspect =
-          loaded.width >= loaded.height ? ARGIL_LANDSCAPE_RATIO : ARGIL_PORTRAIT_RATIO;
+          loaded.width >= loaded.height ? AVATAR_LANDSCAPE_RATIO : AVATAR_PORTRAIT_RATIO;
 
         setImageSrc(loaded.displaySrc);
         setImageSize({ width: loaded.width, height: loaded.height });
         setAspect(initialAspect);
-        setCrop(computeMaxArgilCrop(loaded.width, loaded.height, initialAspect));
+        setCrop(computeMaxAvatarCrop(loaded.width, loaded.height, initialAspect));
         setIsLoadingImage(false);
       })
       .catch((error) => {
@@ -125,8 +125,8 @@ export function AvatarImageCropModal({
     setCrop((current) => {
       const centerX = current.x + current.width / 2;
       const centerY = current.y + current.height / 2;
-      const next = computeMaxArgilCrop(imageSize.width, imageSize.height, nextAspect);
-      return clampArgilCrop(
+      const next = computeMaxAvatarCrop(imageSize.width, imageSize.height, nextAspect);
+      return clampAvatarCrop(
         {
           ...next,
           x: centerX - next.width / 2,
@@ -166,7 +166,7 @@ export function AvatarImageCropModal({
     const deltaY = (event.clientY - drag.startY) / displayScale;
 
     setCrop((current) =>
-      clampArgilCrop(
+      clampAvatarCrop(
         {
           ...current,
           x: drag.cropX + deltaX,
@@ -196,7 +196,7 @@ export function AvatarImageCropModal({
     try {
       const outputName = file.name.replace(/\.[^.]+$/, "") || "avatar";
       const mimeType = file.type === "image/png" ? "image/png" : "image/jpeg";
-      const cropped = await renderArgilCropToFile(
+      const cropped = await renderAvatarCropToFile(
         imageSrc,
         crop,
         `${outputName}-recorte.jpg`,
@@ -241,22 +241,22 @@ export function AvatarImageCropModal({
       <div className="persona-crop-dialog">
         <h3 id="avatar-crop-title">Ajustar enquadramento da foto</h3>
         <p className="persona-helper-text">
-          Arraste a area de recorte para manter o rosto visivel. A Argil exige proporcao{" "}
+          Arraste a area de recorte para manter o rosto visivel. O avatar exige proporcao{" "}
           <strong>9:16</strong> ou <strong>16:9</strong>.
         </p>
 
         <div className="persona-crop-aspect-row">
           <button
             type="button"
-            className={aspect === ARGIL_PORTRAIT_RATIO ? "persona-tag active" : "persona-tag"}
-            onClick={() => changeAspect(ARGIL_PORTRAIT_RATIO)}
+            className={aspect === AVATAR_PORTRAIT_RATIO ? "persona-tag active" : "persona-tag"}
+            onClick={() => changeAspect(AVATAR_PORTRAIT_RATIO)}
           >
             Retrato 9:16
           </button>
           <button
             type="button"
-            className={aspect === ARGIL_LANDSCAPE_RATIO ? "persona-tag active" : "persona-tag"}
-            onClick={() => changeAspect(ARGIL_LANDSCAPE_RATIO)}
+            className={aspect === AVATAR_LANDSCAPE_RATIO ? "persona-tag active" : "persona-tag"}
+            onClick={() => changeAspect(AVATAR_LANDSCAPE_RATIO)}
           >
             Paisagem 16:9
           </button>

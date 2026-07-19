@@ -24,7 +24,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
       const { buffer, mimeType } = await readTrainingAssetBytes(access.asset);
 
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         status: 200,
         headers: {
           "Content-Type": mimeType,

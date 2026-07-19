@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  featureFlags,
   getHeyGenVoiceProvider,
+  isAsyncSealEnabled,
+  isAsyncVoiceEnabled,
   isAuditorFactCheckEnabled,
   isSentinelLlmExpansionEnabled,
   isSentinelLlmThemeVerifyEnabled,
@@ -23,8 +24,13 @@ const ENV_KEYS = [
   "SENTINEL_PERSIST_CACHE",
   "AUDITOR_FACTCHECK_ENABLED",
   "HEYGEN_VOICE_PROVIDER",
-  "SUPABASE_URL",
-  "SUPABASE_SERVICE_ROLE_KEY",
+  "ASYNC_SEAL_ENABLED",
+  "NEXT_PUBLIC_ASYNC_SEAL_ENABLED",
+  "ASYNC_VOICE_ENABLED",
+  "NEXT_PUBLIC_ASYNC_VOICE_ENABLED",
+  "FIREBASE_SERVICE_ACCOUNT_JSON",
+  "FIREBASE_CONFIG",
+  "K_SERVICE",
 ] as const;
 
 const originalEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
@@ -53,19 +59,17 @@ describe("feature-flags", () => {
     expect(isSentinelTrendProxyEnabled()).toBe(false);
     expect(isSentinelSocialEnabled()).toBe(false);
     expect(isAuditorFactCheckEnabled()).toBe(false);
-    expect(featureFlags.auditorRealQueue).toBe(false);
   });
 
-  it("liga persistencia quando Supabase esta configurado", () => {
-    process.env.SUPABASE_URL = "https://example.supabase.co";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  it("liga persistencia quando Firebase Admin esta configurado", () => {
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON = '{"type":"service_account"}';
+    delete process.env.SENTINEL_PERSIST_CACHE;
 
     expect(isSentinelPersistCacheEnabled()).toBe(true);
   });
 
-  it("respeita SENTINEL_PERSIST_CACHE=false mesmo com Supabase", () => {
-    process.env.SUPABASE_URL = "https://example.supabase.co";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+  it("respeita SENTINEL_PERSIST_CACHE=false mesmo com Firebase Admin", () => {
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON = '{"type":"service_account"}';
     process.env.SENTINEL_PERSIST_CACHE = "false";
 
     expect(isSentinelPersistCacheEnabled()).toBe(false);
@@ -79,5 +83,21 @@ describe("feature-flags", () => {
   it("aceita HEYGEN_VOICE_PROVIDER=elevenlabs_audio", () => {
     process.env.HEYGEN_VOICE_PROVIDER = "elevenlabs_audio";
     expect(getHeyGenVoiceProvider()).toBe("elevenlabs_audio");
+  });
+
+  it("flags async jobs desligadas por default", () => {
+    delete process.env.ASYNC_SEAL_ENABLED;
+    delete process.env.NEXT_PUBLIC_ASYNC_SEAL_ENABLED;
+    delete process.env.ASYNC_VOICE_ENABLED;
+    delete process.env.NEXT_PUBLIC_ASYNC_VOICE_ENABLED;
+    expect(isAsyncSealEnabled()).toBe(false);
+    expect(isAsyncVoiceEnabled()).toBe(false);
+  });
+
+  it("liga ASYNC_SEAL e ASYNC_VOICE via env", () => {
+    process.env.ASYNC_SEAL_ENABLED = "true";
+    process.env.ASYNC_VOICE_ENABLED = "1";
+    expect(isAsyncSealEnabled()).toBe(true);
+    expect(isAsyncVoiceEnabled()).toBe(true);
   });
 });

@@ -11,14 +11,14 @@ import type { PoliticianProfile } from "./types";
 const profile = {
   city: "Belo Horizonte",
   state: "MG",
-} as PoliticianProfile;
+} as unknown as PoliticianProfile;
 
 const baseProfile = {
   sentinelThemes: [],
   sentinelThemesFederal: ["Saude Publica (SUS)"],
   sentinelThemesEstadual: ["Privatizacoes"],
   oppositionThemes: ["Saude Publica / Filas"],
-} as PoliticianProfile;
+} as unknown as PoliticianProfile;
 
 const sampleExpansions: SentinelThemeExpansion[] = [
   {

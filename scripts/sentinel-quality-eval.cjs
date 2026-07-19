@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 /**
- * Eval offline da spike de qualidade — lê caches do Supabase e aplica a heurística.
+ * Eval offline da spike de qualidade — lê caches do Firestore e aplica a heurística.
  * Uso: npm run sentinel:quality-eval
- * Requer NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY no .env.local
+ * Requer FIREBASE_SERVICE_ACCOUNT_JSON no .env.local
  *
  * Mantém a fórmula alinhada a src/lib/sentinel-quality.ts (testes unitários são a fonte da verdade).
  */
 const fs = require("fs");
 const path = require("path");
+const { cert, getApps, initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+
+const COLLECTION = "sentinelSuggestionCache";
+const LIMIT = 15;
 
 function loadEnv() {
   const envPath = path.join(process.cwd(), ".env.local");
@@ -24,6 +29,36 @@ function loadEnv() {
         return [line.slice(0, i), line.slice(i + 1)];
       }),
   );
+}
+
+function initFirebaseAdmin(env) {
+  if (getApps().length) {
+    return getFirestore();
+  }
+
+  const raw =
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim() ||
+    env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
+
+  if (!raw) {
+    console.error("Falta FIREBASE_SERVICE_ACCOUNT_JSON no .env.local (ou exportada no shell).");
+    console.error("");
+    console.error("Instruções:");
+    console.error("  1. Copie o JSON da service account para FIREBASE_SERVICE_ACCOUNT_JSON no .env.local");
+    console.error("  2. Rode: npm run sentinel:quality-eval");
+    process.exit(1);
+  }
+
+  let serviceAccount;
+  try {
+    serviceAccount = JSON.parse(raw);
+  } catch {
+    console.error("FIREBASE_SERVICE_ACCOUNT_JSON invalido (esperado JSON em uma linha).");
+    process.exit(1);
+  }
+
+  initializeApp({ credential: cert(serviceAccount) });
+  return getFirestore();
 }
 
 const THRESHOLD = 0.55;
@@ -72,27 +107,34 @@ function scoreSuggestionPautavel(suggestion) {
   return { kind: "news", score: final, pautavel: final >= THRESHOLD };
 }
 
+function toIso(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (value.toDate && typeof value.toDate === "function") {
+    return value.toDate().toISOString();
+  }
+  if (value instanceof Date) return value.toISOString();
+  return String(value);
+}
+
 async function main() {
   const env = loadEnv();
-  const url = env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    console.error("Faltam NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY no .env.local");
-    process.exit(1);
+  for (const [key, value] of Object.entries(env)) {
+    if (!(key in process.env) || !String(process.env[key] ?? "").trim()) {
+      process.env[key] = value;
+    }
   }
 
-  const headers = { apikey: key, Authorization: `Bearer ${key}` };
-  const res = await fetch(
-    `${url}/rest/v1/sentinel_suggestion_cache?select=owner_user_id,profile_id,refreshed_at,meta,suggestions&order=refreshed_at.desc&limit=15`,
-    { headers },
-  );
-  const rows = await res.json();
-  if (!Array.isArray(rows)) {
-    console.error(rows);
-    process.exit(1);
-  }
+  const db = initFirebaseAdmin(env);
+  const snap = await db
+    .collection(COLLECTION)
+    .orderBy("refreshedAt", "desc")
+    .limit(LIMIT)
+    .get();
 
-  console.log("Spike Sentinela qualidade — eval de cache\n");
+  const rows = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+  console.log("Spike Sentinela qualidade — eval de cache (Firestore)\n");
   console.log(
     "refreshed_at".padEnd(28),
     "owner".padEnd(10),
@@ -112,9 +154,11 @@ async function main() {
     const meta = row.meta || {};
     const usd = meta.llmCostEstimate?.estimatedUsd;
     const rank = meta.qualityRankStats?.llmCalls ?? 0;
+    const owner = row.ownerUserId ?? row.owner_user_id ?? "";
+    const refreshedAt = toIso(row.refreshedAt ?? row.refreshed_at);
     console.log(
-      String(row.refreshed_at || "").padEnd(28),
-      String(row.owner_user_id || "").slice(0, 8).padEnd(10),
+      String(refreshedAt).padEnd(28),
+      String(owner).slice(0, 8).padEnd(10),
       String(news.length).padStart(4),
       String(pct).padStart(5),
       String(meta.articlesScanned ?? "?").padStart(4),
@@ -128,6 +172,10 @@ async function main() {
         `(${meta.qualityReport.newsPautavel}/${meta.qualityReport.newsTotal} news)`,
       );
     }
+  }
+
+  if (rows.length === 0) {
+    console.log("\nNenhum documento em sentinelSuggestionCache.");
   }
 }
 

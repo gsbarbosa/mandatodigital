@@ -13,7 +13,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/" ||
     pathname === "/login" ||
     pathname.startsWith("/auth/") ||
-    pathname === "/api/argil/webhooks" ||
+    pathname === "/api/heygen/webhooks" ||
     pathname === "/api/auth/session" ||
     pathname === "/api/auth/clear-session";
   const isApiRoute = pathname.startsWith("/api/");

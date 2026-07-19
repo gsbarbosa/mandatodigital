@@ -1,6 +1,5 @@
 .next
 node_modules
-.vercel
 .firebase
 coverage
 dist
@@ -10,7 +9,11 @@ test-results
 .env
 .env.local
 .env.*.local
+.env.stg
+.env.prod
+.env.production
+.env.development
 meta-app-review-credentials.txt
-.env.vercel.*
 data/mandato-digital.json
 *-firebase-adminsdk-*.json
+tsconfig.tsbuildinfo

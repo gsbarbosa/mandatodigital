@@ -30,11 +30,6 @@ export default defineConfig({
         url: localBaseUrl,
         reuseExistingServer: !process.env.PW_FORCE_FRESH_SERVER,
         timeout: 120_000,
-        env: {
-          ...process.env,
-          ARGIL_DRY_RUN: process.env.ARGIL_DRY_RUN ?? "true",
-          ARGIL_AVATAR_ID: process.env.ARGIL_AVATAR_ID ?? "dry-run-avatar-id",
-        },
       },
   projects: [
     {

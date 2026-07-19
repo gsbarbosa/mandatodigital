@@ -124,7 +124,7 @@ export function sanitizeProviderFacingMessage(message: string) {
     .replace(/\s*—\s*HeyGen/gi, "")
     .replace(/\bHeyGen\b/gi, "a plataforma")
     .replace(/\bOpenAI\b/gi, "o serviço de IA")
-    .replace(/\bArgil\b/gi, "a plataforma")
+    .replace(/\bHeyGen\b/gi, "a plataforma")
     .replace(/OPENAI_API_KEY/gi, "configuração do servidor")
     .replace(/HEYGEN_API_KEY/gi, "configuração do servidor")
     .replace(/Utilizar Gêmeo Digital Atual/gi, "use o gêmeo já treinado no Curador")

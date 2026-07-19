@@ -6,23 +6,22 @@ MVP interno para colocar em operacao o fluxo central do Mandato Digital:
 - entrada manual de pauta;
 - geracao de 3 versoes por pauta;
 - revisao humana e aprovacao;
-- historico reutilizavel;
-- feedback editorial para calibracao futura.
+- historico reutilizavel.
 
 ## Stack atual
 
 - `Next.js` com App Router
 - `TypeScript`
-- persistencia local em `data/mandato-digital.json`
-- adaptador pronto para `Supabase` via `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`
+- `Firebase Auth` + `Firestore` + `Firebase Storage` (Admin SDK no server)
 - integracao com `OpenAI` ou `Anthropic` quando as chaves estiverem configuradas
 
-Sem credenciais externas, o app continua funcional usando persistencia local e um gerador fallback baseado no perfil salvo.
+Dev e producao exigem Firebase Admin (`FIREBASE_SERVICE_ACCOUNT_JSON` localmente; ADC no App Hosting).
 
 ## Rodando localmente
 
 ```bash
 npm install
+# copie .env.example → .env.local e preencha Firebase + chaves LLM
 npm run dev
 ```
 
@@ -98,11 +97,11 @@ Em **Authentication → Settings → Authorized domains**, inclua:
 - `madatodigital.firebaseapp.com`
 - dominio `*.hosted.app` gerado pelo App Hosting (se usar antes do custom domain)
 
-### Migrar variaveis da Vercel
+### Variaveis e secrets no App Hosting
 
-Copie as variaveis de `.env.vercel.production` para secrets (`npm run firebase:secrets:apply`)
-ou para o console em **App Hosting → Settings → Environment**.
-Atualize `APP_BASE_URL` em `apphosting.yaml` para a URL final do Firebase.
+Cadastre secrets a partir do `.env.local` (`npm run firebase:secrets:guide` / `--apply`)
+e mantenha as vars não-secretas em `apphosting.yaml`.
+Para puxar o remoto de volta para a máquina: `npm run env:pull -- --env stg|prod`.
 
 ## Variaveis de ambiente
 
@@ -114,15 +113,31 @@ OPENAI_MODEL=gpt-4.1-mini
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=claude-3-5-sonnet-latest
 EVAL_JUDGE_ENABLED=false
-EVAL_JUDGE_PROVIDER=
-EVAL_JUDGE_MODEL=
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+FIREBASE_SERVICE_ACCOUNT_JSON=
 ```
 
-## Banco no Supabase
+## Firestore
 
-Se quiser sair do modo local, rode o schema em `supabase/schema.sql` e configure as variaveis.
+Persistencia 100% no Firestore (collections da app). Blobs em Firebase Storage (`training/…`, `compliance/…`).
+
+```bash
+# Dry-run: lista collections que seriam apagadas
+npm run db:reset
+
+# Apaga docs das collections da app (ambiente zerado)
+npm run db:reset:confirm
+
+# Rules + indexes
+npm run firebase:rules:deploy
+npm run firebase:indexes:deploy
+```
+
+Ver tambem [docs/firebase-storage-fase1.md](docs/firebase-storage-fase1.md).
 
 ## Fluxo do MVP
 
@@ -130,7 +145,7 @@ Se quiser sair do modo local, rode o schema em `supabase/schema.sql` e configure
 2. Registrar uma nova pauta com contexto e fatos confirmados.
 3. Gerar 3 versoes.
 4. Revisar, aprovar e copiar a melhor.
-5. Registrar feedback para orientar a proxima rodada.
+5. Registrar aprovacao/revisao para orientar a proxima rodada.
 
 ## Testes automatizados com Playwright
 
@@ -160,16 +175,14 @@ APP_BASE_URL=https://madatodigital.web.app npm run test:e2e
 
 ### Cenarios cobertos
 
-- smoke do MVP: carrega homepage e abre o feedback lateral
+- smoke do MVP: carrega homepage e abre login
 - onboarding + geracao de conteudo: valida que a LLM retorna texto utilizavel
-- feedback de produto com IA: valida classificacao, criticidade e campo
-  `Implementar agora`
 
 ### Observacao
 
 Os testes E2E escrevem dados reais no ambiente-alvo com prefixo
 `[AUTOTEST]`. Isso ajuda a identificar e limpar registros de automacao no
-Supabase quando necessario.
+Firestore quando necessario.
 
 ## Avaliacao do core da LLM
 

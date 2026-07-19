@@ -76,15 +76,16 @@ const baseProfile: PoliticianProfile = {
   youtubeVideoUrl: "",
   avatarType: "",
   avatarVideoTopic: "",
-  argilAvatarId: "",
-  argilVoiceId: "",
-  avatarTrainingStatus: "",
   notificationEmail: "",
   avatarEmotions: [],
   voicePace: "",
   editingStyles: [],
   factCheckingSources: [],
   hardDataSources: [],
+  distributionChannels: [],
+  distributionWindows: [],
+  autoPublish: false,
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 describe("sentinel-opposition-posts", () => {

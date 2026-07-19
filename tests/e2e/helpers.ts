@@ -12,10 +12,8 @@ export function createAutotestToken(prefix: string) {
 async function gotoPath(
   page: Page,
   path: string,
-  options?: { openFeedback?: boolean },
 ) {
-  const targetUrl = options?.openFeedback ? `${path}?e2e=open-feedback` : path;
-  await page.goto(targetUrl);
+  await page.goto(path);
   if (path === "/curador") {
     await expect(
       page.getByRole("heading", { name: "Calibragem de Persona" }),
@@ -28,25 +26,16 @@ async function gotoPath(
   await page.waitForLoadState("networkidle");
 }
 
-export async function gotoHome(
-  page: Page,
-  options?: { openFeedback?: boolean },
-) {
-  await gotoPath(page, "/", options);
+export async function gotoHome(page: Page) {
+  await gotoPath(page, "/");
 }
 
-export async function gotoCurador(
-  page: Page,
-  options?: { openFeedback?: boolean },
-) {
-  await gotoPath(page, "/curador", options);
+export async function gotoCurador(page: Page) {
+  await gotoPath(page, "/curador");
 }
 
-export async function gotoCriativo(
-  page: Page,
-  options?: { openFeedback?: boolean },
-) {
-  await gotoPath(page, "/criativo", options);
+export async function gotoCriativo(page: Page) {
+  await gotoPath(page, "/criativo");
 }
 
 export async function saveAutotestProfile(request: APIRequestContext) {
@@ -106,48 +95,6 @@ export async function generateAutotestContent(page: Page) {
   await expect(page.getByText(topic).first()).toBeVisible();
 
   return topic;
-}
-
-export async function openFeedbackDrawer(
-  page: Page,
-  options?: { path?: "/" | "/curador" | "/criativo" | "/auditor" | "/admin" },
-) {
-  await gotoPath(page, options?.path ?? "/curador", { openFeedback: true });
-
-  await expect(page.getByTestId("feedback-drawer")).toHaveAttribute(
-    "aria-hidden",
-    "false",
-  );
-
-  await expect(page.getByTestId("feedback-drawer-heading")).toBeVisible();
-  await expect(page.getByTestId("product-feedback-screen")).toBeVisible();
-}
-
-export async function submitProductFeedback(
-  page: Page,
-  input: {
-    screen: string;
-    workedWell: string;
-    issueObserved: string;
-  },
-) {
-  await openFeedbackDrawer(page);
-
-  await page.getByTestId("product-feedback-screen").fill(input.screen);
-  await page.getByTestId("product-feedback-worked-well").fill(input.workedWell);
-  await page.getByTestId("product-feedback-issue").fill(input.issueObserved);
-
-  const feedbackResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/product-feedback") &&
-      response.request().method() === "POST",
-    { timeout: 90_000 },
-  );
-  await page.getByTestId("submit-product-feedback").click();
-  const response = await feedbackResponse;
-  expect(response.status()).toBe(201);
-
-  return page.getByTestId("product-feedback-card").first();
 }
 
 export async function expectTextNotEmpty(locator: Locator) {

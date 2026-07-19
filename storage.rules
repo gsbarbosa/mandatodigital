@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Blobs de treino/vídeo sobem e leem via URL assinada (Admin SDK).
+    // Client SDK não escreve direto — rules negam acesso público.
+    match /training/{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

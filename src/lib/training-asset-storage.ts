@@ -1,16 +1,15 @@
-import crypto from "node:crypto";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
+import { getFirebaseAdminBucket } from "@/lib/firebase/admin";
 import { formatStorageUploadError } from "@/lib/training-asset-upload-client";
+import {
+  buildTrainingAssetObjectPath,
+  getFirebaseTrainingAssetsBucket,
+  resolveTrainingAssetsStorageProvider,
+} from "@/lib/training-assets-provider";
 import type { ProfileTrainingAsset } from "@/lib/types";
-
-const LOCAL_TRAINING_ASSET_DIR = path.join(process.cwd(), "data", "training-assets");
 
 const UPLOAD_MAX_ATTEMPTS = 3;
 const UPLOAD_RETRY_BASE_MS = 600;
+const FIREBASE_SIGNED_URL_TTL_MS = 60 * 60 * 1000;
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => {
@@ -31,23 +30,6 @@ function isRetryableUploadError(message: string) {
   );
 }
 
-function getSupabaseAdminClient() {
-  const url = process.env.SUPABASE_URL?.trim();
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!url || !key) {
-    throw new Error("SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY sao obrigatorios.");
-  }
-
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function getTrainingAssetBucketName() {
-  return process.env.SUPABASE_TRAINING_ASSETS_BUCKET?.trim() || "persona-training-videos";
-}
-
 function sanitizeFilename(filename: string) {
   return filename
     .normalize("NFKD")
@@ -62,109 +44,72 @@ function buildStorageUploadError(raw: string, sizeBytes: number) {
   return new Error(formatStorageUploadError(raw, sizeBytes));
 }
 
-async function uploadBufferViaSignedUrl(
-  client: SupabaseClient,
-  bucketName: string,
-  storagePath: string,
-  buffer: Buffer,
-  mimeType: string,
-) {
-  const { data, error } = await client.storage
-    .from(bucketName)
-    .createSignedUploadUrl(storagePath, { upsert: false });
-
-  if (error || !data?.signedUrl) {
-    throw new Error(error?.message ?? "Nao foi possivel criar URL assinada de upload.");
-  }
-
-  const response = await fetch(data.signedUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": mimeType,
-      "x-upsert": "false",
-    },
-    body: new Uint8Array(buffer),
-  });
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      body.trim() || `Upload assinado falhou com status ${response.status}.`,
-    );
-  }
-
-  return data.path?.trim() || storagePath;
-}
-
-async function uploadBufferViaSdk(
-  client: SupabaseClient,
-  bucketName: string,
-  storagePath: string,
-  buffer: Buffer,
-  mimeType: string,
-) {
-  const { error } = await client.storage.from(bucketName).upload(storagePath, buffer, {
-    contentType: mimeType,
-    upsert: false,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return storagePath;
-}
-
-async function uploadBufferWithRetry(input: {
+async function uploadBufferToFirebase(input: {
   bucketName: string;
   storagePath: string;
   buffer: Buffer;
   mimeType: string;
 }) {
-  let lastError: Error | null = null;
+  const bucket = getFirebaseAdminBucket(input.bucketName);
+  const file = bucket.file(input.storagePath);
+  await file.save(input.buffer, {
+    resumable: false,
+    contentType: input.mimeType,
+    metadata: {
+      contentType: input.mimeType,
+      cacheControl: "private, max-age=3600",
+    },
+  });
+  return input.storagePath;
+}
 
-  for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS; attempt += 1) {
-    const client = getSupabaseAdminClient();
-
-    try {
-      const storagePath = await uploadBufferViaSignedUrl(
-        client,
-        input.bucketName,
-        input.storagePath,
-        input.buffer,
-        input.mimeType,
-      );
-      return storagePath;
-    } catch (signedError) {
-      lastError =
-        signedError instanceof Error
-          ? signedError
-          : new Error(String(signedError));
-
-      try {
-        const storagePath = await uploadBufferViaSdk(
-          client,
-          input.bucketName,
-          input.storagePath,
-          input.buffer,
-          input.mimeType,
-        );
-        return storagePath;
-      } catch (sdkError) {
-        const sdkMessage =
-          sdkError instanceof Error ? sdkError.message : String(sdkError);
-        lastError = new Error(sdkMessage || lastError.message);
-
-        if (!isRetryableUploadError(lastError.message) || attempt === UPLOAD_MAX_ATTEMPTS) {
-          break;
-        }
-
-        await sleep(UPLOAD_RETRY_BASE_MS * attempt);
-      }
-    }
+export async function createFirebaseTrainingUploadUrl(input: {
+  referenceId: string;
+  filename: string;
+  mimeType?: string;
+}) {
+  resolveTrainingAssetsStorageProvider();
+  const bucketName = getFirebaseTrainingAssetsBucket();
+  if (!bucketName) {
+    throw new Error("Bucket Firebase Storage nao configurado.");
   }
 
-  throw buildStorageUploadError(lastError?.message ?? "fetch failed", input.buffer.length);
+  const safeName = sanitizeFilename(input.filename) || "arquivo.bin";
+  const storagePath = buildTrainingAssetObjectPath(input.referenceId, safeName);
+  const contentType = input.mimeType?.trim() || "application/octet-stream";
+  const bucket = getFirebaseAdminBucket(bucketName);
+  const file = bucket.file(storagePath);
+
+  const [signedUrl] = await file.getSignedUrl({
+    version: "v4",
+    action: "write",
+    expires: Date.now() + 15 * 60 * 1000,
+    contentType,
+  });
+
+  return {
+    storageProvider: "firebase" as const,
+    storageBucket: bucketName,
+    storagePath,
+    signedUrl,
+    contentType,
+  };
+}
+
+export async function createFirebaseTrainingReadUrl(
+  storageBucket: string | null | undefined,
+  storagePath: string,
+  ttlMs = FIREBASE_SIGNED_URL_TTL_MS,
+) {
+  const bucketName = storageBucket?.trim() || getFirebaseTrainingAssetsBucket();
+  const bucket = getFirebaseAdminBucket(bucketName);
+  const file = bucket.file(storagePath);
+  const [signedUrl] = await file.getSignedUrl({
+    version: "v4",
+    action: "read",
+    expires: Date.now() + ttlMs,
+  });
+  return signedUrl;
 }
 
 export async function downloadTrainingAsset(asset: ProfileTrainingAsset) {
@@ -172,26 +117,8 @@ export async function downloadTrainingAsset(asset: ProfileTrainingAsset) {
 }
 
 export async function readTrainingAssetBytes(asset: ProfileTrainingAsset) {
-  if (asset.storageProvider === "supabase") {
-    const client = getSupabaseAdminClient();
-    const bucketName = asset.storageBucket ?? getTrainingAssetBucketName();
-    const { data, error } = await client.storage.from(bucketName).download(asset.storagePath);
-
-    if (error || !data) {
-      throw new Error(
-        `Nao foi possivel baixar o asset ${asset.id}: ${error?.message ?? "arquivo vazio"}`,
-      );
-    }
-
-    const buffer = Buffer.from(await data.arrayBuffer());
-    const mimeType = asset.mimeType?.trim() || "application/octet-stream";
-
-    return { buffer, mimeType };
-  }
-
-  const absolutePath = path.join(LOCAL_TRAINING_ASSET_DIR, asset.storagePath);
-  const buffer = await fs.readFile(absolutePath);
-
+  const bucket = getFirebaseAdminBucket(asset.storageBucket);
+  const [buffer] = await bucket.file(asset.storagePath).download();
   return {
     buffer,
     mimeType: asset.mimeType?.trim() || "application/octet-stream",
@@ -204,21 +131,47 @@ export async function uploadTrainingAssetBuffer(input: {
   buffer: Buffer;
   mimeType: string;
 }) {
-  const bucketName = getTrainingAssetBucketName();
+  resolveTrainingAssetsStorageProvider();
+  const bucketName = getFirebaseTrainingAssetsBucket();
+  if (!bucketName) {
+    throw new Error("Bucket Firebase Storage nao configurado.");
+  }
+
   const safeName = sanitizeFilename(input.filename) || "arquivo.bin";
-  const storagePath = `${input.referenceId}/${crypto.randomUUID()}-${safeName}`;
+  const storagePath = buildTrainingAssetObjectPath(input.referenceId, safeName);
 
-  const uploadedPath = await uploadBufferWithRetry({
-    bucketName,
-    storagePath,
-    buffer: input.buffer,
-    mimeType: input.mimeType,
-  });
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      await uploadBufferToFirebase({
+        bucketName,
+        storagePath,
+        buffer: input.buffer,
+        mimeType: input.mimeType,
+      });
+      return {
+        storageProvider: "firebase" as const,
+        storageBucket: bucketName,
+        storagePath,
+        sizeBytes: input.buffer.length,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (!isRetryableUploadError(lastError.message) || attempt === UPLOAD_MAX_ATTEMPTS) {
+        break;
+      }
+      await sleep(UPLOAD_RETRY_BASE_MS * attempt);
+    }
+  }
 
-  return {
-    storageProvider: "supabase" as const,
-    storageBucket: bucketName,
-    storagePath: uploadedPath,
-    sizeBytes: input.buffer.length,
-  };
+  throw buildStorageUploadError(lastError?.message ?? "fetch failed", input.buffer.length);
+}
+
+export async function deleteTrainingAssetObject(input: {
+  storageProvider: ProfileTrainingAsset["storageProvider"];
+  storageBucket: string | null;
+  storagePath: string;
+}) {
+  const bucket = getFirebaseAdminBucket(input.storageBucket);
+  await bucket.file(input.storagePath).delete({ ignoreNotFound: true });
 }

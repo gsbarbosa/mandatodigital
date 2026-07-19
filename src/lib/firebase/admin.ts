@@ -1,5 +1,9 @@
 import { cert, getApps, initializeApp, type App, type ServiceAccount } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
+import { getFirestore as getAdminFirestore, type Firestore } from "firebase-admin/firestore";
+import { getStorage, type Storage } from "firebase-admin/storage";
+
+import { getFirebaseStorageBucketName } from "@/lib/firebase/env";
 
 function parseServiceAccount(): ServiceAccount | null {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
@@ -15,21 +19,27 @@ function parseServiceAccount(): ServiceAccount | null {
   }
 }
 
+function resolveStorageBucket() {
+  return getFirebaseStorageBucketName() || undefined;
+}
+
 export function getFirebaseAdminApp(): App {
   const existing = getApps()[0];
   if (existing) {
     return existing;
   }
 
-  // App Hosting injeta FIREBASE_CONFIG + ADC; preferir isso a um JSON duplicado em secret.
+  const storageBucket = resolveStorageBucket();
+
   if (process.env.FIREBASE_CONFIG || process.env.K_SERVICE) {
-    return initializeApp();
+    return initializeApp(storageBucket ? { storageBucket } : undefined);
   }
 
   const serviceAccount = parseServiceAccount();
   if (serviceAccount) {
     return initializeApp({
       credential: cert(serviceAccount),
+      ...(storageBucket ? { storageBucket } : {}),
     });
   }
 
@@ -38,4 +48,23 @@ export function getFirebaseAdminApp(): App {
 
 export function getFirebaseAdminAuth(): Auth {
   return getAuth(getFirebaseAdminApp());
+}
+
+export function getFirestore(): Firestore {
+  return getAdminFirestore(getFirebaseAdminApp());
+}
+
+export function getFirebaseAdminStorage(): Storage {
+  return getStorage(getFirebaseAdminApp());
+}
+
+export function getFirebaseAdminBucket(bucketName?: string | null) {
+  const storage = getFirebaseAdminStorage();
+  const name = bucketName?.trim() || resolveStorageBucket();
+  if (!name) {
+    throw new Error(
+      "Bucket Firebase Storage nao configurado (FIREBASE_TRAINING_ASSETS_BUCKET / NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET).",
+    );
+  }
+  return storage.bucket(name);
 }

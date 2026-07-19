@@ -76,6 +76,16 @@ export function hasFirebaseServiceAccount() {
   );
 }
 
+/** Bucket de mídia (treino/vídeo). Preferir env dedicada; fallback no bucket do app. */
+export function getFirebaseStorageBucketName() {
+  return (
+    process.env.FIREBASE_TRAINING_ASSETS_BUCKET?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
+    getFirebaseClientConfig()?.storageBucket?.trim() ||
+    ""
+  );
+}
+
 export function isFirebaseAuthConfigured() {
   return isFirebaseClientConfigured() && hasFirebaseServiceAccount();
 }

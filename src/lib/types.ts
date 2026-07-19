@@ -4,22 +4,6 @@ export type ContentStatus = (typeof contentStatuses)[number];
 export const llmProviders = ["openai", "anthropic", "fallback-local"] as const;
 export type LlmProvider = (typeof llmProviders)[number];
 
-export const productFeedbackClassifications = [
-  "bug",
-  "melhoria",
-  "fora_do_escopo_atual",
-] as const;
-export type ProductFeedbackClassification =
-  (typeof productFeedbackClassifications)[number];
-
-export const productFeedbackCriticalities = [
-  "alta",
-  "media",
-  "baixa",
-] as const;
-export type ProductFeedbackCriticality =
-  (typeof productFeedbackCriticalities)[number];
-
 export const trainingAssetStatuses = [
   "uploaded",
   "processing",
@@ -40,27 +24,8 @@ export const trainingAssetRoles = [
 ] as const;
 export type TrainingAssetRole = (typeof trainingAssetRoles)[number];
 
-export const trainingStorageProviders = ["supabase", "local"] as const;
+export const trainingStorageProviders = ["firebase"] as const;
 export type TrainingStorageProvider = (typeof trainingStorageProviders)[number];
-
-export const avatarTrainingStatuses = [
-  "NOT_TRAINED",
-  "TRAINING",
-  "TRAINING_FAILED",
-  "IDLE",
-  "REFUSED",
-] as const;
-export type AvatarTrainingStatus = (typeof avatarTrainingStatuses)[number];
-
-export const avatarVideoGenerationStatuses = [
-  "IDLE",
-  "GENERATING_AUDIO",
-  "GENERATING_VIDEO",
-  "DONE",
-  "FAILED",
-] as const;
-export type AvatarVideoGenerationStatus =
-  (typeof avatarVideoGenerationStatuses)[number];
 
 export const contentFormats = [
   "Post Instagram",
@@ -171,9 +136,6 @@ export type PoliticianProfile = {
   youtubeVideoUrl: string;
   avatarType: string;
   avatarVideoTopic: string;
-  argilAvatarId: string;
-  argilVoiceId: string;
-  avatarTrainingStatus: AvatarTrainingStatus | "";
   notificationEmail: string;
   avatarEmotions: string[];
   voicePace: string;
@@ -219,38 +181,6 @@ export type ContentFeedback = {
   createdAt: string;
 };
 
-export type ProductFeedback = {
-  id: string;
-  screen: string;
-  workedWell: string;
-  issueObserved: string;
-  classification: ProductFeedbackClassification;
-  criticality: ProductFeedbackCriticality;
-  rationale: string;
-  scopeAssessment: string;
-  suggestedAction: string;
-  implementationPrompt: string;
-  provider: string;
-  createdAt: string;
-};
-
-export type ProfileAvatarTraining = {
-  id: string;
-  profileId: string | null;
-  draftProfileId: string | null;
-  argilAvatarId: string | null;
-  argilVoiceId: string | null;
-  status: AvatarTrainingStatus;
-  dryRun: boolean;
-  datasetAssetId: string | null;
-  /** @deprecated Legado (video de consentimento). Use voiceAudioAssetId. */
-  consentAssetId: string | null;
-  voiceAudioAssetId: string | null;
-  avatarName: string;
-  errorMessage: string;
-  createdAt: string;
-  updatedAt: string;
-};
 
 export const creativeProjectStatuses = [
   "draft",
@@ -278,23 +208,6 @@ export type CreativeProject = {
   status: CreativeProjectStatus;
   errorMessage: string;
   metadata: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type AvatarVideoGeneration = {
-  id: string;
-  profileId: string | null;
-  topic: string;
-  transcript: string;
-  name: string;
-  argilVideoId: string | null;
-  status: AvatarVideoGenerationStatus;
-  dryRun: boolean;
-  previewUrl: string;
-  videoUrl: string;
-  videoUrlSubtitled: string;
-  errorMessage: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -387,7 +300,6 @@ export type AppDatabase = {
   contentRequests: ContentRequest[];
   generatedContents: GeneratedContent[];
   feedback: ContentFeedback[];
-  productFeedbacks: ProductFeedback[];
   evaluationRuns: EvaluationRun[];
   evaluationCandidates: EvaluationCandidate[];
   evaluationScores: EvaluationScore[];

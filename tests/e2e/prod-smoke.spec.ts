@@ -1,11 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-import { gotoHome, openFeedbackDrawer } from "./helpers";
+import { gotoHome } from "./helpers";
 
 test.describe("smoke do MVP", () => {
-  test("carrega a landing, entra em uma fase operacional e abre o feedback lateral", async ({
-    page,
-  }) => {
+  test("carrega a landing e abre a tela de login", async ({ page }) => {
     await gotoHome(page);
 
     await expect(
@@ -15,14 +13,5 @@ test.describe("smoke do MVP", () => {
 
     await page.getByRole("link", { name: "Entrar" }).click();
     await expect(page).toHaveURL(/\/login/);
-    await page.goto("/curador");
-    await expect(
-      page.getByRole("heading", { name: "Onboarding do parlamentar" }),
-    ).toBeVisible();
-
-    await openFeedbackDrawer(page, { path: "/curador" });
-    await expect(
-      page.getByRole("heading", { name: "O que funcionou e o que nao funcionou" }),
-    ).toBeVisible();
   });
 });

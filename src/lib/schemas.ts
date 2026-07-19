@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import {
-  avatarTrainingStatuses,
   contentFormats,
   contentStatuses,
   evaluationCandidateRoles,
@@ -11,8 +10,6 @@ import {
   evaluationRunStatuses,
   intensityLevels,
   llmProviders,
-  productFeedbackClassifications,
-  productFeedbackCriticalities,
   trainingAssetRoles,
   trainingAssetSourceTypes,
   trainingAssetStatuses,
@@ -26,8 +23,6 @@ import {
   type EvaluationRunStatus,
   type IntensityLevel,
   type LlmProvider,
-  type ProductFeedbackClassification,
-  type ProductFeedbackCriticality,
   type TrainingAssetSourceType,
   type TrainingAssetStatus,
   type TrainingAssetRole,
@@ -73,11 +68,6 @@ export const profileInputSchema = z.object({
   youtubeVideoUrl: z.string().trim().url().or(z.literal("")).default(""),
   avatarType: z.string().trim().default(""),
   avatarVideoTopic: z.string().trim().default(""),
-  argilAvatarId: z.string().trim().default(""),
-  argilVoiceId: z.string().trim().default(""),
-  avatarTrainingStatus: z
-    .enum([...avatarTrainingStatuses, ""])
-    .default(""),
   notificationEmail: z.string().trim().email().or(z.literal("")).default(""),
   avatarEmotions: optionalStringList,
   voicePace: z.string().trim().default("Manter velocidade original"),
@@ -109,21 +99,7 @@ export const feedbackInputSchema = z.object({
   note: z.string().trim().min(5),
 });
 
-export const productFeedbackInputSchema = z.object({
-  screen: z.string().trim().default(""),
-  workedWell: z.string().trim().default(""),
-  issueObserved: z.string().trim().min(8),
-});
 
-export const productFeedbackAnalysisSchema = z.object({
-  classification: z.enum(productFeedbackClassifications),
-  criticality: z.enum(productFeedbackCriticalities),
-  rationale: z.string().trim().min(12),
-  scopeAssessment: z.string().trim().min(12),
-  suggestedAction: z.string().trim().min(12),
-  implementationPrompt: z.string().trim().min(12),
-  provider: z.string().trim().min(2).default("fallback-local"),
-});
 
 export const tokenUsageSchema = z.object({
   inputTokens: z.number().int().nonnegative(),
@@ -247,10 +223,6 @@ export type ProfileInput = z.infer<typeof profileInputSchema>;
 export type ContentRequestInput = z.infer<typeof contentRequestInputSchema>;
 export type GeneratedContentUpdateInput = z.infer<typeof generatedContentUpdateSchema>;
 export type FeedbackInput = z.infer<typeof feedbackInputSchema>;
-export type ProductFeedbackInput = z.infer<typeof productFeedbackInputSchema>;
-export type ProductFeedbackAnalysis = z.infer<
-  typeof productFeedbackAnalysisSchema
->;
 export type TokenUsageInput = z.infer<typeof tokenUsageSchema>;
 export type LlmExecutionOptionsInput = z.infer<typeof llmExecutionOptionsSchema>;
 export type PromptMetadataInput = z.infer<typeof promptMetadataSchema>;
@@ -284,17 +256,6 @@ export function isContentStatus(value: string): value is ContentStatus {
   return (contentStatuses as readonly string[]).includes(value);
 }
 
-export function isProductFeedbackClassification(
-  value: string,
-): value is ProductFeedbackClassification {
-  return (productFeedbackClassifications as readonly string[]).includes(value);
-}
-
-export function isProductFeedbackCriticality(
-  value: string,
-): value is ProductFeedbackCriticality {
-  return (productFeedbackCriticalities as readonly string[]).includes(value);
-}
 
 export function isLlmProvider(value: string): value is LlmProvider {
   return (llmProviders as readonly string[]).includes(value);

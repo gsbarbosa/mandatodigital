@@ -173,11 +173,6 @@ export function mergeProfileInputForSave(
       useDefaults,
       PROFILE_FIELD_MIN.bio,
     ),
-    argilAvatarId: input.argilAvatarId?.trim() || existing?.argilAvatarId || "",
-    argilVoiceId: input.argilVoiceId?.trim() || existing?.argilVoiceId || "",
-    avatarTrainingStatus: (input.avatarTrainingStatus ||
-      existing?.avatarTrainingStatus ||
-      "") as ProfileInput["avatarTrainingStatus"],
   };
 
   return useDefaults ? finalizeDraftProfileInput(merged) : merged;

@@ -34,10 +34,7 @@ Documentos relacionados:
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
 | `SENTINEL_SOCIAL_ENABLED` | off (default) |
 
-**Migrations Supabase aplicadas:**
-
-- [x] `20260624_sentinel_foundation.sql`
-- [x] `20260625_auditor_foundation.sql`
+**Persistência:** Firestore + Firebase Storage (`npm run db:reset`).
 
 ---
 
@@ -47,17 +44,15 @@ Documentos relacionados:
 |------|--------|-------|
 | Firebase App Hosting (deploy SSR + API) | ✅ | `npm run deploy:firebase` |
 | Firebase Auth (login) | ✅ | |
-| Supabase Postgres (perfil, criativos, Sentinela, Auditor) | ✅ | |
-| Supabase Storage (vídeos de treino) | ✅ | TUS >6MB via API |
-| Persistência local `data/` (dev sem Supabase) | ✅ | |
+| Firestore (perfil, criativos, Sentinela, Auditor, jobs) | ✅ | Admin SDK |
+| Firebase Storage (treino/vídeo/compliance) | ✅ | Signed URLs |
 | Feature flags por env | ✅ | `src/lib/feature-flags.ts` |
-| Migrations versionadas + scripts CLI | ✅ | `npm run db:migrate:*` |
+| Reset Firestore (`npm run db:reset`) | ✅ | Ambiente zerado |
 | Rate limit refresh Sentinela (30/dia/usuário) | ✅ | `src/lib/rate-limit.ts` |
 | Fila de jobs (LLM, social, fact-check async) | ❌ | Fase 3.1 |
 | Rate limit vídeos (ex.: 5/dia) | ❌ | Fase 3.1 |
 | `minInstances: 1` Cloud Run | ❌ | Fase 3.1 |
-| Migração stack → Firestore only | ❌ | Decisão: manter Supabase |
-| Cron / ping Supabase free tier | ❌ | Evitar pause do projeto |
+| Cutover total → Firestore + Storage | ✅ | Sem Postgres/Supabase |
 
 ---
 
@@ -89,7 +84,7 @@ Documentos relacionados:
 | HeyGen — caricatura (OpenAI + HeyGen) | ✅ | |
 | Consent HeyGen | ✅ | |
 | Clone de voz HeyGen | ✅ | Fallback (`heygen_clone`); reuso + prune limite 10 |
-| Curador v1 / Argil (legado) | 🔶 | Rotas existem; fluxo principal é HeyGen v2 |
+| Curador v1 / Argil (legado) | ❌ | Removido; `/curador-v1` redireciona para `/curador` |
 | ElevenLabs como voz default | 🟡 | Código path `audio_url` pronto; stg `HEYGEN_VOICE_PROVIDER=elevenlabs_audio` — requer secret `ELEVENLABS_API_KEY` + smoke |
 | Spike A/B HeyGen vs ElevenLabs→audio | 🟡 | Checklist `scripts/voice-ab-smoke.mjs` |
 | Deprecar `/curador-v1` + banner | ❌ | Fase 3.1 |
@@ -139,7 +134,7 @@ Referência detalhada: [sentinela.md](sentinela.md)
 | Tabela `sentinel_suggestion_cache` | ✅ | Migration aplicada |
 | Tabela `sentinel_signals` (histórico) | ✅ | |
 | Tabela `sentinel_theme_expansions` | ✅ | |
-| Cache L1 memória + L2 Supabase | ✅ | Fallback JSON local em dev |
+| Cache L1 memória + L2 Firestore | ✅ | |
 | Feature flags Sentinela | ✅ | |
 | Testes de contrato / unitários | ✅ | 80+ testes no repo |
 
@@ -177,7 +172,7 @@ Referência detalhada: [sentinela.md](sentinela.md)
 | Tabela `sentinel_fact_checks` | ✅ | | Migration aplicada |
 | Tabela `audit_log` | ✅ | | |
 | Botão “Verificar fatos” por sinal (on-demand) | ❌ | | Pedido 2.1 |
-| Fila real no Auditor | ❌ | off | `AUDITOR_V2_REAL_QUEUE` |
+| Fila real no Auditor | ❌ | | Backlog (flag removida do código) |
 | Perplexity como provider alternativo | ❌ | | Backlog |
 | Modal alerta TSE + log edição “ilegítima” | 🔶 | | `audit_log` parcial; UI legal ❌ |
 | Prompt livre exempt de fact-check | ✅ | on | Registrado em audit |
@@ -219,14 +214,14 @@ Referência detalhada: [sentinela.md](sentinela.md)
 | 2 | SerpAPI (~US$ 75/mo) vs só trend proxy grátis | Precisão “em alta” | ⏸ |
 | 3 | ~~ElevenLabs: conta única vs BYOK; path default~~ | Conta **única da plataforma** (demo); BYOK backlog. Default stg `elevenlabs_audio` | ✅ |
 | 4 | Texto selo TSE — revisão jurídica | Overlay legal | ⏸ |
-| 5 | Supabase Pro vs manter free + cron | Infra estável | ⏸ |
+| 5 | Emulator suite Firestore (dev offline) | DX local | ⏸ |
 
 ---
 
 ## 10. Ordem sugerida de execução
 
 ```
-[x] Fase 0 — migrations + cache Supabase + flags
+[x] Fase 0 — Firestore + cache + flags
 [x] Fase 1 — Sentinela v2 (exceto Instagram)
 [x] Deploy prod com flags Sentinela
 [x] Ligar Validador em prod (AUDITOR_FACTCHECK_ENABLED)
@@ -253,5 +248,5 @@ Referência detalhada: [sentinela.md](sentinela.md)
 
 1. Ao mergear feature: mudar status na tabela correspondente.
 2. Ao ligar flag em prod: atualizar seção **Flags em produção**.
-3. Ao rodar migration: marcar checkbox em **Migrations Supabase**.
+3. Ao alterar indexes: `npm run firebase:indexes:deploy`.
 4. Registrar mudança na seção **Changelog**.

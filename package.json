@@ -11,22 +11,19 @@
     "test": "vitest run",
     "sentinel:quality-eval": "node scripts/sentinel-quality-eval.cjs",
     "test:e2e": "playwright test",
-    "test:e2e:argil": "npm run build && PW_FORCE_FRESH_SERVER=1 PW_DEV_PORT=3010 PW_USE_START=1 playwright test tests/e2e/argil-video-flow.spec.ts",
     "test:e2e:headed": "playwright test --headed",
     "playwright:install": "playwright install --with-deps chromium",
     "db:reset": "node scripts/reset-database.mjs",
     "db:reset:confirm": "node scripts/reset-database.mjs --confirm",
-    "db:migrate:owner-user-id": "node scripts/apply-owner-user-id-migration.mjs",
-    "db:migrate:creative-projects": "node scripts/apply-creative-projects-migration.mjs",
-    "db:migrate:sentinel-foundation": "node scripts/apply-sentinel-foundation-migration.mjs",
-    "db:migrate:auditor-foundation": "node scripts/apply-auditor-foundation-migration.mjs",
-    "db:migrate:sentinel-theme-verdicts": "node scripts/apply-sentinel-theme-verdicts-migration.mjs",
+    "firebase:rules:deploy": "firebase deploy --only firestore:rules,storage",
+    "firebase:indexes:deploy": "firebase deploy --only firestore:indexes",
     "sync:logo": "node scripts/sync-brand-logo.mjs",
     "predev": "node scripts/sync-brand-logo.mjs",
     "prebuild": "node scripts/sync-brand-logo.mjs",
     "deploy:firebase": "firebase deploy --only apphosting",
     "firebase:secrets:guide": "node scripts/firebase-secrets-guide.mjs",
-    "firebase:secrets:apply": "node scripts/firebase-secrets-guide.mjs --apply"
+    "firebase:secrets:apply": "node scripts/firebase-secrets-guide.mjs --apply",
+    "env:pull": "node scripts/pull-remote-env.mjs"
   },
   "keywords": [
     "nextjs",
@@ -37,8 +34,6 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.106.2",
     "ffmpeg-static": "^5.3.0",
     "firebase": "^12.14.0",
     "firebase-admin": "^13.10.0",
@@ -48,7 +43,6 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "resend": "^6.17.2",
-    "tus-js-client": "^4.3.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -60,7 +54,6 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.6",
-    "pg": "^8.21.0",
     "tailwindcss": "^4.3.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
