@@ -9,6 +9,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
 import { useEarlyAccess } from "@/lib/early-access";
+import { useOnboarding } from "./onboarding-provider";
 
 type NavChild = {
   label: string;
@@ -36,6 +37,16 @@ function SettingsGearIcon({ className }: { className?: string }) {
   );
 }
 
+/** Marcador pulsante do passo atual do onboarding guiado. */
+function OnbHighlightDot() {
+  return (
+    <span
+      aria-hidden="true"
+      className="mr-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 align-middle shadow-[0_0_6px_rgba(34,211,238,0.9)] animate-pulse"
+    />
+  );
+}
+
 type NavBlock = {
   label: string;
   href: string;
@@ -51,7 +62,7 @@ const NAV_BLOCKS: NavBlock[] = [
       { label: "Estadual", href: "/monitoramento#estadual" },
       { label: "Municipal", href: "/monitoramento#municipal" },
       { label: "Adversários", href: "/monitoramento#adversarios" },
-      { label: "Redefinir temas", href: "/monitoramento/temas", variant: "settings" },
+      { label: "Selecionar temas", href: "/monitoramento/temas", variant: "settings" },
     ],
   },
   {
@@ -147,6 +158,7 @@ export function NavSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { sidebarTarget } = useOnboarding();
   const [activeHash, setActiveHash] = useState("");
   const [pendingMonitorHash, setPendingMonitorHash] = useState<string | null>(null);
 
@@ -233,18 +245,25 @@ export function NavSidebar({
       <nav className="flex-1 p-4 space-y-5">
         {NAV_BLOCKS.map((block) => {
           const blockActive = isBlockActive(pathname, block.href);
+          const blockHl =
+            sidebarTarget === "monitoramento" && block.href.startsWith("/monitoramento");
 
           return (
           <div key={block.label}>
             <Link
               href={block.href as Route}
-              className={navParentClassName(blockActive)}
+              className={`${navParentClassName(blockActive)}${blockHl ? " !text-cyan-300" : ""}`}
             >
+              {blockHl ? <OnbHighlightDot /> : null}
               {block.label}
             </Link>
             <ul className="pl-4 mt-1 space-y-1 border-l-2 border-slate-800/80 ml-2">
               {(block.children ?? []).map((child) => {
                 const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
+                const childHl =
+                  (sidebarTarget === "temas-config" && child.href === "/monitoramento/temas") ||
+                  (sidebarTarget === "avatar-config" &&
+                    child.href === "/avatares/foto-real/treinar");
 
                 return (
                 <li
@@ -265,12 +284,13 @@ export function NavSidebar({
                   ) : (
                   <Link
                     href={child.href as Route}
-                    className={`flex items-center gap-1.5 ${childClassName(childActive)}`}
+                    className={`flex items-center gap-1.5 ${childClassName(childActive)}${childHl ? " !text-cyan-300" : ""}`}
                   >
+                    {childHl ? <OnbHighlightDot /> : null}
                     {child.variant === "settings" ? (
                       <SettingsGearIcon
                         className={`w-3.5 h-3.5 shrink-0 ${
-                          childActive ? "text-cyan-400" : "text-slate-500"
+                          childActive || childHl ? "text-cyan-400" : "text-slate-500"
                         }`}
                       />
                     ) : null}
@@ -288,13 +308,15 @@ export function NavSidebar({
         <div className="space-y-1 pt-2">
           {NAV_SINGLES.map((item) => {
             const itemActive = isChildActive(pathname, item.href, activeHash, pendingMonitorHash);
+            const singleHl = sidebarTarget === "criativos" && item.href === "/criativo";
 
             return (
             <Link
               key={item.href}
               href={item.href as Route}
-              className={navParentClassName(itemActive)}
+              className={`${navParentClassName(itemActive)}${singleHl ? " !text-cyan-300" : ""}`}
             >
+              {singleHl ? <OnbHighlightDot /> : null}
               {item.label}
             </Link>
           );

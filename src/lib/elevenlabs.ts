@@ -160,6 +160,31 @@ export async function elevenLabsGetVoice(voiceId: string) {
   return json as { voice_id?: string; name?: string };
 }
 
+export type ElevenLabsVoiceListItem = {
+  voice_id?: string;
+  name?: string;
+  category?: string;
+};
+
+/** Lista as vozes da conta (inclui clones IVC). */
+export async function elevenLabsListVoices() {
+  const response = await elevenLabsFetch("/v1/voices", {
+    method: "GET",
+    headers: { Accept: "application/json" },
+  });
+  const text = await response.text();
+  let json: unknown = null;
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = null;
+  }
+  if (!response.ok) {
+    throw new Error(messageFromElevenLabsBody(json, response.status));
+  }
+  return (json as { voices?: ElevenLabsVoiceListItem[] } | null)?.voices ?? [];
+}
+
 export async function elevenLabsVoiceExists(voiceId: string) {
   const id = voiceId.trim();
   if (!id) return false;

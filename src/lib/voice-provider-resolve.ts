@@ -1,8 +1,10 @@
 import { storeElevenLabsTtsAudio } from "@/lib/elevenlabs-tts-storage";
 import {
   elevenLabsCloneVoice,
+  elevenLabsListVoices,
   elevenLabsTextToSpeech,
   elevenLabsVoiceExists,
+  type ElevenLabsVoiceListItem,
 } from "@/lib/elevenlabs";
 import { getHeyGenVoiceProvider } from "@/lib/feature-flags";
 import {
@@ -24,6 +26,28 @@ export function buildElevenLabsCloneVoiceName(
   return `${base} (${shortId})`;
 }
 
+function normalizeVoiceName(name: string) {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Acha um clone ElevenLabs existente com nome igual (mesmo asset de audio). */
+export function pickReusableElevenLabsVoice(
+  voices: ElevenLabsVoiceListItem[],
+  voiceName: string,
+): string | null {
+  const target = normalizeVoiceName(voiceName);
+  if (!target) {
+    return null;
+  }
+
+  const exact = voices.find(
+    (voice) =>
+      Boolean(voice.voice_id?.trim()) &&
+      normalizeVoiceName(String(voice.name ?? "")) === target,
+  );
+  return exact?.voice_id?.trim() || null;
+}
+
 export async function resolveElevenLabsVoiceId(input: {
   requestedVoiceId?: string | null;
   voiceName: string;
@@ -40,6 +64,20 @@ export async function resolveElevenLabsVoiceId(input: {
       return voiceId;
     }
     voiceId = "";
+  }
+
+  // Sem voiceId valido em maos: procura um clone existente com o mesmo nome
+  // (mesmo avatar + mesmo asset de audio) antes de gastar uma clonagem nova.
+  if (!input.forceReclone) {
+    try {
+      const voices = await elevenLabsListVoices();
+      const reusable = pickReusableElevenLabsVoice(voices, input.voiceName);
+      if (reusable) {
+        return reusable;
+      }
+    } catch {
+      // listagem falhou -> segue para clonar
+    }
   }
 
   const cloned = await elevenLabsCloneVoice({

@@ -6,6 +6,7 @@ vi.mock("@/lib/feature-flags", () => ({
 
 vi.mock("@/lib/elevenlabs", () => ({
   elevenLabsCloneVoice: vi.fn(),
+  elevenLabsListVoices: vi.fn(),
   elevenLabsTextToSpeech: vi.fn(),
   elevenLabsVoiceExists: vi.fn(),
 }));
@@ -25,6 +26,7 @@ vi.mock("@/lib/heygen-voice-resolve", () => ({
 import { getHeyGenVoiceProvider } from "@/lib/feature-flags";
 import {
   elevenLabsCloneVoice,
+  elevenLabsListVoices,
   elevenLabsTextToSpeech,
   elevenLabsVoiceExists,
 } from "@/lib/elevenlabs";
@@ -32,11 +34,13 @@ import { storeElevenLabsTtsAudio } from "@/lib/elevenlabs-tts-storage";
 import { resolveHeyGenClonedVoiceId } from "@/lib/heygen-voice-resolve";
 import {
   buildElevenLabsCloneVoiceName,
+  pickReusableElevenLabsVoice,
   resolveElevenLabsVoiceId,
   resolveVideoSpeechForGeneration,
 } from "@/lib/voice-provider-resolve";
 
 const cloneVoice = vi.mocked(elevenLabsCloneVoice);
+const listVoices = vi.mocked(elevenLabsListVoices);
 const tts = vi.mocked(elevenLabsTextToSpeech);
 const voiceExists = vi.mocked(elevenLabsVoiceExists);
 const storeTts = vi.mocked(storeElevenLabsTtsAudio);
@@ -67,8 +71,9 @@ describe("resolveElevenLabsVoiceId", () => {
     expect(cloneVoice).not.toHaveBeenCalled();
   });
 
-  it("clona quando solicitado falta ou sumiu", async () => {
+  it("clona quando solicitado falta ou sumiu e nao ha clone reutilizavel", async () => {
     voiceExists.mockResolvedValue(false);
+    listVoices.mockResolvedValue([]);
     cloneVoice.mockResolvedValue({
       voiceId: "el-new",
       requiresVerification: false,
@@ -81,6 +86,71 @@ describe("resolveElevenLabsVoiceId", () => {
     });
     expect(id).toBe("el-new");
     expect(cloneVoice).toHaveBeenCalledOnce();
+  });
+
+  it("reutiliza clone existente pelo nome antes de clonar de novo", async () => {
+    listVoices.mockResolvedValue([
+      { voice_id: "el-existing", name: "Maria (deadbeef)" },
+    ]);
+    const id = await resolveElevenLabsVoiceId({
+      requestedVoiceId: undefined,
+      voiceName: "Maria (deadbeef)",
+      audioUrl: "https://example.com/a.mp3",
+    });
+    expect(id).toBe("el-existing");
+    expect(cloneVoice).not.toHaveBeenCalled();
+  });
+
+  it("clona de novo se a listagem de vozes falhar", async () => {
+    listVoices.mockRejectedValue(new Error("timeout"));
+    cloneVoice.mockResolvedValue({
+      voiceId: "el-new",
+      requiresVerification: false,
+      raw: {},
+    });
+    const id = await resolveElevenLabsVoiceId({
+      requestedVoiceId: undefined,
+      voiceName: "Maria (deadbeef)",
+      audioUrl: "https://example.com/a.mp3",
+    });
+    expect(id).toBe("el-new");
+    expect(cloneVoice).toHaveBeenCalledOnce();
+  });
+
+  it("nao reclona quando forceReclone e voiceName vazio nao encontra nada", async () => {
+    listVoices.mockResolvedValue([{ voice_id: "el-x", name: "Outra (aaaa)" }]);
+    cloneVoice.mockResolvedValue({
+      voiceId: "el-new",
+      requiresVerification: false,
+      raw: {},
+    });
+    const id = await resolveElevenLabsVoiceId({
+      requestedVoiceId: "el-old",
+      voiceName: "Maria (deadbeef)",
+      audioUrl: "https://example.com/a.mp3",
+      forceReclone: true,
+    });
+    expect(id).toBe("el-new");
+    expect(listVoices).not.toHaveBeenCalled();
+    expect(cloneVoice).toHaveBeenCalledOnce();
+  });
+});
+
+describe("pickReusableElevenLabsVoice", () => {
+  it("acha por nome normalizado (case/espacos)", () => {
+    const id = pickReusableElevenLabsVoice(
+      [{ voice_id: "el-1", name: "  Maria  (deadbeef)  " }],
+      "maria (DEADBEEF)",
+    );
+    expect(id).toBe("el-1");
+  });
+
+  it("retorna null sem correspondencia", () => {
+    const id = pickReusableElevenLabsVoice(
+      [{ voice_id: "el-1", name: "Joao (aaaaaaaa)" }],
+      "Maria (deadbeef)",
+    );
+    expect(id).toBeNull();
   });
 });
 

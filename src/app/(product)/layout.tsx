@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { OnboardingProvider } from "@/components/product/onboarding-provider";
 import { ProductAppProvider } from "@/components/product/provider";
 import { ProductShell } from "@/components/product/shell";
 import { runWithSessionRepository } from "@/lib/auth/runner";
@@ -22,7 +23,9 @@ export default async function ProductLayout({
 
   return (
     <ProductAppProvider initialData={initialData} sessionUser={sessionUser}>
-      <ProductShell>{children}</ProductShell>
+      <OnboardingProvider>
+        <ProductShell>{children}</ProductShell>
+      </OnboardingProvider>
     </ProductAppProvider>
   );
 }

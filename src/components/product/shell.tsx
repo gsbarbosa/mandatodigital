@@ -13,6 +13,8 @@ import { agentThemeClassName, resolveAgentThemeFromPathname } from "@/lib/agent-
 
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { NavSidebar } from "./nav-sidebar";
+import { OnboardingModals } from "./onboarding-modals";
+import { OnboardingTracker } from "./onboarding-tracker";
 
 /** Oculto na UI por enquanto; drawer segue acessivel via ?e2e=open-feedback nos testes. */
 const PRODUCT_FEEDBACK_WIDGET_ENABLED = false;
@@ -84,6 +86,9 @@ export function ProductShell({ children }: { children: ReactNode }) {
       />
 
       <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#0B0F19] to-slate-900 relative">
+        <OnboardingTracker />
+        <OnboardingModals />
+
         <HeygenDevKeyPanel
           open={heygenDevOpen}
           onClose={() => setHeygenDevOpen(false)}

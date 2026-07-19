@@ -241,7 +241,7 @@ export function AvatarImageCropModal({
       <div className="persona-crop-dialog">
         <h3 id="avatar-crop-title">Ajustar enquadramento da foto</h3>
         <p className="persona-helper-text">
-          Arraste a area de recorte para manter o rosto visivel. A Argil exige proporcao{" "}
+          Arraste a área de recorte para manter o rosto visível. A proporção precisa ser{" "}
           <strong>9:16</strong> ou <strong>16:9</strong>.
         </p>
 
