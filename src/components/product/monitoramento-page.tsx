@@ -240,7 +240,7 @@ export function MonitoramentoPage() {
             <p className="text-sm leading-relaxed text-blue-200">
               {loadMessage || "Nenhuma pauta capturada ainda."}{" "}
               <Link href="/monitoramento/temas" className="text-cyan-300 underline hover:text-cyan-200">
-                Redefinir temas do radar
+                Selecionar temas
               </Link>
             </p>
           </div>
@@ -278,7 +278,7 @@ export function MonitoramentoPage() {
                     ? meta.oppositionUnavailableReason
                     : "Nenhuma pauta nesta esfera por enquanto."}{" "}
                   <Link href="/monitoramento/temas" className="text-cyan-400 no-underline hover:underline">
-                    Ajustar pautas
+                    Selecionar temas
                   </Link>
                 </p>
               ) : null}

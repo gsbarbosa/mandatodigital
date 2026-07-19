@@ -1,7 +1,7 @@
 import { RedefinirTemasPage } from "@/components/product/redefinir-temas-page";
 
 export const metadata = {
-  title: "Redefinir temas",
+  title: "Selecionar temas",
 };
 
 export default function RedefinirTemasRoute() {

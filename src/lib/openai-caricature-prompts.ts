@@ -10,18 +10,22 @@ export const CARICATURE_EDITORIAL_PROMPT =
   "Exaggerate distinctive facial features while keeping the person clearly recognizable. " +
   "Give the expression a warm, friendly and approachable look — soft smile, kind eyes, " +
   "sympathetic and likeable presence, without losing the editorial caricature style. " +
+  "Match the eye color as closely as possible to the eye color seen in the input image. " +
   "Bold clean outlines, warm colors, neutral simple background, front-facing bust, " +
   "suitable as a talking avatar. No text, no logos, no weapons, no extra people.";
 
 export const CARICATURE_MASCOT_3D_PROMPT =
   "A high-quality 3D render of a charming and friendly stylized mascot, based on the facial features " +
-  "and characteristics of the input image. The mascot has large, expressive, warm eyes, a soft, " +
-  "cheerful smile, and a universally pleasing, cute expression. The art style is high-end 3D " +
-  "character design, reminiscent of Pixar or modern animation studios, with soft, rounded forms " +
-  "and vibrant but soothing colors. The material should appear tactile and soft, like matte vinyl " +
-  "or plush fabric. The mascot is posed in a welcoming manner, perhaps waving gently, with a warm " +
-  "and inviting glow. The background is a gently blurred, bright, and cheerful abstract studio " +
-  "setting with soft bokeh. No text, no logos, no weapons, no extra people.";
+  "and characteristics of the input image. The mascot has large, expressive eyes, a soft, " +
+  "cheerful smile, and a universally pleasing, cute expression. Critically important: the iris color " +
+  "of the mascot's eyes must closely match the exact eye color observed in the input image (for " +
+  "example, if the person has blue, green or hazel eyes, do not render brown eyes). The art style is " +
+  "high-end 3D character design, reminiscent of Pixar or modern animation studios, with soft, rounded " +
+  "forms and vibrant but soothing colors. The material should appear tactile and soft, like matte " +
+  "vinyl or plush fabric. The mascot is posed in a welcoming manner, perhaps waving gently, with a " +
+  "warm and inviting glow. The background is a gently blurred, bright, and cheerful abstract studio " +
+  "setting with soft bokeh. No text, no logos, no weapons, no extra people. Eye color must match the " +
+  "reference photo — this takes priority over any default color choice.";
 
 export function resolveCaricaturePrompt(input: {
   variant?: CaricatureVariant;

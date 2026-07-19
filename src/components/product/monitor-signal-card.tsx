@@ -2,6 +2,7 @@
 
 import type { Route } from "next";
 import Link from "next/link";
+import { useId } from "react";
 
 import type {
   MockSentinelSuggestion,
@@ -88,6 +89,57 @@ function LinkIcon() {
   );
 }
 
+function InstagramIcon() {
+  const gradientId = useId();
+  return (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <radialGradient id={gradientId} cx="30%" cy="107%" r="150%">
+          <stop offset="0%" stopColor="#fdf497" />
+          <stop offset="5%" stopColor="#fdf497" />
+          <stop offset="45%" stopColor="#fd5949" />
+          <stop offset="60%" stopColor="#d6249f" />
+          <stop offset="90%" stopColor="#285AEB" />
+        </radialGradient>
+      </defs>
+      <rect x="2" y="2" width="20" height="20" rx="6" stroke={`url(#${gradientId})`} strokeWidth="2" />
+      <circle cx="12" cy="12" r="5" stroke={`url(#${gradientId})`} strokeWidth="2" />
+      <circle cx="18" cy="6" r="1.3" fill={`url(#${gradientId})`} />
+    </svg>
+  );
+}
+
+function TikTokIcon() {
+  return (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16.5 3c.3 1.9 1.5 3.4 3.3 3.9V9.9c-1.2-.05-2.3-.4-3.3-1v6.4a5.6 5.6 0 11-4.8-5.55v3.05a2.55 2.55 0 102.55 2.55V3h2.25z" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg className="w-full h-full" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
+const NETWORK_ICONS: Record<SentinelSocialNetwork, typeof InstagramIcon> = {
+  instagram: InstagramIcon,
+  tiktok: TikTokIcon,
+  x: XIcon,
+};
+
+function SocialNetworkBadge({ network }: { network: SentinelSocialNetwork }) {
+  const NetworkIcon = NETWORK_ICONS[network];
+  return (
+    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 mb-3">
+      <NetworkIcon />
+    </div>
+  );
+}
+
 export function primarySignalArticle(
   suggestion: MockSentinelSuggestion,
 ): SentinelNewsArticle | null {
@@ -145,8 +197,11 @@ export function MonitorSignalCard({
     <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 transition-colors">
       <div className="flex flex-col md:flex-row justify-between gap-6">
         <div className="shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-700/50 pb-4 md:pb-0 md:pr-6 md:w-48">
+          {actor ? <SocialNetworkBadge network={actor.network} /> : null}
           {oppositionCard ? (
-            <p className="text-cyan-400 text-sm font-medium mb-3">Post da oposição</p>
+            <p className="text-slate-400 text-sm font-medium mb-3">
+              {actor ? `@${actor.handle}` : "Post da oposição"}
+            </p>
           ) : (
             <>
               <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
@@ -222,13 +277,11 @@ export function MonitorSignalCard({
           ) : (
             <>
               <h3 className="text-lg font-bold text-slate-100 mb-1">{socialHeadline}</h3>
-              <p className="text-sm text-slate-400 mb-3">
-                {actor
-                  ? `@${actor.handle} · ${NETWORK_LABELS[actor.network]}`
-                  : suggestion.themeLabel}
-              </p>
+              {!actor ? (
+                <p className="text-sm text-slate-400 mb-3">{suggestion.themeLabel}</p>
+              ) : null}
 
-              <div className="flex flex-wrap items-center gap-4 text-xs mb-3">
+              <div className="flex flex-wrap items-center gap-4 text-xs mb-3 mt-2">
                 <span className="text-slate-500">
                   Engajamento*: <strong className="text-white">{formatCount(engagementScore)}</strong>
                 </span>

@@ -38,6 +38,8 @@ const RSS_FETCH_MAX_ATTEMPTS = 2;
 const RSS_FETCH_CONCURRENCY = 3;
 const RSS_RETRY_BASE_DELAY_MS = 600;
 const GOOGLE_CIRCUIT_FAILURE_THRESHOLD = 3;
+/** Teto de bytes lidos da home ao procurar <link rel="alternate"> — evita baixar a pagina inteira. */
+const HTML_DISCOVERY_MAX_BYTES = 150_000;
 const PORTAL_RSS_PATHS = [
   "/rss/g1/",
   "/feed",
@@ -49,8 +51,13 @@ const PORTAL_RSS_PATHS = [
 ];
 
 /**
- * Feeds canônicos — descoberta genérica (/feed) falha em vários veículos grandes.
- * Ordem: tentar estes antes dos paths genéricos.
+ * Feeds canônicos de portais de ALCANCE NACIONAL — descoberta genérica (/feed)
+ * falha em vários veículos grandes. Ordem: tentar estes antes dos paths genéricos.
+ *
+ * NÃO adicionar aqui portais de circulação regional/restrita (ex.: jornais
+ * estaduais). Este mapa só resolve a URL do feed — quem decide se um host
+ * entra na busca nacional é NATIONAL_PORTAL_HOSTS (sentinel-portal-catalog.ts).
+ * Portal regional com feed problemático vai em KNOWN_RESTRICTED_PORTAL_FEED_URLS.
  */
 const KNOWN_PORTAL_FEED_URLS: Record<string, readonly string[]> = {
   "g1.globo.com": ["https://g1.globo.com/rss/g1/"],
@@ -60,6 +67,18 @@ const KNOWN_PORTAL_FEED_URLS: Record<string, readonly string[]> = {
     "https://feeds.folha.uol.com.br/folha/rss091.xml",
   ],
   "uol.com.br": ["https://rss.uol.com.br/feed/noticias.xml"],
+};
+
+/**
+ * Feeds canônicos de portais de circulação REGIONAL/RESTRITA (ex.: jornais
+ * estaduais). Separado de KNOWN_PORTAL_FEED_URLS de propósito — esses portais
+ * só devem aparecer em buscas estaduais/municipais (via STATE_PORTAL_HOSTS ou
+ * interestSites do candidato), nunca na busca nacional. Não promover para
+ * NATIONAL_PORTAL_HOSTS nem mover uma entrada daqui pra KNOWN_PORTAL_FEED_URLS.
+ */
+const KNOWN_RESTRICTED_PORTAL_FEED_URLS: Record<string, readonly string[]> = {
+  // O Tempo (MG) nao expoe RSS/Atom tradicional — usa Google News Sitemap.
+  "otempo.com.br": ["https://www.otempo.com.br/sitemap-api/otempo/sitemap_news.xml"],
 };
 
 /** Headers que o Google News costuma aceitar melhor em datacenter (Cloud Run). */
@@ -216,6 +235,49 @@ export function parseRssFeed(xml: string): RssNewsItem[] {
     }
 
     match = itemRegex.exec(xml);
+  }
+
+  return items;
+}
+
+/**
+ * Google News Sitemap (xmlns:news) — formato que muitos portais expõem via
+ * robots.txt (Sitemap:) mesmo sem ter RSS/Atom tradicional. Schema diferente
+ * do RSS: raiz <urlset>, item <url>, titulo em <news:title>.
+ */
+export function looksLikeNewsSitemap(body: string) {
+  const head = body.slice(0, 4_000).toLowerCase();
+  if (!head.trim()) {
+    return false;
+  }
+  return head.includes("<urlset") && (head.includes("news:news") || head.includes("sitemap-news"));
+}
+
+export function parseNewsSitemap(xml: string): RssNewsItem[] {
+  const items: RssNewsItem[] = [];
+  const urlRegex = /<url>([\s\S]*?)<\/url>/gi;
+  let match: RegExpExecArray | null = urlRegex.exec(xml);
+
+  while (match) {
+    const block = match[1];
+    const link = extractXmlTag(block, "loc");
+    const title = extractXmlTag(block, "news:title");
+    const pubDate = extractXmlTag(block, "news:publication_date") || null;
+    const sourceName = extractXmlTag(block, "news:name") || undefined;
+
+    if (title && link) {
+      const publishedAt = pubDate ? new Date(pubDate) : null;
+      items.push({
+        title,
+        link,
+        pubDate,
+        publishedAt:
+          publishedAt && !Number.isNaN(publishedAt.getTime()) ? publishedAt : null,
+        sourceName: sourceName || undefined,
+      });
+    }
+
+    match = urlRegex.exec(xml);
   }
 
   return items;
@@ -429,7 +491,8 @@ async function fetchRssUrlOnce(
     }
 
     const xml = await response.text();
-    if (!looksLikeRssFeed(xml)) {
+    const isNewsSitemap = looksLikeNewsSitemap(xml);
+    if (!looksLikeRssFeed(xml) && !isNewsSitemap) {
       recordFetchStat("emptyBody");
       console.warn(
         "[sentinel-rss] corpo nao-RSS",
@@ -442,7 +505,7 @@ async function fetchRssUrlOnce(
       return { items: [], retryable: isGoogle, status: response.status };
     }
 
-    const items = parseRssFeed(xml).map((item) => ({
+    const items = (isNewsSitemap ? parseNewsSitemap(xml) : parseRssFeed(xml)).map((item) => ({
       ...item,
       ...metadata,
     }));
@@ -540,13 +603,158 @@ async function fetchGoogleNewsForSite(host: string, profile: PoliticianProfile) 
   });
 }
 
+/**
+ * Baixa so o inicio do HTML da home (ate achar </head> ou atingir o teto de
+ * bytes) — o suficiente pra procurar <link rel="alternate">, sem puxar a
+ * pagina inteira (imagens/scripts/anuncios ficam de fora, nunca sao lidos).
+ */
+async function fetchHtmlHeadCapped(url: string): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RSS_FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        ...RSS_FETCH_HEADERS,
+        Accept: "text/html,application/xhtml+xml",
+      },
+      signal: controller.signal,
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    if (!response.ok || !response.body) {
+      return "";
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let html = "";
+    let bytesRead = 0;
+
+    try {
+      while (bytesRead < HTML_DISCOVERY_MAX_BYTES) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        bytesRead += value.byteLength;
+        html += decoder.decode(value, { stream: true });
+        if (/<\/head>/i.test(html)) {
+          break;
+        }
+      }
+    } finally {
+      await reader.cancel().catch(() => {});
+    }
+
+    return html;
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Extrai a URL do feed declarado via <link rel="alternate" type="application/(rss|atom)+xml">. */
+export function extractFeedLinkFromHtml(html: string, baseUrl: string): string | null {
+  const linkRegex = /<link\b[^>]*>/gi;
+  let match: RegExpExecArray | null = linkRegex.exec(html);
+
+  while (match) {
+    const tag = match[0];
+    const rel = /rel\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1]?.toLowerCase() ?? "";
+    const type = /type\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1]?.toLowerCase() ?? "";
+    const href = /href\s*=\s*["']([^"']+)["']/i.exec(tag)?.[1];
+
+    if (href && rel.includes("alternate") && (type.includes("rss+xml") || type.includes("atom+xml"))) {
+      try {
+        return new URL(href, baseUrl).toString();
+      } catch {
+        return null;
+      }
+    }
+
+    match = linkRegex.exec(html);
+  }
+
+  return null;
+}
+
+/** Auto-descoberta: le a tag <link rel="alternate"> da home, sem depender de lista curada. */
+async function discoverFeedUrlFromHomepage(host: string): Promise<string | null> {
+  const base = `https://${host}`;
+  const html = await fetchHtmlHeadCapped(`${base}/`);
+  if (!html) {
+    return null;
+  }
+  return extractFeedLinkFromHtml(html, base);
+}
+
+/** Linhas "Sitemap: ..." do robots.txt que parecem apontar pra um news sitemap. */
+export function extractNewsSitemapUrlsFromRobots(robotsTxt: string): string[] {
+  const matches = [...robotsTxt.matchAll(/^sitemap:\s*(\S+)/gim)];
+  return matches.map((match) => match[1]).filter((url) => /news/i.test(url));
+}
+
+/** Auto-descoberta via robots.txt — pega Google News Sitemaps que muitos portais expoem sem RSS. */
+async function discoverNewsSitemapUrls(host: string): Promise<string[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), RSS_FETCH_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`https://${host}/robots.txt`, {
+      headers: { ...RSS_FETCH_HEADERS, Accept: "text/plain" },
+      signal: controller.signal,
+      cache: "no-store",
+      redirect: "follow",
+    });
+    if (!response.ok) {
+      return [];
+    }
+    const text = await response.text();
+    return extractNewsSitemapUrlsFromRobots(text);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function discoverPortalFeed(host: string, siteList: SentinelSiteList) {
   if (!host) {
     return [];
   }
 
-  const knownUrls = KNOWN_PORTAL_FEED_URLS[host] ?? [];
+  const knownUrls =
+    KNOWN_PORTAL_FEED_URLS[host] ?? KNOWN_RESTRICTED_PORTAL_FEED_URLS[host] ?? [];
   for (const url of knownUrls) {
+    const items = await fetchRssUrl(url, {
+      origin: "portal-rss",
+      siteList,
+      siteHost: host,
+      sourceName: host,
+    });
+    if (items.length > 0) {
+      return items;
+    }
+  }
+
+  const discoveredUrl = await discoverFeedUrlFromHomepage(host);
+  if (discoveredUrl) {
+    const items = await fetchRssUrl(discoveredUrl, {
+      origin: "portal-rss",
+      siteList,
+      siteHost: host,
+      sourceName: host,
+    });
+    if (items.length > 0) {
+      return items;
+    }
+  }
+
+  const sitemapUrls = await discoverNewsSitemapUrls(host);
+  for (const url of sitemapUrls) {
     const items = await fetchRssUrl(url, {
       origin: "portal-rss",
       siteList,

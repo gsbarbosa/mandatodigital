@@ -73,6 +73,9 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
         </header>
 
         <section className="bg-slate-900/40 border border-slate-700/80 rounded-[2rem] p-6 md:p-10 shadow-2xl backdrop-blur-xl">
+          <p className="text-sm text-slate-300 mb-8">
+            Quanto melhor a qualidade da foto e do áudio, mais realistas os avatares.
+          </p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             {/* FOTO */}
             <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 flex flex-col h-full">
@@ -89,12 +92,11 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                 Para movimentos naturais e ultra-realistas, siga estas regras rígidas:
               </p>
 
-              <ul className="space-y-3 text-sm text-slate-300 flex-grow mb-6">
-                <li className="flex items-start gap-2"><span className="text-cyan-500">☀️</span> <span><strong>Iluminação é tudo:</strong> Luz uniforme no rosto, de frente para a luz. Sem sombras.</span></li>
-                <li className="flex items-start gap-2"><span className="text-cyan-500">😐</span> <span><strong>Expressão neutra ou sorriso leve:</strong> Lábios fechados. Sem mostrar dentes para não distorcer a fala.</span></li>
-                <li className="flex items-start gap-2"><span className="text-cyan-500">👁️</span> <span><strong>Olhe para a lente:</strong> O avatar precisa fazer contato visual direto.</span></li>
-                <li className="flex items-start gap-2"><span className="text-cyan-500">⬛</span> <span><strong>Fundo limpo:</strong> Parede de cor sólida, sem objetos ou pessoas atrás.</span></li>
-                <li className="flex items-start gap-2"><span className="text-cyan-500">🖼️</span> <span><strong>Enquadramento:</strong> Estilo 3x4 (peito para cima). Não corte topo da cabeça ou laterais.</span></li>
+              <ul className="space-y-3 text-xs text-slate-400 flex-grow mb-6 list-none pl-0 ml-0">
+                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Iluminação é tudo: Luz uniforme no rosto, de frente para a luz. Sem sombras.</span></li>
+                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Expressão neutra ou sorriso leve: Lábios fechados. Sem mostrar dentes para não distorcer a fala.</span></li>
+                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Olhe para a lente: O avatar precisa fazer contato visual direto.</span></li>
+                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Enquadramento: Estilo 3x4 (peito para cima). Não corte topo da cabeça ou laterais.</span></li>
               </ul>
 
               <div className="mt-auto">
@@ -135,25 +137,27 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold text-white">Clonagem de Voz</h4>
+                <h4 className="text-lg font-bold text-white">A Voz Perfeita</h4>
               </div>
               <p className="text-xs text-slate-400 mb-3">
-                Grave a cerca de 15-20cm do microfone, levemente inclinado para o lado.{" "}
-                <strong>Silêncio absoluto no fundo.</strong>
+                Para uma voz idêntica à do Candidato, o áudio precisa ter:
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-400 mb-4">
+                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Ritmo Natural</div>
+                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Respire Normalmente</div>
+                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Entre 30 seg e 2 min</div>
+                <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Gaguejar</div>
+                <div className="flex items-center gap-1 col-span-2"><span className="text-red-400">✕</span> Sem Ruído de Fundo</div>
+              </div>
+
+              <p className="text-xs text-slate-400 mb-3">
+                Caso não tenha um áudio com as condições acima, grave o roteiro abaixo a cerca de
+                15-20cm do microfone, levemente inclinado para o lado.
               </p>
 
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-4 overflow-y-auto max-h-40 flex-grow relative">
-                <span className="absolute top-0 right-0 bg-slate-800 text-[9px] text-slate-300 px-2 py-1 rounded-bl-lg font-bold">
-                  ROTEIRO OBRIGATÓRIO
-                </span>
-                <p className="text-sm text-slate-300 italic pt-2">{VOICE_SCRIPT}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 mb-4">
-                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Ritmo Natural</div>
-                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Respire Normalmente</div>
-                <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Ruído de Fundo</div>
-                <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Gaguejar (Cacoetes)</div>
+                <p className="text-sm text-slate-300 italic">{VOICE_SCRIPT}</p>
               </div>
 
               <div className="mt-auto">
