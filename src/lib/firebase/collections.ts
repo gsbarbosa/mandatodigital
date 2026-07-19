@@ -20,6 +20,10 @@ export const COLLECTIONS = {
   asyncJobs: "asyncJobs",
   auditLog: "auditLog",
   contractAcceptances: "contractAcceptances",
+  /** Cadastro real do usuário (doc id = ownerUserId). */
+  userRegistrations: "userRegistrations",
+  /** Legado — lido só para migração soft; não gravar mais. */
+  earlyAccessReservations: "earlyAccessReservations",
 } as const;
 
 export type AppCollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

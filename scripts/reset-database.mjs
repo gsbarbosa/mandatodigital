@@ -32,6 +32,8 @@ const COLLECTIONS = [
   "asyncJobs",
   "auditLog",
   "contractAcceptances",
+  "userRegistrations",
+  "earlyAccessReservations",
 ];
 
 function loadEnvFile(filePath) {

@@ -160,7 +160,7 @@ function maskCpf(cpf: string) {
 }
 
 export function AcessoDadosPage() {
-  const { profileForm, sessionUser } = useProductApp();
+  const { profileForm, sessionUser, setProfileForm } = useProductApp();
   const [earlyAccess, updateEarlyAccess] = useEarlyAccess();
   const reservation = earlyAccess.reservation;
   const isReserved = Boolean(reservation);
@@ -180,6 +180,89 @@ export function AcessoDadosPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [teamSavedMessage, setTeamSavedMessage] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hydratedFromServer, setHydratedFromServer] = useState(false);
+  const [authEmail, setAuthEmail] = useState<string | null>(sessionUser?.email?.trim() || null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateFromServer() {
+      try {
+        const response = await fetch("/api/user/registration", {
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as {
+          reservation: EarlyAccessReservation | null;
+          registration?: {
+            status: string;
+            fullName: string;
+            party: string;
+            cpf: string;
+            uf: string;
+            role: string;
+            address: string;
+            phone: string;
+            email: string;
+            teamEmail: string;
+            teamPhone: string;
+          } | null;
+          authEmail?: string | null;
+        };
+
+        if (cancelled) {
+          return;
+        }
+
+        const resolvedAuthEmail =
+          payload.authEmail?.trim() || sessionUser?.email?.trim() || null;
+        if (resolvedAuthEmail) {
+          setAuthEmail(resolvedAuthEmail);
+        }
+
+        if (payload.reservation) {
+          updateEarlyAccess({ reservation: payload.reservation });
+          return;
+        }
+
+        // Cadastro incompleto: preenche o que já existir (ex.: e-mail do Auth).
+        const reg = payload.registration;
+        if (reg) {
+          setForm((current) => ({
+            ...current,
+            fullName: current.fullName || reg.fullName || "",
+            party: current.party || reg.party || "",
+            cpf: current.cpf || reg.cpf || "",
+            uf: current.uf || reg.uf || "",
+            role: current.role || reg.role || "",
+            address: current.address || reg.address || "",
+            phone: current.phone || reg.phone || "",
+            email:
+              current.email ||
+              resolvedAuthEmail ||
+              reg.email ||
+              "",
+            teamEmail: current.teamEmail || reg.teamEmail || "",
+            teamPhone: current.teamPhone || reg.teamPhone || "",
+          }));
+        }
+      } catch {
+        // Mantém cache local se a API falhar.
+      } finally {
+        if (!cancelled) {
+          setHydratedFromServer(true);
+        }
+      }
+    }
+
+    void hydrateFromServer();
+    return () => {
+      cancelled = true;
+    };
+  }, [updateEarlyAccess, sessionUser?.email]);
 
   useEffect(() => {
     if (reservation) {
@@ -197,20 +280,31 @@ export function AcessoDadosPage() {
       });
       return;
     }
+    if (!hydratedFromServer) {
+      return;
+    }
     setForm((current) => ({
       ...current,
       fullName: current.fullName || profileForm.fullName,
       uf: current.uf || profileForm.state.toUpperCase(),
       role: current.role || profileForm.role,
-      email: current.email || sessionUser?.email || "",
+      email: current.email || authEmail || sessionUser?.email || "",
     }));
-  }, [reservation, profileForm.fullName, profileForm.state, profileForm.role, sessionUser?.email]);
+  }, [
+    reservation,
+    hydratedFromServer,
+    profileForm.fullName,
+    profileForm.state,
+    profileForm.role,
+    sessionUser?.email,
+    authEmail,
+  ]);
 
   function setField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleReserve() {
+  async function handleReserve() {
     setFormError(null);
     if (
       !form.fullName.trim() ||
@@ -229,10 +323,12 @@ export function AcessoDadosPage() {
       setFormError("CPF inválido — informe os 11 dígitos.");
       return;
     }
+
     const planId: EarlyAccessPlanId =
       (typeof window !== "undefined"
         ? (window.sessionStorage.getItem("mandato-early-access-plan-intent") as EarlyAccessPlanId | null)
         : null) ?? "avancado";
+
     const newReservation: EarlyAccessReservation = {
       fullName: form.fullName.trim(),
       party: form.party,
@@ -247,25 +343,95 @@ export function AcessoDadosPage() {
       planId,
       reservedAt: new Date().toISOString(),
     };
-    updateEarlyAccess({ reservation: newReservation });
-    if (!earlyAccess.reservationPopupSeen) {
-      setShowPopup(true);
+
+    setIsSaving(true);
+    try {
+      const response = await fetch("/api/user/registration", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newReservation),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        reservation?: EarlyAccessReservation;
+        profile?: {
+          id: string;
+          fullName: string;
+          role: string;
+          state: string;
+          notificationEmail: string;
+        };
+      } | null;
+
+      if (!response.ok || !payload?.reservation) {
+        throw new Error(payload?.message || "Nao foi possivel gravar a reserva.");
+      }
+
+      updateEarlyAccess({ reservation: payload.reservation });
+      if (payload.profile) {
+        setProfileForm((current) => ({
+          ...current,
+          id: payload.profile?.id ?? current.id,
+          fullName: payload.profile?.fullName ?? current.fullName,
+          role: payload.profile?.role ?? current.role,
+          state: payload.profile?.state ?? current.state,
+          notificationEmail:
+            payload.profile?.notificationEmail ?? current.notificationEmail,
+        }));
+      }
+      if (!earlyAccess.reservationPopupSeen) {
+        setShowPopup(true);
+      }
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel gravar a reserva no servidor.",
+      );
+    } finally {
+      setIsSaving(false);
     }
   }
 
-  function handleSaveTeamContact() {
+  async function handleSaveTeamContact() {
     if (!reservation) {
       return;
     }
-    updateEarlyAccess({
-      reservation: {
-        ...reservation,
-        teamEmail: form.teamEmail.trim(),
-        teamPhone: form.teamPhone.trim(),
-      },
-    });
-    setTeamSavedMessage("Contato da equipe atualizado.");
-    window.setTimeout(() => setTeamSavedMessage(null), 3200);
+
+    setIsSaving(true);
+    setFormError(null);
+    try {
+      const response = await fetch("/api/user/registration", {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamEmail: form.teamEmail.trim(),
+          teamPhone: form.teamPhone.trim(),
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        reservation?: EarlyAccessReservation;
+      } | null;
+
+      if (!response.ok || !payload?.reservation) {
+        throw new Error(payload?.message || "Nao foi possivel atualizar o contato.");
+      }
+
+      updateEarlyAccess({ reservation: payload.reservation });
+      setTeamSavedMessage("Contato da equipe atualizado.");
+      window.setTimeout(() => setTeamSavedMessage(null), 3200);
+    } catch (error) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Nao foi possivel atualizar o contato da equipe.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function dismissPopup() {
@@ -404,11 +570,17 @@ export function AcessoDadosPage() {
               <FieldLabel required>E-mail</FieldLabel>
               <input
                 className={inputClasses}
+                type="email"
                 value={form.email}
                 disabled={isReserved}
                 placeholder="seu@email.com"
                 onChange={(event) => setField("email", event.target.value)}
               />
+              {authEmail && form.email === authEmail ? (
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Preenchido com o e-mail da sua conta de login — você pode alterar.
+                </p>
+              ) : null}
             </div>
           </div>
 
@@ -438,10 +610,11 @@ export function AcessoDadosPage() {
               <div className="mt-4 flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={handleSaveTeamContact}
-                  className="px-5 py-2 bg-slate-800/80 text-slate-200 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors"
+                  onClick={() => void handleSaveTeamContact()}
+                  disabled={isSaving}
+                  className="px-5 py-2 bg-slate-800/80 text-slate-200 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-60"
                 >
-                  Salvar contato da equipe
+                  {isSaving ? "Salvando..." : "Salvar contato da equipe"}
                 </button>
                 {teamSavedMessage ? (
                   <span className="text-xs text-emerald-400" role="status">
@@ -475,17 +648,20 @@ export function AcessoDadosPage() {
 
               <button
                 type="button"
-                onClick={handleReserve}
-                className="mt-6 w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.25)] hover:shadow-[0_6px_25px_rgba(6,182,212,0.35)]"
+                onClick={() => void handleReserve()}
+                disabled={isSaving}
+                className="mt-6 w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.25)] hover:shadow-[0_6px_25px_rgba(6,182,212,0.35)] disabled:opacity-60"
               >
-                Realizar reserva de vaga (100% gratuita)
+                {isSaving
+                  ? "Gravando reserva..."
+                  : "Realizar reserva de vaga (100% gratuita)"}
               </button>
             </>
           ) : null}
 
           <p className="mt-6 text-[10px] text-slate-600 text-center">
-            Fase de acesso antecipado: os dados da reserva ficam armazenados neste dispositivo até a
-            ativação do cadastro definitivo.
+            Seus dados ficam gravados na conta (cadastro) e vinculados ao perfil do mandato.
+            A linguagem de “acesso antecipado” é só a oferta desta fase.
           </p>
         </div>
       </div>

@@ -7,7 +7,7 @@ import {
   PLAN_PRICES_CENTS,
 } from "@/lib/legal/constants";
 import { formatAcceptedAt, sha256Hex } from "@/lib/legal/request-meta";
-import type { EarlyAccessPlanId } from "@/lib/early-access";
+import type { EarlyAccessPlanId } from "@/lib/early-access-types";
 
 export type ContractFillInput = {
   acceptanceId: string;

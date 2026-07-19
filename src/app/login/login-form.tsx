@@ -17,6 +17,8 @@ import {
   completeSocialRedirectSignIn,
   signInWithGoogle,
 } from "@/lib/firebase/social-auth";
+import { resolvePostLoginPath } from "@/lib/registration-gate";
+import type { Route } from "next";
 
 function GoogleIcon() {
   return (
@@ -74,8 +76,13 @@ export function LoginForm() {
 
         setIsCheckingRedirect(false);
         setIsFinishingAuth(true);
-        await persistFirebaseSession();
-        router.replace(nextPath as "/curador");
+        const session = await persistFirebaseSession();
+        router.replace(
+          resolvePostLoginPath({
+            registrationComplete: session.registrationComplete,
+            nextPath,
+          }) as Route,
+        );
         router.refresh();
       } catch (error) {
         if (!cancelled) {
@@ -102,8 +109,13 @@ export function LoginForm() {
     setIsFinishingAuth(true);
 
     try {
-      await persistFirebaseSession();
-      router.replace(nextPath as "/curador");
+      const session = await persistFirebaseSession();
+      router.replace(
+        resolvePostLoginPath({
+          registrationComplete: session.registrationComplete,
+          nextPath,
+        }) as Route,
+      );
       router.refresh();
     } catch (error) {
       setIsFinishingAuth(false);

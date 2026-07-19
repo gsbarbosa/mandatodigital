@@ -2,34 +2,22 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import type {
+  EarlyAccessPlanId,
+  EarlyAccessReservation,
+  EarlyAccessState,
+} from "@/lib/early-access-types";
+
+export type {
+  EarlyAccessPlanId,
+  EarlyAccessReservation,
+  EarlyAccessState,
+} from "@/lib/early-access-types";
+
 /**
- * Early-access ("acesso antecipado") state lives in the browser only: there is no
- * billing/reservation backend yet. The UI states this limitation explicitly.
+ * Camada de UI de “acesso antecipado” (urgência, planos, CNPJ no browser).
+ * O cadastro real vive em Firestore (`userRegistrations`) via `/api/user/registration`.
  */
-
-export type EarlyAccessPlanId = "essencial" | "avancado" | "elite";
-
-export type EarlyAccessReservation = {
-  fullName: string;
-  party: string;
-  cpf: string;
-  uf: string;
-  role: string;
-  address: string;
-  phone: string;
-  email: string;
-  teamEmail: string;
-  teamPhone: string;
-  planId: EarlyAccessPlanId;
-  reservedAt: string;
-};
-
-export type EarlyAccessState = {
-  reservation: EarlyAccessReservation | null;
-  cnpj: string;
-  cnpjSignedAt: string;
-  reservationPopupSeen: boolean;
-};
 
 const STORAGE_KEY = "mandato-digital-early-access-v1";
 const CHANGE_EVENT = "mandato-early-access-change";

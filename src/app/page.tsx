@@ -4,6 +4,11 @@ import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing/landing-page";
 import { getSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
+import { REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
+import {
+  ensureUserRegistration,
+  isUserRegistrationComplete,
+} from "@/lib/user-registration-storage";
 
 export const metadata: Metadata = {
   title: "Mandato Digital — A Tropa de IA do Seu Mandato",
@@ -17,6 +22,13 @@ export default async function HomePage() {
   if (isFirebaseAuthConfigured()) {
     const sessionUser = await getSessionUser();
     if (sessionUser) {
+      const registration = await ensureUserRegistration({
+        ownerUserId: sessionUser.id,
+        email: sessionUser.email,
+      });
+      if (!isUserRegistrationComplete(registration)) {
+        redirect(REGISTRATION_REQUIRED_PATH);
+      }
       redirect("/monitoramento");
     }
   }

@@ -7,6 +7,10 @@ import {
   FIREBASE_SESSION_COOKIE,
   FIREBASE_SESSION_MAX_AGE_MS,
 } from "@/lib/firebase/session";
+import {
+  ensureUserRegistration,
+  isUserRegistrationComplete,
+} from "@/lib/user-registration-storage";
 
 export async function POST(request: Request) {
   if (!isFirebaseAuthConfigured()) {
@@ -27,7 +31,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const sessionCookie = await getFirebaseAdminAuth().createSessionCookie(idToken, {
+    const auth = getFirebaseAdminAuth();
+    const decoded = await auth.verifyIdToken(idToken);
+    const sessionCookie = await auth.createSessionCookie(idToken, {
       expiresIn: FIREBASE_SESSION_MAX_AGE_MS,
     });
 
@@ -40,7 +46,22 @@ export async function POST(request: Request) {
       path: "/",
     });
 
-    return NextResponse.json({ ok: true });
+    let registrationComplete = false;
+    try {
+      const registration = await ensureUserRegistration({
+        ownerUserId: decoded.uid,
+        email: decoded.email ?? "",
+      });
+      registrationComplete = isUserRegistrationComplete(registration);
+    } catch (bootstrapError) {
+      console.error("[auth/session] ensureUserRegistration failed:", bootstrapError);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      email: decoded.email ?? "",
+      registrationComplete,
+    });
   } catch (error) {
     console.error("[auth/session] createSessionCookie failed:", error);
     return NextResponse.json({ message: "Token invalido ou expirado." }, { status: 401 });

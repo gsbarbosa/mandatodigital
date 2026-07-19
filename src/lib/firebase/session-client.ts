@@ -54,7 +54,10 @@ export function formatAuthClientError(message: string) {
   return message;
 }
 
-export async function persistFirebaseSession() {
+export async function persistFirebaseSession(): Promise<{
+  registrationComplete: boolean;
+  email: string;
+}> {
   const idToken = await getFirebaseAuth().currentUser?.getIdToken(true);
 
   if (!idToken) {
@@ -67,8 +70,18 @@ export async function persistFirebaseSession() {
     body: JSON.stringify({ idToken }),
   });
 
+  const payload = (await response.json().catch(() => null)) as {
+    message?: string;
+    registrationComplete?: boolean;
+    email?: string;
+  } | null;
+
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { message?: string } | null;
     throw new Error(payload?.message ?? "Nao foi possivel iniciar a sessao no servidor.");
   }
+
+  return {
+    registrationComplete: Boolean(payload?.registrationComplete),
+    email: String(payload?.email ?? ""),
+  };
 }

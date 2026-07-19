@@ -9,6 +9,9 @@ import {
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
@@ -29,14 +32,22 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    return NextResponse.next({ request });
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
   }
 
   const hasSession = Boolean(request.cookies.get(FIREBASE_SESSION_COOKIE)?.value);
 
   if (!hasSession && !isPublicRoute && !pathname.startsWith("/_next")) {
     if (isApiRoute) {
-      return NextResponse.next({ request });
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
     }
 
     const loginUrl = request.nextUrl.clone();
@@ -45,5 +56,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next({ request });
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 }
