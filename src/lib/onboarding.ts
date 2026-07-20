@@ -1,66 +1,315 @@
 /**
- * Onboarding guiado (não fictício): o usuário executa as ações reais do sistema
- * enquanto uma camada guia por cima. O progresso é derivado do estado real do
- * app (temas do radar salvos, assets de avatar enviados, conteúdo gerado) e
- * combinado com marcadores locais das etapas puramente visuais.
+ * Onboarding guiado (não fictício): progresso derivado do estado real do app
+ * (temas por esfera, assets de avatar, persona/glossário) + marcadores locais.
  *
- * Esta camada é pura (sem React) para ser testável e reutilizável.
+ * Fase 1 — Selecionar Temas (4 passos): Nacional → Estadual → Municipal → Adversário
+ * Fase 2 — Treinar Avatar (4 passos): Foto → Áudio → Persona → Glossário
+ * Fase 3 — Monitoramento de Pautas (1 passo): overview Sentinela → Pautar
+ * Fase 4 — Criar Roteiro (4 passos): Arquétipo → Tom → Tema → Aprovar roteiro
+ * Fase 5 — Produzir Vídeo (2 passos): Escolher avatar → Gerar vídeo
  */
 
-export type OnboardingStepId = "temas" | "avatar" | "noticias" | "gerar";
+export type OnboardingPhaseId = "temas" | "avatar" | "pautas" | "roteiro" | "video";
 
-/** Alvo de destaque no menu lateral para a etapa atual. */
+export type OnboardingStepId =
+  | "temas-federal"
+  | "temas-estadual"
+  | "temas-municipal"
+  | "temas-adversarios"
+  | "avatar-foto"
+  | "avatar-audio"
+  | "avatar-persona"
+  | "avatar-glossario"
+  | "pautas-pautar"
+  | "criativo-arquetipo"
+  | "criativo-tom"
+  | "criativo-tema"
+  | "criativo-roteiro"
+  | "criativo-avatar"
+  | "criativo-gerar";
+
+/** Alvo de destaque no menu lateral. */
 export type OnboardingSidebarTarget =
   | "monitoramento"
   | "temas-config"
   | "avatar-config"
-  | "criativos"
+  | "criativo"
   | null;
+
+export type OnboardingPhaseDef = {
+  id: OnboardingPhaseId;
+  order: number;
+  label: string;
+};
 
 export type OnboardingStepDef = {
   id: OnboardingStepId;
-  order: number;
-  /** Rótulo exibido na trilha e usado na jornada. */
+  phase: OnboardingPhaseId;
+  /** Ordem dentro da fase (1..4) — usado no tooltip "Passo X de 4". */
+  phaseOrder: number;
   label: string;
-  /** Rota real do sistema onde a etapa acontece. */
+  /** Rota + hash da seção real. */
   route: string;
-  /** Item do menu lateral destacado enquanto a etapa está ativa. */
+  /** data-onboarding-anchor na página. */
+  anchor: string;
   sidebar: Exclude<OnboardingSidebarTarget, null>;
 };
 
-export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
-  { id: "temas", order: 1, label: "Selecionar Temas", route: "/monitoramento", sidebar: "monitoramento" },
-  { id: "avatar", order: 2, label: "Treinar Avatar", route: "/avatares/foto-real/treinar", sidebar: "avatar-config" },
-  { id: "noticias", order: 3, label: "Ver notícias dos temas", route: "/monitoramento", sidebar: "monitoramento" },
-  { id: "gerar", order: 4, label: "Pautar e Gerar Vídeo", route: "/criativo/novo", sidebar: "criativos" },
+export const ONBOARDING_PHASES: readonly OnboardingPhaseDef[] = [
+  { id: "temas", order: 1, label: "Selecionar Temas" },
+  { id: "avatar", order: 2, label: "Treinar Avatar" },
+  { id: "pautas", order: 3, label: "Monitoramento de Pautas" },
+  { id: "roteiro", order: 4, label: "Criar Roteiro" },
+  { id: "video", order: 5, label: "Produzir Vídeo" },
 ] as const;
+
+export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
+  {
+    id: "temas-federal",
+    phase: "temas",
+    phaseOrder: 1,
+    label: "Nível Nacional",
+    route: "/monitoramento/temas#federal",
+    anchor: "temas-federal",
+    sidebar: "temas-config",
+  },
+  {
+    id: "temas-estadual",
+    phase: "temas",
+    phaseOrder: 2,
+    label: "Nível Estadual",
+    route: "/monitoramento/temas#estadual",
+    anchor: "temas-estadual",
+    sidebar: "temas-config",
+  },
+  {
+    id: "temas-municipal",
+    phase: "temas",
+    phaseOrder: 3,
+    label: "Nível Municipal",
+    route: "/monitoramento/temas#municipal",
+    anchor: "temas-municipal",
+    sidebar: "temas-config",
+  },
+  {
+    id: "temas-adversarios",
+    phase: "temas",
+    phaseOrder: 4,
+    label: "Adversário político",
+    route: "/monitoramento/temas#adversarios",
+    anchor: "temas-adversarios",
+    sidebar: "temas-config",
+  },
+  {
+    id: "avatar-foto",
+    phase: "avatar",
+    phaseOrder: 1,
+    label: "Enviar foto",
+    route: "/avatares/foto-real/treinar#foto",
+    anchor: "avatar-foto",
+    sidebar: "avatar-config",
+  },
+  {
+    id: "avatar-audio",
+    phase: "avatar",
+    phaseOrder: 2,
+    label: "Enviar áudio",
+    route: "/avatares/foto-real/treinar#audio",
+    anchor: "avatar-audio",
+    sidebar: "avatar-config",
+  },
+  {
+    id: "avatar-persona",
+    phase: "avatar",
+    phaseOrder: 3,
+    label: "Calibragem de Persona",
+    route: "/curador#persona",
+    anchor: "avatar-persona",
+    sidebar: "avatar-config",
+  },
+  {
+    id: "avatar-glossario",
+    phase: "avatar",
+    phaseOrder: 4,
+    label: "Glossário de expressões",
+    route: "/curador#glossario",
+    anchor: "avatar-glossario",
+    sidebar: "avatar-config",
+  },
+  {
+    id: "pautas-pautar",
+    phase: "pautas",
+    phaseOrder: 1,
+    label: "Pautar primeira pauta",
+    route: "/monitoramento",
+    anchor: "pautas-pautar",
+    sidebar: "monitoramento",
+  },
+  {
+    id: "criativo-arquetipo",
+    phase: "roteiro",
+    phaseOrder: 1,
+    label: "Escolher Arquétipo",
+    route: "/criativo/novo#arquetipo",
+    anchor: "criativo-arquetipo",
+    sidebar: "criativo",
+  },
+  {
+    id: "criativo-tom",
+    phase: "roteiro",
+    phaseOrder: 2,
+    label: "Escolher Tom de Linguagem",
+    route: "/criativo/novo#tom",
+    anchor: "criativo-tom",
+    sidebar: "criativo",
+  },
+  {
+    id: "criativo-tema",
+    phase: "roteiro",
+    phaseOrder: 3,
+    label: "Tema do vídeo",
+    route: "/criativo/novo#tema",
+    anchor: "criativo-tema",
+    sidebar: "criativo",
+  },
+  {
+    id: "criativo-roteiro",
+    phase: "roteiro",
+    phaseOrder: 4,
+    label: "Aprovação do roteiro",
+    route: "/criativo/novo#roteiro",
+    anchor: "criativo-roteiro",
+    sidebar: "criativo",
+  },
+  {
+    id: "criativo-avatar",
+    phase: "video",
+    phaseOrder: 1,
+    label: "Escolher avatar",
+    route: "/criativo/novo#avatar",
+    anchor: "criativo-avatar",
+    sidebar: "criativo",
+  },
+  {
+    id: "criativo-gerar",
+    phase: "video",
+    phaseOrder: 2,
+    label: "Gerar vídeo a partir do avatar",
+    route: "/criativo/novo#gerar",
+    anchor: "criativo-gerar",
+    sidebar: "criativo",
+  },
+] as const;
+
+export const ONBOARDING_GUIDE_COPY: Record<
+  OnboardingStepId,
+  { title: string; body: string }
+> = {
+  "temas-federal": {
+    title: "Nível Nacional",
+    body: "Selecione os temas federais do seu radar. É a base do monitoramento político em escala nacional.",
+  },
+  "temas-estadual": {
+    title: "Nível Estadual",
+    body: "Informe a UF e escolha os temas estaduais. O Sentinela passa a olhar também a agenda do seu estado.",
+  },
+  "temas-municipal": {
+    title: "Nível Municipal",
+    body: "Adicione perfis e portais locais para cobrir a política municipal e a sua cidade.",
+  },
+  "temas-adversarios": {
+    title: "Adversário político",
+    body: "Cadastre os perfis dos adversários para o radar acompanhar a narrativa deles também.",
+  },
+  "avatar-foto": {
+    title: "Enviar foto",
+    body: "Envie uma foto nítida, de frente e bem iluminada. Ela é a base visual do seu avatar.",
+  },
+  "avatar-audio": {
+    title: "Enviar áudio",
+    body: "Grave ou envie um áudio limpo da sua voz (30s–2min) para clonar o timbre nos vídeos.",
+  },
+  "avatar-persona": {
+    title: "Calibragem de Persona",
+    body: "Ajuste o espectro ideológico. Isso orienta o tom dos roteiros gerados pelo Mandato Digital.",
+  },
+  "avatar-glossario": {
+    title: "Glossário de expressões",
+    body: "Inclua palavras e frases típicas da sua comunicação para os textos soarem com a sua voz.",
+  },
+  "pautas-pautar": {
+    title: "Pautar no Criativo",
+    body: "Este é o botão Pautar da primeira pauta do radar. Toque nele para gerar conteúdo com o seu avatar.",
+  },
+  "criativo-arquetipo": {
+    title: "Escolher Arquétipo",
+    body: "Escolha no máximo um arquétipo. Ele define a postura narrativa do roteiro e do vídeo.",
+  },
+  "criativo-tom": {
+    title: "Escolher Tom de Linguagem",
+    body: "Selecione o tom da fala. Isso calibra o estilo do texto gerado pelo Mandato Digital.",
+  },
+  "criativo-tema": {
+    title: "Tema do vídeo",
+    body: "Confirme ou ajuste o tema da pauta e clique em Gerar roteiro quando estiver pronto.",
+  },
+  "criativo-roteiro": {
+    title: "Aprovação do roteiro",
+    body: "Revise o texto, edite se precisar e aprove o roteiro. O validador confere as afirmações antes da produção.",
+  },
+  "criativo-avatar": {
+    title: "Escolher avatar",
+    body: "Selecione o modelo de avatar para este vídeo: Foto real, Caricato ou Mascote 3D.",
+  },
+  "criativo-gerar": {
+    title: "Gerar o vídeo",
+    body: "Com roteiro aprovado e avatar escolhido, gere o conteúdo a partir do avatar selecionado.",
+  },
+};
 
 const STEP_ORDER: readonly OnboardingStepId[] = ONBOARDING_STEPS.map((step) => step.id);
 
-/**
- * Sinais reais do sistema usados para derivar quais etapas já foram concluídas,
- * mesmo que o usuário nunca tenha visto a trilha (ex.: conta que já configurou
- * o radar antes do onboarding existir).
- */
+export function countPhaseSteps(phaseId: OnboardingPhaseId | null): number {
+  if (!phaseId) {
+    return 0;
+  }
+  return ONBOARDING_STEPS.filter((step) => step.phase === phaseId).length;
+}
+
+/** Mínimo de temas (nacional + estadual) para liberar a fase 1 sem rede social. */
+export const TEMAS_PHASE_MIN_THEMES = 5;
+
 export type OnboardingSignals = {
-  /** Radar salvo com ao menos um tema de interesse. */
-  hasRadarThemes: boolean;
-  /** Foto de referência do avatar enviada. */
+  hasFederalThemes: boolean;
+  hasEstadualThemes: boolean;
+  hasMunicipalSignal: boolean;
+  hasOppositionSignal: boolean;
   hasAvatarImage: boolean;
-  /** Áudio de voz enviado. */
   hasVoiceAudio: boolean;
-  /** Ao menos um criativo/vídeo gerado. */
-  hasGeneratedContent: boolean;
+  /** Spectrum já definido (inclui default salvo). */
+  hasPersonaSpectrum: boolean;
+  hasGlossary: boolean;
+  /** Total de temas nacionais + estaduais selecionados. */
+  selectedThemeCount: number;
+  /** Qualquer @ em interesse ou adversários. */
+  hasSocialProfile: boolean;
 };
 
-/** Estado persistido no navegador, por usuário. */
+/** Gate da fase 1: ≥5 temas (federal+estadual) OU ≥1 rede social. */
+export function meetsTemasPhaseGate(signals: OnboardingSignals): boolean {
+  return signals.selectedThemeCount >= TEMAS_PHASE_MIN_THEMES || signals.hasSocialProfile;
+}
+
 export type OnboardingPersistedState = {
-  /** Usuário optou por pular a apresentação guiada. */
   dismissed?: boolean;
-  /** Modal de boas-vindas já exibido. */
   welcomeSeen?: boolean;
-  /** Etapas concluídas de forma puramente visual (não deriváveis do backend). */
   localDone?: OnboardingStepId[];
+  replayRequested?: boolean;
+  /**
+   * Tour do zero na mesma conta: ignora sinais do app (temas/foto já salvos)
+   * e só conta o que o usuário avançar de novo no checklist/tip.
+   */
+  tourFromScratch?: boolean;
 };
 
 export const EMPTY_ONBOARDING_STATE: OnboardingPersistedState = {};
@@ -73,56 +322,116 @@ export type OnboardingStepView = OnboardingStepDef & {
 export type OnboardingComputed = {
   steps: OnboardingStepView[];
   currentStepId: OnboardingStepId | null;
-  /** Todas as etapas concluídas. */
+  currentPhaseId: OnboardingPhaseId | null;
+  /** Índice 1..4 dentro da fase atual (para o tooltip). */
+  currentPhaseStep: number | null;
+  phaseStepCount: number;
   isComplete: boolean;
-  /** Deve exibir a trilha guiada (ativo e não dispensado). */
   isActive: boolean;
+  /** Gate da fase temas: 5 temas ou 1 rede social. */
+  temasPhaseReady: boolean;
+  selectedThemeCount: number;
+  /** Áudio de voz real enviado (obrigatório para sair da fase avatar / produzir). */
+  hasVoiceAudio: boolean;
 };
 
-/** Deriva a conclusão de cada etapa a partir dos sinais reais do sistema. */
 export function deriveAppDone(signals: OnboardingSignals): Record<OnboardingStepId, boolean> {
   return {
-    temas: signals.hasRadarThemes,
-    avatar: signals.hasAvatarImage && signals.hasVoiceAudio,
-    // "Ver notícias" e "Gerar" só têm rastro persistido quando há conteúdo gerado;
-    // nesse caso ambas já ocorreram de fato.
-    noticias: signals.hasGeneratedContent,
-    gerar: signals.hasGeneratedContent,
+    "temas-federal": signals.hasFederalThemes,
+    "temas-estadual": signals.hasEstadualThemes,
+    "temas-municipal": signals.hasMunicipalSignal,
+    "temas-adversarios": signals.hasOppositionSignal,
+    "avatar-foto": signals.hasAvatarImage,
+    "avatar-audio": signals.hasVoiceAudio,
+    // Spectrum costuma vir com default — persona só fecha via Próximo/localDone.
+    "avatar-persona": false,
+    "avatar-glossario": signals.hasGlossary,
+    // Fecha via Próximo/Pautar (localDone) — não há sinal de app.
+    "pautas-pautar": false,
+    "criativo-arquetipo": false,
+    "criativo-tom": false,
+    "criativo-tema": false,
+    "criativo-roteiro": false,
+    "criativo-avatar": false,
+    "criativo-gerar": false,
   };
 }
 
-/**
- * Combina os sinais reais com os marcadores locais e resolve a etapa atual.
- * Aplica preenchimento monotônico: se uma etapa posterior está concluída, todas
- * as anteriores também estão.
- */
 export function computeOnboarding(input: {
   signals: OnboardingSignals;
   persisted: OnboardingPersistedState;
 }): OnboardingComputed {
-  const appDone = deriveAppDone(input.signals);
   const local = new Set(input.persisted.localDone ?? []);
+  const fromScratch = Boolean(input.persisted.tourFromScratch);
 
-  const doneMap: Record<OnboardingStepId, boolean> = {
-    temas: appDone.temas || local.has("temas"),
-    avatar: appDone.avatar || local.has("avatar"),
-    noticias: appDone.noticias || local.has("noticias"),
-    gerar: appDone.gerar || local.has("gerar"),
-  };
+  const appDone = fromScratch
+    ? (Object.fromEntries(STEP_ORDER.map((id) => [id, false])) as Record<
+        OnboardingStepId,
+        boolean
+      >)
+    : deriveAppDone(input.signals);
 
-  let lastDoneIdx = -1;
-  STEP_ORDER.forEach((id, index) => {
-    if (doneMap[id]) {
-      lastDoneIdx = index;
+  const doneMap = Object.fromEntries(
+    STEP_ORDER.map((id) => [id, Boolean(appDone[id] || local.has(id))]),
+  ) as Record<OnboardingStepId, boolean>;
+
+  if (!fromScratch) {
+    let lastDoneIdx = -1;
+    STEP_ORDER.forEach((id, index) => {
+      if (doneMap[id]) {
+        lastDoneIdx = index;
+      }
+    });
+    for (let i = 0; i < lastDoneIdx; i += 1) {
+      doneMap[STEP_ORDER[i]] = true;
     }
-  });
-  for (let i = 0; i < lastDoneIdx; i += 1) {
-    doneMap[STEP_ORDER[i]] = true;
   }
 
-  const currentStepId = STEP_ORDER.find((id) => !doneMap[id]) ?? null;
+  // Áudio real é obrigatório — Próximo/localDone/monotonic não bastam.
+  // Sem isso o usuário chega em "Nova pauta" com a UI bloqueada e o tip preso.
+  if (!input.signals.hasVoiceAudio) {
+    doneMap["avatar-audio"] = false;
+  }
+
+  const temasPhaseReady = meetsTemasPhaseGate(input.signals);
+
+  let currentStepId = STEP_ORDER.find((id) => !doneMap[id]) ?? null;
+  // Sem radar mínimo, não sai da fase de temas (mesmo com steps posteriores done).
+  if (!temasPhaseReady) {
+    const wouldLeaveTemas =
+      currentStepId === null ||
+      ONBOARDING_STEPS.find((step) => step.id === currentStepId)?.phase !== "temas";
+    if (wouldLeaveTemas) {
+      currentStepId = "temas-adversarios";
+    }
+  }
+
+  // Sem áudio, não avança além de avatar-audio (desprende tip preso em Nova pauta).
+  if (!input.signals.hasVoiceAudio) {
+    const currentPhase =
+      currentStepId === null
+        ? null
+        : ONBOARDING_STEPS.find((step) => step.id === currentStepId)?.phase ?? null;
+    const pastAudio =
+      currentStepId === null ||
+      currentPhase === "pautas" ||
+      currentPhase === "roteiro" ||
+      currentPhase === "video" ||
+      (currentStepId !== null &&
+        STEP_ORDER.indexOf(currentStepId) > STEP_ORDER.indexOf("avatar-audio"));
+    if (pastAudio) {
+      currentStepId = "avatar-audio";
+    }
+  }
+
+  const currentMeta = currentStepId
+    ? ONBOARDING_STEPS.find((step) => step.id === currentStepId) ?? null
+    : null;
   const isComplete = currentStepId === null;
-  const isActive = !input.persisted.dismissed && !isComplete;
+  const isActive =
+    fromScratch || Boolean(input.persisted.replayRequested)
+      ? !input.persisted.dismissed
+      : !input.persisted.dismissed && !isComplete;
 
   const steps: OnboardingStepView[] = ONBOARDING_STEPS.map((step) => ({
     ...step,
@@ -130,29 +439,41 @@ export function computeOnboarding(input: {
     current: step.id === currentStepId,
   }));
 
-  return { steps, currentStepId, isComplete, isActive };
+  const currentPhaseId = currentMeta?.phase ?? null;
+
+  return {
+    steps,
+    currentStepId,
+    currentPhaseId,
+    currentPhaseStep: currentMeta?.phaseOrder ?? null,
+    phaseStepCount: countPhaseSteps(currentPhaseId),
+    isComplete,
+    isActive,
+    temasPhaseReady,
+    selectedThemeCount: input.signals.selectedThemeCount,
+    hasVoiceAudio: input.signals.hasVoiceAudio,
+  };
 }
 
-/** Destaque do menu lateral para a etapa atual, considerando a rota corrente. */
 export function resolveSidebarTarget(
   currentStepId: OnboardingStepId | null,
-  pathname: string,
+  _pathname: string,
 ): OnboardingSidebarTarget {
-  switch (currentStepId) {
-    case "temas":
-      return pathname.startsWith("/monitoramento/temas") ? "temas-config" : "monitoramento";
-    case "avatar":
-      return "avatar-config";
-    case "noticias":
-      return "monitoramento";
-    case "gerar":
-      return "criativos";
-    default:
-      return null;
+  if (!currentStepId) {
+    return null;
   }
+  return ONBOARDING_STEPS.find((step) => step.id === currentStepId)?.sidebar ?? null;
 }
 
-const STORAGE_PREFIX = "md:onboarding:v1:";
+export function getStepDef(stepId: OnboardingStepId | null): OnboardingStepDef | null {
+  if (!stepId) {
+    return null;
+  }
+  return ONBOARDING_STEPS.find((step) => step.id === stepId) ?? null;
+}
+
+/** v2 — IDs granulares por esfera/avatar. */
+const STORAGE_PREFIX = "md:onboarding:v2:";
 
 export function onboardingStorageKey(userKey: string | null | undefined): string {
   return `${STORAGE_PREFIX}${userKey && userKey.trim() ? userKey.trim() : "anon"}`;
@@ -171,6 +492,8 @@ export function readOnboardingState(userKey: string | null | undefined): Onboard
     return {
       dismissed: Boolean(parsed.dismissed),
       welcomeSeen: Boolean(parsed.welcomeSeen),
+      replayRequested: Boolean(parsed.replayRequested),
+      tourFromScratch: Boolean(parsed.tourFromScratch),
       localDone: Array.isArray(parsed.localDone)
         ? parsed.localDone.filter((id): id is OnboardingStepId =>
             STEP_ORDER.includes(id as OnboardingStepId),
@@ -192,6 +515,6 @@ export function writeOnboardingState(
   try {
     window.localStorage.setItem(onboardingStorageKey(userKey), JSON.stringify(state));
   } catch {
-    // Persistência é best-effort; ignorar falhas de quota/privacidade.
+    // Persistência é best-effort.
   }
 }

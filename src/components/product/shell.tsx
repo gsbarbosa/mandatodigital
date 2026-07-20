@@ -6,8 +6,9 @@ import { useProductApp } from "./provider";
 
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { NavSidebar } from "./nav-sidebar";
+import { OnboardingChecklist } from "./onboarding-checklist";
+import { OnboardingCoachmark } from "./onboarding-coachmark";
 import { OnboardingModals } from "./onboarding-modals";
-import { OnboardingTracker } from "./onboarding-tracker";
 
 export function ProductShell({ children }: { children: ReactNode }) {
   const { statusMessage, errorMessage, dismissMessages, sessionUser, signOut } =
@@ -27,8 +28,9 @@ export function ProductShell({ children }: { children: ReactNode }) {
       />
 
       <main className="flex-1 overflow-y-auto bg-gradient-to-b from-[#0B0F19] to-slate-900 relative">
-        <OnboardingTracker />
         <OnboardingModals />
+        <OnboardingCoachmark />
+        <OnboardingChecklist />
 
         <HeygenDevKeyPanel
           open={heygenDevOpen}

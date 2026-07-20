@@ -2400,7 +2400,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group persona-selection-panel relative z-10`}>
         {renderArchetypeIntro()}
 
-        <div className="persona-selection-block">
+        <div className="persona-selection-block scroll-mt-24" id="arquetipo" data-onboarding-anchor="criativo-arquetipo">
           <label className={CRIATIVO_LABEL_CLASS}>Arquétipo</label>
               <div className="flex flex-wrap gap-1 persona-top-gap">
                 {archetypeOptions.map((option) => (
@@ -2423,7 +2423,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               </div>
             </div>
 
-        <div className="persona-selection-block mt-6">
+        <div className="persona-selection-block mt-6 scroll-mt-24" id="tom" data-onboarding-anchor="criativo-tom">
           <label className={CRIATIVO_LABEL_CLASS}>Tom de linguagem</label>
               <div className="flex flex-wrap gap-1 persona-top-gap">
                 {voiceToneOptions.map((tone) => (
@@ -2484,7 +2484,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             </div>
           ) : (
           <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group persona-script-flow relative z-10`}>
-            <div className="persona-script-block">
+            <div className="persona-script-block scroll-mt-24" id="tema" data-onboarding-anchor="criativo-tema">
               <label className={CRIATIVO_LABEL_CLASS}>Tema do vídeo</label>
               <textarea
                 className={`${CRIATIVO_INPUT_CLASS} mt-3`}
@@ -2520,7 +2520,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             </div>
 
             {!useFreePromptAsTranscript ? (
-              <div className="persona-script-block">
+              <div className="persona-script-block scroll-mt-24" id="roteiro" data-onboarding-anchor="criativo-roteiro">
                 <label className={CRIATIVO_LABEL_CLASS}>Aprovação do roteiro</label>
                 <p className={`${CRIATIVO_HELPER_CLASS} mt-1 mb-3`}>
                   Veja o roteiro do vídeo que será produzido. Altere-o conforme necessário. Máximo
@@ -2632,14 +2632,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           </div>
           )}
 
-          <div className={`${CRIATIVO_PANEL_CLASS} relative z-10`}>
+          <div className={`${CRIATIVO_PANEL_CLASS} relative z-10 scroll-mt-24`} id="avatar" data-onboarding-anchor="criativo-avatar">
             <div className="border-b border-slate-800 pb-4 mb-6">
               <h2 className="text-xl font-bold text-white">Produzir vídeo</h2>
             </div>
 
           {renderProductionTemplateSelector()}
 
-          <div className="persona-production-actions mt-6">
+          <div className="persona-production-actions mt-6 scroll-mt-24" id="gerar" data-onboarding-anchor="criativo-gerar">
             <div className="persona-generate-row">
               <button
                 type="button"

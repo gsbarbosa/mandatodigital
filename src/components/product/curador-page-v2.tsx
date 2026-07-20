@@ -26,7 +26,7 @@ export function CuradorPageV2() {
       <div className="absolute top-[40%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
-        <header className="mb-10">
+        <header id="persona" data-onboarding-anchor="avatar-persona" className="mb-10 scroll-mt-24">
           <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-3">
             Calibragem de <span className="text-cyan-400">Persona</span>
           </h1>
@@ -63,10 +63,11 @@ export function CuradorPageV2() {
           />
         </section>
 
-        <section className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8">
-          <div className="border-b border-slate-800 pb-4 mb-6">
-            <h2 className="text-xl font-bold text-white">Glossário de expressões</h2>
-          </div>
+        <section
+          id="glossario"
+          data-onboarding-anchor="avatar-glossario"
+          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+        >
           <p className="text-sm text-slate-400 mb-4">
             Inclua características fundamentais da sua expressão, como por exemplo: né, tipo,
             entendeu, sabe, tá, ok, certo, mano, assim. As expressões do glossário são

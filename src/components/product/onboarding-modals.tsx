@@ -2,11 +2,10 @@
 
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { useOnboarding, type OnboardingBridge } from "./onboarding-provider";
-
-/* ----------------------------- ícones ----------------------------- */
+import { useProductApp } from "./provider";
 
 function RadarVisual() {
   return (
@@ -22,67 +21,6 @@ function RadarVisual() {
   );
 }
 
-function IconTarget() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="5" />
-      <circle cx="12" cy="12" r="1.2" />
-    </svg>
-  );
-}
-function IconEye() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-function IconPlay() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-      <path d="M8 5v14l11-7z" />
-    </svg>
-  );
-}
-function IconArrow() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-600">
-      <path d="M5 12h14M13 6l6 6-6 6" />
-    </svg>
-  );
-}
-function IconShield() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16 text-cyan-400">
-      <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" />
-      <path d="M9 12l2 2 4-4" />
-    </svg>
-  );
-}
-function IconBadge() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-function IconAudit() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <path d="M14 2v6h6M9 15l2 2 4-4" />
-    </svg>
-  );
-}
-function IconWater() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[17px] w-[17px]">
-      <path d="M12 2s6 6.5 6 11a6 6 0 01-12 0c0-4.5 6-11 6-11z" />
-    </svg>
-  );
-}
 function IconSpark() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7">
@@ -90,6 +28,7 @@ function IconSpark() {
     </svg>
   );
 }
+
 function IconClose() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
@@ -97,8 +36,6 @@ function IconClose() {
     </svg>
   );
 }
-
-/* ----------------------------- shell do modal ----------------------------- */
 
 function ModalShell({
   children,
@@ -134,155 +71,210 @@ function ModalShell({
   );
 }
 
-function PrimaryButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+function PrimaryButton({
+  children,
+  onClick,
+  disabled = false,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-[10px] bg-gradient-to-r from-cyan-400 to-blue-600 px-5 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(6,182,212,0.22)] transition-[filter] hover:brightness-110"
+      disabled={disabled}
+      className="w-full rounded-[10px] bg-gradient-to-r from-cyan-400 to-blue-600 px-5 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(6,182,212,0.22)] transition-[filter] hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
     >
       {children}
     </button>
   );
 }
 
-/* ----------------------------- boas-vindas ----------------------------- */
+function WelcomeModal() {
+  const { markWelcomeSeen, startGuide, currentStepId } = useOnboarding();
+  const router = useRouter();
 
-type Slide = { visual: ReactNode; title: string; body: ReactNode };
+  function begin() {
+    markWelcomeSeen();
+    const step = currentStepId ?? "temas-federal";
+    startGuide(step);
+    router.push("/monitoramento/temas#federal" as Route);
+  }
 
-function FlowStep({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <div className="flex w-[86px] flex-col items-center gap-2 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/10 text-cyan-400">
-        {icon}
-      </span>
-      <span className="text-[10.5px] font-semibold leading-tight text-slate-300">{label}</span>
-    </div>
+    <ModalShell onClose={markWelcomeSeen} maxWidth="max-w-[420px]">
+      <div className="mb-4 flex h-24 items-center justify-center">
+        <RadarVisual />
+      </div>
+      <h2 className="mb-2 text-balance text-center text-lg font-bold text-white">
+        Boas-vindas ao Mandato Digital
+      </h2>
+      <p className="text-center text-[13px] leading-relaxed text-slate-400">
+        Vamos configurar seus temas (nacional → estadual → municipal → adversário) e depois treinar
+        o avatar (foto, áudio, persona e glossário).
+      </p>
+      <div className="mt-6">
+        <PrimaryButton onClick={begin}>Começar pelo nível nacional</PrimaryButton>
+      </div>
+      <button
+        type="button"
+        onClick={markWelcomeSeen}
+        className="mt-3 w-full text-center text-[12px] font-medium text-slate-500 transition hover:text-slate-300"
+      >
+        Ver checklist depois
+      </button>
+    </ModalShell>
   );
 }
 
-const WELCOME_SLIDES: Slide[] = [
-  {
-    visual: <RadarVisual />,
-    title: "Boas-vindas ao Mandato Digital",
-    body: "Monitoramos notícias e redes sociais sobre você e seus adversários, todos os dias, para você nunca perder uma pauta relevante.",
-  },
-  {
-    visual: (
-      <div className="flex items-center gap-1.5">
-        <FlowStep icon={<IconTarget />} label="Selecionar Temas" />
-        <IconArrow />
-        <FlowStep icon={<IconEye />} label="Ver notícias dos temas" />
-        <IconArrow />
-        <FlowStep icon={<IconPlay />} label="Pautar e Gerar Vídeo" />
-      </div>
-    ),
-    title: "Você escolhe, nós produzimos!",
-    body: "Selecionar Temas → Ver notícias dos temas → Pautar e Gerar Vídeo. Você revisa e aprova cada etapa antes de publicar.",
-  },
-  {
-    visual: <IconShield />,
-    title: "Tudo dentro da lei eleitoral.",
-    body: "Fact-check automático, aprovação humana obrigatória e trilha de auditoria completa — pensado para as regras do TSE.",
-  },
-];
-
-function WelcomeModal() {
-  const { markWelcomeSeen } = useOnboarding();
-  const [index, setIndex] = useState(0);
-  const slide = WELCOME_SLIDES[index];
-  const isLast = index === WELCOME_SLIDES.length - 1;
+function AfterThemesBridge() {
+  const { closeBridge, startGuide } = useOnboarding();
+  const { isSavingProfile } = useProductApp();
+  const router = useRouter();
 
   return (
-    <ModalShell onClose={markWelcomeSeen} maxWidth="max-w-[440px]">
-      <div className="mb-4 flex h-28 items-center justify-center">{slide.visual}</div>
-      <h2 className="mb-2.5 text-balance text-center text-lg font-bold text-white">{slide.title}</h2>
-      <p className="text-center text-[13px] leading-relaxed text-slate-400">{slide.body}</p>
-
-      <div className="my-5 flex justify-center gap-1.5">
-        {WELCOME_SLIDES.map((_, dot) => (
-          <span
-            key={dot}
-            className={
-              dot === index
-                ? "h-1.5 w-4 rounded-full bg-cyan-400"
-                : "h-1.5 w-1.5 rounded-full bg-slate-600"
-            }
-          />
-        ))}
+    <ModalShell onClose={closeBridge}>
+      <div className="mb-4 flex h-24 items-center justify-center">
+        <RadarVisual />
       </div>
-
-      <PrimaryButton onClick={isLast ? markWelcomeSeen : () => setIndex((current) => current + 1)}>
-        {isLast ? "Começar configuração" : "Próximo"}
+      <h2 className="mb-2.5 text-center text-lg font-bold text-white">Temas configurados!</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+        Seu radar foi salvo e o Sentinela já está buscando as pautas. Enquanto isso, vamos treinar o
+        avatar: foto, áudio, calibragem de persona e glossário.
+      </p>
+      <PrimaryButton
+        disabled={isSavingProfile}
+        onClick={() => {
+          closeBridge();
+          startGuide("avatar-foto");
+          router.push("/avatares/foto-real/treinar#foto" as Route);
+        }}
+      >
+        {isSavingProfile ? "Salvando radar..." : "Começar pelo envio da foto"}
       </PrimaryButton>
     </ModalShell>
   );
 }
 
-/* ----------------------------- pontes ----------------------------- */
+function AfterAvatarBridge() {
+  const { closeBridge, startGuide } = useOnboarding();
+  const router = useRouter();
 
-function Guarantee({ icon, title, body }: { icon: ReactNode; title: string; body: string }) {
   return (
-    <div className="flex gap-3 border-b border-slate-800/70 py-3.5 last:border-b-0">
-      <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] bg-cyan-400/10 text-cyan-400">
-        {icon}
-      </span>
-      <div>
-        <h4 className="text-[13.5px] font-bold text-slate-100">{title}</h4>
-        <p className="text-[12.5px] leading-snug text-slate-400">{body}</p>
+    <ModalShell onClose={closeBridge}>
+      <div className="mb-4 flex h-24 items-center justify-center">
+        <RadarVisual />
       </div>
-    </div>
+      <h2 className="mb-2.5 text-center text-lg font-bold text-white">
+        O Sentinela já montou suas pautas
+      </h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+        Com os temas e o avatar prontos, o Sentinela vasculhou portais e redes e organizou as
+        primeiras pautas do radar. No próximo passo, você vai pautar a primeira delas no Criativo.
+      </p>
+      <PrimaryButton
+        onClick={() => {
+          closeBridge();
+          startGuide("pautas-pautar");
+          router.push("/monitoramento" as Route);
+        }}
+      >
+        Ver as pautas
+      </PrimaryButton>
+    </ModalShell>
   );
 }
 
-const GUARANTEES = [
-  {
-    icon: <IconBadge />,
-    title: "Fact-check por IA",
-    body: "Toda afirmação do roteiro passa pela auditoria do Mandato Digital antes de virar vídeo.",
-  },
-  {
-    icon: <IconEye />,
-    title: "Aprovação humana obrigatória",
-    body: "Nenhum vídeo é publicado automaticamente — você sempre revisa e aprova antes.",
-  },
-  {
-    icon: <IconAudit />,
-    title: "Trilha de auditoria completa",
-    body: "Cada pauta, roteiro e aprovação tem o seu log registrado para eventuais necessidades junto ao TSE.",
-  },
-  {
-    icon: <IconWater />,
-    title: "Marca d’água identificável",
-    body: "Vídeos gerados por IA são sinalizados, conforme as regras do TSE para 2026.",
-  },
-];
-
-function BridgeModal({ kind }: { kind: Exclude<OnboardingBridge, null> }) {
-  const { closeBridge } = useOnboarding();
+function AfterPautasBridge() {
+  const { closeBridge, startGuide } = useOnboarding();
   const router = useRouter();
 
-  if (kind === "afterRadar") {
-    return (
-      <ModalShell onClose={closeBridge}>
-        <div className="mb-4 flex h-24 items-center justify-center">
-          <RadarVisual />
-        </div>
-        <h2 className="mb-2.5 text-center text-lg font-bold text-white">Radar ativado!</h2>
-        <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
-          Enquanto nossos robôs estão buscando por notícias nos temas selecionados, vamos aproveitar
-          para configurar o seu avatar.
-        </p>
-        <PrimaryButton
-          onClick={() => {
-            closeBridge();
-            router.push("/avatares/foto-real/treinar" as Route);
-          }}
-        >
-          Configurar avatar
-        </PrimaryButton>
-      </ModalShell>
-    );
+  return (
+    <ModalShell onClose={closeBridge}>
+      <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-cyan-400">
+        <IconSpark />
+      </div>
+      <h2 className="mb-2.5 text-center text-lg font-bold text-white">Hora de criar o roteiro</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+        Com a pauta escolhida, vamos definir arquétipo, tom de linguagem, tema e aprovar o roteiro
+        antes de produzir o vídeo.
+      </p>
+      <PrimaryButton
+        onClick={() => {
+          closeBridge();
+          startGuide("criativo-arquetipo");
+          const onCriativo =
+            typeof window !== "undefined" &&
+            window.location.pathname.startsWith("/criativo/novo");
+          if (onCriativo) {
+            const next = `${window.location.pathname}${window.location.search}#arquetipo`;
+            window.history.replaceState(null, "", next);
+          } else {
+            router.push("/criativo/novo#arquetipo" as Route);
+          }
+        }}
+      >
+        Começar pelo arquétipo
+      </PrimaryButton>
+    </ModalShell>
+  );
+}
+
+function AfterRoteiroBridge() {
+  const { closeBridge, startGuide } = useOnboarding();
+  const router = useRouter();
+
+  return (
+    <ModalShell onClose={closeBridge}>
+      <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-cyan-400">
+        <IconSpark />
+      </div>
+      <h2 className="mb-2.5 text-center text-lg font-bold text-white">Roteiro pronto</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+        Agora escolha o avatar e gere o vídeo. Em poucos cliques o conteúdo sai com a sua cara e a
+        sua voz.
+      </p>
+      <PrimaryButton
+        onClick={() => {
+          closeBridge();
+          startGuide("criativo-avatar");
+          const onCriativo =
+            typeof window !== "undefined" &&
+            window.location.pathname.startsWith("/criativo/novo");
+          if (onCriativo) {
+            const next = `${window.location.pathname}${window.location.search}#avatar`;
+            window.history.replaceState(null, "", next);
+          } else {
+            router.push("/criativo/novo#avatar" as Route);
+          }
+        }}
+      >
+        Escolher avatar
+      </PrimaryButton>
+    </ModalShell>
+  );
+}
+
+function BridgeModal({ kind }: { kind: Exclude<OnboardingBridge, null> }) {
+  const { closeBridge, startGuide } = useOnboarding();
+  const router = useRouter();
+
+  if (kind === "afterThemes") {
+    return <AfterThemesBridge />;
+  }
+
+  if (kind === "afterAvatar") {
+    return <AfterAvatarBridge />;
+  }
+
+  if (kind === "afterPautas") {
+    return <AfterPautasBridge />;
+  }
+
+  if (kind === "afterRoteiro") {
+    return <AfterRoteiroBridge />;
   }
 
   if (kind === "afterUploads") {
@@ -291,44 +283,33 @@ function BridgeModal({ kind }: { kind: Exclude<OnboardingBridge, null> }) {
         <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-cyan-400">
           <IconSpark />
         </div>
-        <h2 className="mb-2.5 text-center text-lg font-bold text-white">Avatar em treinamento</h2>
+        <h2 className="mb-2.5 text-center text-lg font-bold text-white">Mídia enviada</h2>
         <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
-          Agora que as notícias estão saindo do forno, paute alguma para testar a criação do
-          conteúdo.
+          Próximo passo: calibrar a persona e o glossário no Curador.
         </p>
         <PrimaryButton
           onClick={() => {
             closeBridge();
-            router.push("/monitoramento" as Route);
+            startGuide("avatar-persona");
+            router.push("/curador#persona" as Route);
           }}
         >
-          Ver minhas pautas
+          Ir para calibragem
         </PrimaryButton>
       </ModalShell>
     );
   }
 
-  // kind === "compliance"
   return (
-    <ModalShell onClose={closeBridge} maxWidth="max-w-[500px]">
-      <h2 className="text-[16px] font-bold text-white">Enquanto o vídeo fica pronto</h2>
-      <p className="mb-2 mt-1 flex items-center gap-2 text-[12.5px] text-slate-400">
-        <span className="h-[18px] w-[18px] shrink-0 animate-spin rounded-full border-2 border-cyan-400/25 border-t-cyan-400 motion-reduce:animate-none" />
-        Pode levar até 03 minutinhos. Algumas informações importantes:
+    <ModalShell onClose={closeBridge}>
+      <h2 className="mb-2 text-center text-lg font-bold text-white">Onboarding quase lá</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+        Continue pelo checklist no canto inferior direito.
       </p>
-      <div className="mt-2">
-        {GUARANTEES.map((item) => (
-          <Guarantee key={item.title} icon={item.icon} title={item.title} body={item.body} />
-        ))}
-      </div>
-      <div className="mt-5">
-        <PrimaryButton onClick={closeBridge}>Entendi, continuar</PrimaryButton>
-      </div>
+      <PrimaryButton onClick={closeBridge}>Entendi</PrimaryButton>
     </ModalShell>
   );
 }
-
-/* ----------------------------- orquestrador ----------------------------- */
 
 export function OnboardingModals() {
   const { mounted, showWelcome, bridge } = useOnboarding();

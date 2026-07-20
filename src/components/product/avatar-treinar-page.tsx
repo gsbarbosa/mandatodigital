@@ -78,7 +78,11 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
           </p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             {/* FOTO */}
-            <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 flex flex-col h-full">
+            <div
+              id="foto"
+              data-onboarding-anchor="avatar-foto"
+              className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,7 +134,11 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
             </div>
 
             {/* VOZ */}
-            <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 flex flex-col h-full">
+            <div
+              id="audio"
+              data-onboarding-anchor="avatar-audio"
+              className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
+            >
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

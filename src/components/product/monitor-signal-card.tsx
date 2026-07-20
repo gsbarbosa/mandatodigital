@@ -152,12 +152,22 @@ export function primarySignalActor(
   return suggestion.evidence.actors?.[0] ?? null;
 }
 
-function PautarButton({ suggestion }: { suggestion: MockSentinelSuggestion }) {
+function PautarButton({
+  suggestion,
+  onboardingAnchor,
+  onPautar,
+}: {
+  suggestion: MockSentinelSuggestion;
+  onboardingAnchor?: string;
+  onPautar?: () => void;
+}) {
   return (
     <Link
       href={
         buildCriativoNovoHref({ id: suggestion.id, topic: suggestion.topic }) as Route
       }
+      data-onboarding-anchor={onboardingAnchor}
+      onClick={() => onPautar?.()}
       className="w-full md:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-2.5 px-6 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] flex items-center justify-center gap-2 no-underline"
     >
       Pautar
@@ -170,11 +180,15 @@ export function MonitorSignalCard({
   oppositionCard = false,
   showPautar = true,
   onOpenEvidence,
+  pautarOnboardingAnchor,
+  onPautar,
 }: {
   suggestion: MockSentinelSuggestion;
   oppositionCard?: boolean;
   showPautar?: boolean;
   onOpenEvidence?: (suggestion: MockSentinelSuggestion) => void;
+  pautarOnboardingAnchor?: string;
+  onPautar?: () => void;
 }) {
   const article = primarySignalArticle(suggestion);
   const actor = primarySignalActor(suggestion);
@@ -332,7 +346,11 @@ export function MonitorSignalCard({
 
         {showPautar ? (
           <div className="shrink-0 flex items-center justify-center md:pl-4">
-            <PautarButton suggestion={suggestion} />
+            <PautarButton
+              suggestion={suggestion}
+              onboardingAnchor={pautarOnboardingAnchor}
+              onPautar={onPautar}
+            />
           </div>
         ) : null}
       </div>

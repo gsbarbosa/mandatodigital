@@ -81,6 +81,7 @@ const NAV_SINGLES: NavChild[] = [
   { label: "Meus criativos", href: "/criativo" },
   { label: "Gerar pauta independente", href: "/independente" },
   { label: "Compliance TSE", href: "/compliance" },
+  { label: "Auditoria", href: "/auditoria" },
 ];
 
 function navHrefPath(href: string) {
@@ -158,7 +159,7 @@ export function NavSidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { sidebarTarget } = useOnboarding();
+  const { sidebarTarget, restartOnboarding, mounted } = useOnboarding();
   const [activeHash, setActiveHash] = useState("");
   const [pendingMonitorHash, setPendingMonitorHash] = useState<string | null>(null);
 
@@ -247,12 +248,16 @@ export function NavSidebar({
           const blockActive = isBlockActive(pathname, block.href);
           const blockHl =
             sidebarTarget === "monitoramento" && block.href.startsWith("/monitoramento");
+          const temasConfigHl = sidebarTarget === "temas-config";
 
           return (
           <div key={block.label}>
             <Link
               href={block.href as Route}
               className={`${navParentClassName(blockActive)}${blockHl ? " !text-cyan-300" : ""}`}
+              data-onboarding-anchor={
+                block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
+              }
             >
               {blockHl ? <OnbHighlightDot /> : null}
               {block.label}
@@ -261,7 +266,7 @@ export function NavSidebar({
               {(block.children ?? []).map((child) => {
                 const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
                 const childHl =
-                  (sidebarTarget === "temas-config" && child.href === "/monitoramento/temas") ||
+                  (temasConfigHl && child.href === "/monitoramento/temas") ||
                   (sidebarTarget === "avatar-config" &&
                     child.href === "/avatares/foto-real/treinar");
 
@@ -285,6 +290,13 @@ export function NavSidebar({
                   <Link
                     href={child.href as Route}
                     className={`flex items-center gap-1.5 ${childClassName(childActive)}${childHl ? " !text-cyan-300" : ""}`}
+                    data-onboarding-anchor={
+                      child.href === "/monitoramento/temas"
+                        ? "temas-config"
+                        : child.href === "/avatares/foto-real/treinar"
+                          ? "avatar-config"
+                          : undefined
+                    }
                   >
                     {childHl ? <OnbHighlightDot /> : null}
                     {child.variant === "settings" ? (
@@ -308,13 +320,16 @@ export function NavSidebar({
         <div className="space-y-1 pt-2">
           {NAV_SINGLES.map((item) => {
             const itemActive = isChildActive(pathname, item.href, activeHash, pendingMonitorHash);
-            const singleHl = sidebarTarget === "criativos" && item.href === "/criativo";
+            const singleHl =
+              sidebarTarget === "criativo" &&
+              (item.href === "/criativo" || item.href.startsWith("/criativo"));
 
             return (
             <Link
               key={item.href}
               href={item.href as Route}
-              className={`${navParentClassName(itemActive)}${singleHl ? " !text-cyan-300" : ""}`}
+              className={`${navParentClassName(itemActive || Boolean(singleHl))}${singleHl ? " !text-cyan-300" : ""}`}
+              data-onboarding-anchor={item.href === "/criativo" ? "criativo" : undefined}
             >
               {singleHl ? <OnbHighlightDot /> : null}
               {item.label}
@@ -357,6 +372,15 @@ export function NavSidebar({
 
       {sessionEmail ? (
         <div className="p-4 border-t border-slate-800/50 space-y-2">
+          {mounted && !pathname.startsWith("/acesso-antecipado") ? (
+            <button
+              type="button"
+              onClick={() => restartOnboarding()}
+              className="w-full text-left text-[11px] font-medium text-cyan-400/90 hover:text-cyan-300 border border-slate-700/80 hover:border-cyan-500/40 rounded-lg px-2.5 py-2 transition-colors"
+            >
+              Começar onboarding do zero
+            </button>
+          ) : null}
           <div className="flex items-center justify-between gap-2">
             {canToggleAccountMode ? (
               <button

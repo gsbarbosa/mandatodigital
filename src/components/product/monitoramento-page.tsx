@@ -8,6 +8,7 @@ import {
   SignalEvidenceDrawer,
 } from "@/components/product/monitor-signal-card";
 import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
+import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
@@ -54,6 +55,7 @@ function ThemeChips({ themes }: { themes: string[] }) {
 
 export function MonitoramentoPage() {
   const { profileForm } = useProductApp();
+  const { guideOpen, guideStepId, markStepDone } = useOnboarding();
   const [suggestions, setSuggestions] = useState<MockSentinelSuggestion[]>([]);
   const [meta, setMeta] = useState<SentinelSuggestionsMeta | null>(null);
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
@@ -178,6 +180,16 @@ export function MonitoramentoPage() {
 
   const interestSitesLabel = profileForm.interestSites.filter(Boolean).join(", ");
 
+  const firstPautarSuggestionId = useMemo(() => {
+    for (const { sphere } of SECTIONS) {
+      const first = grouped[sphere][0];
+      if (first) {
+        return first.id;
+      }
+    }
+    return null;
+  }, [grouped]);
+
   return (
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
@@ -269,6 +281,16 @@ export function MonitoramentoPage() {
                       suggestion={suggestion}
                       oppositionCard={sphere === "adversarios"}
                       onOpenEvidence={setEvidenceSuggestion}
+                      pautarOnboardingAnchor={
+                        suggestion.id === firstPautarSuggestionId ? "pautas-pautar" : undefined
+                      }
+                      onPautar={
+                        guideOpen &&
+                        guideStepId === "pautas-pautar" &&
+                        suggestion.id === firstPautarSuggestionId
+                          ? () => markStepDone("pautas-pautar")
+                          : undefined
+                      }
                     />
                   ))}
                 </div>
