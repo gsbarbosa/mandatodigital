@@ -1,5 +1,6 @@
 import { after, NextResponse } from "next/server";
 
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { apiRoute } from "@/lib/auth/api-route";
 import { generateContentVariants } from "@/lib/llm";
 import { contentRequestInputSchema } from "@/lib/schemas";
@@ -27,6 +28,18 @@ export async function POST(request: Request) {
       contentRequest.id,
       generation.variants,
     );
+
+    recordAuditEventFireAndForget({
+      request,
+      profileId: profile.id,
+      action: "content_generate",
+      payload: {
+        contentRequestId: contentRequest.id,
+        variants: generatedContents.length,
+        format: payload.format,
+        usedFallback: generation.usedFallback,
+      },
+    });
 
     if (isJudgeEvaluationEnabled() && !generation.usedFallback) {
       after(async () => {

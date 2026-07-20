@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { apiRoute } from "@/lib/auth/api-route";
 import { creativeProjectStorage } from "@/lib/creative-project-storage";
 import { creativeProjectStatuses } from "@/lib/types";
@@ -55,6 +56,18 @@ export async function POST(request: Request) {
       profileId,
       ...parsed,
       heygenVideoId: parsed.heygenVideoId ?? null,
+    });
+
+    recordAuditEventFireAndForget({
+      request,
+      profileId,
+      projectId: project.id,
+      action: "creative_project_create",
+      payload: {
+        topic: project.topic,
+        status: project.status,
+        avatarTrack: project.avatarTrack,
+      },
     });
 
     return NextResponse.json({ project }, { status: 201 });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
@@ -71,6 +72,17 @@ export async function POST(request: Request) {
       if (!published) {
         kickLocalWorker("voice_tts", job.id);
       }
+
+      recordAuditEventFireAndForget({
+        request,
+        ownerUserId,
+        action: "voice_job",
+        payload: {
+          jobId: job.id,
+          status: job.status,
+          createVideo: Boolean(body.createVideo),
+        },
+      });
 
       return NextResponse.json(
         { jobId: job.id, status: job.status, type: job.type },

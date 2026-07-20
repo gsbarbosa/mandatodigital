@@ -1,12 +1,14 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { getFirebaseAdminAuth } from "@/lib/firebase/admin";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import {
   FIREBASE_SESSION_COOKIE,
   FIREBASE_SESSION_MAX_AGE_MS,
 } from "@/lib/firebase/session";
+import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
@@ -56,6 +58,16 @@ export async function POST(request: Request) {
     } catch (bootstrapError) {
       console.error("[auth/session] ensureUserRegistration failed:", bootstrapError);
     }
+
+    recordAuditEventFireAndForget({
+      request,
+      ownerUserId: toDatabaseOwnerUserId(decoded.uid),
+      action: "session_login",
+      payload: {
+        email: decoded.email ?? "",
+        registrationComplete,
+      },
+    });
 
     return NextResponse.json({
       ok: true,

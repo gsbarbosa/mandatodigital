@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
@@ -34,6 +35,20 @@ import {
 } from "@/lib/async-jobs-enqueue";
 
 export const maxDuration = 300;
+
+function auditVideoEvent(
+  request: Request,
+  profileId: string | null | undefined,
+  payload: Record<string, unknown>,
+  action: "video_generate" | "voice_job" = "video_generate",
+) {
+  recordAuditEventFireAndForget({
+    request,
+    profileId: profileId ?? null,
+    action,
+    payload,
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -177,6 +192,16 @@ export async function POST(request: Request) {
                 },
               },
             });
+            auditVideoEvent(
+              request,
+              dashboard.profile?.id,
+              {
+                jobId: enqueued.jobId,
+                generateMode,
+                async: true,
+              },
+              "voice_job",
+            );
             return NextResponse.json(
               {
                 jobId: enqueued.jobId,
@@ -217,6 +242,11 @@ export async function POST(request: Request) {
             resolution: "1080p",
             callbackUrl,
           });
+          auditVideoEvent(request, dashboard.profile?.id, {
+            videoId: result.videoId,
+            generateMode,
+            voiceProvider: "elevenlabs_audio",
+          });
           return NextResponse.json(
             {
               videoId: result.videoId,
@@ -252,6 +282,11 @@ export async function POST(request: Request) {
               }),
           });
 
+        auditVideoEvent(request, dashboard.profile?.id, {
+          videoId: value.videoId,
+          generateMode,
+          voiceProvider: "heygen_clone",
+        });
         return NextResponse.json(
           {
             videoId: value.videoId,
@@ -356,6 +391,11 @@ export async function POST(request: Request) {
               callbackUrl,
               engine,
             });
+            auditVideoEvent(request, dashboard.profile?.id, {
+              videoId: result.videoId,
+              generateMode: "avatar",
+              voiceProvider: "elevenlabs_audio",
+            });
             return NextResponse.json(
               {
                 videoId: result.videoId,
@@ -400,6 +440,11 @@ export async function POST(request: Request) {
           }
         }
 
+        auditVideoEvent(request, dashboard.profile?.id, {
+          videoId: result.videoId,
+          generateMode: "avatar",
+          voiceProvider: "heygen_clone",
+        });
         return NextResponse.json(
           {
             videoId: result.videoId,
@@ -462,6 +507,11 @@ export async function POST(request: Request) {
             resolution: "1080p",
             callbackUrl,
           });
+          auditVideoEvent(request, dashboard.profile?.id, {
+            videoId: fallbackResult.videoId,
+            providerMode: "image_fallback",
+            voiceProvider: "elevenlabs_audio",
+          });
           return NextResponse.json(
             {
               videoId: fallbackResult.videoId,
@@ -493,6 +543,11 @@ export async function POST(request: Request) {
             }),
         });
 
+        auditVideoEvent(request, dashboard.profile?.id, {
+          videoId: fallbackResult.videoId,
+          providerMode: "image_fallback",
+          voiceProvider: "heygen_clone",
+        });
         return NextResponse.json(
           {
             videoId: fallbackResult.videoId,

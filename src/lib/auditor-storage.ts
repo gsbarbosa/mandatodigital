@@ -1,3 +1,4 @@
+import { recordAuditEvent } from "@/lib/audit/record";
 import type { FactCheckResult } from "@/lib/auditor/types";
 import { isAuditorFactCheckEnabled } from "@/lib/feature-flags";
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
@@ -13,17 +14,6 @@ type FactCheckRecord = {
   confidence: number;
   result: FactCheckResult;
   checkedAt: string;
-};
-
-type AuditLogRow = {
-  id: string;
-  ownerUserId: string;
-  profileId: string | null;
-  projectId: string | null;
-  eventType: string;
-  payload: Record<string, unknown>;
-  consentTextVersion: string;
-  createdAt: string;
 };
 
 function nowIso() {
@@ -67,20 +57,20 @@ export const auditorStorage = {
     eventType: string;
     payload?: Record<string, unknown>;
     consentTextVersion?: string;
+    request?: Request | null;
+    ip?: string;
+    userAgent?: string;
   }) {
-    const ownerUserId = resolveOwnerUserId();
-    const row: AuditLogRow = {
-      id: crypto.randomUUID(),
-      ownerUserId,
-      profileId: input.profileId ?? null,
-      projectId: input.projectId ?? null,
-      eventType: input.eventType,
-      payload: input.payload ?? {},
-      consentTextVersion: input.consentTextVersion ?? "v1",
-      createdAt: nowIso(),
-    };
-
-    await col(COLLECTIONS.auditLog).doc(row.id).set(row);
+    await recordAuditEvent({
+      request: input.request,
+      profileId: input.profileId,
+      projectId: input.projectId,
+      action: input.eventType,
+      payload: input.payload,
+      consentTextVersion: input.consentTextVersion,
+      ip: input.ip,
+      userAgent: input.userAgent,
+    });
   },
 };
 

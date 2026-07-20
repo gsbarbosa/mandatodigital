@@ -156,6 +156,9 @@ export async function POST(request: Request) {
       await auditorStorage.appendAuditLog({
         eventType: "contract_acceptance",
         consentTextVersion: contractDoc.version,
+        request,
+        ip,
+        userAgent,
         payload: {
           acceptanceId,
           cnpj: campaignCnpj,

@@ -30,6 +30,7 @@ export async function POST(request: Request) {
         projectId: body.projectId ?? null,
         eventType: "manual_export",
         consentTextVersion: EXPORT_COMPLIANCE_CONSENT_VERSION,
+        request,
         payload: {
           media_id: body.mediaId,
           media_url: body.mediaUrl ?? null,

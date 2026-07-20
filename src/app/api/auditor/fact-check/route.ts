@@ -38,6 +38,7 @@ export async function POST(request: Request) {
         await auditorStorage.appendAuditLog({
           profileId: profile.id,
           eventType: "fact_check_bypass_free_prompt",
+          request,
           payload: { topic: body.topic ?? "" },
         });
 
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
       await auditorStorage.appendAuditLog({
         profileId: profile.id,
         eventType: "script_fact_check",
+        request,
         payload: {
           suggestionId: body.suggestionId ?? null,
           verdict: result.verdict,
