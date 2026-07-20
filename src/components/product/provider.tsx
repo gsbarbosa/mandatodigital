@@ -386,39 +386,43 @@ export function ProductAppProvider({
         );
 
         if (canDirectUpload && signed?.signedUrl && signed.storagePath && signed.storageBucket) {
-          await uploadTrainingFileToSignedStorage({
-            signedUrl: signed.signedUrl,
-            storageBucket: signed.storageBucket,
-            storagePath: signed.storagePath,
-            storageProvider: "firebase",
-            contentType: signed.contentType,
-            uploadMethod: "put",
-            file,
-          });
+          try {
+            await uploadTrainingFileToSignedStorage({
+              signedUrl: signed.signedUrl,
+              storageBucket: signed.storageBucket,
+              storagePath: signed.storagePath,
+              storageProvider: "firebase",
+              contentType: signed.contentType,
+              uploadMethod: "put",
+              file,
+            });
 
-          const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
-            "/api/profile/training-assets/register",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
+            const registered = await handleApi<{ assets: ProfileTrainingAsset[] }>(
+              "/api/profile/training-assets/register",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  profileId,
+                  draftProfileId,
+                  trainingRole,
+                  storageProvider: "firebase",
+                  storageBucket: signed.storageBucket ?? null,
+                  storagePath: signed.storagePath,
+                  originalFilename: file.name,
+                  mimeType: file.type,
+                  sizeBytes: file.size,
+                }),
               },
-              body: JSON.stringify({
-                profileId,
-                draftProfileId,
-                trainingRole,
-                storageProvider: "firebase",
-                storageBucket: signed.storageBucket ?? null,
-                storagePath: signed.storagePath,
-                originalFilename: file.name,
-                mimeType: file.type,
-                sizeBytes: file.size,
-              }),
-            },
-          );
+            );
 
-          uploadedAssets.push(...registered.assets);
-          continue;
+            uploadedAssets.push(...registered.assets);
+            continue;
+          } catch {
+            // CORS/rede no PUT direto ao Storage — cai no proxy via API.
+          }
         }
 
         const uploadParams = new URLSearchParams({

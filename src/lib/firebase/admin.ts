@@ -50,8 +50,14 @@ export function getFirebaseAdminAuth(): Auth {
   return getAuth(getFirebaseAdminApp());
 }
 
+let firestore: Firestore | undefined;
+
 export function getFirestore(): Firestore {
-  return getAdminFirestore(getFirebaseAdminApp());
+  if (!firestore) {
+    firestore = getAdminFirestore(getFirebaseAdminApp());
+    firestore.settings({ ignoreUndefinedProperties: true });
+  }
+  return firestore;
 }
 
 export function getFirebaseAdminStorage(): Storage {

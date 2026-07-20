@@ -14,9 +14,13 @@ export function formatStorageUploadError(raw: string, fileSizeBytes?: number) {
 
   if (
     lower.includes("fetch failed") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("networkerror") ||
+    lower.includes("err_failed") ||
     lower.includes("econnreset") ||
     lower.includes("socket hang up") ||
-    lower.includes("network error")
+    lower.includes("network error") ||
+    lower.includes("cors")
   ) {
     return (
       `Falha de rede ao enviar o arquivo${sizeMb} para o Firebase Storage. Tente novamente em alguns segundos.`

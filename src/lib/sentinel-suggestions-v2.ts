@@ -59,8 +59,10 @@ function toNewsArticle(article: RssNewsItem): SentinelNewsArticle {
   return {
     title: article.title,
     url: article.link,
-    sourceName: article.sourceName ?? article.siteHost,
-    publishedAt: article.pubDate ?? undefined,
+    ...(article.sourceName || article.siteHost
+      ? { sourceName: article.sourceName ?? article.siteHost }
+      : {}),
+    ...(article.pubDate ? { publishedAt: article.pubDate } : {}),
   };
 }
 
@@ -226,8 +228,11 @@ async function buildSuggestionFromCluster(input: {
     matchedExpandedTerms = [],
   } = input;
   const haystack = `${primary.title} ${primary.sourceName ?? ""} ${primary.siteHost ?? ""}`;
-  const matchingSearchTerm =
-    resolveArticleMatchingSearchTerm(haystack, themeLabel, matchedExpandedTerms) ?? undefined;
+  const matchingSearchTerm = resolveArticleMatchingSearchTerm(
+    haystack,
+    themeLabel,
+    matchedExpandedTerms,
+  );
   const outletCount = countUniqueOutlets(articles);
   const sortedArticles = [...articles]
     .sort((left, right) => {
@@ -250,7 +255,7 @@ async function buildSuggestionFromCluster(input: {
     id: buildSuggestionId(primary.link, pipeline),
     themeLabel,
     matchedThemes,
-    matchingSearchTerm,
+    ...(matchingSearchTerm ? { matchingSearchTerm } : {}),
     relevanceScore,
     pipeline,
     topic: buildTopicLabel(themeLabel, primary.title),
@@ -258,7 +263,7 @@ async function buildSuggestionFromCluster(input: {
       postsAnalyzed: articles.length,
       outletCount,
       engagementTrendPercent: searchTrend?.changePercent ?? 0,
-      searchTrend: searchTrend ?? undefined,
+      ...(searchTrend ? { searchTrend } : {}),
       byNetwork: [],
       actors: [],
       articles: sortedArticles.map(toNewsArticle),
