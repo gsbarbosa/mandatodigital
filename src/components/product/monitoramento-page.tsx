@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   MonitorSignalCard,
@@ -10,10 +10,16 @@ import {
 import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
+import type { GuestSentinelCredits } from "@/lib/guest-limits";
+import { needsDailySentinelRefresh } from "@/lib/guest-limits";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 import { groupSuggestionsBySphere, type MonitorSphere } from "@/lib/sphere-classifier";
 import { resolveSentinelThemeSpheres } from "@/lib/sentinel-profile-themes";
+import {
+  isDevAccountModeEmail,
+  readDevAccountModeFromDocumentCookie,
+} from "@/lib/dev-account-mode";
 
 const INITIAL_VISIBLE = 3;
 const VISIBLE_STEP = 5;
@@ -22,6 +28,8 @@ type SuggestionsPayload = {
   message?: string;
   suggestions?: MockSentinelSuggestion[];
   meta?: SentinelSuggestionsMeta;
+  credits?: GuestSentinelCredits | null;
+  skipped?: boolean;
 };
 
 const SECTIONS: Array<{
@@ -54,10 +62,11 @@ function ThemeChips({ themes }: { themes: string[] }) {
 }
 
 export function MonitoramentoPage() {
-  const { profileForm } = useProductApp();
+  const { profileForm, sessionUser } = useProductApp();
   const { guideOpen, guideStepId, markStepDone } = useOnboarding();
   const [suggestions, setSuggestions] = useState<MockSentinelSuggestion[]>([]);
   const [meta, setMeta] = useState<SentinelSuggestionsMeta | null>(null);
+  const [credits, setCredits] = useState<GuestSentinelCredits | null>(null);
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -69,6 +78,15 @@ export function MonitoramentoPage() {
     adversarios: INITIAL_VISIBLE,
   });
   const [evidenceSuggestion, setEvidenceSuggestion] = useState<MockSentinelSuggestion | null>(null);
+  const dailyCheckInFlight = useRef(false);
+
+  const isGuestUi = useMemo(() => {
+    const email = sessionUser?.email ?? "";
+    if (isDevAccountModeEmail(email)) {
+      return readDevAccountModeFromDocumentCookie() !== "premium";
+    }
+    return true;
+  }, [sessionUser?.email]);
 
   const loadSuggestions = useCallback(async () => {
     setIsLoading(true);
@@ -83,6 +101,9 @@ export function MonitoramentoPage() {
       }
       setSuggestions(payload.suggestions ?? []);
       setMeta(payload.meta ?? null);
+      if (payload.credits) {
+        setCredits(payload.credits);
+      }
       if (!payload.suggestions?.length) {
         setLoadMessage(payload.meta?.emptyReason || "Nenhuma pauta capturada para o radar atual.");
       }
@@ -94,9 +115,83 @@ export function MonitoramentoPage() {
     }
   }, []);
 
+  const runDailyRefreshIfNeeded = useCallback(
+    async (refreshedAt: string | null | undefined) => {
+      if (dailyCheckInFlight.current) {
+        return;
+      }
+      if (!needsDailySentinelRefresh(refreshedAt)) {
+        return;
+      }
+      dailyCheckInFlight.current = true;
+      setIsRefreshing(true);
+      try {
+        const response = await fetch("/api/sentinel/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "daily" }),
+        });
+        const payload = (await response.json()) as SuggestionsPayload;
+        if (!response.ok) {
+          return;
+        }
+        if (payload.skipped) {
+          if (payload.credits) {
+            setCredits(payload.credits);
+          }
+          return;
+        }
+        setSuggestions(payload.suggestions ?? []);
+        setMeta(payload.meta ?? null);
+        if (payload.credits) {
+          setCredits(payload.credits);
+        }
+        const count = payload.suggestions?.length ?? 0;
+        if (count > 0) {
+          setRefreshMessage(`Pautas atualizadas automaticamente (${count}).`);
+          window.setTimeout(() => setRefreshMessage(null), 4200);
+        }
+      } catch {
+        // Silencioso — usuário ainda vê o cache.
+      } finally {
+        dailyCheckInFlight.current = false;
+        setIsRefreshing(false);
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    void loadSuggestions();
+    void (async () => {
+      await loadSuggestions();
+    })();
   }, [loadSuggestions]);
+
+  // Após carregar meta, dispara daily se necessário.
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+    void runDailyRefreshIfNeeded(meta?.refreshedAt);
+  }, [isLoading, meta?.refreshedAt, runDailyRefreshIfNeeded]);
+
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      void runDailyRefreshIfNeeded(meta?.refreshedAt);
+    }
+    function onFocus() {
+      void runDailyRefreshIfNeeded(meta?.refreshedAt);
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [meta?.refreshedAt, runDailyRefreshIfNeeded]);
 
   async function handleRefresh() {
     if (isRefreshing) {
@@ -106,8 +201,15 @@ export function MonitoramentoPage() {
     setIsRefreshing(true);
     setRefreshMessage(null);
     try {
-      const response = await fetch("/api/sentinel/refresh", { method: "POST" });
+      const response = await fetch("/api/sentinel/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "manual" }),
+      });
       const payload = (await response.json()) as SuggestionsPayload;
+      if (payload.credits) {
+        setCredits(payload.credits);
+      }
       if (!response.ok) {
         throw new Error(payload.message || "Não foi possível atualizar as pautas.");
       }
@@ -190,6 +292,11 @@ export function MonitoramentoPage() {
     return null;
   }, [grouped]);
 
+  const creditsLabel =
+    isGuestUi && credits
+      ? `${credits.remaining}/${credits.limit} créditos`
+      : undefined;
+
   return (
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
@@ -203,10 +310,16 @@ export function MonitoramentoPage() {
             Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar.
           </p>
           <p className="text-xs leading-snug text-slate-400">
-            <span className="font-semibold text-slate-300">Aviso:</span> para assinantes, o
-            monitoramento será em{" "}
-            <strong className="font-semibold text-cyan-300/90">tempo real</strong>. Versão
-            convidados, 01 vez por dia.
+            <span className="font-semibold text-slate-300">Aviso:</span> atualização automática
+            diária após as 8h.{" "}
+            {isGuestUi ? (
+              <>
+                Na versão convidados, o botão <strong className="font-semibold text-cyan-300/90">Atualizar pautas</strong>{" "}
+                usa créditos ({credits ? `${credits.remaining} restantes` : "até 5"}).
+              </>
+            ) : (
+              <>Assinantes podem forçar atualização a qualquer momento.</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0 md:pt-1">
@@ -218,6 +331,8 @@ export function MonitoramentoPage() {
           <RefreshPautasButton
             variant="monitor"
             isLoading={isRefreshing}
+            creditsLabel={creditsLabel}
+            disabled={Boolean(isGuestUi && credits && credits.remaining <= 0)}
             onClick={() => void handleRefresh()}
           />
         </div>
@@ -282,69 +397,50 @@ export function MonitoramentoPage() {
                       oppositionCard={sphere === "adversarios"}
                       onOpenEvidence={setEvidenceSuggestion}
                       pautarOnboardingAnchor={
-                        suggestion.id === firstPautarSuggestionId ? "pautas-pautar" : undefined
-                      }
-                      onPautar={
                         guideOpen &&
                         guideStepId === "pautas-pautar" &&
                         suggestion.id === firstPautarSuggestionId
+                          ? "pautas-pautar"
+                          : undefined
+                      }
+                      onPautar={
+                        guideOpen && guideStepId === "pautas-pautar"
                           ? () => markStepDone("pautas-pautar")
                           : undefined
                       }
                     />
                   ))}
                 </div>
-              ) : !isLoading ? (
-                <p className="text-sm text-slate-500">
-                  {sphere === "adversarios" && meta?.oppositionUnavailableReason
-                    ? meta.oppositionUnavailableReason
-                    : "Nenhuma pauta nesta esfera por enquanto."}{" "}
-                  <Link href="/monitoramento/temas" className="text-cyan-400 no-underline hover:underline">
-                    Selecionar temas
-                  </Link>
-                </p>
               ) : null}
 
-              {items.length > visible ? (
-                <div className="mt-4 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setVisibleBySphere((current) => ({
-                        ...current,
-                        [sphere]: current[sphere] + VISIBLE_STEP,
-                      }))
-                    }
-                    className="px-6 py-2 bg-slate-800/80 text-slate-300 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors flex items-center gap-2"
-                  >
-                    Ver Mais
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </div>
+              {!isLoading && items.length > visible ? (
+                <button
+                  type="button"
+                  className="mt-4 text-sm text-cyan-400 hover:text-cyan-300"
+                  onClick={() =>
+                    setVisibleBySphere((current) => ({
+                      ...current,
+                      [sphere]: current[sphere] + VISIBLE_STEP,
+                    }))
+                  }
+                >
+                  Ver mais ({items.length - visible})
+                </button>
+              ) : null}
+
+              {!isLoading && !items.length ? (
+                <p className="text-sm text-slate-500">Nenhuma pauta nesta esfera ainda.</p>
               ) : null}
             </section>
           );
         })}
-
-        <footer className="mt-12 pt-8 border-t border-slate-800 text-xs text-slate-500 space-y-2">
-          <p>
-            * Engajamento é a métrica que reflete o acúmulo de interações e movimentações nas redes
-            sociais (soma de curtidas, comentários e compartilhamentos), considerando: (Curtidas) +
-            (2 × Comentários) + (3 × Compartilhamentos)
-          </p>
-          <p>
-            Esfera Nacional: www.cnn.com.br, www.bandnews.com.br, www.jovempan.com.br,
-            https://g1.globo.com, www.estadao.com.br
-          </p>
-          <p>
-            Esfera Estadual: consideramos os principais portais de notícias de cada Estado (mínimo de
-            5 portais por Estado)
-          </p>
-          {interestSitesLabel ? <p>Esfera Municipal: {interestSitesLabel}</p> : null}
-        </footer>
       </div>
+
+      {interestSitesLabel ? (
+        <p className="mt-10 text-xs text-slate-500 relative z-10">
+          Portais municipais: {interestSitesLabel}
+        </p>
+      ) : null}
 
       <SignalEvidenceDrawer
         suggestion={evidenceSuggestion}

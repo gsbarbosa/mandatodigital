@@ -5,11 +5,14 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
-  GUEST_SENTINEL_REFRESH_PER_DAY,
-  guestSentinelRefreshCooldownRemainingMs,
+  getGuestSentinelCredits,
+  tryConsumeGuestSentinelCredit,
+} from "@/lib/guest-credits-storage";
+import {
+  guestSentinelCreditsExhaustedMessage,
   isGuestSentinelRefreshSourceFailure,
+  needsDailySentinelRefresh,
 } from "@/lib/guest-limits";
-import { checkRateLimit } from "@/lib/rate-limit";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 import { sentinelStorage } from "@/lib/sentinel-storage";
 import {
@@ -19,10 +22,28 @@ import {
 
 export const maxDuration = 300;
 
-const REFRESH_WINDOW_MS = 24 * 60 * 60 * 1000;
+type RefreshReason = "daily" | "manual";
 
-export async function POST() {
+function parseReason(body: unknown): RefreshReason {
+  if (body && typeof body === "object" && "reason" in body) {
+    const reason = (body as { reason?: unknown }).reason;
+    if (reason === "daily") {
+      return "daily";
+    }
+  }
+  return "manual";
+}
+
+export async function POST(request: Request) {
   return apiRoute(async (repository) => {
+    let reason: RefreshReason = "manual";
+    try {
+      const body = await request.json();
+      reason = parseReason(body);
+    } catch {
+      reason = "manual";
+    }
+
     const dashboard = await repository.getDashboard();
 
     if (!dashboard.profile) {
@@ -39,64 +60,44 @@ export async function POST() {
     const ownerUserId = getStorageOwnerUserId()?.trim() || "anonymous";
     const sessionUser = await getSessionUser();
     const premium = await isPremiumAccountMode(sessionUser?.email);
-    const rateKey = `sentinel-refresh:${ownerUserId}`;
 
-    const cached =
-      !premium && profileId !== "default" ? await sentinelStorage.readCache(profileId) : null;
+    const cached = profileId !== "default" ? await sentinelStorage.readCache(profileId) : null;
     const lastRefreshWasSourceFailure = isGuestSentinelRefreshSourceFailure(cached?.meta);
 
-    // Limite persistente (cache): 1 atualização / 24h na versão para convidados.
-    // Falha de fonte (RSS zerado) não consome a cota — libera retry imediato.
-    if (!premium && profileId !== "default" && !lastRefreshWasSourceFailure) {
-      const cooldownMs = guestSentinelRefreshCooldownRemainingMs(
-        cached?.meta?.refreshedAt,
-        Date.now(),
-        REFRESH_WINDOW_MS,
-        cached?.meta,
+    if (reason === "daily") {
+      if (!needsDailySentinelRefresh(cached?.meta?.refreshedAt ?? cached?.refreshedAt)) {
+        const credits = premium ? null : await getGuestSentinelCredits(ownerUserId);
+        return NextResponse.json({
+          suggestions: cached?.suggestions ?? [],
+          meta: cached?.meta ?? null,
+          skipped: true,
+          reason: "daily",
+          credits,
+        });
+      }
+    }
+
+    let credits = premium ? null : await getGuestSentinelCredits(ownerUserId);
+
+    // Peek: bloqueia manual sem crédito (retry após falha de fonte é livre).
+    if (
+      !premium &&
+      reason === "manual" &&
+      !lastRefreshWasSourceFailure &&
+      credits &&
+      credits.remaining <= 0
+    ) {
+      return NextResponse.json(
+        {
+          message: guestSentinelCreditsExhaustedMessage(),
+          suggestions: cached?.suggestions ?? [],
+          meta: cached?.meta ?? null,
+          credits,
+        },
+        { status: 429 },
       );
-      if (cooldownMs > 0) {
-        return NextResponse.json(
-          {
-            message:
-              "Na versão para convidados, as pautas podem ser atualizadas apenas 1 vez por dia. Tente novamente amanhã.",
-            retryAfterMs: cooldownMs,
-          },
-          {
-            status: 429,
-            headers: {
-              "Retry-After": String(Math.ceil(cooldownMs / 1000)),
-            },
-          },
-        );
-      }
     }
 
-    // Peek da cota em memória — só consome depois de refresh bem-sucedido.
-    if (!premium && !lastRefreshWasSourceFailure) {
-      const rate = checkRateLimit({
-        key: rateKey,
-        max: GUEST_SENTINEL_REFRESH_PER_DAY,
-        windowMs: REFRESH_WINDOW_MS,
-        consume: false,
-      });
-
-      if (!rate.allowed) {
-        return NextResponse.json(
-          {
-            message:
-              "Na versão para convidados, as pautas podem ser atualizadas apenas 1 vez por dia. Tente novamente amanhã.",
-          },
-          {
-            status: 429,
-            headers: {
-              "Retry-After": String(Math.ceil((rate.retryAfterMs ?? 60_000) / 1000)),
-            },
-          },
-        );
-      }
-    }
-
-    // Não apaga cache persistido antes da coleta — se falhar, o convidado mantém o último resultado.
     invalidateSentinelMemoryCache(profileId);
 
     let result;
@@ -112,13 +113,22 @@ export async function POST() {
     }
 
     const sourceFailed = isGuestSentinelRefreshSourceFailure(result.meta);
-    if (!premium && !sourceFailed) {
-      checkRateLimit({
-        key: rateKey,
-        max: GUEST_SENTINEL_REFRESH_PER_DAY,
-        windowMs: REFRESH_WINDOW_MS,
-        consume: true,
-      });
+
+    if (!premium && reason === "manual" && !sourceFailed && !lastRefreshWasSourceFailure) {
+      const consumed = await tryConsumeGuestSentinelCredit(ownerUserId);
+      credits = consumed.credits;
+      if (!consumed.ok) {
+        // Corrida rara: outro request esgotou no meio — ainda devolvemos o resultado.
+        return NextResponse.json({
+          ...result,
+          reason,
+          credits,
+          sourceFailed,
+          message: guestSentinelCreditsExhaustedMessage(),
+        });
+      }
+    } else if (!premium) {
+      credits = await getGuestSentinelCredits(ownerUserId);
     }
 
     if (dashboard.profile.id) {
@@ -128,6 +138,11 @@ export async function POST() {
       });
     }
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      reason,
+      credits,
+      sourceFailed,
+    });
   });
 }

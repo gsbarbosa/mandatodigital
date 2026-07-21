@@ -22,6 +22,8 @@ export const COLLECTIONS = {
   contractAcceptances: "contractAcceptances",
   /** Cadastro real do usuário (doc id = ownerUserId). */
   userRegistrations: "userRegistrations",
+  /** Créditos vitalícios da versão convidado (doc id = ownerUserId). */
+  guestCredits: "guestCredits",
   /** Legado — lido só para migração soft; não gravar mais. */
   earlyAccessReservations: "earlyAccessReservations",
 } as const;

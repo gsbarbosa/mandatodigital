@@ -84,7 +84,11 @@ type ProductAppContextValue = {
     allowDraftDefaults?: boolean;
     silent?: boolean;
     throwOnError?: boolean;
-  }) => Promise<void>;
+    sentinelRefreshPolicy?: "onboarding" | "themes" | "skip";
+  }) => Promise<{
+    sentinelRefreshSkipped?: boolean;
+    sentinelRefreshMessage?: string | null;
+  } | void>;
   uploadTrainingAssets: (
     files: File[],
     trainingRole: TrainingAssetRole,
@@ -221,6 +225,7 @@ export function ProductAppProvider({
     allowDraftDefaults?: boolean;
     silent?: boolean;
     throwOnError?: boolean;
+    sentinelRefreshPolicy?: "onboarding" | "themes" | "skip";
   }) {
     setIsSavingProfile(true);
     setStatusMessage(null);
@@ -288,7 +293,11 @@ export function ProductAppProvider({
         );
       }
 
-      const result = await handleApi<{ profile: DashboardData["profile"] }>("/api/profile", {
+      const result = await handleApi<{
+        profile: DashboardData["profile"];
+        sentinelRefreshSkipped?: boolean;
+        sentinelRefreshMessage?: string | null;
+      }>("/api/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -296,6 +305,7 @@ export function ProductAppProvider({
         body: JSON.stringify({
           ...parsedPayload.data,
           draftSave: options?.allowDraftDefaults === true,
+          sentinelRefreshPolicy: options?.sentinelRefreshPolicy ?? "themes",
         }),
       });
 
@@ -319,6 +329,11 @@ export function ProductAppProvider({
             : "Configuração salva.",
         );
       }
+
+      return {
+        sentinelRefreshSkipped: Boolean(result.sentinelRefreshSkipped),
+        sentinelRefreshMessage: result.sentinelRefreshMessage ?? null,
+      };
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Nao foi possivel salvar o perfil.";

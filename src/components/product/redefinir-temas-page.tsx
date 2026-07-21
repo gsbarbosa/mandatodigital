@@ -289,10 +289,20 @@ export function RedefinirTemasPage() {
   async function handleSave() {
     setSaveMessage(null);
     try {
-      await saveProfile({ allowDraftDefaults: true, silent: true, throwOnError: true });
+      const result = await saveProfile({
+        allowDraftDefaults: true,
+        silent: true,
+        throwOnError: true,
+        sentinelRefreshPolicy: "themes",
+      });
       await loadExpansions();
-      setSaveMessage("Radar salvo com sucesso. O monitoramento usa a nova configuração.");
-      setShowMonitoramentoPrompt(true);
+      if (result?.sentinelRefreshSkipped && result.sentinelRefreshMessage) {
+        setSaveMessage(result.sentinelRefreshMessage);
+        setShowMonitoramentoPrompt(false);
+      } else {
+        setSaveMessage("Radar salvo com sucesso. O monitoramento usa a nova configuração.");
+        setShowMonitoramentoPrompt(true);
+      }
     } catch {
       // Erro exibido pelo provider (banner global).
     }

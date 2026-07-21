@@ -111,7 +111,7 @@ export function DevAccountModePage() {
         >
           <span className="block text-sm font-medium">Convidado</span>
           <span className="block text-xs text-slate-500 mt-0.5">
-            1 refresh de pautas / dia · máx. 3 caricaturas por estilo
+            5 créditos de atualizar pautas · máx. 3 caricaturas por estilo
           </span>
         </button>
 

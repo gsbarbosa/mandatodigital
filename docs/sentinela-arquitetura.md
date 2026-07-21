@@ -78,9 +78,21 @@ Configurado no perfil do mandato:
 
 **Limites guest vs premium (dev account mode):**
 
-- Guest: ~3 temas por esfera, 1 refresh/dia  
-- Premium (allowlist + cookie `mandato-dev-account-mode`): sem esses caps  
-- Código: `dev-account-mode*.ts`, `guest-limits.ts`, `redefinir-temas-page.tsx`, `api/sentinel/refresh`
+| Gatilho | Premium | Convidado (guest) |
+|---|---|---|
+| Refresh automático diário (após 08:00 `America/Sao_Paulo`) | grátis | grátis |
+| Botão **Atualizar pautas** (`reason: "manual"`) | ilimitado\* | 1 crédito (máx. **5** vitalícios) |
+| Save de temas com radar mudando + créditos restantes | refresh grátis | refresh **consome 1 crédito** |
+| Save de temas com **0** créditos | refresh normal | **não** refresh; UI avisa próxima atualização pós-8h |
+| Save do onboarding (fase temas → avatar, `policy: "onboarding"`) | grátis | refresh **não** consome crédito |
+
+\* Ainda sujeito ao rate limit de plataforma (ex.: 30/dia em `rate-limit.ts`), independente dos créditos guest.
+
+Outros caps guest: ~3 temas por esfera. Premium = allowlist + cookie `mandato-dev-account-mode`.
+
+**Créditos:** Firestore `guestCredits/{ownerUserId}` (`sentinelForceUsed`, `updatedAt`). Limite `GUEST_SENTINEL_FORCE_CREDITS = 5` em `guest-limits.ts`. Helpers: `getGuestSentinelCredits`, `tryConsumeGuestSentinelCredit` (`guest-credits-storage.ts`); ciclo `sentinelDailyCycleKey` / `needsDailySentinelRefresh`.
+
+**Código:** `dev-account-mode*.ts`, `guest-limits.ts`, `guest-credits-storage.ts`, `redefinir-temas-page.tsx`, `onboarding-provider.tsx`, `monitoramento-page.tsx`, `api/sentinel/refresh`, `api/profile`.
 
 ### 3.2 Suggestion / sinal (output)
 
@@ -194,17 +206,30 @@ Eval offline: `npm run sentinel:quality-eval`.
 | Histórico sinais | append em storage (quando habilitado) |
 
 **GET `/api/sentinel/suggestions`**  
-→ `getSentinelSuggestions` **sem** `forceRefresh` → só cache (ou empty pedindo “Atualizar pautas”).
+→ `getSentinelSuggestions` **sem** `forceRefresh` → só cache (ou empty pedindo “Atualizar pautas”). Para guest, a resposta pode incluir `credits` (`used` / `limit` / `remaining`).
 
 **POST `/api/sentinel/refresh`** (`maxDuration = 300`)
 
-1. Checa guest cooldown (cache) + peek rate-limit memória  
-2. **Não apaga** cache persistido antes (só memória) — se falhar, não zera o último bom resultado  
-3. `forceRefresh: true`  
-4. Consome cota guest **só se sucesso e não for falha total de fonte**  
-5. Dispara fact-check auditor em background (não bloqueia)
+Body: `{ reason?: "daily" | "manual" }` (default `"manual"`).
 
-**Falha de fonte:** `articlesScanned === 0` + `rssFetchStats.succeeded === 0` → guest **pode retry** (não queima 24h).
+1. **`daily`:** se o cache já cobre o ciclo diário vigente (pós-8h BRT), responde `skipped: true` sem coletar e **sem** consumir crédito. Se precisa, `forceRefresh` grátis.  
+2. **`manual`:** guest sem crédito restante → **429** com mensagem (*“Você usou seus 5 créditos. A próxima atualização… hoje/amanhã após as 8h.”*), salvo retry livre após falha de fonte.  
+3. **Não apaga** cache persistido antes (só memória) — se falhar, não zera o último bom resultado.  
+4. `forceRefresh: true`.  
+5. Consome **1 crédito** guest só em `manual` **após sucesso** e **não** for falha total de fonte.  
+6. Dispara fact-check auditor em background (não bloqueia).
+
+**Cliente (auto diário):** `monitoramento-page.tsx` no mount + `visibilitychange`/`focus` chama `reason: "daily"` quando `needsDailySentinelRefresh`.
+
+**Falha de fonte:** `articlesScanned === 0` + `rssFetchStats.succeeded === 0` → guest **pode retry** (não consome crédito).
+
+**Save de perfil / radar** (`PUT /api/profile`):
+
+- Flag `sentinelRefreshPolicy`: `"onboarding" | "themes" | "skip"` (default `"themes"` quando o radar muda).  
+- `onboarding` → refresh em background **sem** consumir crédito.  
+- `themes` + guest com crédito → refresh e consome 1 após sucesso.  
+- `themes` + guest sem crédito → **não** chama coleta; resposta `sentinelRefreshSkipped` + `sentinelRefreshMessage`.  
+- `skip` → não dispara refresh.
 
 ---
 
@@ -237,8 +262,9 @@ Chips na UI vêm do **perfil** (temas escolhidos), não das suggestions. Por iss
 
 | Método | Rota | Função |
 |---|---|---|
-| GET | `/api/sentinel/suggestions` | Lista cache |
-| POST | `/api/sentinel/refresh` | Varredura forçada |
+| GET | `/api/sentinel/suggestions` | Lista cache (+ `credits` guest) |
+| POST | `/api/sentinel/refresh` | Varredura forçada (`reason: daily \| manual`) |
+| PUT | `/api/profile` | Salva perfil; se radar muda, refresh conforme `sentinelRefreshPolicy` |
 | GET | `/api/sentinel/suggestions/[id]` | Um sinal |
 | GET | `/api/sentinel/expansions` | Termos de expansão do perfil |
 
@@ -275,12 +301,16 @@ src/lib/sentinel-theme-verify.ts     # LLM verify
 src/lib/sentinel-quality*.ts         # spike qualidade
 src/lib/sphere-classifier.ts         # UI esferas
 src/lib/sentinel-storage.ts          # Supabase cache
-src/lib/guest-limits.ts              # cota convidado
+src/lib/guest-limits.ts              # créditos + ciclo 8h BRT
+src/lib/guest-credits-storage.ts     # Firestore guestCredits
 src/app/api/sentinel/refresh/route.ts
+src/app/api/profile/route.ts         # policy onboarding/themes/skip
 src/components/product/monitoramento-page.tsx
+src/components/product/redefinir-temas-page.tsx
+src/components/product/onboarding-provider.tsx
 ```
 
-Testes: `src/lib/sentinel-*.test.ts`  
+Testes: `src/lib/sentinel-*.test.ts`, `src/lib/guest-limits.test.ts`  
 Eval qualidade: `npm run sentinel:quality-eval`
 
 ---
@@ -289,7 +319,7 @@ Eval qualidade: `npm run sentinel:quality-eval`
 
 1. **Google News 503 no Cloud Run** → circuit breaker + Bing + RSS direto de portais.  
 2. **Refresh longo** (1–3 min) com muitos temas/portais/verify/Apify.  
-3. **Guest:** 1 refresh/dia; se falhar fonte, pode retry; cota memória só após sucesso.  
+3. **Guest:** 5 créditos vitalícios (manual + save de temas); refresh diário pós-8h BRT grátis; falha de fonte não consome crédito.  
 4. **Temas no DB base:** colunas de radar estão no workflow config, não em todas as colunas de `politician_profiles`.  
 5. **Qualidade:** match por título é barato e ruidoso; verify/quality-rank melhoram mas custam tokens.  
 6. **Esfera:** classificação frontend pode divergir da “intenção” do radar se portal/tema forem ambíguos.
@@ -330,6 +360,8 @@ NÃO fazer: <ex.: Perplexity em prod, apagar cache antes do fetch, force push>
 | Radar | Config de temas/portais/@ do mandato |
 | Sinal / suggestion | Card de pauta com evidência |
 | forceRefresh | Ignora cache e coleta de novo |
+| Ciclo diário 8h BRT | Janela automática grátis após 08:00 `America/Sao_Paulo` |
+| Crédito guest | Unidade vitalícia (máx. 5) para force-refresh manual / save de temas |
 | Expansão | Termos correlatos gerados por LLM por tema |
 | Verify | LLM diz se matéria é substancialmente do tema |
 | Quality rank | Spike: LLM mini no top N para pautável + ângulo |
@@ -349,4 +381,4 @@ Evitar no default:   Perplexity/Sonar em massa, LLM como busca principal
 
 ---
 
-*Última atualização alinhada ao código pós-fix RSS (Bing/portais/circuit breaker), guest cooldown em falha de fonte, e spike `SENTINEL_LLM_QUALITY_RANK` (default off).*
+*Última atualização alinhada ao código pós-fix RSS (Bing/portais/circuit breaker), créditos guest vitalícios + refresh diário pós-8h BRT, falha de fonte sem consumir crédito, e spike `SENTINEL_LLM_QUALITY_RANK` (default off).*

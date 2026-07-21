@@ -264,7 +264,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       setBridge("afterThemes");
       // Persiste o radar e dispara busca de pautas em background (via /api/profile)
       // enquanto o usuário segue para foto/áudio.
-      void saveProfileRef.current({ allowDraftDefaults: true, silent: true });
+      void saveProfileRef.current({
+        allowDraftDefaults: true,
+        silent: true,
+        sentinelRefreshPolicy: "onboarding",
+      });
     }
 
     if (prevPhase === "avatar" && computed.currentPhaseId === "pautas") {
