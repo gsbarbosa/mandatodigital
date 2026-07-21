@@ -50,14 +50,30 @@ export function getFirebaseAdminAuth(): Auth {
   return getAuth(getFirebaseAdminApp());
 }
 
-let firestore: Firestore | undefined;
+type FirestoreGlobal = typeof globalThis & {
+  __mdFirestore?: Firestore;
+  __mdFirestoreSettingsApplied?: boolean;
+};
 
 export function getFirestore(): Firestore {
-  if (!firestore) {
-    firestore = getAdminFirestore(getFirebaseAdminApp());
-    firestore.settings({ ignoreUndefinedProperties: true });
+  const g = globalThis as FirestoreGlobal;
+  if (g.__mdFirestore) {
+    return g.__mdFirestore;
   }
-  return firestore;
+
+  const db = getAdminFirestore(getFirebaseAdminApp());
+  // settings() só pode rodar uma vez por processo; HMR do Next zera o módulo
+  // mas reusa o singleton do Admin SDK — daí o erro sem este guard.
+  if (!g.__mdFirestoreSettingsApplied) {
+    try {
+      db.settings({ ignoreUndefinedProperties: true });
+    } catch {
+      // Já inicializado neste processo (ex.: reload a meio de uma sessão de dev).
+    }
+    g.__mdFirestoreSettingsApplied = true;
+  }
+  g.__mdFirestore = db;
+  return db;
 }
 
 export function getFirebaseAdminStorage(): Storage {
