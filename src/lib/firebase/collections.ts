@@ -24,6 +24,8 @@ export const COLLECTIONS = {
   userRegistrations: "userRegistrations",
   /** Créditos vitalícios da versão convidado (doc id = ownerUserId). */
   guestCredits: "guestCredits",
+  /** Tasks do roadmap no painel de gestão (compartilhado). */
+  adminRoadmapTasks: "adminRoadmapTasks",
   /** Legado — lido só para migração soft; não gravar mais. */
   earlyAccessReservations: "earlyAccessReservations",
 } as const;

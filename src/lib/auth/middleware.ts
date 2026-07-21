@@ -12,13 +12,18 @@ export async function updateSession(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
+  const isAdminRoute =
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/api/admin/");
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
     pathname.startsWith("/auth/") ||
     pathname === "/api/heygen/webhooks" ||
     pathname === "/api/auth/session" ||
-    pathname === "/api/auth/clear-session";
+    pathname === "/api/auth/clear-session" ||
+    isAdminRoute;
   const isApiRoute = pathname.startsWith("/api/");
 
   if (!isFirebaseAuthConfigured()) {

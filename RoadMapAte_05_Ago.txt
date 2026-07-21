@@ -1,0 +1,97 @@
+THIAGO
+- Proposta comercial para Marcelo (custos, "break even" e o que precisamos). 
+- Onbording para usuário assim que ele chega
+- Ajustes do fluxo (levar direto p outra página e facilitar a navegação p usuário)
+- Sentinela: Thiago vai propor melhorias com foco na entrega do dia 25/ 
+x Revisar textos de Compliance que está dentro do sistema 
+x revisar "dossie do site de precos"
+x Verificar sistema em comparaçã com arquivo compliance-tse-site.txt - o que implantamos e o que falta implantar
+- Testar: Ambiente de teste e premium (limitações)
+- Como protestar empresa de candidatura política em caso de nao pagamento
+- business manager na meta (rever negativa. incluir infos solicitadas)
+- Comprar 05 chips de telefonia + imprimir papers CoWork + contratos Santander p assinar
+
+Validacao com PHDs:
+- Construir filtro por CNPJ (validar CNPJ no TSE)... Para partidos com mais de 03 vagas no mesmo estado, dizer: Neste Estado e Legenda, infelizmente não conseguimos mais te cadastrar. Mas não desanime. Vamos incluir o seu nome na lista de reserva e caso alguém desista da reserva, enviaremos automaticamente um e-mail para você.
+Se bugarmos essa ideia, mantendo-a só no papel, quais as implicações que podemos ter com TSE
+- Mostrar Minuta_ContratoCandidatos e Minuta_DossieTransparenciaTSE p solicitar contato de apoio de juiz eleitoral
+
+
+SEMANA QUE VEM EM ADIANTE (THIAGO - ADMINISTRATIVO)
+- Enviar e-mail para a administração do coworking na Savassi contendo os três PDFs finais (Contrato Social, Cartão CNPJ e a FIC da prefeitura). Exija que eles imprimam e anexem à sua pasta física na recepção. Se um fiscal bater lá amanhã, o recepcionista precisa ter a prova imediata de que a EATEASY está domiciliada legitimamente no local. 
+- Imprimir docs do email do CoWork, assinar e reenviar p eles com foco em receberem .
+- Santander (conta aberta - ajustar conta pix, entender se existe automações de pagamentos e afins)
+- Mudar de: mandatoDigital para campanhaDigital ? 
+- E as 06 vagas: mantemos todas em ordem de chegada? Pq remover os 03 partidárias msm? No ofício, podemos dizer que caso não seja definida a vaga em 03 dias, vamos liberar por ordem de chegada.
+APOIO GUGÃO (linkedIn)
+- Ver pasta "Clientes" dentro da pasta "Eleições" - foco em obtenção de clientes e crawler. Existe uma possibilidade de obter contatos adicionais via TSE após dia 05/Ago
+- Direto Foco Segmentário do LinkedIn Profissional das Bases de Assessores. Ex: Chefias Executivas das Comitivas dos Gabinetes Setoriais, os marqueteiros estrategistas das candidaturas dos escalões menores em 2026, Consultores das bancadas temáticas 3 e Coordenadores Políticos das Casas do Povo
+- Trocar webiste do mandato digital, desse aqui: http://localhost:3000/ para o atual: mandatodigital.ia.br (prompt p realizar a tarefa)
+
+
+ATIVIDADES SISTEMA - ATUAIS
+- Migração de Banco de Dados 
+- Centralização de contas (apis e serviços). Aguardar Guga enviar painel de Adm de créditos dos serviços (aumentar limites e alarmes de uso)
+- Suporte via IA (N1 sonet ; N2 Opus ; N3 nós)
+- Painel de gestão com suporte
+- Roteiro.gif: Organizando a pesquisa; Mapeando assuntos relacionados; Buscando notícias no país, estado, cidade e adversários; Separando as notícias que importam; Checando com IA se as notícias são reais; Montando o seu painel; 
+- Métricas: ainda precisa ser feito para viabilizar aperfeiçoamento semi-automático do sistema
+- Obter contatos do TSE e afins (Guga)
+
+
+ATIVIDADES SISTEMA - PÓS DIA 25/
+-> Pagamentos:
+	- Preenchimento automatizado dos contratos e notas-fiscais e envio para email do candidato
+	- Emitir e enviar de uma única vez, no ato da assintura dos contratos, as três boletas de uma vez, das três parcelas, com datas futuras já preenchidas. Contadores que quiserem antecipar os pagamentos, deixamos fazer.
+	- Conciliação bancária - Se pagamento não ok, inviabilizar uso da plataforma (tudo esmaecido, sem ação) com exceção do menu "Meus pagamentos/CNPJ"
+	- Incluir "Meus pagamentos" no menu do sistema e acender alerta 05 dias antes de vencer cada um dos boletos, para os candidatos que ainda não pagaram 
+	- Criar travas de acesso mediante ausência de pagamentos (incluir cadeados nos menus). Criar limitação de uso por data de pagamento.
+-> Teste de volumetria do HeyGen (e incluir um outro sistema)
+- Desenvolver Agente Distribuidor
+- Comprovação de Materialidade
+	1. Relatórios volumétricos mostrando a quantidade de conteúdo gerado.  
+	2. Métricas detalhando a operação dos agentes autônomos.  
+	3. Dashboards de acesso da plataforma. (print de um painél do Monitoramento de Notícias e do histórico de avatares produzidos)
+	4. Logs de auditoria, que incluem User_ID, Endereço IP, Timestamp (data, hora e fuso) e o registro das ações realizadas na ferramenta
+O ideal é que a plataforma  trate essa funcionalidade de extração de relatórios como uma ferramenta de autoatendimento (self-service).
+Essa Comprovação de Materialidade, pode ficar disponível após o dia 10/Setembro. Mas para AGORA, pelo menos precisamos garantir que temos os dados salvos e estruturados para geração posterior do relatório
+
+
+
+
+NOVAS FEATURES (FOCO EM MAIS RESULTADO PARA O NOSSO CLIENTE)
+- Multiplicador de Cidades / Hipersegmentação com Avatares / Vídeos hiper-localizados
+"Deputado, sua equipe de marketing não consegue gravar vídeos para as 30 cidades onde você tem base eleitoral. Conosco, eles escrevem um único "roteiro" e nossa inteligência gera 30 vídeos personalizados, um para cada cidade, com o seu Gêmeo Digital chamando os eleitores locais pelo nome da cidade deles. É como se o senhor estivesse fazendo campanha em 30 municípios ao mesmo tempo."
+Como: Criar um botão dentro dos avatares: "multiplicador de cidades". Ali o usuário seleciona as cidades uma a uma - (estado e cidades por nome). Para cada cidade, seletor para buscar pelo problema de maior relevância: últimas 24 horas, última semana, último mês, último trimestre. Ou inserir o problema da cidade em um campo de texto a frente. Daí geramos o roteiro baseado nas configuracoes de perfil e do problema mapeado na cidade ou inserido. Para cada cidade, o usuário pode escolher via check-box se o vídeo será produzido por: caricato, 3d ou gêmeo. Citando "nome da cidade da cidade" no roteiro. Restante, fluxo normal.
+- Incluir possibilidade de alterar avatar:
+	Expressões faciais (calmo, entusiasmado, sincero)
+	Gestos manuais (acenar, apontar, mão no coração)
+	Postura corporal (inclinar-se, acolhedor e aberto, sereno)
+	Imobilidade (sem gestos com as mãos, quase sem se mover)
+	Olhar (olhar para a câmera, desviar o olhar)
+- Incluir possibilidade de alterar background do avatar
+
+
+
+---------------------------------------------------SÓ OBSERVAÇÕES GERAIS (SEM RELEVÂNCIA NO ROAD-MAP) ---------------------------------------------------------------------------------------------------------------------------------
+
+
+- Já ok: Mandato Digital está cadastrado no DJE e BHISS Digital já contempla meu novo endereço
+- Custos Sentinela (R$ 162,00): no máximo US$ 0,05 por atualização para contas "guest" (convidado) e US$ 0,15 para contas premium. 0,15 * 6 (vezes ao dia) * 30 dias * 6 (cambio) = R$ 162,00 por mês só com radar, fora custos HeyGen.
+- Calendário: 
+	20 de julho a 5 de agosto: Convenções partidárias para deliberar sobre coligações e escolher oficialmente os candidatos.
+	15 de agosto: Data-limite para os partidos e federações registrarem os candidatos na Justiça Eleitoral.
+
+- Modelo de Contrato Fechado (3x): Mudar de "assinatura mensal" para "licenciamento de campanha" é genuinamente brilhante. Resolve simultaneamente: percepção de qualidade, risco de churn, conformidade tributária (TSE) e trava de escassez.
+- Tá funcionado: Gestão de Logs (ou seja, se deu bizu mais sério, IA revisa e resolve). 
+
+Fluxo de convite: 
+<<<<	ZAP com vídeo e links > Preços > Formulário de cadastro. >>>>
+Olá [Nome], a eleição de 2026 será decidida no feed, não no plenário.
+Enquanto adversários demoram dias para reagir a uma pauta, a nossa inteligência artificial permite que você responda em minutos, com sua voz, imagem e posicionamento preservados.
+Conheça o Mandato Digital (100% em conformidade com o TSE). Veja na prática em apenas 3 min:
+👉 [Link do Vídeo VSL]  
+⚠️ Atenção: Devido ao alto poder de processamento da IA, temos apenas 03 vagas antecipadas por partido no seu estado. 
+👉 [Link da página de preços]
+Reserve sua vaga a custo zero no link acima. A assinatura fica condicionada ao seu aceite posterior: o boleto só será emitido após você testar a plataforma e nos informar o CNPJ oficial da campanha. 
+O vácuo informacional é fatal. Saia na frente antes que o adversário trave sua legenda. Posso tirar alguma dúvida?
