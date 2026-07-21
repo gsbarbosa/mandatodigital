@@ -16,6 +16,8 @@ export async function updateSession(request: NextRequest) {
     pathname === "/admin" ||
     pathname.startsWith("/admin/") ||
     pathname.startsWith("/api/admin/");
+  const isMarketingRoute =
+    pathname === "/ecossistema" || pathname === "/conformidade";
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
@@ -23,6 +25,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/api/heygen/webhooks" ||
     pathname === "/api/auth/session" ||
     pathname === "/api/auth/clear-session" ||
+    isMarketingRoute ||
     isAdminRoute;
   const isApiRoute = pathname.startsWith("/api/");
 

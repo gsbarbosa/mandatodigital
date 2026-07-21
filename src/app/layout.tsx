@@ -12,11 +12,11 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Mandato Digital — A Tropa de IA do Seu Mandato",
+    default: "Mandato Digital — IA para Comunicação Política e Eleitoral",
     template: "%s | Mandato Digital",
   },
   description:
-    "Do fato ao feed em 15 minutos. Ecossistema de IA para monitorar, produzir, auditar e publicar comunicação política sem perder a sua voz.",
+    "Ecossistema de agentes de IA para monitorar, produzir, auditar e publicar a comunicação da sua campanha — com identidade preservada e compliance TSE.",
 };
 
 export default function RootLayout({

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { LandingPage } from "@/components/landing/landing-page";
+import { MarketingHomePage } from "@/components/marketing/marketing-home-page";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { getSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import { REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
@@ -11,9 +12,11 @@ import {
 } from "@/lib/user-registration-storage";
 
 export const metadata: Metadata = {
-  title: "Mandato Digital — A Tropa de IA do Seu Mandato",
+  title: {
+    absolute: "Mandato Digital — IA para Comunicação Política e Eleitoral",
+  },
   description:
-    "Do fato ao feed em 15 minutos. Ecossistema de 5 agentes de IA para monitorar, produzir, auditar e publicar comunicação política sem perder a sua voz.",
+    "Ecossistema de agentes de IA para monitorar, produzir, auditar e publicar a comunicação da sua campanha — com identidade preservada e compliance TSE.",
 };
 
 export const dynamic = "force-dynamic";
@@ -34,12 +37,8 @@ export default async function HomePage() {
   }
 
   return (
-    <>
-      <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-      />
-      <LandingPage />
-    </>
+    <MarketingShell>
+      <MarketingHomePage />
+    </MarketingShell>
   );
 }
