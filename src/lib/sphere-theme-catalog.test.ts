@@ -13,10 +13,16 @@ describe("sphere-theme-catalog limits", () => {
   it("soma federal e estadual no total de temas", () => {
     expect(
       countRadarThemes({
-        federal: ["Vacinacao"],
-        estadual: ["Desemprego", "Seguranca Publica"],
+        federal: ["Vacinação"],
+        estadual: ["Desemprego", "Segurança Pública"],
       }),
     ).toBe(3);
+  });
+
+  it("canonicaliza tema legado sem acento", async () => {
+    const { canonicalizeSentinelTheme } = await import("./sphere-theme-catalog");
+    expect(canonicalizeSentinelTheme("Seguranca Publica")).toBe("Segurança Pública");
+    expect(canonicalizeSentinelTheme("Saude Publica (SUS)")).toBe("Saúde Pública (SUS)");
   });
 
   it("expõe limites do radar", () => {

@@ -17,8 +17,8 @@ function buildSuggestion(
   const { themeLabel, matchedThemes, ...evidenceOverrides } = overrides;
   return {
     id: "sig-test",
-    themeLabel: themeLabel ?? "Saude Publica (SUS)",
-    matchedThemes: matchedThemes ?? ["Saude Publica (SUS)"],
+    themeLabel: themeLabel ?? "Saúde Pública (SUS)",
+    matchedThemes: matchedThemes ?? ["Saúde Pública (SUS)"],
     relevanceScore: 80,
     topic: "Tema de teste",
     evidence: {
@@ -173,8 +173,8 @@ describe("classifySuggestionSphere", () => {
 
   it("mantem tema estadual exclusivo na esfera estadual", () => {
     const suggestion = buildSuggestion({
-      themeLabel: "Combate ao Trafico",
-      matchedThemes: ["Combate ao Trafico"],
+      themeLabel: "Combate ao Tráfico",
+      matchedThemes: ["Combate ao Tráfico"],
       articles: [
         {
           title: "Operacao apreende drogas - Tribuna do Norte",
@@ -188,8 +188,8 @@ describe("classifySuggestionSphere", () => {
 
   it("respeita o radar do perfil quando o tema existe nos dois catalogos", () => {
     const suggestion = buildSuggestion({
-      themeLabel: "Cameras Corporais",
-      matchedThemes: ["Cameras Corporais"],
+      themeLabel: "Câmeras Corporais",
+      matchedThemes: ["Câmeras Corporais"],
       articles: [
         {
           title: "Video de cameras corporais mostra PM – Terra",
@@ -202,13 +202,13 @@ describe("classifySuggestionSphere", () => {
     expect(
       classifySuggestionSphere(suggestion, [], "SP", [], {
         federal: ["Reforma Fiscal"],
-        estadual: ["Cameras Corporais"],
+        estadual: ["Câmeras Corporais"],
       }),
     ).toBe("estadual");
 
     expect(
       classifySuggestionSphere(suggestion, [], "SP", [], {
-        federal: ["Cameras Corporais"],
+        federal: ["Câmeras Corporais"],
         estadual: [],
       }),
     ).toBe("federal");

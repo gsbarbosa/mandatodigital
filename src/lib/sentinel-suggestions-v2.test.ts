@@ -19,9 +19,9 @@ const profile: PoliticianProfile = {
   referenceExamples: [],
   bio: "Bio de teste com mais de vinte caracteres para validacao.",
   personaArchetypes: [],
-  sentinelThemes: ["Carga Tributaria", "Privatizacoes"],
-  sentinelThemesFederal: ["Carga Tributaria"],
-  sentinelThemesEstadual: ["Privatizacoes"],
+  sentinelThemes: ["Carga Tributária", "Privatizações"],
+  sentinelThemesFederal: ["Carga Tributária"],
+  sentinelThemesEstadual: ["Privatizações"],
   oppositionThemes: [],
   customRadarThemes: [],
   interestProfiles: [],
@@ -75,7 +75,7 @@ describe("buildV2SuggestionsFromArticles", () => {
         geoLabel: "Belo Horizonte, MG",
         expansions: [
           {
-            sourceTheme: "Privatizacoes",
+            sourceTheme: "Privatizações",
             expandedTerms: ["Belo Horizonte", "venda de estatais"],
             generatedAt: "2026-01-01T00:00:00.000Z",
           },
@@ -85,11 +85,11 @@ describe("buildV2SuggestionsFromArticles", () => {
     );
 
     expect(suggestions).toHaveLength(1);
-    expect(suggestions[0]?.themeLabel).toBe("Carga Tributaria");
+    expect(suggestions[0]?.themeLabel).toBe("Carga Tributária");
     expect(suggestions[0]?.matchedThemes).not.toContain("Belo Horizonte");
   });
 
-  it("prioriza Seguranca Publica sobre Saneamento em noticia de policiamento", async () => {
+  it("prioriza Segurança Pública sobre Saneamento em noticia de policiamento", async () => {
     const { suggestions } = await buildV2SuggestionsFromArticles(
       [
         {
@@ -106,8 +106,8 @@ describe("buildV2SuggestionsFromArticles", () => {
       ],
       {
         ...profile,
-        sentinelThemesFederal: ["Saneamento Basico", "Seguranca Publica"],
-        sentinelThemes: ["Saneamento Basico", "Seguranca Publica"],
+        sentinelThemesFederal: ["Saneamento Básico", "Segurança Pública"],
+        sentinelThemes: ["Saneamento Básico", "Segurança Pública"],
       },
       {
         profileId: profile.id,
@@ -118,7 +118,7 @@ describe("buildV2SuggestionsFromArticles", () => {
     );
 
     expect(suggestions).toHaveLength(1);
-    expect(suggestions[0]?.themeLabel).toBe("Seguranca Publica");
+    expect(suggestions[0]?.themeLabel).toBe("Segurança Pública");
   });
 
   it("ignora expansao orfa de tema removido do radar", async () => {
@@ -136,16 +136,16 @@ describe("buildV2SuggestionsFromArticles", () => {
       ],
       {
         ...profile,
-        sentinelThemesFederal: ["Reforma Fiscal", "Subsidios Estatais", "Privatizacoes"],
+        sentinelThemesFederal: ["Reforma Fiscal", "Subsídios Estatais", "Privatizações"],
         sentinelThemesEstadual: [],
-        sentinelThemes: ["Reforma Fiscal", "Subsidios Estatais", "Privatizacoes"],
+        sentinelThemes: ["Reforma Fiscal", "Subsídios Estatais", "Privatizações"],
       },
       {
         profileId: profile.id,
         geoLabel: "Sao Paulo, SP",
         expansions: [
           {
-            sourceTheme: "Cameras Corporais",
+            sourceTheme: "Câmeras Corporais",
             expandedTerms: ["camera corporal", "cameras corporais", "body cam"],
             generatedAt: "2026-01-01T00:00:00.000Z",
           },

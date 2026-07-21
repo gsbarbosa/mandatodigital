@@ -31,9 +31,9 @@ const sampleProfile: PoliticianProfile = {
   referenceExamples: [],
   bio: "Bio de teste com mais de vinte caracteres para validacao.",
   personaArchetypes: [],
-  sentinelThemes: ["Seguranca Publica", "Vacinacao", "Reforma Fiscal"],
-  sentinelThemesFederal: ["Vacinacao", "Reforma Fiscal"],
-  sentinelThemesEstadual: ["Seguranca Publica"],
+  sentinelThemes: ["Segurança Pública", "Vacinação", "Reforma Fiscal"],
+  sentinelThemesFederal: ["Vacinação", "Reforma Fiscal"],
+  sentinelThemesEstadual: ["Segurança Pública"],
   oppositionThemes: ["Endurecimento de Penas"],
   customRadarThemes: ["fila do SUS"],
   interestProfiles: [],
@@ -66,23 +66,23 @@ describe("sentinel-theme-synonyms", () => {
     expect(matches).toContain("Reforma Fiscal");
   });
 
-  it("nao associa Saneamento Basico a noticia de policiamento por causa de 'falta'", () => {
+  it("nao associa Saneamento Básico a noticia de policiamento por causa de 'falta'", () => {
     const haystack =
       "Falta de policiamento e o principal problema de seguranca em Sao Paulo, mostra Datafolha - CBN";
 
     expect(
-      matchThemesWithSynonyms(haystack, ["Saneamento Basico", "Seguranca Publica"]),
-    ).toEqual(["Seguranca Publica"]);
+      matchThemesWithSynonyms(haystack, ["Saneamento Básico", "Segurança Pública"]),
+    ).toEqual(["Segurança Pública"]);
 
-    expect(pickBestMatchedTheme(haystack, ["Saneamento Basico", "Seguranca Publica"])).toBe(
-      "Seguranca Publica",
+    expect(pickBestMatchedTheme(haystack, ["Saneamento Básico", "Segurança Pública"])).toBe(
+      "Segurança Pública",
     );
   });
 
   it("mantem match de saneamento quando a materia fala de agua", () => {
     const haystack = "Moradores reclamam da falta de agua potavel no bairro";
 
-    expect(matchThemesWithSynonyms(haystack, ["Saneamento Basico"])).toContain("Saneamento Basico");
+    expect(matchThemesWithSynonyms(haystack, ["Saneamento Básico"])).toContain("Saneamento Básico");
   });
 
   it("retorna o sinonimo que casou quando distinto do tema principal", () => {
@@ -102,7 +102,7 @@ describe("sentinel-theme-synonyms", () => {
     const haystack = "Belo Horizonte avanca plano de venda de estatais locais";
 
     expect(
-      resolveArticleMatchingSearchTerm(haystack, "Privatizacoes", [
+      resolveArticleMatchingSearchTerm(haystack, "Privatizações", [
         "Belo Horizonte",
         "venda de estatais",
       ]),
@@ -135,10 +135,10 @@ describe("sentinel-rss", () => {
   it("monta queries por esfera sem temas de oposicao", () => {
     const queries = buildSentinelRssQueries(sampleProfile);
     expect(queries.some((query) => query.includes("Campinas"))).toBe(true);
-    expect(queries.some((query) => query.includes("Seguranca Publica") && query.includes("SP"))).toBe(
+    expect(queries.some((query) => query.includes("Segurança Pública") && query.includes("SP"))).toBe(
       true,
     );
-    expect(queries.some((query) => query.includes("Vacinacao") && query.includes("Brasil"))).toBe(
+    expect(queries.some((query) => query.includes("Vacinação") && query.includes("Brasil"))).toBe(
       true,
     );
     expect(queries.some((query) => query.includes("fila do SUS"))).toBe(true);
@@ -151,7 +151,7 @@ describe("sentinel-rss", () => {
       "Operação reforça segurança pública em Campinas",
       sampleProfile.sentinelThemes,
     );
-    expect(matches).toContain("Seguranca Publica");
+    expect(matches).toContain("Segurança Pública");
   });
 
   it("faz match literal apenas para temas personalizados", () => {
@@ -178,7 +178,7 @@ describe("sentinel-rss", () => {
         sourceName: "Portal",
       },
       sampleProfile,
-      ["Vacinacao"],
+      ["Vacinação"],
       [],
       { articleCount: 3, outletCount: 3 },
     );
@@ -196,8 +196,8 @@ describe("sentinel-rss", () => {
           publishedAt: null,
           sourceName: "G1",
         },
-        themeLabel: "Seguranca Publica",
-        matchedThemes: ["Seguranca Publica"],
+        themeLabel: "Segurança Pública",
+        matchedThemes: ["Segurança Pública"],
         sourceList: "interest",
         relevanceScore: 0,
       },
@@ -209,8 +209,8 @@ describe("sentinel-rss", () => {
           publishedAt: null,
           sourceName: "Tribuna",
         },
-        themeLabel: "Seguranca Publica",
-        matchedThemes: ["Seguranca Publica"],
+        themeLabel: "Segurança Pública",
+        matchedThemes: ["Segurança Pública"],
         sourceList: "interest",
         relevanceScore: 0,
       },
@@ -274,7 +274,7 @@ describe("sentinel-suggestions", () => {
 
     expect(suggestions.length).toBeGreaterThanOrEqual(2);
 
-    const seguranca = suggestions.find((item) => item.themeLabel === "Seguranca Publica");
+    const seguranca = suggestions.find((item) => item.themeLabel === "Segurança Pública");
     expect(seguranca?.evidence.outletCount).toBeGreaterThanOrEqual(2);
     expect(seguranca?.evidence.articles?.length).toBeGreaterThanOrEqual(2);
     expect(seguranca?.topic).toContain("·");

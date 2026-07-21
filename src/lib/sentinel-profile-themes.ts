@@ -1,4 +1,5 @@
 import {
+  canonicalizeSentinelThemes,
   estadualThemeGroups,
   federalThemeGroups,
   type SphereThemeGroup,
@@ -25,7 +26,7 @@ function catalogSet(groups: readonly SphereThemeGroup[]): Set<string> {
 const FEDERAL_CATALOG = catalogSet(federalThemeGroups);
 const ESTADUAL_CATALOG = catalogSet(estadualThemeGroups);
 
-/** Temas presentes nos dois catálogos (ex.: Contratos Publicos). */
+/** Temas presentes nos dois catálogos (ex.: Contratos Públicos). */
 export function listOverlappingSentinelThemes(): string[] {
   return [...FEDERAL_CATALOG].filter((theme) => ESTADUAL_CATALOG.has(theme)).sort();
 }
@@ -38,7 +39,7 @@ export function migrateFlatSentinelThemes(themes: string[]): SentinelThemeSphere
   const federal: string[] = [];
   const estadual: string[] = [];
 
-  for (const theme of themes) {
+  for (const theme of canonicalizeSentinelThemes(themes)) {
     const inEstadual = ESTADUAL_CATALOG.has(theme);
     const inFederal = FEDERAL_CATALOG.has(theme);
 
@@ -62,8 +63,8 @@ export function resolveSentinelThemeSpheres(
     "sentinelThemes" | "sentinelThemesFederal" | "sentinelThemesEstadual"
   >,
 ): SentinelThemeSpheres {
-  const federal = profile.sentinelThemesFederal ?? [];
-  const estadual = profile.sentinelThemesEstadual ?? [];
+  const federal = canonicalizeSentinelThemes(profile.sentinelThemesFederal ?? []);
+  const estadual = canonicalizeSentinelThemes(profile.sentinelThemesEstadual ?? []);
   const legacyThemes = profile.sentinelThemes ?? [];
   const hasExplicitColumns =
     profile.sentinelThemesFederal !== undefined || profile.sentinelThemesEstadual !== undefined;

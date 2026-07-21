@@ -7,7 +7,12 @@ import {
   isNationalPortalHost,
   isStatePortalHost,
 } from "./sentinel-portal-catalog";
-import { estadualThemeGroups, federalThemeGroups } from "./sphere-theme-catalog";
+import {
+  canonicalizeSentinelTheme,
+  estadualThemeGroups,
+  federalThemeGroups,
+} from "./sphere-theme-catalog";
+import { normalizeSentinelText } from "./sentinel-text";
 
 /**
  * The backend has no notion of "sphere" — classification is a frontend heuristic
@@ -29,7 +34,7 @@ export type ProfileRadarThemes = {
 };
 
 function themeKey(theme: string) {
-  return theme.trim().toLowerCase();
+  return normalizeSentinelText(theme);
 }
 
 function toThemeSet(themes: string[] | undefined) {
@@ -65,7 +70,9 @@ const ESTADUAL_THEME_CATALOG = new Set(
 
 /** Esfera pelo catálogo do tema (quando o tema existe só em federal ou só em estadual). */
 export function classifyThemesCatalogSphere(themes: string[]): MonitorSphere | null {
-  const unique = [...new Set(themes.map((theme) => theme.trim()).filter(Boolean))];
+  const unique = [
+    ...new Set(themes.map((theme) => canonicalizeSentinelTheme(theme)).filter(Boolean)),
+  ];
   if (!unique.length) {
     return null;
   }

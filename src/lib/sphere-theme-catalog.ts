@@ -1,4 +1,5 @@
 import { sentinelThemeGroups } from "./constants";
+import { normalizeSentinelText } from "./sentinel-text";
 
 /**
  * Sphere-facing catalogs for the "Redefinir temas" screen. Values MUST be the
@@ -17,39 +18,39 @@ export const estadualThemeGroups: readonly SphereThemeGroup[] = [
   {
     title: "Economia, Trabalho e Mercado",
     options: [
-      "Carga Tributaria",
+      "Carga Tributária",
       "Reforma Fiscal",
       "Desemprego",
-      "Inflacao e Precos",
+      "Inflação e Preços",
       "Empreendedorismo",
-      "Privatizacoes",
-      "Subsidios Estatais",
-      "Geracao de Renda",
-      "Contratos Publicos",
+      "Privatizações",
+      "Subsídios Estatais",
+      "Geração de Renda",
+      "Contratos Públicos",
     ],
   },
   {
-    title: "Seguranca, Justica e Combate ao Crime",
+    title: "Segurança, Justiça e Combate ao Crime",
     options: [
-      "Seguranca Publica",
-      "Combate a Corrupcao",
-      "Combate ao Trafico",
+      "Segurança Pública",
+      "Combate à Corrupção",
+      "Combate ao Tráfico",
       "Sistema Prisional",
-      "Ressocializacao",
+      "Ressocialização",
       "Direitos Humanos",
-      "Valorizacao Policial",
-      "Cameras Corporais",
+      "Valorização Policial",
+      "Câmeras Corporais",
     ],
   },
   {
     title: "Meio Ambiente, Agro e Infraestrutura",
     options: [
-      "Apoio ao Agronegocio",
-      "Transicao Energetica",
-      "Protecao de Biomas",
+      "Apoio ao Agronegócio",
+      "Transição Energética",
+      "Proteção de Biomas",
       "Mobilidade Urbana",
       "Agricultura Familiar",
-      "Saneamento Basico",
+      "Saneamento Básico",
     ],
   },
   {
@@ -57,40 +58,67 @@ export const estadualThemeGroups: readonly SphereThemeGroup[] = [
     options: [
       "Valores Tradicionais",
       "Cota Racial e Social",
-      "Protecao da Familia",
+      "Proteção da Família",
       "Liberdade Religiosa",
       "Direitos da Mulher",
       "Defesa da Vida",
       "Direitos das Minorias",
-      "Ideologia de Genero",
+      "Ideologia de Gênero",
       "Direitos LGBTQIA+",
     ],
   },
   {
-    title: "Estado, Saude e Educacao",
+    title: "Estado, Saúde e Educação",
     options: [
-      "Saude Publica (SUS)",
-      "Educacao Basica",
-      "Combate a Fome / Pobreza",
+      "Saúde Pública (SUS)",
+      "Educação Básica",
+      "Combate à Fome / Pobreza",
       "Programas Assistenciais",
-      "Ensino Tecnico",
+      "Ensino Técnico",
       "Fila de Cirurgias",
     ],
   },
   {
-    title: "Politica Externa, Tecnologia e Midia",
+    title: "Política Externa, Tecnologia e Mídia",
     options: [
-      "Liberdade de Expressao",
+      "Liberdade de Expressão",
       "Soberania Nacional",
       "Combate a Fake News",
-      "Transparencia Gov.",
+      "Transparência Gov.",
     ],
   },
 ];
 
+const ALL_CATALOG_LABELS: readonly string[] = [
+  ...new Set([
+    ...federalThemeGroups.flatMap((group) => [...group.options]),
+    ...estadualThemeGroups.flatMap((group) => [...group.options]),
+  ]),
+];
+
+const CATALOG_BY_NORMALIZED = new Map(
+  ALL_CATALOG_LABELS.map((label) => [normalizeSentinelText(label), label] as const),
+);
+
+/**
+ * Mapeia tema salvo (com ou sem acento) para o label canônico acentuado do catálogo.
+ * Temas custom fora do catálogo permanecem como vieram.
+ */
+export function canonicalizeSentinelTheme(theme: string): string {
+  const trimmed = theme.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  return CATALOG_BY_NORMALIZED.get(normalizeSentinelText(trimmed)) ?? trimmed;
+}
+
+export function canonicalizeSentinelThemes(themes: string[]): string[] {
+  return [...new Set(themes.map(canonicalizeSentinelTheme).filter(Boolean))];
+}
+
 export function themesInCatalog(selected: string[], groups: readonly SphereThemeGroup[]): string[] {
   const catalog = new Set(groups.flatMap((group) => [...group.options]));
-  return selected.filter((theme) => catalog.has(theme));
+  return canonicalizeSentinelThemes(selected).filter((theme) => catalog.has(theme));
 }
 
 /** Máximo de temas por esfera (Federal ou Estadual). */

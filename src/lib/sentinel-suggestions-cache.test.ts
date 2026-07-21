@@ -32,7 +32,7 @@ const profile: PoliticianProfile = {
   referenceExamples: [],
   bio: "Bio de teste com mais de vinte caracteres para validacao.",
   personaArchetypes: [],
-  sentinelThemes: ["Vacinacao"],
+  sentinelThemes: ["Vacinação"],
   oppositionThemes: [],
   customRadarThemes: [],
   interestProfiles: [],
@@ -69,7 +69,7 @@ describe("sentinel-suggestions cache", () => {
     });
     const after = buildRadarThemesSignature({
       ...profile,
-      sentinelThemesFederal: ["Subsidios Estatais"],
+      sentinelThemesFederal: ["Subsídios Estatais"],
       sentinelThemesEstadual: [],
     });
 
@@ -79,15 +79,15 @@ describe("sentinel-suggestions cache", () => {
   it("remove sugestoes de temas que sairam do radar", () => {
     const activeProfile = {
       ...profile,
-      sentinelThemesFederal: ["Subsidios Estatais", "Endurecimento de Penas"],
+      sentinelThemesFederal: ["Subsídios Estatais", "Endurecimento de Penas"],
       sentinelThemesEstadual: [],
     } as PoliticianProfile;
 
     const suggestions: MockSentinelSuggestion[] = [
       {
         id: "keep",
-        themeLabel: "Subsidios Estatais",
-        matchedThemes: ["Subsidios Estatais"],
+        themeLabel: "Subsídios Estatais",
+        matchedThemes: ["Subsídios Estatais"],
         topic: "Subsidios",
         relevanceScore: 80,
         evidence: {
@@ -143,16 +143,16 @@ describe("sentinel-suggestions cache", () => {
   it("descarta card cujo tema principal saiu do radar mesmo com matchedThemes residual", () => {
     const activeProfile = {
       ...profile,
-      sentinelThemesFederal: ["Reforma Fiscal", "Subsidios Estatais", "Privatizacoes"],
+      sentinelThemesFederal: ["Reforma Fiscal", "Subsídios Estatais", "Privatizações"],
       sentinelThemesEstadual: [],
-      sentinelThemes: ["Reforma Fiscal", "Subsidios Estatais", "Privatizacoes"],
+      sentinelThemes: ["Reforma Fiscal", "Subsídios Estatais", "Privatizações"],
     } as PoliticianProfile;
 
     const suggestions: MockSentinelSuggestion[] = [
       {
         id: "cameras-orphan",
-        themeLabel: "Cameras Corporais",
-        matchedThemes: ["Cameras Corporais", "Privatizacoes"],
+        themeLabel: "Câmeras Corporais",
+        matchedThemes: ["Câmeras Corporais", "Privatizações"],
         topic: "Cameras",
         relevanceScore: 90,
         evidence: {

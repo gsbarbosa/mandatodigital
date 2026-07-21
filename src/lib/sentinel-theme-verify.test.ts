@@ -64,8 +64,8 @@ describe("sentinel-theme-verify", () => {
           publishedAt: null,
         },
         haystack: "Falta de policiamento em Sao Paulo CBN",
-        themeLabel: "Seguranca Publica",
-        matchedThemes: ["Saneamento Basico", "Seguranca Publica"],
+        themeLabel: "Segurança Pública",
+        matchedThemes: ["Saneamento Básico", "Segurança Pública"],
       },
     ]);
 
@@ -91,8 +91,8 @@ describe("sentinel-theme-verify", () => {
         articleTitle: article.title,
         articleUrl: article.link,
         articleSource: "CBN",
-        themeCanonical: canonicalThemeSlug("Saneamento Basico"),
-        themeLabel: "Saneamento Basico",
+        themeCanonical: canonicalThemeSlug("Saneamento Básico"),
+        themeLabel: "Saneamento Básico",
         approved: false,
         confidence: 0.05,
         rationale: "Materia trata de seguranca, nao saneamento.",
@@ -105,8 +105,8 @@ describe("sentinel-theme-verify", () => {
         articleTitle: article.title,
         articleUrl: article.link,
         articleSource: "CBN",
-        themeCanonical: canonicalThemeSlug("Seguranca Publica"),
-        themeLabel: "Seguranca Publica",
+        themeCanonical: canonicalThemeSlug("Segurança Pública"),
+        themeLabel: "Segurança Pública",
         approved: true,
         confidence: 0.95,
         rationale: "Materia sobre policiamento.",
@@ -121,15 +121,15 @@ describe("sentinel-theme-verify", () => {
       {
         article,
         haystack: `${article.title} ${article.sourceName}`,
-        themeLabel: "Saneamento Basico",
-        matchedThemes: ["Saneamento Basico", "Seguranca Publica"],
+        themeLabel: "Saneamento Básico",
+        matchedThemes: ["Saneamento Básico", "Segurança Pública"],
       },
     ]);
 
     expect(result.stats.cacheHits).toBe(2);
     expect(result.stats.llmCalls).toBe(0);
     expect(result.items).toHaveLength(1);
-    expect(result.items[0]?.themeLabel).toBe("Seguranca Publica");
-    expect(result.items[0]?.matchedThemes).toEqual(["Seguranca Publica"]);
+    expect(result.items[0]?.themeLabel).toBe("Segurança Pública");
+    expect(result.items[0]?.matchedThemes).toEqual(["Segurança Pública"]);
   });
 });

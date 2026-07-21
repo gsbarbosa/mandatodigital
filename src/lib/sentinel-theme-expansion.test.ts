@@ -15,24 +15,24 @@ const profile = {
 
 const baseProfile = {
   sentinelThemes: [],
-  sentinelThemesFederal: ["Saude Publica (SUS)"],
-  sentinelThemesEstadual: ["Privatizacoes"],
-  oppositionThemes: ["Saude Publica / Filas"],
+  sentinelThemesFederal: ["Saúde Pública (SUS)"],
+  sentinelThemesEstadual: ["Privatizações"],
+  oppositionThemes: ["Saúde Pública / Filas"],
 } as unknown as PoliticianProfile;
 
 const sampleExpansions: SentinelThemeExpansion[] = [
   {
-    sourceTheme: "Saude Publica (SUS)",
+    sourceTheme: "Saúde Pública (SUS)",
     expandedTerms: ["SUS", "hospital"],
     generatedAt: "2026-01-01",
   },
   {
-    sourceTheme: "Privatizacoes",
+    sourceTheme: "Privatizações",
     expandedTerms: ["privatizacao"],
     generatedAt: "2026-01-01",
   },
   {
-    sourceTheme: "Saude Publica / Filas",
+    sourceTheme: "Saúde Pública / Filas",
     expandedTerms: ["fila do SUS"],
     generatedAt: "2026-01-01",
   },
@@ -42,7 +42,7 @@ const sampleExpansions: SentinelThemeExpansion[] = [
     generatedAt: "2026-01-01",
   },
   {
-    sourceTheme: "Saude Publica (SUS)",
+    sourceTheme: "Saúde Pública (SUS)",
     expandedTerms: ["duplicata"],
     generatedAt: "2026-01-02",
   },
@@ -62,9 +62,9 @@ describe("filterGeoExpansionTerms", () => {
 describe("filterExpansionsForProfile", () => {
   it("mantem apenas temas ativos no radar e remove duplicatas", () => {
     expect(filterExpansionsForProfile(sampleExpansions, baseProfile).map((row) => row.sourceTheme)).toEqual([
-      "Privatizacoes",
-      "Saude Publica (SUS)",
-      "Saude Publica / Filas",
+      "Privatizações",
+      "Saúde Pública (SUS)",
+      "Saúde Pública / Filas",
     ]);
   });
 });
@@ -73,8 +73,8 @@ describe("groupExpansionsBySphere", () => {
   it("separa expansoes por esfera do perfil", () => {
     const grouped = groupExpansionsBySphere(sampleExpansions, baseProfile);
 
-    expect(grouped.federal.map((row) => row.sourceTheme)).toEqual(["Saude Publica (SUS)"]);
-    expect(grouped.estadual.map((row) => row.sourceTheme)).toEqual(["Privatizacoes"]);
-    expect(grouped.opposition.map((row) => row.sourceTheme)).toEqual(["Saude Publica / Filas"]);
+    expect(grouped.federal.map((row) => row.sourceTheme)).toEqual(["Saúde Pública (SUS)"]);
+    expect(grouped.estadual.map((row) => row.sourceTheme)).toEqual(["Privatizações"]);
+    expect(grouped.opposition.map((row) => row.sourceTheme)).toEqual(["Saúde Pública / Filas"]);
   });
 });
