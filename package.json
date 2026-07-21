@@ -1,6 +1,6 @@
 {
   "name": "mandato-digital",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MVP interno do Mandato Digital para onboarding, geracao e revisao de conteudo politico.",
   "private": true,
   "scripts": {
