@@ -189,7 +189,7 @@ export function MarketingHomePage() {
       </MarketingSection>
 
       <MarketingSection title={homeEcosystemSummary.title} lead={homeEcosystemSummary.subtitle}>
-        <ol className="space-y-3">
+        <ol className="m-0 list-none space-y-3 p-0">
           {homeEcosystemSummary.agents.map((agent, index) => {
             const accentKey = ECOSYSTEM_ACCENTS[index] ?? "sentinela";
             const accent = AGENT_ACCENT_CLASS[accentKey];
@@ -197,16 +197,22 @@ export function MarketingHomePage() {
             return (
               <li
                 key={agent}
-                className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm text-slate-300"
+                className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3"
               >
-                <MarketingIconBadge
-                  className={`mt-0.5 !h-9 !w-9 ${accent.soft} ${accent.text} ${accent.border}`}
-                >
-                  <AgentIcon size={18} />
-                </MarketingIconBadge>
-                <span>
-                  <span className="font-semibold text-white">{index + 1}.</span> {agent}
-                </span>
+                <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3">
+                  {/*
+                    text-sm (14px) × leading 1.5 = 21px na 1ª linha.
+                    Ícone 18px + mt 1.5px ≈ centro óptico da 1ª linha.
+                  */}
+                  <AgentIcon
+                    size={18}
+                    className={`mt-[1.5px] block ${accent.text}`}
+                    aria-hidden
+                  />
+                  <p className="m-0 text-sm leading-[1.5] text-slate-300">
+                    <span className="font-semibold text-white">{index + 1}.</span> {agent}
+                  </p>
+                </div>
               </li>
             );
           })}
