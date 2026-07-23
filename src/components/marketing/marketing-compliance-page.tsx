@@ -242,12 +242,20 @@ export function MarketingCompliancePage() {
               return (
                 <li
                   key={item}
-                  className="flex items-start gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 px-4 py-4"
+                  className="rounded-2xl border border-slate-800/80 bg-slate-900/40 px-4 py-4"
                 >
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-                    <Icon size={22} />
-                  </span>
-                  <p className="pt-2 text-sm leading-relaxed text-slate-300">{item}</p>
+                  <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3">
+                    {/*
+                      text-sm (14px) × leading 1.5 = 21px na 1ª linha.
+                      Ícone 18px + mt 1.5px ≈ centro óptico da 1ª linha.
+                    */}
+                    <Icon
+                      size={18}
+                      className="mt-[1.5px] block text-emerald-400"
+                      aria-hidden
+                    />
+                    <p className="m-0 text-sm leading-[1.5] text-slate-300">{item}</p>
+                  </div>
                 </li>
               );
             })}
@@ -286,15 +294,24 @@ export function MarketingCompliancePage() {
         }
       >
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <ul className="space-y-5">
+          <ul className="m-0 list-none space-y-5 p-0">
             {complianceProtection.items.map((item) => (
-              <li key={item.title} className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/15 text-emerald-400">
-                  <IconCheck size={14} />
-                </span>
-                <div>
-                  <p className="font-semibold text-white">{item.title}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.body}</p>
+              <li
+                key={item.title}
+                className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3"
+              >
+                <IconCheck
+                  size={18}
+                  className="mt-[1.5px] block text-emerald-400"
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <p className="m-0 text-sm font-semibold leading-[1.5] text-white">
+                    {item.title}
+                  </p>
+                  <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
+                    {item.body}
+                  </p>
                 </div>
               </li>
             ))}
@@ -334,21 +351,28 @@ export function MarketingCompliancePage() {
         }
         lead={compliancePayments.subtitle}
       >
-        <ul className="space-y-5">
+        <ul className="m-0 list-none space-y-5 p-0">
           {compliancePayments.items.map((item, index) => {
             const Icon = PAYMENT_ICONS[index] ?? IconReceipt;
             const accent = PAYMENT_ACCENTS[index] ?? "emerald";
             const a = ACCENT[accent];
             return (
-              <li key={item.title} className="flex items-start gap-4 sm:gap-5">
-                <span
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${a.border} ${a.soft} ${a.text}`}
-                >
-                  <Icon size={24} />
-                </span>
-                <div className="min-w-0 border-b border-slate-800/80 pb-5">
-                  <h3 className="font-bold text-white">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{item.body}</p>
+              <li
+                key={item.title}
+                className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3 border-b border-slate-800/80 pb-5"
+              >
+                <Icon
+                  size={18}
+                  className={`mt-[1.5px] block ${a.text}`}
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <h3 className="m-0 text-sm font-bold leading-[1.5] text-white">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
+                    {item.body}
+                  </p>
                 </div>
               </li>
             );
