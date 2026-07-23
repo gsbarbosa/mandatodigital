@@ -14,7 +14,8 @@ Ajuda o candidato a monitorar pautas, criar conteúdo alinhado à persona, gerar
 - Monitoramento de Pautas (/monitoramento): Nacional, Estadual, Municipal, Adversários.
 - Selecionar temas (/monitoramento/temas): define temas de interesse por esfera e adversários.
 - Avatares: Gêmeo Digital (/avatares/foto-real), Caricato (/avatares/caricato), Mascote 3D (/avatares/3d).
-- Configurar avatar (/avatares/foto-real/treinar): foto, áudio de voz, persona e glossário.
+- Configurar avatar (/avatares/foto-real/treinar): foto e áudio de voz.
+- Personalizar (/curador): posicionamento ideológico (persona) e glossário de expressões.
 - Meus criativos (/criativo): lista e criação de peças/roteiros/vídeos.
 - Gerar pauta independente (/independente): geração avulsa fora do fluxo Sentinela.
 - Compliance TSE (/compliance): conformidade eleitoral e materiais.
@@ -30,7 +31,7 @@ Ajuda o candidato a monitorar pautas, criar conteúdo alinhado à persona, gerar
 
 ## Fluxos comuns
 ### Onboarding
-1) Selecionar temas (4 esferas) → 2) Treinar avatar (foto, áudio, persona, glossário) → 3) Monitorar pautas → 4) Criar roteiro → 5) Produzir vídeo.
+1) Selecionar temas (4 esferas) → 2) Treinar avatar (foto + áudio) → 3) Personalizar (persona + glossário) → 4) Monitorar pautas → 5) Criar roteiro → 6) Produzir vídeo.
 Há um checklist flutuante de onboarding no canto inferior direito enquanto o progresso não estiver completo.
 
 ### Monitoramento (Sentinela)

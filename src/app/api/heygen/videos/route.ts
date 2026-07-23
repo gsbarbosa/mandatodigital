@@ -100,7 +100,7 @@ export async function POST(request: Request) {
           return NextResponse.json(
             {
               message:
-                "Modo por foto exige áudio de voz. Envie um MP3/WAV no Curador antes de gerar o vídeo.",
+                "Modo por foto exige áudio de voz. Envie um MP3/WAV em Configurar avatar antes de gerar o vídeo.",
             },
             { status: 400 },
           );
@@ -116,8 +116,8 @@ export async function POST(request: Request) {
             {
               message:
                 generateMode === "photo_real"
-                  ? "Envie a foto do rosto no Curador antes de produzir o vídeo."
-                  : "Gere e aprove a caricatura antes de produzir o video.",
+                  ? "Envie a foto do rosto em Configurar avatar antes de produzir o vídeo."
+                  : "Gere e aprove a caricatura no hub de Avatares antes de produzir o video.",
             },
             { status: 400 },
           );
@@ -306,7 +306,7 @@ export async function POST(request: Request) {
 
       if (!avatarId) {
         return NextResponse.json(
-          { message: "Gêmeo digital ausente. Treine no Curador antes de gerar o vídeo." },
+          { message: "Gêmeo digital ausente. Treine o avatar em Configurar avatar antes de gerar o vídeo." },
           { status: 400 },
         );
       }
@@ -475,7 +475,7 @@ export async function POST(request: Request) {
         }
         if (!voiceAudioAsset) {
           throw new Error(
-            `${message} (fallback por imagem exige áudio de voz enviado no Curador).`,
+            `${message} (fallback por imagem exige áudio de voz enviado em Configurar avatar).`,
           );
         }
 

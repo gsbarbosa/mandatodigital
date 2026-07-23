@@ -285,7 +285,7 @@ function BridgeModal({ kind }: { kind: Exclude<OnboardingBridge, null> }) {
         </div>
         <h2 className="mb-2.5 text-center text-lg font-bold text-white">Mídia enviada</h2>
         <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
-          Próximo passo: calibrar a persona e o glossário no Curador.
+          Próximo passo: calibrar a persona e o glossário em Personalizar.
         </p>
         <PrimaryButton
           onClick={() => {

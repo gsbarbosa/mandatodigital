@@ -60,8 +60,8 @@ export async function POST(request: Request) {
       const baseMessage =
         result.deleted.length > 0
           ? scopedGroupId
-            ? "Personagem removido. Refaça o treinamento no Curador."
-            : `${result.deleted.length} personagem(ns) removido(s). Refaça o treinamento no Curador.`
+            ? "Personagem removido. Refaça o treinamento em Configurar avatar."
+            : `${result.deleted.length} personagem(ns) removido(s). Refaça o treinamento em Configurar avatar.`
           : scopedGroupId
             ? "Nenhum personagem remoto encontrado para remover."
             : "Nenhum personagem privado encontrado na conta.";

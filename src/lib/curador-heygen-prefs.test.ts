@@ -78,8 +78,15 @@ describe("sanitizeProviderFacingMessage", () => {
 
     expect(message).not.toContain("HeyGen");
     expect(message).not.toContain("OpenAI");
-    expect(message).toContain("use o gêmeo já treinado no Curador");
+    expect(message).toContain("use o gêmeo já treinado");
+    expect(message).not.toContain("no Curador");
     expect(message).toContain("biblioteca de vozes do painel");
+  });
+
+  it("troca 'no Curador' por Configurar avatar", () => {
+    expect(sanitizeProviderFacingMessage("Envie a foto no Curador.")).toBe(
+      "Envie a foto em Configurar avatar.",
+    );
   });
 });
 

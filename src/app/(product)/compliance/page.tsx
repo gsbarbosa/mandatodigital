@@ -6,9 +6,10 @@ export const metadata = {
 
 /*
  * Honest-copy rule (SPEC): pillars only claim what the product does today
- * (fact-check with sources, human approval, event log, TSE watermark burn-in,
- * export liability modal, contract acceptance trail + PDFs). Everything else is
- * explicitly marked "Em breve".
+ * (fact-check with sources, human approval, event log, TSE watermark burn-in via
+ * /api/media/seal and /api/jobs/seal after video generation, export liability modal,
+ * contract acceptance trail + PDFs). Everything else is explicitly marked "Em breve".
+ * Texto jurídico do selo ainda pode passar por revisão externa; o burn-in técnico existe.
  */
 
 function SectionHeading({
