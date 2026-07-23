@@ -1,19 +1,24 @@
+import type { ReactNode } from "react";
+
 import {
-  IconAlert,
-  IconBarcode,
-  IconFileCheck,
-  IconGavel,
+  IconBank,
+  IconBoleto,
+  IconCheck,
+  IconCheckSquare,
+  IconCodeBrackets,
+  IconCurrency,
+  IconDocAlert,
+  IconFileLock,
+  IconFingerprint,
   IconIdCard,
+  IconLgpd,
   IconLock,
-  IconPix,
+  IconQrFrame,
   IconReceipt,
-  IconScale,
-  IconScreenshot,
   IconShieldCheck,
-  IconSilence,
-  MarketingIconBadge,
+  IconThumbsUp,
+  IconUsers,
 } from "@/components/marketing/icons";
-import { MarketingCard } from "@/components/marketing/marketing-card";
 import { MarketingCtaBand } from "@/components/marketing/marketing-cta-band";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import {
@@ -28,208 +33,409 @@ import {
   complianceProtection,
 } from "@/lib/marketing/compliance-content";
 
-const emeraldBadge = (
-  <MarketingIconBadge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-    <IconShieldCheck size={20} />
-  </MarketingIconBadge>
-);
+type Accent = "emerald" | "cyan" | "amber" | "rose" | "blue";
+
+const ACCENT: Record<
+  Accent,
+  { text: string; soft: string; border: string; top: string; glow: string }
+> = {
+  emerald: {
+    text: "text-emerald-400",
+    soft: "bg-emerald-500/10",
+    border: "border-emerald-500/25",
+    top: "bg-emerald-500",
+    glow: "shadow-emerald-500/20",
+  },
+  cyan: {
+    text: "text-cyan-400",
+    soft: "bg-cyan-500/10",
+    border: "border-cyan-500/25",
+    top: "bg-cyan-500",
+    glow: "shadow-cyan-500/20",
+  },
+  amber: {
+    text: "text-amber-400",
+    soft: "bg-amber-500/10",
+    border: "border-amber-500/25",
+    top: "bg-amber-500",
+    glow: "shadow-amber-500/20",
+  },
+  rose: {
+    text: "text-rose-400",
+    soft: "bg-rose-500/10",
+    border: "border-rose-500/25",
+    top: "bg-rose-400",
+    glow: "shadow-rose-500/20",
+  },
+  blue: {
+    text: "text-blue-400",
+    soft: "bg-blue-500/10",
+    border: "border-blue-500/25",
+    top: "bg-blue-500",
+    glow: "shadow-blue-500/20",
+  },
+};
+
+/** Card no estilo do site antigo: título colorido, divisor, texto, ícone grande embaixo. */
+function ComplianceIconCard({
+  title,
+  children,
+  icon,
+  accent = "emerald",
+}: {
+  title: string;
+  children: ReactNode;
+  icon: ReactNode;
+  accent?: Accent;
+}) {
+  const a = ACCENT[accent];
+  return (
+    <article
+      className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/45 p-6 pt-5 shadow-lg ${a.glow}`}
+    >
+      <div className={`absolute inset-x-0 top-0 h-0.5 ${a.top}`} aria-hidden />
+      <h3 className={`text-lg font-bold ${a.text}`}>{title}</h3>
+      <div className="mt-3 mb-5 h-px w-full bg-slate-700/70" aria-hidden />
+      <div className="flex-1 text-sm leading-relaxed text-slate-300">{children}</div>
+      <div className={`mt-8 flex justify-center ${a.text}`} aria-hidden>
+        <div
+          className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${a.border} ${a.soft}`}
+        >
+          {icon}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function TitleAccent({
+  lead,
+  accent,
+  accentClass = "text-emerald-400",
+}: {
+  lead: string;
+  accent: string;
+  accentClass?: string;
+}) {
+  return (
+    <>
+      {lead} <span className={accentClass}>{accent}</span>
+    </>
+  );
+}
+
+function HeroLockVisual() {
+  return (
+    <div className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center">
+      <div
+        className="absolute inset-[12%] rounded-full bg-cyan-500/15 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="absolute inset-[22%] rounded-full bg-emerald-500/20 blur-2xl"
+        aria-hidden
+      />
+      <div className="relative flex h-56 w-56 items-center justify-center sm:h-64 sm:w-64">
+        <div className="absolute inset-0 rounded-[2rem] border border-cyan-400/30 bg-gradient-to-br from-cyan-500/10 via-slate-950/80 to-emerald-500/10 shadow-[0_0_60px_rgba(34,211,238,0.15)]" />
+        <div className="relative text-cyan-300">
+          <IconLock size={96} className="drop-shadow-[0_0_24px_rgba(34,211,238,0.45)]" />
+        </div>
+        <div className="absolute bottom-10 right-10 rounded-2xl border border-emerald-400/40 bg-slate-950/90 p-3 text-emerald-400 shadow-[0_0_28px_rgba(52,211,153,0.35)]">
+          <IconShieldCheck size={36} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FingerprintVisual() {
+  return (
+    <div className="relative mx-auto flex h-full min-h-[200px] items-center justify-center lg:min-h-0">
+      <div className="relative w-full max-w-[180px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/marketing/fingerprint-scan.png"
+          alt=""
+          width={179}
+          height={179}
+          className="relative z-10 h-auto w-full"
+          decoding="async"
+        />
+        <span className="sr-only">Validação biométrica / digital verificada</span>
+      </div>
+    </div>
+  );
+}
+
+const ACCOUNTING_ICONS = [IconReceipt, IconBank, IconUsers] as const;
+const PAYMENT_ICONS = [IconQrFrame, IconBoleto, IconCurrency, IconCheckSquare] as const;
+const PAYMENT_ACCENTS: Accent[] = ["emerald", "cyan", "amber", "emerald"];
+const ONBOARDING_ICONS = [IconDocAlert, IconIdCard, IconBank] as const;
 
 export function MarketingCompliancePage() {
   return (
     <>
-      <MarketingSection
-        eyebrow={complianceHero.eyebrow}
-        title={complianceHero.title}
-        titleAs="h1"
-        lead={complianceHero.body}
-        className="!border-t-0"
-      />
+      {/* Hero — texto + visual de cadeado/escudo (site antigo) */}
+      <section className="relative overflow-hidden border-b border-slate-800/40">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_40%,rgba(34,211,238,0.12),transparent_55%),radial-gradient(ellipse_at_20%_80%,rgba(52,211,153,0.08),transparent_50%)]"
+          aria-hidden
+        />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-12">
+          <div className="min-w-0">
+            <p className="mb-4 inline-flex rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-400">
+              {complianceHero.eyebrow}
+            </p>
+            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl lg:leading-tight">
+              Dominância Narrativa com{" "}
+              <span className="text-emerald-400">Segurança Jurídica</span>.
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
+              {complianceHero.body}
+            </p>
+          </div>
+          <HeroLockVisual />
+        </div>
+      </section>
 
-      <MarketingSection title={complianceElectoral.title}>
+      <MarketingSection
+        title={<TitleAccent lead="Conformidade" accent="Eleitoral" accentClass="text-rose-400" />}
+      >
         <div className="grid gap-4 md:grid-cols-2">
-          <MarketingCard
+          <ComplianceIconCard
             title={complianceElectoral.cards[0].title}
-            icon={
-              <MarketingIconBadge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-                <IconGavel size={20} />
-              </MarketingIconBadge>
-            }
+            accent="rose"
+            icon={<IconCheckSquare size={28} />}
           >
             <p>{complianceElectoral.cards[0].body}</p>
-          </MarketingCard>
-          <MarketingCard
+          </ComplianceIconCard>
+          <ComplianceIconCard
             title={complianceElectoral.cards[1].title}
-            icon={
-              <MarketingIconBadge className="border-amber-500/25 bg-amber-500/10 text-amber-400">
-                <IconSilence size={20} />
-              </MarketingIconBadge>
-            }
+            accent="rose"
+            icon={<IconCodeBrackets size={28} />}
           >
             <p>{complianceElectoral.cards[1].body}</p>
-          </MarketingCard>
+          </ComplianceIconCard>
         </div>
       </MarketingSection>
 
-      <MarketingSection title={complianceAccounting.title} lead={complianceAccounting.body}>
-        <div className="mb-6 flex items-center gap-3">
-          {emeraldBadge}
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-emerald-400">
-              {complianceAccounting.highlight}
+      {/* Transparência Contábil — 100% + lista com ícones distintos */}
+      <MarketingSection
+        title={<TitleAccent lead="Transparência" accent="Contábil" />}
+        lead={complianceAccounting.body}
+      >
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)]">
+          <div className="rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/15 via-slate-900/50 to-slate-950 p-8 text-center sm:p-10">
+            <p className="text-6xl font-extrabold tracking-tight text-emerald-400 sm:text-7xl">
+              100%
             </p>
-            <h3 className="text-xl font-bold text-white">{complianceAccounting.subtitle}</h3>
+            <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-white">
+              {complianceAccounting.highlight.replace("100% ", "")}
+            </p>
+            <p className={`mt-4 text-sm font-semibold ${ACCENT.emerald.text}`}>
+              {complianceAccounting.subtitle}
+            </p>
+          </div>
+          <ul className="space-y-4">
+            {complianceAccounting.items.map((item, index) => {
+              const Icon = ACCOUNTING_ICONS[index] ?? IconReceipt;
+              return (
+                <li
+                  key={item}
+                  className="flex items-start gap-4 rounded-2xl border border-slate-800/80 bg-slate-900/40 px-4 py-4"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
+                    <Icon size={22} />
+                  </span>
+                  <p className="pt-2 text-sm leading-relaxed text-slate-300">{item}</p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </MarketingSection>
+
+      <MarketingSection
+        title={
+          <TitleAccent lead="Privacidade e" accent="Reputação" accentClass="text-cyan-400" />
+        }
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <ComplianceIconCard
+            title={compliancePrivacy.cards[0].title}
+            accent="cyan"
+            icon={<IconThumbsUp size={28} />}
+          >
+            <p>{compliancePrivacy.cards[0].body}</p>
+          </ComplianceIconCard>
+          <ComplianceIconCard
+            title={compliancePrivacy.cards[1].title}
+            accent="blue"
+            icon={<IconLgpd size={28} />}
+          >
+            <p>{compliancePrivacy.cards[1].body}</p>
+          </ComplianceIconCard>
+        </div>
+      </MarketingSection>
+
+      <MarketingSection
+        title={
+          <>
+            <span className="text-emerald-400">Proteção</span> contra acusações
+          </>
+        }
+      >
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <ul className="space-y-5">
+            {complianceProtection.items.map((item) => (
+              <li key={item.title} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-emerald-500/40 bg-emerald-500/15 text-emerald-400">
+                  <IconCheck size={14} />
+                </span>
+                <div>
+                  <p className="font-semibold text-white">{item.title}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-400">{item.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="relative overflow-hidden rounded-3xl border border-slate-700/70 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 p-6 shadow-xl">
+            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" aria-hidden />
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-400/90">
+              Materialidade
+            </p>
+            <p className="mt-2 text-lg font-bold text-white">Provas sob controle</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              {[
+                { label: "Logs", icon: IconFingerprint },
+                { label: "Relatórios", icon: IconReceipt },
+                { label: "Trilha", icon: IconFileLock },
+                { label: "Escudo", icon: IconShieldCheck },
+              ].map(({ label, icon: Icon }) => (
+                <div
+                  key={label}
+                  className="rounded-2xl border border-slate-700/80 bg-slate-950/60 p-4 text-center"
+                >
+                  <Icon size={22} className="mx-auto text-cyan-400" />
+                  <p className="mt-2 text-xs font-medium text-slate-400">{label}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <ul className="space-y-3">
-          {complianceAccounting.items.map((item) => (
-            <li
-              key={item}
-              className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm text-slate-300"
-            >
-              <MarketingIconBadge className="mt-0.5 !h-8 !w-8 border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
-                <IconReceipt size={16} />
-              </MarketingIconBadge>
-              <span>{item}</span>
-            </li>
-          ))}
+      </MarketingSection>
+
+      {/* Pagamentos — lista vertical com ícones (site antigo), não grid 2x2 genérico */}
+      <MarketingSection
+        title={
+          <>
+            <span className="text-emerald-400">Pagamentos alinhados</span> à Campanha
+          </>
+        }
+        lead={compliancePayments.subtitle}
+      >
+        <ul className="space-y-5">
+          {compliancePayments.items.map((item, index) => {
+            const Icon = PAYMENT_ICONS[index] ?? IconReceipt;
+            const accent = PAYMENT_ACCENTS[index] ?? "emerald";
+            const a = ACCENT[accent];
+            return (
+              <li key={item.title} className="flex items-start gap-4 sm:gap-5">
+                <span
+                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${a.border} ${a.soft} ${a.text}`}
+                >
+                  <Icon size={24} />
+                </span>
+                <div className="min-w-0 border-b border-slate-800/80 pb-5">
+                  <h3 className="font-bold text-white">{item.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{item.body}</p>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </MarketingSection>
 
-      <MarketingSection title={compliancePrivacy.title}>
+      <MarketingSection
+        title={
+          <TitleAccent
+            lead="Seu Contrato como"
+            accent="Escudo Jurídico"
+            accentClass="text-cyan-400"
+          />
+        }
+      >
         <div className="grid gap-4 md:grid-cols-2">
-          <MarketingCard
-            title={compliancePrivacy.cards[0].title}
-            icon={
-              <MarketingIconBadge className="border-rose-500/25 bg-rose-500/10 text-rose-400">
-                <IconShieldCheck size={20} />
-              </MarketingIconBadge>
-            }
-          >
-            <p>{compliancePrivacy.cards[0].body}</p>
-          </MarketingCard>
-          <MarketingCard
-            title={compliancePrivacy.cards[1].title}
-            icon={
-              <MarketingIconBadge className="border-blue-500/25 bg-blue-500/10 text-blue-400">
-                <IconLock size={20} />
-              </MarketingIconBadge>
-            }
-          >
-            <p>{compliancePrivacy.cards[1].body}</p>
-          </MarketingCard>
-        </div>
-      </MarketingSection>
-
-      <MarketingSection title={complianceProtection.title}>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[IconScale, IconFileCheck, IconScreenshot].map((Icon, index) => {
-            const item = complianceProtection.items[index];
-            return (
-              <MarketingCard
-                key={item.title}
-                title={item.title}
-                icon={
-                  <MarketingIconBadge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-                    <Icon size={20} />
-                  </MarketingIconBadge>
-                }
-              >
-                <p>{item.body}</p>
-              </MarketingCard>
-            );
-          })}
-        </div>
-      </MarketingSection>
-
-      <MarketingSection title={compliancePayments.title} lead={compliancePayments.subtitle}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[IconPix, IconBarcode, IconReceipt, IconIdCard].map((Icon, index) => {
-            const item = compliancePayments.items[index];
-            return (
-              <MarketingCard
-                key={item.title}
-                title={item.title}
-                icon={
-                  <MarketingIconBadge className="border-slate-700 bg-slate-950/70 text-slate-200">
-                    <Icon size={20} />
-                  </MarketingIconBadge>
-                }
-              >
-                <p>{item.body}</p>
-              </MarketingCard>
-            );
-          })}
-        </div>
-      </MarketingSection>
-
-      <MarketingSection title={complianceContract.title}>
-        <div className="grid gap-4 md:grid-cols-2">
-          <MarketingCard
+          <ComplianceIconCard
             title={complianceContract.cards[0].title}
-            icon={
-              <MarketingIconBadge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-                <IconFileCheck size={20} />
-              </MarketingIconBadge>
-            }
+            accent="cyan"
+            icon={<IconFileLock size={28} />}
           >
             <p>{complianceContract.cards[0].body}</p>
-          </MarketingCard>
-          <MarketingCard
+          </ComplianceIconCard>
+          <ComplianceIconCard
             title={complianceContract.cards[1].title}
-            icon={
-              <MarketingIconBadge className="border-blue-500/25 bg-blue-500/10 text-blue-400">
-                <IconReceipt size={20} />
-              </MarketingIconBadge>
-            }
+            accent="blue"
+            icon={<IconIdCard size={28} />}
           >
             <p>{complianceContract.cards[1].body}</p>
-          </MarketingCard>
+          </ComplianceIconCard>
         </div>
       </MarketingSection>
 
-      <MarketingSection title={complianceOnboarding.title}>
-        <div className="grid gap-4 md:grid-cols-3">
-          {[IconAlert, IconIdCard, IconScale].map((Icon, index) => {
-            const card = complianceOnboarding.cards[index];
-            return (
-              <MarketingCard
-                key={card.title}
-                title={card.title}
-                icon={
-                  <MarketingIconBadge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-                    <Icon size={20} />
-                  </MarketingIconBadge>
-                }
-              >
-                <p>{card.body}</p>
-              </MarketingCard>
-            );
-          })}
+      <MarketingSection
+        title={
+          <TitleAccent
+            lead="Onboarding Focado na"
+            accent="Formalidade"
+            accentClass="text-cyan-400"
+          />
+        }
+      >
+        <div className="grid items-stretch gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.7fr)]">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {complianceOnboarding.cards.map((card, index) => {
+              const Icon = ONBOARDING_ICONS[index] ?? IconIdCard;
+              return (
+                <ComplianceIconCard
+                  key={card.title}
+                  title={card.title}
+                  accent="cyan"
+                  icon={<Icon size={26} />}
+                >
+                  <p>{card.body}</p>
+                </ComplianceIconCard>
+              );
+            })}
+          </div>
+          <FingerprintVisual />
         </div>
       </MarketingSection>
 
-      <MarketingSection title={complianceNetwork.title}>
+      <MarketingSection
+        title={
+          <TitleAccent
+            lead="Autonomia com Rede de"
+            accent="Proteção"
+            accentClass="text-rose-400"
+          />
+        }
+      >
         <div className="grid gap-4 md:grid-cols-2">
-          <MarketingCard
+          <ComplianceIconCard
             title={complianceNetwork.cards[0].title}
-            icon={
-              <MarketingIconBadge className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-                <IconFileCheck size={20} />
-              </MarketingIconBadge>
-            }
+            accent="rose"
+            icon={<IconShieldCheck size={28} />}
           >
             <p>{complianceNetwork.cards[0].body}</p>
-          </MarketingCard>
-          <MarketingCard
+          </ComplianceIconCard>
+          <ComplianceIconCard
             title={complianceNetwork.cards[1].title}
-            icon={
-              <MarketingIconBadge className="border-amber-500/25 bg-amber-500/10 text-amber-400">
-                <IconAlert size={20} />
-              </MarketingIconBadge>
-            }
+            accent="amber"
+            icon={<IconDocAlert size={28} />}
           >
             <p>{complianceNetwork.cards[1].body}</p>
-          </MarketingCard>
+          </ComplianceIconCard>
         </div>
       </MarketingSection>
 

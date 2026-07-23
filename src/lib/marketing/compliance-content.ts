@@ -57,7 +57,7 @@ export const complianceProtection = {
     },
     {
       title: "Provas Visuais",
-      body: "O sistema entrega screenshots documentados das publicações realizadas, provando legitimidade perante os tribunais e Ministério Público.",
+      body: "O sistema entrega documentos das publicações realizadas, provando legitimidade perante os tribunais e Ministério Público.",
     },
   ],
 } as const;
@@ -80,7 +80,7 @@ export const compliancePayments = {
     },
     {
       title: "CNAEs estratégicos",
-      body: "Adaptamos o CNAE ao plano principal na Mandato Digital, considerando atividades de software, conteúdo e dados, garantindo conformidade técnica.",
+      body: "Nossos CNAEs principais (62.03 para Software, 63.19 para Conteúdo, 63.11 para Dados) estão em total conformidade técnica com a plataforma e integralmente tipificados dentro da legalidade eleitoral.",
     },
   ],
 } as const;
@@ -104,7 +104,7 @@ export const complianceOnboarding = {
   cards: [
     {
       title: "Prevenção de Falhas",
-      body: "Nosso formulário cruza informações em tempo real com bases de dados da Receita, garantindo a qualificação imediata.",
+      body: "Nosso formulário cruza informações em tempo real com bases de dados do TSE, garantindo a qualificação imediata.",
     },
     {
       title: "Validação de CNPJ Integrada",

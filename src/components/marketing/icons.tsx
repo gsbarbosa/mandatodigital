@@ -143,12 +143,55 @@ export function IconGauge(props: IconProps) {
 export function IconFingerprint(props: IconProps) {
   return (
     <IconBase {...props}>
-      <path d="M12 11.5v4.2" />
-      <path d="M9.2 12.2c.3 2.2 1.2 3.8 2.8 5.3" />
-      <path d="M14.8 12c-.2 2.6-1.1 4.3-2.8 5.8" />
-      <path d="M7.2 10.8c.5-2.3 2.3-3.8 4.8-3.8s4.3 1.5 4.8 3.8" />
-      <path d="M5.2 13.5c.4-4 3.2-6.8 6.8-6.8s6.4 2.8 6.8 6.8" />
+      {/* cristas centrais */}
+      <path d="M12 10.2v5.6" />
+      <path d="M10.2 10.6c.15 1.7.7 3.1 1.8 4.4" />
+      <path d="M13.8 10.6c-.15 1.7-.7 3.1-1.8 4.4" />
+      {/* anéis médios */}
+      <path d="M8.4 10.2c.35-1.55 1.7-2.55 3.6-2.55s3.25 1 3.6 2.55" />
+      <path d="M8.2 11.2c.2 2.35.95 4.15 2.55 5.7" />
+      <path d="M15.8 11.2c-.2 2.35-.95 4.15-2.55 5.7" />
+      {/* anéis externos */}
+      <path d="M6.4 10.5c.55-2.55 2.55-4.15 5.6-4.15s5.05 1.6 5.6 4.15" />
+      <path d="M6.2 12c.25 2.9 1.25 5.1 3.2 6.85" />
+      <path d="M17.8 12c-.25 2.9-1.25 5.1-3.2 6.85" />
+      <path d="M4.8 11.2c.7-3.55 3.35-5.7 7.2-5.7s6.5 2.15 7.2 5.7" />
     </IconBase>
+  );
+}
+
+/** Digital dentro do quadro de scanner (legado Compliance). */
+export function IconFingerprintScan(props: IconProps) {
+  const size = props.size ?? 24;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={props.className}
+      aria-hidden
+    >
+      {/* cantos do scanner */}
+      <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8" />
+      <path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8" />
+      <path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16" />
+      <path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16" />
+      {/* digital */}
+      <path d="M12 9.8v4.8" />
+      <path d="M10.4 10.1c.12 1.45.6 2.65 1.6 3.75" />
+      <path d="M13.6 10.1c-.12 1.45-.6 2.65-1.6 3.75" />
+      <path d="M8.8 9.7c.3-1.35 1.5-2.2 3.2-2.2s2.9.85 3.2 2.2" />
+      <path d="M8.6 10.6c.18 2 .82 3.55 2.2 4.9" />
+      <path d="M15.4 10.6c-.18 2-.82 3.55-2.2 4.9" />
+      <path d="M7 10c.48-2.2 2.2-3.55 5-3.55s4.52 1.35 5 3.55" />
+      <path d="M6.8 11.4c.22 2.5 1.1 4.4 2.8 5.9" />
+      <path d="M17.2 11.4c-.22 2.5-1.1 4.4-2.8 5.9" />
+    </svg>
   );
 }
 
@@ -296,6 +339,108 @@ export function IconAlert(props: IconProps) {
   );
 }
 
+export function IconCheckSquare(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <path d="m8.5 12 2.5 2.5 4.5-5" />
+    </IconBase>
+  );
+}
+
+export function IconCodeBrackets(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3.5" y="5" width="17" height="14" rx="2" />
+      <path d="M9 10 7 12l2 2M15 10l2 2-2 2M12.5 9.5 11 14.5" />
+    </IconBase>
+  );
+}
+
+export function IconBank(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 10h16" />
+      <path d="M6 10v7M10 10v7M14 10v7M18 10v7" />
+      <path d="M3.5 17.5h17" />
+      <path d="M12 4 4.5 9.5h15L12 4Z" />
+    </IconBase>
+  );
+}
+
+export function IconThumbsUp(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M8 11v8H5.5A1.5 1.5 0 0 1 4 17.5V12.5A1.5 1.5 0 0 1 5.5 11H8Z" />
+      <path d="M8 11.5V9.2A3.2 3.2 0 0 1 11.2 6l.8-2.2a1.4 1.4 0 0 1 2.5.6L14 8h4.2a2 2 0 0 1 1.95 2.45l-1.1 5A2.5 2.5 0 0 1 16.6 17.5H8" />
+    </IconBase>
+  );
+}
+
+export function IconQrFrame(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16" />
+      <rect x="7.5" y="7.5" width="4" height="4" rx="0.5" />
+      <rect x="12.5" y="7.5" width="4" height="4" rx="0.5" />
+      <rect x="7.5" y="12.5" width="4" height="4" rx="0.5" />
+      <path d="M13 13h1.5v1.5H13V13Zm2.5 0H17v1.5h-1.5V13Zm0 2.5H17V17h-1.5v-1.5Zm-2.5 0H14.5V17H13v-1.5Z" />
+    </IconBase>
+  );
+}
+
+export function IconCurrency(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5v9M14.5 9.2c-.7-.8-1.5-1.1-2.5-1.1-1.6 0-2.8.9-2.8 2.2S10.4 12.5 12 12.5s2.8.8 2.8 2.1-1.2 2.2-2.8 2.2c-1 0-1.9-.4-2.5-1.1" />
+    </IconBase>
+  );
+}
+
+export function IconFileLock(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M14 3.5H8a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9l-4-5.5Z" />
+      <path d="M14 3.5V9h5" />
+      <rect x="9.5" y="13.5" width="5" height="3.8" rx="0.8" />
+      <path d="M10.7 13.5v-1.2a1.3 1.3 0 0 1 2.6 0v1.2" />
+    </IconBase>
+  );
+}
+
+export function IconDocAlert(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M14 3.5H8a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V9l-4-5.5Z" />
+      <path d="M14 3.5V9h5" />
+      <circle cx="12" cy="14.5" r="2.6" />
+      <path d="M12 13.2v1.5" />
+      <circle cx="12" cy="16.4" r="0.45" fill="currentColor" stroke="none" />
+    </IconBase>
+  );
+}
+
+export function IconLgpd(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3 5 6v5.5c0 4.2 2.8 7.4 7 8.5 4.2-1.1 7-4.3 7-8.5V6l-7-3Z" />
+      <rect x="9.2" y="11.2" width="5.6" height="4.2" rx="0.8" />
+      <path d="M10.5 11.2V9.8a1.5 1.5 0 0 1 3 0v1.4" />
+    </IconBase>
+  );
+}
+
+export function IconBoleto(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 4.5h12v15l-1.8-1-1.8 1-1.8-1-1.8 1-1.8-1-1.8 1-1.8-1V4.5Z" />
+      <path d="M8.5 8h7M8.5 11h4" />
+      <rect x="13" y="13.5" width="4" height="4" rx="0.5" />
+    </IconBase>
+  );
+}
+
 export function IconArrowRight(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -320,6 +465,128 @@ export function IconOutbox(props: IconProps) {
       <path d="M12 14V5.5" />
       <path d="m8.5 9 3.5-3.5L15.5 9" />
       <path d="M5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5v-4" />
+    </IconBase>
+  );
+}
+
+export function IconGlobe(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17" />
+      <path d="M12 3.5c2.4 2.4 3.6 5.2 3.6 8.5s-1.2 6.1-3.6 8.5c-2.4-2.4-3.6-5.2-3.6-8.5S9.6 5.9 12 3.5Z" />
+    </IconBase>
+  );
+}
+
+export function IconUsersFocus(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      {/* cantos de foco */}
+      <path d="M4.5 8.5V5.5H7.5M16.5 5.5h3v3M19.5 15.5v3h-3M7.5 18.5h-3v-3" />
+      {/* pessoas */}
+      <circle cx="12" cy="9.2" r="2.2" />
+      <path d="M8.2 17c.7-2.1 2.1-3.1 3.8-3.1S15.1 14.9 15.8 17" />
+      <circle cx="7.2" cy="10.2" r="1.5" />
+      <circle cx="16.8" cy="10.2" r="1.5" />
+    </IconBase>
+  );
+}
+
+export function IconTag(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M3.5 12.2 12.2 3.5h5.3v5.3L8.8 17.5a2 2 0 0 1-2.8 0L3.5 15a2 2 0 0 1 0-2.8Z" />
+      <circle cx="15.2" cy="8.8" r="1.1" fill="currentColor" stroke="none" />
+    </IconBase>
+  );
+}
+
+export function IconFlame(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3.5c1.5 2.2.8 3.8.2 5-.8 1.5.2 2.6 1.3 2.6 1.8 0 3.5-1.8 3.5-4.2 2.2 1.8 3.5 3.8 3.5 6.4A6.5 6.5 0 0 1 12 20.5 6.5 6.5 0 0 1 5.5 13c0-3.2 2.2-5.5 4-7.2.6 1.4 1.3 2.4 2.5 2.4.7 0 1.2-.5 1.2-1.4C13.2 5.6 12.6 4.4 12 3.5Z" />
+    </IconBase>
+  );
+}
+
+export function IconChessKnight(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M5.5 19.5h13" />
+      <path d="M7 19.5V17l1.2-1.2C6.8 14.2 6 12.2 6.2 9.8c.2-2 1.4-3.4 3.3-4.2L11 4.5l.4 2.2c1.6-.2 3 .4 3.9 1.6 1.2 1.5 1.3 3.5.5 5.3-.9 2-2.5 3.4-4.6 4.1H7" />
+      <circle cx="10.2" cy="9.6" r="0.7" fill="currentColor" stroke="none" />
+    </IconBase>
+  );
+}
+
+export function IconPodium(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 3.2 13.3 5.8h-2.6L12 3.2Z" />
+      <path d="M10.4 5.8h3.2v2.2h-3.2V5.8Z" />
+      <path d="M4 15h4.5v5H4v-5Z" />
+      <path d="M9.8 11h4.4v9H9.8v-9Z" />
+      <path d="M15.5 13.2H20v6.8h-4.5v-6.8Z" />
+    </IconBase>
+  );
+}
+
+export function IconVideo(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="3.5" y="7" width="12" height="10" rx="2" />
+      <path d="m15.5 11 5-2.5v7L15.5 13" />
+    </IconBase>
+  );
+}
+
+export function IconBook(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v15.5H7.5A2.5 2.5 0 0 0 5 21V5.5Z" />
+      <path d="M5 18.5h12" />
+    </IconBase>
+  );
+}
+
+export function IconList(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M9 7h10M9 12h10M9 17h10" />
+      <circle cx="5.5" cy="7" r="1" fill="currentColor" stroke="none" />
+      <circle cx="5.5" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="5.5" cy="17" r="1" fill="currentColor" stroke="none" />
+    </IconBase>
+  );
+}
+
+export function IconUserCog(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="10" cy="8" r="3.2" />
+      <path d="M4 19c.8-2.8 2.7-4.2 5.2-4.2 1.1 0 2.1.3 2.9.8" />
+      <circle cx="17.2" cy="16.2" r="2.6" />
+      <path d="M17.2 12.8v1.2M17.2 18.4v1.2M14.4 16.2h1.2M18.8 16.2h1.2" />
+    </IconBase>
+  );
+}
+
+export function IconBadge(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M8.5 4.5h7l2.5 2.5v7l-2.5 2.5h-7L6 14V7l2.5-2.5Z" />
+      <path d="m9.5 12 1.8 1.8 3.4-3.6" />
+    </IconBase>
+  );
+}
+
+export function IconLink(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M9.5 14.5 8 16a3.2 3.2 0 0 1-4.5-4.5L5 10" />
+      <path d="M14.5 9.5 16 8a3.2 3.2 0 0 1 4.5 4.5L19 14" />
+      <path d="m9 15 6-6" />
     </IconBase>
   );
 }
