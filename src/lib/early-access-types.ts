@@ -1,4 +1,4 @@
-export type EarlyAccessPlanId = "essencial" | "avancado" | "elite";
+import type { EarlyAccessPlanId } from "@/lib/early-access-types";
 
 export type EarlyAccessReservation = {
   fullName: string;
@@ -13,6 +13,8 @@ export type EarlyAccessReservation = {
   teamPhone: string;
   planId: EarlyAccessPlanId;
   reservedAt: string;
+  /** Vaga ativa vs lista de espera (teto 03/partido+UF). */
+  seatStatus?: "active" | "reserve";
 };
 
 export type EarlyAccessState = {

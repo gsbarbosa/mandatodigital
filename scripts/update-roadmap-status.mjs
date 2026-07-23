@@ -36,6 +36,12 @@ const UPDATES = [
     observation:
       "Limites implementados (créditos guest / caricatura). Falta QA formal humano (checklist guest vs premium) — Thiago/Guga.",
   },
+  {
+    title: "Filtro CNPJ eleitoral + teto vagas partido/UF + lista de reserva",
+    status: "done",
+    observation:
+      "CNPJ via BrasilAPI; teto 03/partido+UF (avançado/elite) com status reserve + UI. E-mail automático de fila ainda não.",
+  },
 ];
 
 function initAdmin() {

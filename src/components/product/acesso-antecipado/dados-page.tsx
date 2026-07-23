@@ -164,6 +164,7 @@ export function AcessoDadosPage() {
   const [earlyAccess, updateEarlyAccess] = useEarlyAccess();
   const reservation = earlyAccess.reservation;
   const isReserved = Boolean(reservation);
+  const isOnReserveQueue = reservation?.seatStatus === "reserve";
 
   const [form, setForm] = useState({
     fullName: "",
@@ -179,6 +180,8 @@ export function AcessoDadosPage() {
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
+  const [popupKind, setPopupKind] = useState<"active" | "reserve">("active");
+  const [seatMessage, setSeatMessage] = useState<string | null>(null);
   const [teamSavedMessage, setTeamSavedMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hydratedFromServer, setHydratedFromServer] = useState(false);
@@ -354,6 +357,7 @@ export function AcessoDadosPage() {
       });
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
+        seatStatus?: "active" | "reserve";
         reservation?: EarlyAccessReservation;
         profile?: {
           id: string;
@@ -368,7 +372,20 @@ export function AcessoDadosPage() {
         throw new Error(payload?.message || "Nao foi possivel gravar a reserva.");
       }
 
-      updateEarlyAccess({ reservation: payload.reservation });
+      const seatStatus =
+        payload.reservation.seatStatus ??
+        payload.seatStatus ??
+        "active";
+
+      updateEarlyAccess({
+        reservation: {
+          ...payload.reservation,
+          seatStatus,
+        },
+      });
+      if (payload.message) {
+        setSeatMessage(payload.message);
+      }
       if (payload.profile) {
         setProfileForm((current) => ({
           ...current,
@@ -381,6 +398,7 @@ export function AcessoDadosPage() {
         }));
       }
       if (!earlyAccess.reservationPopupSeen) {
+        setPopupKind(seatStatus === "reserve" ? "reserve" : "active");
         setShowPopup(true);
       }
     } catch (error) {
@@ -451,17 +469,25 @@ export function AcessoDadosPage() {
               {isReserved ? "Dados Pessoais" : "Garanta sua Vaga"}
             </h1>
             {isReserved ? (
-              <span className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-full px-4 py-2 shrink-0">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Reserva Confirmada
-              </span>
+              isOnReserveQueue ? (
+                <span className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-widest rounded-full px-4 py-2 shrink-0">
+                  Lista de reserva
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold uppercase tracking-widest rounded-full px-4 py-2 shrink-0">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Reserva Confirmada
+                </span>
+              )
             ) : null}
           </div>
           <p className="text-sm text-slate-400 mb-8">
             {isReserved
-              ? "Sua reserva está ativa. Somente o contato da equipe pode ser alterado."
+              ? isOnReserveQueue
+                ? "Você está na lista de reserva deste partido/UF. Se uma vaga antecipada liberar, avisaremos por e-mail. Somente o contato da equipe pode ser alterado."
+                : "Sua reserva está ativa. Somente o contato da equipe pode ser alterado."
               : (
                 <>
                   Preencha os dados abaixo para acautelar sua vaga.{" "}
@@ -469,6 +495,11 @@ export function AcessoDadosPage() {
                 </>
               )}
           </p>
+          {seatMessage && isReserved ? (
+            <p className="mb-6 text-sm text-slate-300 rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3">
+              {seatMessage}
+            </p>
+          ) : null}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             <div>
@@ -670,17 +701,35 @@ export function AcessoDadosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" />
           <div className="relative bg-[#0F1623] border border-slate-700 rounded-2xl p-8 max-w-sm w-full shadow-2xl text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-4">
-              <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-bold text-white mb-3">Reserva Confirmada!</h3>
-            <p className="text-sm text-slate-400 mb-6">
-              O CPF <span className="text-cyan-400">{maskCpf(form.cpf)}</span> acaba de travar
-              oficialmente <strong className="text-white">1 das 3 vagas</strong> do seu estado. Seu
-              desconto de 50% foi ancorado com sucesso.
-            </p>
+            {popupKind === "reserve" ? (
+              <>
+                <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-3">Lista de reserva</h3>
+                <p className="text-sm text-slate-400 mb-6">
+                  O CPF <span className="text-cyan-400">{maskCpf(form.cpf)}</span> foi incluído na
+                  lista de espera deste partido/UF — as 03 vagas antecipadas já estão preenchidas.
+                  Se alguém desistir, avisaremos por e-mail.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-3">Reserva Confirmada!</h3>
+                <p className="text-sm text-slate-400 mb-6">
+                  O CPF <span className="text-cyan-400">{maskCpf(form.cpf)}</span> acaba de travar
+                  oficialmente <strong className="text-white">1 das 3 vagas</strong> do seu estado. Seu
+                  desconto de 50% foi ancorado com sucesso.
+                </p>
+              </>
+            )}
             <button
               type="button"
               onClick={dismissPopup}

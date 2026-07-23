@@ -125,7 +125,7 @@ export async function POST(request: Request) {
       );
       const profile = await repository.saveProfile(profileInputSchema.parse(merged));
 
-      const stored = await completeUserRegistration({
+      const { registration: stored, seat } = await completeUserRegistration({
         data,
         profileId: profile.id,
       });
@@ -137,6 +137,8 @@ export async function POST(request: Request) {
           profileId: stored.profileId,
           profile,
           authEmail: authEmail || null,
+          seatStatus: seat.status === "reserve" ? "reserve" : "active",
+          message: seat.message,
         },
         { status: 201 },
       );

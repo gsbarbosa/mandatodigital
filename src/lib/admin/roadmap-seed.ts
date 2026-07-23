@@ -63,9 +63,10 @@ export const ROADMAP_SEED: SeedRow[] = [
   {
     section: "experiencia",
     title: "Filtro CNPJ eleitoral + teto vagas partido/UF + lista de reserva",
-    status: "inprogress",
+    status: "done",
     validatedByThiago: "pendente",
-    observation: "Natureza jurídica via BrasilAPI; teto 03/partido só no copy",
+    observation:
+      "CNPJ via BrasilAPI; teto 03/partido+UF em avançado/elite com status reserve + UI",
   },
   {
     section: "experiencia",
