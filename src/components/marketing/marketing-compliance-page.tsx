@@ -147,13 +147,13 @@ function HeroLockVisual() {
 function FingerprintVisual() {
   return (
     <div className="relative mx-auto flex h-full min-h-[200px] items-center justify-center lg:min-h-0">
-      <div className="relative w-full max-w-[180px]">
+      <div className="relative w-full max-w-[220px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/marketing/fingerprint-scan.png"
           alt=""
-          width={179}
-          height={179}
+          width={640}
+          height={640}
           className="relative z-10 h-auto w-full"
           decoding="async"
         />

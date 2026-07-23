@@ -18,6 +18,7 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/admin/");
   const isMarketingRoute =
     pathname === "/ecossistema" ||
+    pathname.startsWith("/ecossistema/") ||
     pathname === "/conformidade" ||
     pathname === "/planos";
   const isPublicRoute =

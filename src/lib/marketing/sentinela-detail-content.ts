@@ -1,0 +1,82 @@
+export const sentinelaDetail = {
+  badge: "1. Agente Sentinela",
+  titleLead: "Monitoramento:",
+  titleAccent: "O Impacto Real",
+  metrics: [
+    {
+      value: "07min",
+      label: "Tempo de reação (−94%)",
+    },
+    {
+      value: "+18%",
+      label: "Share of voice no tema",
+    },
+  ],
+  stories: [
+    {
+      title: "O Desafio do Mandato",
+      body: "Parlamentares disputam as mesmas pautas de segurança pública. Quem tem mais máquina larga na frente. Em média, a equipe reage 2h47 depois que o tema sobe — quando o ciclo de comentários já está saturado.",
+    },
+    {
+      title: "A Ativação da IA",
+      body: "O Agente Sentinela foi calibrado com portais de segurança pública, perfis de prefeitos, influenciadores e contas de autoridades locais. O limiar de alerta “Breaking News” foi ajustado para disparo imediato.",
+    },
+  ],
+  console: {
+    title: "Console Live — pautas mapeadas",
+    subtitle:
+      "Painel interativo de pautas com maiores potenciais, para seleção e geração de conteúdo para o candidato.",
+    columns: [
+      "Tema selecionado",
+      "Pauta identificada",
+      "Link do post",
+      "Score",
+      "Curtidas",
+      "Comentários",
+      "Compart.",
+      "Gerar conteúdo",
+    ] as const,
+    rows: [
+      {
+        theme: "Direito Trabalhista",
+        themeTone: "purple" as const,
+        topic: "trabalhamos em média 48h/semana",
+        network: "x" as const,
+        handle: "@getulio_23",
+        score: "↑300%",
+        likes: "790",
+        comments: "306",
+        shares: "420",
+        action: "Roteiro",
+      },
+      {
+        theme: "Segurança Pública",
+        themeTone: "blue" as const,
+        topic: "aumento de furtos no centro",
+        network: "instagram" as const,
+        handle: "@brasil_26",
+        score: "↑218%",
+        likes: "1.2k",
+        comments: "542",
+        shares: "389",
+        action: "Vídeo faceless",
+      },
+      {
+        theme: "Saúde",
+        themeTone: "purple" as const,
+        topic: "falta de médicos nos postos",
+        network: "x" as const,
+        handle: "@saude_br",
+        score: "↑180%",
+        likes: "3.4k",
+        comments: "890",
+        shares: "612",
+        action: "Vídeo avatar",
+      },
+    ],
+    newPautaLabel: "Definir nova Pauta",
+    newPautaPlaceholder: "Insira o link da matéria que deseja gerar conteúdo.",
+    formatOptions: ["Roteiro", "Vídeo faceless", "Vídeo avatar"] as const,
+    generateLabel: "Gerar Conteúdo",
+  },
+} as const;

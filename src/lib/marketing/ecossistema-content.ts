@@ -84,6 +84,7 @@ export const ecosystemAgents: EcosystemAgent[] = [
         text: "Ranking de oportunidades definidas e encaminhadas para produção pelo Agente Criativo.",
       },
     ],
+    learnMoreHref: "/ecossistema/sentinela",
   },
   {
     id: "curador",
@@ -121,6 +122,7 @@ export const ecosystemAgents: EcosystemAgent[] = [
         text: "Identidade política e ideológica preservada.",
       },
     ],
+    learnMoreHref: "/ecossistema/curador",
   },
   {
     id: "criativo",
@@ -162,6 +164,7 @@ export const ecosystemAgents: EcosystemAgent[] = [
         text: "Avatar caricato do candidato para posicionamentos mais leves e bem-humorados.",
       },
     ],
+    learnMoreHref: "/ecossistema/criativo",
   },
   {
     id: "auditor",
@@ -199,6 +202,7 @@ export const ecosystemAgents: EcosystemAgent[] = [
         text: "Conformidade documentada e demonstrável, com fonte aprovadora, data e horário.",
       },
     ],
+    learnMoreHref: "/ecossistema/auditor",
   },
   {
     id: "distribuidor",
@@ -236,5 +240,6 @@ export const ecosystemAgents: EcosystemAgent[] = [
         text: "Publicação na janela de horário escolhida.",
       },
     ],
+    learnMoreHref: "/ecossistema/distribuidor",
   },
 ];
