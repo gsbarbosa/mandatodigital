@@ -31,7 +31,7 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 |------|--------|---------------------|------------|
 | Onboarding ao chegar no sistema | done | pendente | Checklist + coachmarks + fases; ver `onboarding-provider` |
 | Ajustes de fluxo e navegação | done | pendente | Home `/monitoramento`, sidebar, redirects pós-login (spec 08/jul) |
-| Sentinela — melhorias (foco entrega 25/) | inprogress | pendente | Pipelines v2 + LLM + trend em prod; falta social/Instagram, refresh auto |
+| Sentinela — melhorias (foco entrega 25/) | inprogress | pendente | Pipelines v2 + LLM + trend + social flag on (Apify). Falta smoke staging/prod e refresh auto server-side |
 | Revisar textos de Compliance no sistema | done | sim | Marcado `x` no roadmap; confirmar se copy atual ainda bate |
 | Revisar dossiê do site de preços | done | sim | Marcado `x` no roadmap; templates/PDF legais existem |
 | Cruzar sistema × arquivo compliance-tSE | done | sim | Marcado `x` no roadmap; selo, export-accept, fact-check e contrato cobrem parte |
@@ -47,8 +47,8 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 |------|--------|---------------------|------------|
 | Migração de banco de dados | done | n/a | Cutover Firestore + Storage concluído |
 | Centralização de contas (APIs/serviços) + painel adm de créditos/alarmes | todo | pendente | Aguardando painel do Guga |
-| Suporte via IA (N1 Sonnet / N2 Opus / N3 humano) | todo | pendente | Não existe |
-| Painel de gestão com suporte | done | pendente | MVP em `/admin` (dashboard, usuários, provedores, roadmap). Créditos/alarmes e suporte IA ficam em tasks separadas |
+| Suporte via IA (N1 Sonnet / N2 Opus / N3 humano) | done | pendente | N1+widget+escalate+admin suporte; N2 Opus ainda não |
+| Painel de gestão com suporte | done | pendente | MVP em `/admin` (dashboard, usuários, provedores, roadmap, suporte) |
 | Roteiro.gif — UX de progresso do Sentinela | done | pendente | Painel narrado no refresh de `/monitoramento` (6 etapas); validação Thiago pendente |
 | Métricas para aperfeiçoamento semi-automático | inprogress | pendente | `/auditoria` (acessos, volumes, agentes, logs); falta loop de melhoria automática |
 | Obter/estruturar contatos TSE (dados/crawler) | todo | pendente | Fora do produto hoje |
@@ -66,7 +66,7 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 | Travas/cadeados por ausência de pagamento / data | todo | pendente | Não existe |
 | Teste de volumetria HeyGen (+ provedor alternativo) | todo | pendente | Não documentado |
 | Agente Distribuidor | inprogress | pendente | UI mock; sem publicação real |
-| Materialidade — dados salvos e estruturados (agora) | inprogress | pendente | `audit_log` + `/auditoria` (user, IP, timestamp, ações) |
+| Materialidade — dados salvos e estruturados (agora) | done | pendente | `auditLog` + `/auditoria` (auth, vídeos, jobs, contrato, treino, suporte) |
 | Materialidade self-service (relatórios + prints + export) | todo | pendente | Meta sugerida ≥ 10/Set |
 
 ---

@@ -29,7 +29,8 @@ export const ROADMAP_SEED: SeedRow[] = [
     title: "Sentinela — melhorias (foco entrega 25/)",
     status: "inprogress",
     validatedByThiago: "pendente",
-    observation: "Pipelines v2 + LLM + trend em prod; falta social/Instagram, refresh auto",
+    observation:
+      "Pipelines v2 + LLM + trend + social flag on (Apify). Falta smoke staging/prod e refresh auto server-side",
   },
   {
     section: "experiencia",
@@ -91,16 +92,16 @@ export const ROADMAP_SEED: SeedRow[] = [
   {
     section: "sistema-agora",
     title: "Suporte via IA (N1 Sonnet / N2 Opus / N3 humano)",
-    status: "todo",
+    status: "done",
     validatedByThiago: "pendente",
-    observation: "Não existe",
+    observation: "N1+widget+escalate+admin suporte; N2 Opus ainda não",
   },
   {
     section: "sistema-agora",
     title: "Painel de gestão com suporte",
     status: "done",
     validatedByThiago: "pendente",
-    observation: "MVP /admin no ar (dashboard, usuários, provedores, roadmap)",
+    observation: "MVP /admin no ar (dashboard, usuários, provedores, roadmap, suporte)",
   },
   {
     section: "sistema-agora",
@@ -176,9 +177,9 @@ export const ROADMAP_SEED: SeedRow[] = [
   {
     section: "pos-25",
     title: "Materialidade — dados salvos e estruturados (agora)",
-    status: "inprogress",
+    status: "done",
     validatedByThiago: "pendente",
-    observation: "audit_log + /auditoria",
+    observation: "auditLog + /auditoria (auth, vídeos, jobs, contrato, treino, suporte)",
   },
   {
     section: "pos-25",
