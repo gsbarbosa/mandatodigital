@@ -99,6 +99,16 @@ env:
       - BUILD
       - RUNTIME
 
+  - variable: ELEVENLABS_TTS_MODEL_ID
+    value: "eleven_v3"
+    availability:
+      - RUNTIME
+
+  - variable: ELEVENLABS_TTS_LANGUAGE_CODE
+    value: "pt"
+    availability:
+      - RUNTIME
+
   # Sentinela Fase 1
   - variable: SENTINEL_V2_PIPELINES
     value: "true"

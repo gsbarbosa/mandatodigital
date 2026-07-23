@@ -1,6 +1,6 @@
 /**
  * Cliente ElevenLabs (conta única da plataforma).
- * IVC + TTS → áudio que a HeyGen consome via audio_url (sem clone HeyGen).
+ * IVC + TTS (eleven_v3) → áudio que a HeyGen consome via audio_url (sem clone HeyGen).
  */
 
 function getEnv(name: string) {
@@ -13,9 +13,13 @@ export function getElevenLabsConfig() {
     /\/$/,
     "",
   );
-  const ttsModelId =
-    getEnv("ELEVENLABS_TTS_MODEL_ID") || "eleven_multilingual_v2";
-  return { apiKey, baseUrl, ttsModelId };
+  const ttsModelId = getEnv("ELEVENLABS_TTS_MODEL_ID") || "eleven_v3";
+  /** ISO 639-1 — força PT no v3 (ignorado em multilingual_v2). */
+  const ttsLanguageCode = getEnv("ELEVENLABS_TTS_LANGUAGE_CODE") || "pt";
+  /** mp3_44100_192 exige Creator+; default 128 cobre Starter. */
+  const ttsOutputFormat =
+    getEnv("ELEVENLABS_TTS_OUTPUT_FORMAT") || "mp3_44100_128";
+  return { apiKey, baseUrl, ttsModelId, ttsLanguageCode, ttsOutputFormat };
 }
 
 export function formatElevenLabsError(error: unknown) {
@@ -218,6 +222,15 @@ export type ElevenLabsTtsInput = {
   voiceId: string;
   text: string;
   modelId?: string;
+  languageCode?: string;
+};
+
+/** Defaults afinados para clone IVC + discurso político (PT). */
+const DEFAULT_VOICE_SETTINGS = {
+  stability: 0.45,
+  similarity_boost: 0.8,
+  style: 0.15,
+  use_speaker_boost: true,
 };
 
 /** TTS — POST /v1/text-to-speech/{voice_id} → buffer MP3. */
@@ -232,18 +245,31 @@ export async function elevenLabsTextToSpeech(input: ElevenLabsTtsInput) {
     throw new Error("Texto vazio para TTS ElevenLabs.");
   }
 
+  const modelId = input.modelId?.trim() || config.ttsModelId;
+  const languageCode =
+    input.languageCode?.trim() || config.ttsLanguageCode || undefined;
+  const outputFormat = encodeURIComponent(config.ttsOutputFormat);
+
+  const body: Record<string, unknown> = {
+    text,
+    model_id: modelId,
+    voice_settings: DEFAULT_VOICE_SETTINGS,
+    apply_text_normalization: "auto",
+  };
+  // language_code é suportado no v3; multilingual_v2 ignora.
+  if (languageCode && modelId !== "eleven_multilingual_v2") {
+    body.language_code = languageCode;
+  }
+
   const response = await elevenLabsFetch(
-    `/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=mp3_44100_128`,
+    `/v1/text-to-speech/${encodeURIComponent(voiceId)}?output_format=${outputFormat}`,
     {
       method: "POST",
       headers: {
         Accept: "audio/mpeg",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        text,
-        model_id: input.modelId?.trim() || config.ttsModelId,
-      }),
+      body: JSON.stringify(body),
     },
   );
 
