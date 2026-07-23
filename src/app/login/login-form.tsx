@@ -43,7 +43,7 @@ function LoginLoading({ message }: { message: string }) {
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/curador";
+  const nextPath = searchParams.get("next") || "/app";
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");

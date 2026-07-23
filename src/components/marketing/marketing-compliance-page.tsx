@@ -12,7 +12,6 @@ import {
   IconFingerprint,
   IconIdCard,
   IconLgpd,
-  IconLock,
   IconQrFrame,
   IconReceipt,
   IconShieldCheck,
@@ -128,22 +127,19 @@ function HeroLockVisual() {
   return (
     <div className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center">
       <div
-        className="absolute inset-[12%] rounded-full bg-cyan-500/15 blur-3xl"
+        className="pointer-events-none absolute inset-[8%] rounded-full bg-cyan-500/10 blur-3xl"
         aria-hidden
       />
-      <div
-        className="absolute inset-[22%] rounded-full bg-emerald-500/20 blur-2xl"
-        aria-hidden
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/marketing/compliance-lock.png"
+        alt=""
+        width={1024}
+        height={1024}
+        className="relative z-10 h-auto w-full max-w-[420px] object-contain drop-shadow-[0_0_40px_rgba(34,211,238,0.2)]"
+        decoding="async"
       />
-      <div className="relative flex h-56 w-56 items-center justify-center sm:h-64 sm:w-64">
-        <div className="absolute inset-0 rounded-[2rem] border border-cyan-400/30 bg-gradient-to-br from-cyan-500/10 via-slate-950/80 to-emerald-500/10 shadow-[0_0_60px_rgba(34,211,238,0.15)]" />
-        <div className="relative text-cyan-300">
-          <IconLock size={96} className="drop-shadow-[0_0_24px_rgba(34,211,238,0.45)]" />
-        </div>
-        <div className="absolute bottom-10 right-10 rounded-2xl border border-emerald-400/40 bg-slate-950/90 p-3 text-emerald-400 shadow-[0_0_28px_rgba(52,211,153,0.35)]">
-          <IconShieldCheck size={36} />
-        </div>
-      </div>
+      <span className="sr-only">Cadeado digital com escudo de conformidade</span>
     </div>
   );
 }
@@ -286,37 +282,41 @@ export function MarketingCompliancePage() {
         </div>
       </MarketingSection>
 
-      <MarketingSection
-        title={
-          <>
-            <span className="text-emerald-400">Proteção</span> contra acusações
-          </>
-        }
-      >
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <ul className="m-0 list-none space-y-5 p-0">
-            {complianceProtection.items.map((item) => (
-              <li
-                key={item.title}
-                className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3"
-              >
-                <IconCheck
-                  size={18}
-                  className="mt-[1.5px] block text-emerald-400"
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <p className="m-0 text-sm font-semibold leading-[1.5] text-white">
-                    {item.title}
-                  </p>
-                  <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
-                    {item.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="relative overflow-hidden rounded-3xl border border-slate-700/70 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 p-6 shadow-xl">
+      <MarketingSection>
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
+          <div className="min-w-0">
+            <h2 className="text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl">
+              <span className="text-emerald-400">Proteção</span> contra acusações
+            </h2>
+            <ul className="mt-8 m-0 list-none space-y-5 p-0 sm:mt-10">
+              {complianceProtection.items.map((item) => (
+                <li
+                  key={item.title}
+                  className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3"
+                >
+                  <IconCheck
+                    size={18}
+                    className="mt-[1.5px] block text-emerald-400"
+                    aria-hidden
+                  />
+                  <div className="min-w-0">
+                    <p className="m-0 text-sm font-semibold leading-[1.5] text-white">
+                      {item.title}
+                    </p>
+                    <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
+                      {item.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/*
+            items-start alinha as caixas; mt fino compensa o half-leading do h2
+            para o topo do quadro bater com o topo óptico do título.
+          */}
+          <div className="relative mt-[0.35rem] overflow-hidden rounded-3xl border border-slate-700/70 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 p-6 shadow-xl sm:mt-[0.45rem]">
             <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" aria-hidden />
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-400/90">
               Materialidade

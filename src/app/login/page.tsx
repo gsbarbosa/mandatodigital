@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import type { Route } from "next";
 
+import { APP_HOME_PATH } from "@/lib/app-home";
 import { getSessionUser } from "@/lib/auth/session";
 import { getAuthSetupMessage, isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import { REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
@@ -24,9 +26,9 @@ export default async function LoginPage() {
         email: sessionUser.email,
       });
       redirect(
-        isUserRegistrationComplete(registration)
-          ? "/monitoramento"
-          : REGISTRATION_REQUIRED_PATH,
+        (isUserRegistrationComplete(registration)
+          ? APP_HOME_PATH
+          : REGISTRATION_REQUIRED_PATH) as Route,
       );
     }
   }

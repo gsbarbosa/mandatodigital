@@ -22,8 +22,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  // Cadastro incompleto ainda precisa ir ao fluxo de dados; quem já está logado
-  // pode navegar o site institucional sem perder a sessão / sem “sumir” o marketing.
+  // `/` é sempre o site institucional (logado ou não).
+  // Entrada do produto: `/app` → monitoramento.
   if (isFirebaseAuthConfigured()) {
     const sessionUser = await getSessionUser();
     if (sessionUser) {

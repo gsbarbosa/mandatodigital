@@ -1,7 +1,7 @@
 import type { Route } from "next";
 
 /** CTA comercial padrão do marketing site. */
-export const MARKETING_CTA_HREF = "/login?next=/acesso-antecipado/dados" as Route;
+export const MARKETING_CTA_HREF = "/planos" as Route;
 export const MARKETING_CTA_LABEL = "Garanta sua vaga";
 
 export const MARKETING_CLOSING = {
@@ -15,6 +15,7 @@ export const MARKETING_NAV = [
   { href: "/" as Route, label: "Home" },
   { href: "/ecossistema" as Route, label: "Ecossistema" },
   { href: "/conformidade" as Route, label: "Compliance" },
+  { href: "/planos" as Route, label: "Planos" },
 ] as const;
 
 /** Dados institucionais do rodapé (briefing comercial). */

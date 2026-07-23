@@ -229,10 +229,10 @@ export function NavSidebar({
     <aside className="w-64 bg-[#0B0F19] border-r border-slate-800 flex flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
       <div className="border-b border-slate-800/50 px-4 py-5">
         <Link
-          href={"/ecossistema" as Route}
+          href="/monitoramento"
           className="flex w-full items-center no-underline"
-          aria-label="Mandato Digital — site institucional"
-          title="Ir ao site institucional"
+          aria-label="Mandato Digital — monitoramento"
+          title="Ir ao monitoramento"
           onClick={() => onLogoSecretClick?.()}
         >
           <BrandLogo fluid priority />
@@ -374,7 +374,7 @@ export function NavSidebar({
 
       <div className="px-4 pb-3 border-t border-slate-800/50 pt-3">
         <Link
-          href={"/ecossistema" as Route}
+          href={"/" as Route}
           className="block text-[11px] font-medium text-slate-500 hover:text-slate-300 transition-colors no-underline"
         >
           Site institucional
