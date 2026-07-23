@@ -12,7 +12,6 @@ import {
   IconFingerprint,
   IconIdCard,
   IconLgpd,
-  IconLock,
   IconQrFrame,
   IconReceipt,
   IconShieldCheck,
@@ -128,22 +127,19 @@ function HeroLockVisual() {
   return (
     <div className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center">
       <div
-        className="absolute inset-[12%] rounded-full bg-cyan-500/15 blur-3xl"
+        className="pointer-events-none absolute inset-[8%] rounded-full bg-cyan-500/10 blur-3xl"
         aria-hidden
       />
-      <div
-        className="absolute inset-[22%] rounded-full bg-emerald-500/20 blur-2xl"
-        aria-hidden
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/marketing/compliance-lock.png"
+        alt=""
+        width={1024}
+        height={1024}
+        className="relative z-10 h-auto w-full max-w-[420px] object-contain drop-shadow-[0_0_40px_rgba(34,211,238,0.2)]"
+        decoding="async"
       />
-      <div className="relative flex h-56 w-56 items-center justify-center sm:h-64 sm:w-64">
-        <div className="absolute inset-0 rounded-[2rem] border border-cyan-400/30 bg-gradient-to-br from-cyan-500/10 via-slate-950/80 to-emerald-500/10 shadow-[0_0_60px_rgba(34,211,238,0.15)]" />
-        <div className="relative text-cyan-300">
-          <IconLock size={96} className="drop-shadow-[0_0_24px_rgba(34,211,238,0.45)]" />
-        </div>
-        <div className="absolute bottom-10 right-10 rounded-2xl border border-emerald-400/40 bg-slate-950/90 p-3 text-emerald-400 shadow-[0_0_28px_rgba(52,211,153,0.35)]">
-          <IconShieldCheck size={36} />
-        </div>
-      </div>
+      <span className="sr-only">Cadeado digital com escudo de conformidade</span>
     </div>
   );
 }
