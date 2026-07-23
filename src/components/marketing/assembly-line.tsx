@@ -60,13 +60,19 @@ export function AssemblyLine() {
       </ol>
 
       <aside className="mt-8 rounded-2xl border border-slate-800/80 bg-slate-950/50 p-5 sm:p-6">
-        <div className="flex gap-3">
-          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-400">
-            <IconShieldCheck size={18} />
-          </span>
+        <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3">
+          <IconShieldCheck
+            size={18}
+            className="mt-[1.5px] block text-rose-400"
+            aria-hidden
+          />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-100">{homeAssembly.footer}</p>
-            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{homeAssembly.note}</p>
+            <p className="m-0 text-sm font-semibold leading-[1.5] text-slate-100">
+              {homeAssembly.footer}
+            </p>
+            <p className="mt-1.5 m-0 text-xs leading-[1.5] text-slate-500">
+              {homeAssembly.note}
+            </p>
           </div>
         </div>
       </aside>
