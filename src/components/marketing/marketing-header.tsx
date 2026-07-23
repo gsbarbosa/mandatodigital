@@ -6,13 +6,12 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { APP_HOME_PATH } from "@/lib/app-home";
 import {
   MARKETING_CTA_HREF,
   MARKETING_CTA_LABEL,
   MARKETING_NAV,
 } from "@/lib/marketing/shared";
-
-const APP_HOME_HREF = "/monitoramento" as Route;
 
 export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const pathname = usePathname();
@@ -53,7 +52,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
 
         <div className="hidden items-center gap-2 md:flex">
           {isAuthenticated ? (
-            <Link href={APP_HOME_HREF} className="primary-button !px-4 !py-2 !text-sm">
+            <Link href={APP_HOME_PATH} className="primary-button !px-4 !py-2 !text-sm">
               Ir ao sistema
             </Link>
           ) : (
@@ -100,7 +99,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
             ))}
             {isAuthenticated ? (
               <Link
-                href={APP_HOME_HREF}
+                href={APP_HOME_PATH}
                 onClick={() => setOpen(false)}
                 className="primary-button mt-2 justify-center !text-sm"
               >

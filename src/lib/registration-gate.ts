@@ -17,9 +17,9 @@ export function resolvePostLoginPath(input: {
     return REGISTRATION_REQUIRED_PATH;
   }
 
-  const next = input.nextPath?.trim() || "/curador";
+  const next = input.nextPath?.trim() || "/app";
   if (!next.startsWith("/") || next.startsWith("//")) {
-    return "/curador";
+    return "/app";
   }
   return next;
 }
