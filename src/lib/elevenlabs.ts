@@ -25,6 +25,16 @@ export function formatElevenLabsError(error: unknown) {
   return "Erro desconhecido na ElevenLabs.";
 }
 
+/** Plano da conta sem Instant Voice Cloning (IVC) — comum em freemium/starter. */
+export function isElevenLabsIvcSubscriptionError(error: unknown) {
+  const message = formatElevenLabsError(error).toLowerCase();
+  return (
+    message.includes("instant voice cloning") ||
+    message.includes("does not include instant voice") ||
+    (message.includes("upgrade your plan") && message.includes("voice"))
+  );
+}
+
 type ElevenLabsErrorBody = {
   detail?:
     | { status?: string; message?: string }

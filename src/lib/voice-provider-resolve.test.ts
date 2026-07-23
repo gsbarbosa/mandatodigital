@@ -9,6 +9,18 @@ vi.mock("@/lib/elevenlabs", () => ({
   elevenLabsListVoices: vi.fn(),
   elevenLabsTextToSpeech: vi.fn(),
   elevenLabsVoiceExists: vi.fn(),
+  formatElevenLabsError: (error: unknown) =>
+    error instanceof Error ? error.message : String(error ?? ""),
+  isElevenLabsIvcSubscriptionError: (error: unknown) => {
+    const message = (
+      error instanceof Error ? error.message : String(error ?? "")
+    ).toLowerCase();
+    return (
+      message.includes("instant voice cloning") ||
+      message.includes("does not include instant voice") ||
+      (message.includes("upgrade your plan") && message.includes("voice"))
+    );
+  },
 }));
 
 vi.mock("@/lib/elevenlabs-tts-storage", () => ({
@@ -200,5 +212,33 @@ describe("resolveVideoSpeechForGeneration", () => {
 
     expect(result).toEqual({ provider: "heygen_clone", voiceId: "hg-1" });
     expect(tts).not.toHaveBeenCalled();
+  });
+
+  it("fallback heygen_clone quando ElevenLabs nao tem IVC no plano", async () => {
+    getProvider.mockReturnValue("elevenlabs_audio");
+    listVoices.mockResolvedValue([]);
+    cloneVoice.mockRejectedValue(
+      new Error(
+        "Your subscription does not include instant voice cloning. Please upgrade your plan.",
+      ),
+    );
+    heygenResolve.mockResolvedValue("hg-fallback");
+
+    const result = await resolveVideoSpeechForGeneration({
+      transcript: "Ola",
+      avatarName: "Maria",
+      voiceAudioAssetId: "deadbeef-1",
+      voiceAudioUrl: "https://example.com/sample.mp3",
+      requestedHeygenVoiceId: "hg-1",
+      mediaId: "job-1",
+    });
+
+    expect(result).toEqual({
+      provider: "heygen_clone",
+      voiceId: "hg-fallback",
+      fallbackFromElevenLabs: true,
+    });
+    expect(tts).not.toHaveBeenCalled();
+    expect(heygenResolve).toHaveBeenCalledOnce();
   });
 });

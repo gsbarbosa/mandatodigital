@@ -4,6 +4,8 @@ import {
   elevenLabsListVoices,
   elevenLabsTextToSpeech,
   elevenLabsVoiceExists,
+  formatElevenLabsError,
+  isElevenLabsIvcSubscriptionError,
   type ElevenLabsVoiceListItem,
 } from "@/lib/elevenlabs";
 import { getHeyGenVoiceProvider } from "@/lib/feature-flags";
@@ -91,6 +93,7 @@ export type ResolvedVideoSpeech =
   | {
       provider: "heygen_clone";
       voiceId: string;
+      fallbackFromElevenLabs?: boolean;
     }
   | {
       provider: "elevenlabs_audio";
@@ -98,10 +101,35 @@ export type ResolvedVideoSpeech =
       audioUrl: string;
     };
 
+async function resolveHeyGenSpeech(input: {
+  avatarName: string;
+  voiceAudioAssetId: string;
+  voiceAudioUrl: string;
+  requestedHeygenVoiceId?: string | null;
+  fallbackFromElevenLabs?: boolean;
+}): Promise<ResolvedVideoSpeech> {
+  const voiceId = await resolveHeyGenClonedVoiceId({
+    requestedVoiceId: input.requestedHeygenVoiceId,
+    voiceName: buildHeyGenCloneVoiceName(
+      input.avatarName,
+      input.voiceAudioAssetId,
+    ),
+    audio: { type: "url", url: input.voiceAudioUrl },
+  });
+
+  return {
+    provider: "heygen_clone",
+    voiceId,
+    ...(input.fallbackFromElevenLabs ? { fallbackFromElevenLabs: true } : {}),
+  };
+}
+
 /**
  * Resolve fala para Create Video:
  * - elevenlabs_audio: IVC + TTS → URL pública MP3
  * - heygen_clone: path legado (voice_id + script)
+ *
+ * Se o plano ElevenLabs não incluir IVC, faz fallback automático para heygen_clone.
  */
 export async function resolveVideoSpeechForGeneration(input: {
   transcript: string;
@@ -113,42 +141,55 @@ export async function resolveVideoSpeechForGeneration(input: {
   mediaId: string;
 }): Promise<ResolvedVideoSpeech> {
   const provider = getHeyGenVoiceProvider();
-  const voiceName = buildElevenLabsCloneVoiceName(
-    input.avatarName,
-    input.voiceAudioAssetId,
-  );
 
   if (provider === "elevenlabs_audio") {
-    const elevenLabsVoiceId = await resolveElevenLabsVoiceId({
-      requestedVoiceId: input.requestedElevenLabsVoiceId,
-      voiceName,
-      audioUrl: input.voiceAudioUrl,
-    });
-    const mp3 = await elevenLabsTextToSpeech({
-      voiceId: elevenLabsVoiceId,
-      text: input.transcript,
-    });
-    const stored = await storeElevenLabsTtsAudio({
-      mediaId: input.mediaId,
-      buffer: mp3,
-    });
-    return {
-      provider: "elevenlabs_audio",
-      elevenLabsVoiceId,
-      audioUrl: stored.audioUrl,
-    };
+    try {
+      const voiceName = buildElevenLabsCloneVoiceName(
+        input.avatarName,
+        input.voiceAudioAssetId,
+      );
+      const elevenLabsVoiceId = await resolveElevenLabsVoiceId({
+        requestedVoiceId: input.requestedElevenLabsVoiceId,
+        voiceName,
+        audioUrl: input.voiceAudioUrl,
+      });
+      const mp3 = await elevenLabsTextToSpeech({
+        voiceId: elevenLabsVoiceId,
+        text: input.transcript,
+      });
+      const stored = await storeElevenLabsTtsAudio({
+        mediaId: input.mediaId,
+        buffer: mp3,
+      });
+      return {
+        provider: "elevenlabs_audio",
+        elevenLabsVoiceId,
+        audioUrl: stored.audioUrl,
+      };
+    } catch (error) {
+      if (!isElevenLabsIvcSubscriptionError(error)) {
+        throw error;
+      }
+      console.warn(
+        "[voice] ElevenLabs sem IVC no plano — fallback para heygen_clone:",
+        formatElevenLabsError(error),
+      );
+      return resolveHeyGenSpeech({
+        avatarName: input.avatarName,
+        voiceAudioAssetId: input.voiceAudioAssetId,
+        voiceAudioUrl: input.voiceAudioUrl,
+        requestedHeygenVoiceId: input.requestedHeygenVoiceId,
+        fallbackFromElevenLabs: true,
+      });
+    }
   }
 
-  const voiceId = await resolveHeyGenClonedVoiceId({
-    requestedVoiceId: input.requestedHeygenVoiceId,
-    voiceName: buildHeyGenCloneVoiceName(
-      input.avatarName,
-      input.voiceAudioAssetId,
-    ),
-    audio: { type: "url", url: input.voiceAudioUrl },
+  return resolveHeyGenSpeech({
+    avatarName: input.avatarName,
+    voiceAudioAssetId: input.voiceAudioAssetId,
+    voiceAudioUrl: input.voiceAudioUrl,
+    requestedHeygenVoiceId: input.requestedHeygenVoiceId,
   });
-
-  return { provider: "heygen_clone", voiceId };
 }
 
 export async function resolveHeyGenVoiceWithRetryForImageVideo<T>(input: {
