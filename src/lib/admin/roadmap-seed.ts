@@ -69,9 +69,10 @@ export const ROADMAP_SEED: SeedRow[] = [
   {
     section: "experiencia",
     title: "URL canônica → mandatodigital.ia.br",
-    status: "inprogress",
+    status: "done",
     validatedByThiago: "pendente",
-    observation: "Alinhar DNS + NEXT_PUBLIC_APP_BASE_URL",
+    observation:
+      "DNS www no App Hosting; site institucional no ar. Revisar APP_BASE_URL/Auth se ainda usarem hosted.app",
   },
   {
     section: "sistema-agora",
@@ -97,16 +98,17 @@ export const ROADMAP_SEED: SeedRow[] = [
   {
     section: "sistema-agora",
     title: "Painel de gestão com suporte",
-    status: "inprogress",
+    status: "done",
     validatedByThiago: "pendente",
-    observation: "MVP do painel /admin em andamento",
+    observation: "MVP /admin no ar (dashboard, usuários, provedores, roadmap)",
   },
   {
     section: "sistema-agora",
     title: "Roteiro.gif — UX de progresso do Sentinela",
-    status: "todo",
+    status: "done",
     validatedByThiago: "pendente",
-    observation: "Loading genérico existe; animação narrada não",
+    observation:
+      "Painel narrado em /monitoramento no refresh (6 etapas do roadmap); validação Thiago pendente",
   },
   {
     section: "sistema-agora",

@@ -11,6 +11,30 @@ export const metadata = {
  * explicitly marked "Em breve".
  */
 
+function SectionHeading({
+  eyebrow,
+  title,
+  lead,
+}: {
+  eyebrow: string;
+  title: string;
+  lead?: string;
+}) {
+  return (
+    <div className="mb-8 max-w-3xl">
+      <p className="text-emerald-400/90 text-[11px] font-bold tracking-widest uppercase mb-3">
+        {eyebrow}
+      </p>
+      <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight">
+        {title}
+      </h2>
+      {lead ? (
+        <p className="mt-3 text-slate-400 text-sm md:text-base leading-relaxed">{lead}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function PillarCard({
   title,
   children,
@@ -73,6 +97,21 @@ function ChecklistItem({
   );
 }
 
+function ChecklistGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{label}</p>
+      <div className="flex flex-col gap-3">{children}</div>
+    </div>
+  );
+}
+
 export default function ComplianceRoute() {
   return (
     <div className="min-h-full relative overflow-hidden pb-24">
@@ -102,85 +141,117 @@ export default function ComplianceRoute() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch mb-20">
-          <PillarCard
-            title="Checagem de fatos antes da produção"
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            }
-          >
-            Todo roteiro aprovado passa pelo Agente Auditor, que confere as afirmações contra a
-            notícia de origem e as matérias capturadas pelo monitoramento. Conteúdo com informação
-            contestada é bloqueado para sua revisão.
-          </PillarCard>
+        <section className="mb-16">
+          <SectionHeading
+            eyebrow="Conteúdo e produção"
+            title="Conformidade na linha de montagem"
+            lead="Cada peça passa por checagem, aprovação humana e rotulagem TSE antes de sair do sistema."
+          />
 
-          <PillarCard
-            title="Aprovação humana obrigatória"
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            }
-          >
-            Nenhum vídeo é produzido sem a sua aprovação explícita do roteiro. Edições após a
-            aprovação exigem novo termo de responsabilidade — a palavra final é sempre sua.
-          </PillarCard>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+            <PillarCard
+              title="Checagem de fatos antes da produção"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              }
+            >
+              Todo roteiro aprovado passa pelo Agente Auditor, que confere as afirmações contra a
+              notícia de origem e as matérias capturadas pelo monitoramento. Conteúdo com informação
+              contestada é bloqueado para sua revisão.
+            </PillarCard>
 
-          <PillarCard
-            title="Registro dos eventos de aprovação"
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            }
-          >
-            Cada checagem de fatos e aprovação de roteiro fica registrada com data, resultado e
-            fontes consultadas, compondo o histórico de conformidade do seu conteúdo.
-          </PillarCard>
+            <PillarCard
+              title="Aprovação humana obrigatória"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              }
+            >
+              Nenhum vídeo é produzido sem a sua aprovação explícita do roteiro. Edições após a
+              aprovação exigem novo termo de responsabilidade — a palavra final é sempre sua.
+            </PillarCard>
 
-          <PillarCard
-            title="Marca d'água “Conteúdo Sintético” (Res. 23.732 TSE)"
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            }
-          >
-            Rotulagem automática queimada nos vídeos gerados: caixa semitransparente no canto
-            inferior esquerdo com o texto exigido pela Resolução 23.732 do TSE, do primeiro ao
-            último frame.
-          </PillarCard>
+            <PillarCard
+              title="Registro dos eventos de aprovação"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            >
+              Cada checagem de fatos e aprovação de roteiro fica registrada com data, resultado e
+              fontes consultadas, compondo o histórico de conformidade do seu conteúdo.
+            </PillarCard>
 
-          <PillarCard
-            title="“Kill Switch” do Silêncio Eleitoral"
-            comingSoon
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 11-12.728 0M12 3v9" />
-              </svg>
-            }
-          >
-            Bloqueio automático de produções e aprovações nas 72h anteriores à votação, garantindo o
-            cumprimento rigoroso da lei na reta final. Recurso em implantação antes do período
-            eleitoral.
-          </PillarCard>
+            <PillarCard
+              title="Marca d'água “Conteúdo Sintético” (Res. 23.732 TSE)"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              }
+            >
+              Rotulagem automática queimada nos vídeos gerados: caixa semitransparente no canto
+              inferior esquerdo com o texto exigido pela Resolução 23.732 do TSE, do primeiro ao
+              último frame.
+            </PillarCard>
+          </div>
+        </section>
 
-          <PillarCard
-            title="Contas de Campanha, NFs e SPCE"
-            comingSoon
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-            }
-          >
-            Contratação vinculada ao CNPJ de campanha, notas fiscais com rubricas oficiais do TSE e
-            pagamentos rastreados para a prestação de contas. Estrutura comercial em implantação
-            junto ao lançamento dos planos.
-          </PillarCard>
-        </div>
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-700/60 to-transparent mb-16" />
+
+        <section className="mb-20">
+          <SectionHeading
+            eyebrow="Privacidade, silêncio e contas"
+            title="Blindagem institucional da campanha"
+            lead="Isolamento de dados, trava eleitoral e estrutura fiscal alinhada às regras do TSE."
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+            <PillarCard
+              title="LGPD & Isolamento de Dados"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                </svg>
+              }
+            >
+              Não armazenamos dados pessoais de eleitores e a arquitetura garante o isolamento
+              hermético dos dados de cada gabinete.
+            </PillarCard>
+
+            <PillarCard
+              title="“Kill Switch” do Silêncio Eleitoral"
+              comingSoon
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 5.636a9 9 0 11-12.728 0M12 3v9" />
+                </svg>
+              }
+            >
+              Bloqueio automático de produções e aprovações nas 72h anteriores à votação e nas 24h
+              seguintes, garantindo o cumprimento rigoroso da lei na reta final. Recurso em
+              implantação antes do período eleitoral.
+            </PillarCard>
+
+            <PillarCard
+              title="Contas de Campanha, NFs e SPCE"
+              comingSoon
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+              }
+            >
+              Contratação vinculada ao CNPJ de campanha, notas fiscais com rubricas oficiais do TSE e
+              pagamentos rastreados para a prestação de contas. Estrutura comercial em implantação
+              junto ao lançamento dos planos.
+            </PillarCard>
+          </div>
+        </section>
 
         <div className="w-full max-w-5xl mx-auto">
           <div className="bg-gradient-to-b from-slate-800/40 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative overflow-hidden group/card">
@@ -188,8 +259,8 @@ export default function ComplianceRoute() {
             <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-cyan-500/10 rounded-full blur-[90px] pointer-events-none" />
 
             <div className="relative z-10">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
-                <div className="lg:col-span-5 flex flex-col items-center lg:items-start text-center lg:text-left">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+                <div className="lg:col-span-5 flex flex-col items-center lg:items-start text-center lg:text-left lg:sticky lg:top-28">
                   <div className="inline-flex items-center gap-2 text-emerald-400 text-[11px] font-bold tracking-widest uppercase mb-5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -211,25 +282,46 @@ export default function ComplianceRoute() {
                   </p>
                 </div>
 
-                <div className="lg:col-span-7 flex flex-col gap-3">
-                  <ChecklistItem title="Checagem com fontes citadas">
-                    Cada verificação registra as matérias consultadas e o veredito — a origem de cada
-                    afirmação é sempre rastreável.
-                  </ChecklistItem>
-                  <ChecklistItem title="Histórico de aprovações">
-                    Registro de quem aprovou cada roteiro, quando e com qual resultado de checagem.
-                  </ChecklistItem>
-                  <ChecklistItem title="Aceite no download/exportação">
-                    Antes de abrir ou baixar o material, o sistema exige checkbox de responsabilidade
-                    pela legenda TSE e registra o aceite na trilha de auditoria.
-                  </ChecklistItem>
-                  <ChecklistItem title="Atestado de Apagão (Silêncio Eleitoral)" comingSoon>
-                    Garantia documentada do bloqueio do sistema nas 72h antes do pleito.
-                  </ChecklistItem>
-                  <ChecklistItem title="Contrato Automatizado">
-                    No aceite do CNPJ, o sistema valida a natureza jurídica, captura IP/User-Agent/
-                    timestamp/hash e gera PDF do Contrato e do Dossiê de Transparência.
-                  </ChecklistItem>
+                <div className="lg:col-span-7 flex flex-col gap-8">
+                  <ChecklistGroup label="Trilha de conteúdo e exportação">
+                    <ChecklistItem title="Checagem com fontes citadas">
+                      Cada verificação registra as matérias consultadas e o veredito — a origem de cada
+                      afirmação é sempre rastreável.
+                    </ChecklistItem>
+                    <ChecklistItem title="Histórico de aprovações">
+                      Registro de quem aprovou cada roteiro, quando e com qual resultado de checagem.
+                    </ChecklistItem>
+                    <ChecklistItem title="Aceite no download/exportação">
+                      Antes de abrir ou baixar o material, o sistema exige checkbox de responsabilidade
+                      pela legenda TSE e registra o aceite na trilha de auditoria.
+                    </ChecklistItem>
+                    <ChecklistItem title="Alerta Amigável">
+                      Ao baixar vídeos, lembramos sua equipe das obrigações junto à Justiça Eleitoral.
+                      Um cuidado para que nada passe em branco na correria da campanha.
+                    </ChecklistItem>
+                  </ChecklistGroup>
+
+                  <ChecklistGroup label="Silêncio eleitoral">
+                    <ChecklistItem title="Atestado de Apagão (Silêncio Eleitoral)" comingSoon>
+                      Garantia documentada do bloqueio do sistema nas 72h antes do pleito e 24h
+                      depois.
+                    </ChecklistItem>
+                  </ChecklistGroup>
+
+                  <ChecklistGroup label="Prestação de contas e formalização">
+                    <ChecklistItem title="Materialidade na Prestação de Contas" comingSoon>
+                      Nossos relatórios com logs de acesso da sua equipe atestam a entrega de todos
+                      os serviços contratados.
+                    </ChecklistItem>
+                    <ChecklistItem title="Transparência Fiscal e Contábil" comingSoon>
+                      PIX Corporativo Direto e Boleto Bancário Híbrido com descrições claras nas
+                      notas-fiscais e CNAEs aceitos pelo TSE.
+                    </ChecklistItem>
+                    <ChecklistItem title="Contrato Automatizado">
+                      No aceite do CNPJ, o sistema valida a natureza jurídica, captura IP/User-Agent/
+                      timestamp/hash e gera PDF do Contrato e do Dossiê de Transparência.
+                    </ChecklistItem>
+                  </ChecklistGroup>
                 </div>
               </div>
 

@@ -103,6 +103,8 @@ export function isProviderLimitMessage(message: string) {
     normalized.includes("submissions per day") ||
     normalized.includes("verified avatar group") ||
     normalized.includes("voice clone limit") ||
+    normalized.includes("instant voice cloning") ||
+    normalized.includes("does not include instant voice") ||
     normalized.includes("reached the limit")
   );
 }
@@ -215,6 +217,18 @@ export function formatProviderLimitHint(message: string): string | null {
     hints.push(
       "Limite de operações diárias: no plano atual há até 100 envios por dia. " +
         "Tente novamente amanhã.",
+    );
+  }
+
+  if (
+    normalized.includes("instant voice cloning") ||
+    normalized.includes("does not include instant voice") ||
+    (normalized.includes("upgrade your plan") && normalized.includes("voice"))
+  ) {
+    hints.push(
+      "O plano da conta de voz (ElevenLabs) não inclui Instant Voice Cloning. " +
+        "O sistema tenta usar o clone de voz da plataforma de vídeo automaticamente; " +
+        "se o erro persistir, atualize o plano da API de voz ou use HEYGEN_VOICE_PROVIDER=heygen_clone.",
     );
   }
 

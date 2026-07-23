@@ -26,6 +26,10 @@ export const COLLECTIONS = {
   guestCredits: "guestCredits",
   /** Tasks do roadmap no painel de gestão (compartilhado). */
   adminRoadmapTasks: "adminRoadmapTasks",
+  /** Threads de suporte N1/N2 (subcollection messages). */
+  supportThreads: "supportThreads",
+  /** Casos resolvidos para RAG do suporte (embeddings OpenAI). */
+  supportLearningItems: "supportLearningItems",
   /** Legado — lido só para migração soft; não gravar mais. */
   earlyAccessReservations: "earlyAccessReservations",
 } as const;

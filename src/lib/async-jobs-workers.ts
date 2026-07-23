@@ -6,12 +6,7 @@ import {
   requeueAsyncJob,
 } from "@/lib/async-jobs-storage";
 import type { SealVideoPayload, VoiceTtsPayload } from "@/lib/async-jobs-types";
-import {
-  buildElevenLabsCloneVoiceName,
-  resolveElevenLabsVoiceId,
-} from "@/lib/voice-provider-resolve";
-import { elevenLabsTextToSpeech } from "@/lib/elevenlabs";
-import { storeElevenLabsTtsAudio } from "@/lib/elevenlabs-tts-storage";
+import { resolveVideoSpeechForGeneration } from "@/lib/voice-provider-resolve";
 import { heygenCreateVideoFromImage } from "@/lib/heygen";
 import { sealRemoteVideo } from "@/lib/media-tse-seal";
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
@@ -68,43 +63,56 @@ export async function processVoiceJob(jobId: string) {
 
   const payload = claimed.payload as unknown as VoiceTtsPayload;
   try {
-    const voiceName = buildElevenLabsCloneVoiceName(
-      String(payload.avatarName ?? "Avatar"),
-      String(payload.voiceAudioAssetId ?? ""),
-    );
-    const elevenLabsVoiceId = await resolveElevenLabsVoiceId({
-      requestedVoiceId: payload.requestedElevenLabsVoiceId,
-      voiceName,
-      audioUrl: String(payload.voiceAudioUrl ?? ""),
-    });
-    const mp3 = await elevenLabsTextToSpeech({
-      voiceId: elevenLabsVoiceId,
-      text: String(payload.transcript ?? ""),
-    });
-    const stored = await storeElevenLabsTtsAudio({
+    const speech = await resolveVideoSpeechForGeneration({
+      transcript: String(payload.transcript ?? ""),
+      avatarName: String(payload.avatarName ?? "Avatar"),
+      voiceAudioAssetId: String(payload.voiceAudioAssetId ?? ""),
+      voiceAudioUrl: String(payload.voiceAudioUrl ?? ""),
+      requestedElevenLabsVoiceId: payload.requestedElevenLabsVoiceId,
+      requestedHeygenVoiceId: payload.requestedHeygenVoiceId,
       mediaId: jobId,
-      buffer: mp3,
     });
 
     const result: Record<string, unknown> = {
-      elevenLabsVoiceId,
-      audioUrl: stored.audioUrl,
-      storagePath: stored.storagePath,
+      voiceProvider: speech.provider,
     };
+
+    if (speech.provider === "elevenlabs_audio") {
+      result.elevenLabsVoiceId = speech.elevenLabsVoiceId;
+      result.audioUrl = speech.audioUrl;
+    } else {
+      result.voiceId = speech.voiceId;
+      if (speech.fallbackFromElevenLabs) {
+        result.fallbackFromElevenLabs = true;
+      }
+    }
 
     if (payload.createVideo?.imageUrl) {
       const appBaseUrl = resolveAppBaseUrl();
       const callbackUrl = appBaseUrl.startsWith("https://")
         ? `${appBaseUrl}/api/heygen/webhooks`
         : undefined;
-      const created = await heygenCreateVideoFromImage({
-        image: { type: "url", url: payload.createVideo.imageUrl },
-        audioUrl: stored.audioUrl,
-        title: payload.createVideo.title,
-        aspectRatio: "9:16",
-        resolution: "1080p",
-        callbackUrl,
-      });
+
+      const created =
+        speech.provider === "elevenlabs_audio"
+          ? await heygenCreateVideoFromImage({
+              image: { type: "url", url: payload.createVideo.imageUrl },
+              audioUrl: speech.audioUrl,
+              title: payload.createVideo.title,
+              aspectRatio: "9:16",
+              resolution: "1080p",
+              callbackUrl,
+            })
+          : await heygenCreateVideoFromImage({
+              image: { type: "url", url: payload.createVideo.imageUrl },
+              voiceId: speech.voiceId,
+              script: String(payload.transcript ?? ""),
+              title: payload.createVideo.title,
+              aspectRatio: "9:16",
+              resolution: "1080p",
+              callbackUrl,
+            });
+
       result.heygenVideoId = created.videoId;
       result.generateMode = payload.createVideo.generateMode;
     }

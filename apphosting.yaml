@@ -86,7 +86,7 @@ env:
       - BUILD
       - RUNTIME
 
-  # Fase 3.3 — default stg/prod após smoke: elevenlabs_audio (fallback: heygen_clone)
+  # Voz do Criativo: ElevenLabs IVC+TTS → audio_url (fallback heygen_clone se plano sem IVC).
   - variable: HEYGEN_VOICE_PROVIDER
     value: "elevenlabs_audio"
     availability:
