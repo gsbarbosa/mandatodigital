@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { apiRoute } from "@/lib/auth/api-route";
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import {
   isAllowedTrainingMime,
   parseTrainingAssetRole,
@@ -93,6 +94,18 @@ export async function POST(request: Request) {
         errorMessage: "",
       },
     ]);
+
+    recordAuditEventFireAndForget({
+      request,
+      profileId,
+      action: "training_asset_registered",
+      payload: {
+        trainingRole,
+        assetIds: assets.map((asset) => asset.id),
+        mimeType: finalMimeType,
+        sizeBytes: finalSizeBytes,
+      },
+    });
 
     return NextResponse.json({ assets }, { status: 201 });
   });

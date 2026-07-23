@@ -1,4 +1,5 @@
 import { getSessionUser } from "@/lib/auth/session";
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 import { learnFromClosedThread, saveLearningItems } from "@/lib/support/learning";
 import { runSupportN1 } from "@/lib/support/n1-agent";
@@ -154,6 +155,16 @@ export async function escalateSupportThread(input: {
     authorLabel: "Sistema",
   });
 
+  recordAuditEventFireAndForget({
+    ownerUserId: thread.ownerUserId,
+    action: "support_escalated",
+    payload: {
+      threadId: thread.id,
+      reason: input.reason,
+      summary: summary.slice(0, 280),
+    },
+  });
+
   return (await getSupportThreadWithMessages(thread.id))!;
 }
 
@@ -236,6 +247,12 @@ export async function adminCloseSupportThread(
   });
 
   const closed = (await getSupportThreadWithMessages(threadId))!;
+
+  recordAuditEventFireAndForget({
+    ownerUserId: closed.ownerUserId,
+    action: "support_closed",
+    payload: { threadId },
+  });
 
   // Aprendizado contínuo: respostas humanas (ouro) ou só-IA viram casos RAG
   void learnFromClosedThread({
