@@ -9,6 +9,7 @@ import { NavSidebar } from "./nav-sidebar";
 import { OnboardingChecklist } from "./onboarding-checklist";
 import { OnboardingCoachmark } from "./onboarding-coachmark";
 import { OnboardingModals } from "./onboarding-modals";
+import { SupportWidget } from "./support-widget";
 
 export function ProductShell({ children }: { children: ReactNode }) {
   const { statusMessage, errorMessage, dismissMessages, sessionUser, signOut } =
@@ -31,6 +32,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
         <OnboardingModals />
         <OnboardingCoachmark />
         <OnboardingChecklist />
+        <SupportWidget />
 
         <HeygenDevKeyPanel
           open={heygenDevOpen}

@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 const NAV: Array<{ href: Route; label: string; exact?: boolean }> = [
   { href: "/admin" as Route, label: "Dashboard", exact: true },
   { href: "/admin/roadmap" as Route, label: "Roadmap" },
+  { href: "/admin/suporte" as Route, label: "Suporte" },
   { href: "/admin/provedores" as Route, label: "Provedores" },
   { href: "/admin/usuarios" as Route, label: "Usuários" },
 ];
