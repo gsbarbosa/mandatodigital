@@ -4,8 +4,8 @@ Acompanhamento das tarefas **de produto/sistema** extraídas de `RoadMapAte_05_A
 Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, etc.) ficam de fora.
 
 **Fonte:** `RoadMapAte_05_Ago.txt`  
-**Última atualização:** 2026-07-20 (painel `/admin` MVP)  
-**Relacionados:** [status-desenvolvimento.md](status-desenvolvimento.md) · [Compliance_Prioridades.txt](Compliance_Prioridades.txt)
+**Última atualização:** 2026-07-21 (domínio canônico + site institucional no ar)  
+**Relacionados:** [status-desenvolvimento.md](status-desenvolvimento.md) · [Compliance_Prioridades.txt](Compliance_Prioridades.txt) · [painel-gestao.md](painel-gestao.md)
 
 ### Legenda — Status
 
@@ -37,7 +37,7 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 | Cruzar sistema × arquivo compliance-tSE | done | sim | Marcado `x` no roadmap; selo, export-accept, fact-check e contrato cobrem parte |
 | Testar ambiente guest vs premium (limites) | inprogress | pendente | Modo conta + créditos guest (5 vitalícios / ciclo 8h BRT); falta QA formal |
 | Filtro CNPJ eleitoral + teto vagas partido/UF + lista de reserva | inprogress | pendente | Natureza jurídica via BrasilAPI no aceite; teto 03/partido só no copy — sem enforcement nem e-mail de fila |
-| URL canônica → `mandatodigital.ia.br` | inprogress | pendente | Prod em App Hosting / `web.app`; alinhar DNS + `NEXT_PUBLIC_APP_BASE_URL` |
+| URL canônica → `mandatodigital.ia.br` | done | pendente | DNS `www` no App Hosting; site institucional no ar. Falta alinhar `APP_BASE_URL` / Auth authorized domains se ainda apontarem p/ `hosted.app` |
 
 ---
 
@@ -48,8 +48,8 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 | Migração de banco de dados | done | n/a | Cutover Firestore + Storage concluído |
 | Centralização de contas (APIs/serviços) + painel adm de créditos/alarmes | todo | pendente | Aguardando painel do Guga |
 | Suporte via IA (N1 Sonnet / N2 Opus / N3 humano) | todo | pendente | Não existe |
-| Painel de gestão com suporte | inprogress | pendente | MVP em `/admin` (dashboard, usuários, provedores, roadmap editável) |
-| Roteiro.gif — UX de progresso do Sentinela | todo | pendente | Loading genérico existe; animação narrada do roadmap não |
+| Painel de gestão com suporte | done | pendente | MVP em `/admin` (dashboard, usuários, provedores, roadmap). Créditos/alarmes e suporte IA ficam em tasks separadas |
+| Roteiro.gif — UX de progresso do Sentinela | done | pendente | Painel narrado no refresh de `/monitoramento` (6 etapas); validação Thiago pendente |
 | Métricas para aperfeiçoamento semi-automático | inprogress | pendente | `/auditoria` (acessos, volumes, agentes, logs); falta loop de melhoria automática |
 | Obter/estruturar contatos TSE (dados/crawler) | todo | pendente | Fora do produto hoje |
 

@@ -8,6 +8,7 @@ import {
   SignalEvidenceDrawer,
 } from "@/components/product/monitor-signal-card";
 import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
+import { SentinelRefreshProgress } from "@/components/product/sentinel-refresh-progress";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
 import type { GuestSentinelCredits } from "@/lib/guest-limits";
@@ -339,13 +340,15 @@ export function MonitoramentoPage() {
       </header>
 
       <div className="mb-10 space-y-4 relative z-10">
-        {refreshMessage ? (
+        {refreshMessage && !isRefreshing ? (
           <p className="text-sm text-cyan-300 px-1" role="status">
             {refreshMessage}
           </p>
         ) : null}
 
-        {isLoading ? (
+        <SentinelRefreshProgress active={isRefreshing} />
+
+        {isLoading && !isRefreshing ? (
           <div
             className="flex flex-col items-center justify-center gap-4 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-5 py-8 text-center"
             role="status"
