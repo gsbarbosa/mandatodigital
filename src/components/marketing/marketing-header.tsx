@@ -12,7 +12,9 @@ import {
   MARKETING_NAV,
 } from "@/lib/marketing/shared";
 
-export function MarketingHeader() {
+const APP_HOME_HREF = "/monitoramento" as Route;
+
+export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -50,15 +52,23 @@ export function MarketingHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link
-            href={"/login" as Route}
-            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
-          >
-            Entrar
-          </Link>
-          <Link href={MARKETING_CTA_HREF} className="primary-button !px-4 !py-2 !text-sm">
-            {MARKETING_CTA_LABEL}
-          </Link>
+          {isAuthenticated ? (
+            <Link href={APP_HOME_HREF} className="primary-button !px-4 !py-2 !text-sm">
+              Ir ao sistema
+            </Link>
+          ) : (
+            <>
+              <Link
+                href={"/login" as Route}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
+              >
+                Entrar
+              </Link>
+              <Link href={MARKETING_CTA_HREF} className="primary-button !px-4 !py-2 !text-sm">
+                {MARKETING_CTA_LABEL}
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -88,20 +98,32 @@ export function MarketingHeader() {
                 {item.label}
               </Link>
             ))}
-            <Link
-              href={"/login" as Route}
-              onClick={() => setOpen(false)}
-              className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300"
-            >
-              Entrar
-            </Link>
-            <Link
-              href={MARKETING_CTA_HREF}
-              onClick={() => setOpen(false)}
-              className="primary-button mt-2 justify-center !text-sm"
-            >
-              {MARKETING_CTA_LABEL}
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                href={APP_HOME_HREF}
+                onClick={() => setOpen(false)}
+                className="primary-button mt-2 justify-center !text-sm"
+              >
+                Ir ao sistema
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href={"/login" as Route}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300"
+                >
+                  Entrar
+                </Link>
+                <Link
+                  href={MARKETING_CTA_HREF}
+                  onClick={() => setOpen(false)}
+                  className="primary-button mt-2 justify-center !text-sm"
+                >
+                  {MARKETING_CTA_LABEL}
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       ) : null}
