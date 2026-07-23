@@ -282,37 +282,41 @@ export function MarketingCompliancePage() {
         </div>
       </MarketingSection>
 
-      <MarketingSection
-        title={
-          <>
-            <span className="text-emerald-400">Proteção</span> contra acusações
-          </>
-        }
-      >
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <ul className="m-0 list-none space-y-5 p-0">
-            {complianceProtection.items.map((item) => (
-              <li
-                key={item.title}
-                className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3"
-              >
-                <IconCheck
-                  size={18}
-                  className="mt-[1.5px] block text-emerald-400"
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <p className="m-0 text-sm font-semibold leading-[1.5] text-white">
-                    {item.title}
-                  </p>
-                  <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
-                    {item.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <div className="relative overflow-hidden rounded-3xl border border-slate-700/70 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 p-6 shadow-xl">
+      <MarketingSection>
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
+          <div className="min-w-0">
+            <h2 className="text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl">
+              <span className="text-emerald-400">Proteção</span> contra acusações
+            </h2>
+            <ul className="mt-8 m-0 list-none space-y-5 p-0 sm:mt-10">
+              {complianceProtection.items.map((item) => (
+                <li
+                  key={item.title}
+                  className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3"
+                >
+                  <IconCheck
+                    size={18}
+                    className="mt-[1.5px] block text-emerald-400"
+                    aria-hidden
+                  />
+                  <div className="min-w-0">
+                    <p className="m-0 text-sm font-semibold leading-[1.5] text-white">
+                      {item.title}
+                    </p>
+                    <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
+                      {item.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/*
+            items-start alinha as caixas; mt fino compensa o half-leading do h2
+            para o topo do quadro bater com o topo óptico do título.
+          */}
+          <div className="relative mt-[0.35rem] overflow-hidden rounded-3xl border border-slate-700/70 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 p-6 shadow-xl sm:mt-[0.45rem]">
             <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" aria-hidden />
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-400/90">
               Materialidade
