@@ -22,6 +22,8 @@ import {
   pickBestMatchedTheme,
   resolveArticleMatchingSearchTerm,
 } from "@/lib/sentinel-theme-synonyms";
+import { diversifySuggestionsByTheme } from "@/lib/sentinel-diversify";
+import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import {
   applyThemeVerificationBatch,
   type ThemeVerificationStats,
@@ -285,15 +287,23 @@ function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
   const byId = new Map<string, MockSentinelSuggestion>();
 
   for (const suggestion of suggestions) {
+    const title = suggestion.evidence.articles?.[0]?.title ?? suggestion.topic;
+    const isOpposition = (suggestion.evidence.actors ?? []).some(
+      (actor) => actor.sourceList === "opposition",
+    );
+    if (!isOpposition && (isLikelyJobListingTitle(title) || isWeakFakeNewsTitle(title))) {
+      continue;
+    }
     const existing = byId.get(suggestion.id);
     if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
       byId.set(suggestion.id, suggestion);
     }
   }
 
-  return [...byId.values()]
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_SUGGESTIONS);
+  return diversifySuggestionsByTheme([...byId.values()], {
+    maxTotal: MAX_SUGGESTIONS,
+    maxPerTheme: 4,
+  });
 }
 
 export async function buildV2SuggestionsFromArticles(

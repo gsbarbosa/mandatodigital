@@ -14,11 +14,10 @@ import {
   scoreSentinelArticle,
   type RssNewsItem,
 } from "@/lib/sentinel-rss";
-import {
-  buildSentinelQualityReport,
-  estimateSentinelLlmCost,
-} from "@/lib/sentinel-quality";
+import { buildSentinelQualityReport, estimateSentinelLlmCost } from "@/lib/sentinel-quality";
 import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
+import { diversifySuggestionsByTheme } from "@/lib/sentinel-diversify";
+import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import {
   countCatalogPortalHosts,
@@ -282,9 +281,10 @@ export async function buildSuggestionsFromArticles(
   }
 
   return {
-    suggestions: suggestions
-      .sort((left, right) => right.relevanceScore - left.relevanceScore)
-      .slice(0, MAX_SUGGESTIONS),
+    suggestions: diversifySuggestionsByTheme(suggestions, {
+      maxTotal: MAX_SUGGESTIONS,
+      maxPerTheme: 4,
+    }),
     themeVerificationStats,
   };
 }
@@ -382,6 +382,14 @@ function isOppositionSuggestion(suggestion: MockSentinelSuggestion) {
   return (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition");
 }
 
+function isLowQualityNewsSuggestion(suggestion: MockSentinelSuggestion) {
+  if (isOppositionSuggestion(suggestion)) {
+    return false;
+  }
+  const title = suggestion.evidence.articles?.[0]?.title ?? suggestion.topic;
+  return isLikelyJobListingTitle(title) || isWeakFakeNewsTitle(title);
+}
+
 function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSuggestion[] {
   const byId = new Map<string, MockSentinelSuggestion>();
   const oppositionById = new Map<string, MockSentinelSuggestion>();
@@ -395,15 +403,20 @@ function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSu
       continue;
     }
 
+    if (isLowQualityNewsSuggestion(suggestion)) {
+      continue;
+    }
+
     const existing = byId.get(suggestion.id);
     if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
       byId.set(suggestion.id, suggestion);
     }
   }
 
-  const coreSuggestions = [...byId.values()]
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_SUGGESTIONS);
+  const coreSuggestions = diversifySuggestionsByTheme(
+    [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
+    { maxTotal: MAX_SUGGESTIONS, maxPerTheme: 4 },
+  );
 
   const oppositionSuggestions = [...oppositionById.values()].sort(
     (left, right) => right.relevanceScore - left.relevanceScore,

@@ -51,21 +51,28 @@ describe("scoreSuggestionPautavel", () => {
     expect(scored.pautavel).toBe(true);
   });
 
-  it("penaliza titulo generico fraco", () => {
+  it("penaliza classificado de vagas", () => {
     const scored = scoreSuggestionPautavel(
       newsCard({
-        relevanceScore: 20,
-        topic: "Desemprego · Veja",
+        relevanceScore: 80,
+        topic: "Desemprego · IEL abre vagas de estágio",
         evidence: {
           postsAnalyzed: 1,
-          outletCount: 1,
+          outletCount: 2,
           engagementTrendPercent: 0,
           byNetwork: [],
           actors: [],
-          articles: [{ title: "Veja", url: "https://x.com", sourceName: "X" }],
+          articles: [
+            {
+              title: "IEL-MG abre vagas de estágio em Minas Gerais com bolsas",
+              url: "https://x.com",
+              sourceName: "Itatiaia",
+            },
+          ],
         },
       }),
     );
+    expect(scored.reasons).toContain("classificado de vagas");
     expect(scored.pautavel).toBe(false);
   });
 });

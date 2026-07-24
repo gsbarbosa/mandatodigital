@@ -11,6 +11,7 @@ import {
   splitProfileThemesBySphere,
 } from "@/lib/sentinel-profile-themes";
 import { matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
+import { softQualityPenaltyForTitle } from "@/lib/sentinel-title-filters";
 import { normalizeSentinelText } from "@/lib/sentinel-text";
 
 export { normalizeSentinelText } from "@/lib/sentinel-text";
@@ -916,6 +917,8 @@ export function scoreSentinelArticle(
     score += Math.max(0, cluster.outletCount - 1) * 12;
     score += Math.max(0, cluster.articleCount - 1) * 4;
   }
+
+  score -= softQualityPenaltyForTitle(article.title);
 
   return Math.min(99, Math.max(10, score));
 }

@@ -102,6 +102,15 @@ function scoreSuggestionPautavel(suggestion) {
   if (["veja", "saiba mais", "ao vivo", "confira"].some((m) => titleNorm.includes(m)) && title.length < 40) {
     score -= 0.15;
   }
+  // Espelha sentinel-quality.ts — classificados / fake news fraca.
+  const jobListing =
+    /\babre\s+(?:\d+\s+)?vagas?\b/.test(titleNorm) ||
+    /\bvagas?\s+de\s+est[aá]gio\b/.test(titleNorm) ||
+    /\bprograma\s+de\s+est[aá]gio\b/.test(titleNorm) ||
+    /\bsaiba\s+como\s+se\s+candidatar\b/.test(titleNorm) ||
+    /\bcomo\s+se\s+candidatar\b/.test(titleNorm) ||
+    /\btem\s+emprego\b/.test(titleNorm);
+  if (jobListing) score -= 0.35;
   if ((suggestion.matchedThemes?.length ?? 0) >= 2) score += 0.05;
   const final = Math.max(0, Math.min(1, score));
   return { kind: "news", score: final, pautavel: final >= THRESHOLD };

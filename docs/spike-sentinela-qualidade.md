@@ -86,6 +86,17 @@ Ligar rank em staging/prod (App Hosting):
 | 2026-07-11 | cache `2d2152bd` | A0 | **71,4%** (10/14 news) | n/a (pré-meta) | baseline heurística |
 | 2026-07-11 | cache `188ba77b` | A0 | **100%** (20/20) | n/a | baseline heurística |
 | 2026-07-11 | cache `92add5a6` | A0 | **100%** (20/20) | n/a | baseline heurística |
-| | | A1 | | | ligar `SENTINEL_LLM_QUALITY_RANK` + refresh |
+| 2026-07-24 | cache `ae8fed6f` (92add5a6) | A0 | heurística **100%** / editorial LLM **60%** (9/15 top) | verify/rank=0 | Top poluído: 16/20 Desemprego; 5 classificados de vaga/estágio; sinônimo `vagas`/`emprego` amplo |
+| 2026-07-24 | — | A1 | pending refresh | — | `SENTINEL_LLM_QUALITY_RANK=true` em `apphosting.yaml` + filtros de título/diversidade |
 
-> Nota: a heurística v0 está otimista em caches já filtrados. Amostragem humana (20 cards) é o gate real da spike.
+### Achados 2026-07-24 (amostra humana+LLM)
+
+1. Heurística v0 **otimista demais** — não detectava classificado de emprego.
+2. Sinônimo `Desemprego: emprego, vagas` puxava Sine/IEL/estágio para o topo.
+3. Sem diversidade de tema → feed monotemático.
+4. `SENTINEL_LLM_QUALITY_RANK` estava off neste refresh.
+5. Mitigações: sinônimos apertados; filtro de título (vagas/fake news fraca); diversify máx. 4/tema; **quality rank ligado** em staging/prod config.
+
+**Próximo gate:** deploy + refresh → conferir `meta.qualityRankStats.llmCalls > 0` e amostrar top 15 (≥ 60% pautável editorial).
+
+
