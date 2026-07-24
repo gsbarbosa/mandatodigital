@@ -9,9 +9,9 @@ export const AGENT_DETAIL_BACK = {
 
 export const AGENT_DETAIL_CLOSING = {
   title: MARKETING_CLOSING.title,
-  titleAccent: "sua legenda",
+  titleAccent: "adversário trave",
   body: MARKETING_CLOSING.body,
-  bodyAccent: "03 vagas por Partido/UF",
+  bodyAccent: "limitadas por ordem de chegada e UF",
   ctaLabel: MARKETING_CTA_LABEL,
   ctaHref: MARKETING_CTA_HREF,
 } as const;

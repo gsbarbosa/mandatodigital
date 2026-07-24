@@ -5,8 +5,8 @@ export const MARKETING_CTA_HREF = "/planos" as Route;
 export const MARKETING_CTA_LABEL = "Garanta sua vaga";
 
 export const MARKETING_CLOSING = {
-  title: "Saia na frente. Antes que o adversário trave a sua legenda.",
-  body: "Monitoramento em tempo real, avatares personalizados com a voz do candidato e compliance total com o TSE. Limitado a apenas 03 vagas por Partido/UF para garantir a performance e a equidade na disputa.",
+  title: "Saia na frente. Antes que o adversário trave a sua vaga.",
+  body: "Monitoramento em tempo real, avatares personalizados com a voz do candidato e compliance total com o TSE. Para garantir a performance da plataforma as vagas são limitadas por ordem de chegada e UF.",
   ctaLabel: MARKETING_CTA_LABEL,
   ctaHref: MARKETING_CTA_HREF,
 } as const;

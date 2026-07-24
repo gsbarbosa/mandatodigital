@@ -156,10 +156,6 @@ export const ecosystemAgents: EcosystemAgent[] = [
         text: "Avatares digitais, apresentados como gêmeos online do próprio candidato.",
       },
       {
-        icon: "badge",
-        text: "Vídeos faceless de alta retenção.",
-      },
-      {
         icon: "clapper",
         text: "Avatar caricato do candidato para posicionamentos mais leves e bem-humorados.",
       },

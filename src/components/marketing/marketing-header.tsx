@@ -38,7 +38,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                className={`rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${
                   active
                     ? "bg-emerald-500/15 text-emerald-200"
                     : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
@@ -59,11 +59,14 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
             <>
               <Link
                 href={"/login" as Route}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 no-underline transition hover:text-white"
               >
                 Entrar
               </Link>
-              <Link href={MARKETING_CTA_HREF} className="primary-button !px-4 !py-2 !text-sm">
+              <Link
+                href={MARKETING_CTA_HREF}
+                className="primary-button !px-4 !py-2 !text-sm no-underline"
+              >
                 {MARKETING_CTA_LABEL}
               </Link>
             </>
@@ -92,7 +95,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800/60"
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 no-underline hover:bg-slate-800/60"
               >
                 {item.label}
               </Link>
@@ -101,7 +104,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
               <Link
                 href={APP_HOME_PATH}
                 onClick={() => setOpen(false)}
-                className="primary-button mt-2 justify-center !text-sm"
+                className="primary-button mt-2 justify-center !text-sm no-underline"
               >
                 Ir ao sistema
               </Link>
@@ -110,14 +113,14 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
                 <Link
                   href={"/login" as Route}
                   onClick={() => setOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300"
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 no-underline"
                 >
                   Entrar
                 </Link>
                 <Link
                   href={MARKETING_CTA_HREF}
                   onClick={() => setOpen(false)}
-                  className="primary-button mt-2 justify-center !text-sm"
+                  className="primary-button mt-2 justify-center !text-sm no-underline"
                 >
                   {MARKETING_CTA_LABEL}
                 </Link>
