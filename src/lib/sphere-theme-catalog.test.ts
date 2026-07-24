@@ -36,8 +36,8 @@ describe("sphere-theme-catalog limits", () => {
     expect(MAX_RADAR_THEMES_TOTAL).toBe(8);
     expect(MAX_MUNICIPAL_CITIES).toBe(2);
     expect(MAX_MUNICIPAL_PORTALS).toBe(2);
-    expect(MAX_INTEREST_PROFILES).toBe(8);
-    expect(MAX_MUNICIPAL_PROFILES).toBe(8);
-    expect(MAX_ADVERSARY_PROFILES).toBe(8);
+    expect(MAX_INTEREST_PROFILES).toBe(2);
+    expect(MAX_MUNICIPAL_PROFILES).toBe(2);
+    expect(MAX_ADVERSARY_PROFILES).toBe(2);
   });
 });

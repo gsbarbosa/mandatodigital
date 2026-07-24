@@ -8,7 +8,7 @@ vi.mock("./sentinel-instagram-posts", async (importOriginal) => {
 
   return {
     ...actual,
-    isApifyConfigured: () => true,
+    isApifyReady: async () => true,
     fetchInstagramProfilePosts: vi.fn(async (handle: string) => {
       if (handle === "kimkataguiri") {
         return [

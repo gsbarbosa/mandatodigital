@@ -34,7 +34,7 @@ import {
   buildOppositionPostSuggestions,
   oppositionMonitoringUnavailableReason,
 } from "@/lib/sentinel-opposition-posts";
-import { isApifyConfigured } from "@/lib/sentinel-instagram-posts";
+import { isApifyReady } from "@/lib/sentinel-instagram-posts";
 import { pickBestMatchedTheme, resolveArticleMatchingSearchTerm } from "@/lib/sentinel-theme-synonyms";
 import {
   applyThemeVerificationBatch,
@@ -326,7 +326,7 @@ async function hydrateCachedOppositionSuggestions(
   cacheKey: string,
   cached: SentinelCacheEntry,
 ): Promise<SentinelCacheEntry> {
-  if (!isApifyConfigured()) {
+  if (!(await isApifyReady())) {
     return cached;
   }
 

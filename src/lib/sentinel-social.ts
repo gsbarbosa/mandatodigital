@@ -96,8 +96,8 @@ function sortByEngagementThenRecency(suggestions: MockSentinelSuggestion[]) {
 }
 
 /**
- * Fallback para redes sem fetch de posts (TikTok/X): Google News pelo @,
- * sem cruzar temas do radar. Sem engajamento real → ordena por data.
+ * Busca menções do @ no Google News — sem cruzar temas do radar.
+ * Usado para TikTok/X e como fallback quando o Apify (Instagram) falha/sem cota.
  */
 async function buildInterestNewsFallbacks(
   profile: PoliticianProfile,
@@ -193,12 +193,19 @@ export async function buildSocialSentinelSuggestions(
   const instagramRows = rows.filter(isInstagramProfile);
   const otherRows = rows.filter((row) => !isInstagramProfile(row));
 
-  const [instagramSuggestions, newsFallbacks] = await Promise.all([
-    buildInterestPostSuggestions({
-      ...profile,
-      interestProfiles: instagramRows,
-    }),
-    buildInterestNewsFallbacks(profile, otherRows),
+  const instagramSuggestions = await buildInterestPostSuggestions({
+    ...profile,
+    interestProfiles: instagramRows,
+  });
+
+  // Sem posts do Apify (cota esgotada / erro), cai no Google News pelo @.
+  const instagramNeedingFallback = instagramSuggestions.length
+    ? []
+    : instagramRows;
+
+  const newsFallbacks = await buildInterestNewsFallbacks(profile, [
+    ...otherRows,
+    ...instagramNeedingFallback,
   ]);
 
   return sortByEngagementThenRecency([...instagramSuggestions, ...newsFallbacks]).slice(

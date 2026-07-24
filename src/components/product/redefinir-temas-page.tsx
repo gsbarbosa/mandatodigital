@@ -566,8 +566,8 @@ export function RedefinirTemasPage() {
             ) : (
               <span>
                 Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} cidades,{" "}
-                {MAX_MUNICIPAL_PORTALS} portais e {MAX_INTEREST_PROFILES} perfis. O monitoramento das
-                pautas não é em tempo real.
+                {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de interesse e{" "}
+                {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
               </span>
             )}
           </div>

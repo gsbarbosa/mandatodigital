@@ -140,10 +140,10 @@ export const MAX_MUNICIPAL_CITIES = 2;
 export const MAX_MUNICIPAL_PORTALS = 2;
 
 /** Perfis @ de interesse (convidado) — esfera aparte no monitoramento. */
-export const MAX_INTEREST_PROFILES = 8;
+export const MAX_INTEREST_PROFILES = 2;
 
 /** Perfis @ de adversários (convidado). */
-export const MAX_ADVERSARY_PROFILES = 8;
+export const MAX_ADVERSARY_PROFILES = 2;
 
 /**
  * @deprecated Use MAX_INTEREST_PROFILES — perfis saíram da seção municipal.

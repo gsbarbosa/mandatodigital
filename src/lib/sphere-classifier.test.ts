@@ -128,7 +128,7 @@ describe("classifySuggestionSphere", () => {
     expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
   });
 
-  it("falls back to estadual", () => {
+  it("falls back to federal for dual-catalog themes without portal signal", () => {
     const suggestion = buildSuggestion({
       articles: [
         {
@@ -138,7 +138,24 @@ describe("classifySuggestionSphere", () => {
         },
       ],
     });
-    expect(classifySuggestionSphere(suggestion, [])).toBe("estadual");
+    expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
+  });
+
+  it("classifies municipal when city name appears in the title", () => {
+    const suggestion = buildSuggestion({
+      themeLabel: "Reforma Fiscal",
+      matchedThemes: ["Reforma Fiscal"],
+      articles: [
+        {
+          title: "Belo Horizonte discute reforma fiscal local",
+          url: "https://news.google.com/rss/articles/bh",
+          sourceName: "Portal BH",
+        },
+      ],
+    });
+    expect(
+      classifySuggestionSphere(suggestion, [], "MG", [], {}, ["Belo Horizonte", "Contagem"]),
+    ).toBe("municipal");
   });
 
   it("classifica por catalogo federal mesmo com portal regional", () => {
@@ -171,7 +188,7 @@ describe("classifySuggestionSphere", () => {
     expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
   });
 
-  it("mantem tema estadual exclusivo na esfera estadual", () => {
+  it("com radar unificado, tema dual-catalog sem sinal de portal vai para nacional", () => {
     const suggestion = buildSuggestion({
       themeLabel: "Combate ao Tráfico",
       matchedThemes: ["Combate ao Tráfico"],
@@ -183,7 +200,27 @@ describe("classifySuggestionSphere", () => {
         },
       ],
     });
-    expect(classifySuggestionSphere(suggestion, [])).toBe("estadual");
+    expect(classifySuggestionSphere(suggestion, [])).toBe("federal");
+  });
+
+  it("mantem tema estadual quando o radar do perfil marca só estadual", () => {
+    const suggestion = buildSuggestion({
+      themeLabel: "Combate ao Tráfico",
+      matchedThemes: ["Combate ao Tráfico"],
+      articles: [
+        {
+          title: "Operacao apreende drogas - Tribuna do Norte",
+          url: "https://news.google.com/rss/articles/trafico",
+          sourceName: "Tribuna do Norte",
+        },
+      ],
+    });
+    expect(
+      classifySuggestionSphere(suggestion, [], "MG", [], {
+        federal: [],
+        estadual: ["Combate ao Tráfico"],
+      }),
+    ).toBe("estadual");
   });
 
   it("respeita o radar do perfil quando o tema existe nos dois catalogos", () => {
@@ -233,7 +270,7 @@ describe("groupSuggestionsBySphere", () => {
     const estadual = buildSuggestion({
       articles: [{ title: "t", url: "https://www.otempo.com.br/x" }],
     });
-    const groups = groupSuggestionsBySphere([federal, estadual], []);
+    const groups = groupSuggestionsBySphere([federal, estadual], [], "MG");
     expect(groups.federal).toHaveLength(1);
     expect(groups.estadual).toHaveLength(1);
     expect(groups.municipal).toHaveLength(0);

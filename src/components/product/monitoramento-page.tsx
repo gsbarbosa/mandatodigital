@@ -245,12 +245,14 @@ export function MonitoramentoPage() {
         federal: themeSpheres.federal,
         estadual: themeSpheres.estadual,
       },
+      profileForm.municipalCities,
     );
   }, [
     suggestions,
     profileForm.interestSites,
     profileForm.state,
     profileForm.customRadarThemes,
+    profileForm.municipalCities,
     profileForm.sentinelThemesFederal,
     profileForm.sentinelThemesEstadual,
     profileForm.sentinelThemes,

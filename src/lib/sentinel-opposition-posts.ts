@@ -2,16 +2,16 @@ import { createHash } from "node:crypto";
 
 import {
   fetchInstagramProfilePosts,
-  isApifyConfigured,
+  isApifyReady,
   isInstagramFeedPost,
   normalizeInstagramHandle,
   type InstagramProfilePost,
 } from "@/lib/sentinel-instagram-posts";
-import { isSentinelSocialEnabled } from "@/lib/feature-flags";
 import type {
   MockSentinelSuggestion,
   SentinelVerifiedActor,
 } from "@/lib/sentinel-mock-suggestions";
+import { fetchGoogleNewsQuery } from "@/lib/sentinel-rss";
 import { weightedEngagement } from "@/lib/sphere-classifier";
 import type { PoliticianProfile, SocialHandle } from "@/lib/types";
 
@@ -160,7 +160,7 @@ export async function buildInstagramProfilePostSuggestions(input: {
 }): Promise<MockSentinelSuggestion[]> {
   const profiles = input.profiles.filter((row) => row.handle.trim() && isInstagramProfile(row));
 
-  if (!profiles.length || !isApifyConfigured()) {
+  if (!profiles.length || !(await isApifyReady())) {
     return [];
   }
 
@@ -194,26 +194,108 @@ export async function buildInstagramProfilePostSuggestions(input: {
   return sortByEngagementThenRecency(suggestions).slice(0, input.maxSuggestions);
 }
 
-export function oppositionMonitoringUnavailableReason() {
-  if (isApifyConfigured()) {
-    return null;
+export function oppositionMonitoringUnavailableReason(): string | null {
+  // Posts de adversários usam Apify quando disponível; sem cota/token caem no Google News.
+  return null;
+}
+
+async function buildOppositionNewsFallbacks(
+  profile: PoliticianProfile,
+  rows: SocialHandle[],
+): Promise<MockSentinelSuggestion[]> {
+  const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
+  const suggestions: MockSentinelSuggestion[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    const handle = normalizeInstagramHandle(row.handle);
+    if (!handle) {
+      continue;
+    }
+
+    const queries = [`"@${handle}"`, `${handle} Instagram`, `${handle} ${geo}`.trim()]
+      .filter((query) => query.replace(/\s/g, "").length >= 3)
+      .slice(0, 2);
+    const batches = await Promise.all(queries.map((query) => fetchGoogleNewsQuery(query)));
+
+    for (const item of batches.flat()) {
+      const key = `${handle}|${item.link}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+
+      const publishedAt = item.pubDate ?? item.publishedAt?.toISOString();
+      const themeLabel = `@${handle}`;
+      const relevanceScore = 42;
+      const actor: SentinelVerifiedActor = {
+        handle,
+        network: "instagram",
+        postUrl: item.link,
+        profileLabel: row.network,
+        sourceList: "opposition",
+        publishedAt,
+      };
+
+      suggestions.push({
+        id: buildProfilePostSuggestionId("opposition", handle, item.link),
+        themeLabel,
+        matchedThemes: [themeLabel],
+        relevanceScore,
+        pipeline: "social",
+        topic: `@${handle} · ${item.title.slice(0, 100)}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [{ network: "instagram", likes: 0, comments: 0, shares: 0 }],
+          actors: [actor],
+          articles: [
+            {
+              title: item.title,
+              url: item.link,
+              sourceName: item.sourceName,
+              publishedAt,
+            },
+          ],
+        },
+        engagement: {
+          relevanceScore,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: ["instagram"],
+          byNetwork: [{ network: "instagram", likes: 0, comments: 0, shares: 0 }],
+        },
+      });
+    }
   }
 
-  if (!isSentinelSocialEnabled()) {
-    return "Ative SENTINEL_SOCIAL_ENABLED para monitorar os ultimos posts do Instagram dos adversarios.";
-  }
-
-  return "Configure APIFY_TOKEN ou APIFY_API_TOKEN para monitorar os ultimos posts do Instagram dos adversarios.";
+  return sortByEngagementThenRecency(suggestions).slice(0, MAX_OPPOSITION_SUGGESTIONS);
 }
 
 export async function buildOppositionPostSuggestions(
   profile: PoliticianProfile,
 ): Promise<MockSentinelSuggestion[]> {
-  return buildInstagramProfilePostSuggestions({
+  const fromApify = await buildInstagramProfilePostSuggestions({
     profiles: profile.oppositionProfiles,
     sourceList: "opposition",
     maxSuggestions: MAX_OPPOSITION_SUGGESTIONS,
   });
+  if (fromApify.length) {
+    return fromApify;
+  }
+
+  const rows = profile.oppositionProfiles.filter(
+    (row) => row.handle.trim() && isInstagramProfile(row),
+  );
+  if (!rows.length) {
+    return [];
+  }
+
+  return buildOppositionNewsFallbacks(profile, rows);
 }
 
 export async function buildInterestPostSuggestions(

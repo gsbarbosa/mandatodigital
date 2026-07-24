@@ -5,6 +5,7 @@ import {
   buildStoryClusterKey,
   clusterScoredArticles,
   countUniqueOutlets,
+  decodeXmlEntities,
   matchLiteralThemes,
   matchSentinelThemes,
   normalizeSentinelText,
@@ -114,6 +115,27 @@ describe("sentinel-theme-synonyms", () => {
 describe("sentinel-rss", () => {
   it("normaliza texto para comparacao sem acentos", () => {
     expect(normalizeSentinelText("Reforma Tributária")).toBe("reforma tributaria");
+  });
+
+  it("decodifica entidades HTML numericas em titulos do RSS", () => {
+    expect(
+      decodeXmlEntities(
+        "A Reforma Tribut&#225;ria &#233; digital: transforma&#231;&#227;o fiscal",
+      ),
+    ).toBe("A Reforma Tributária é digital: transformação fiscal");
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+      <rss><channel>
+        <item>
+          <title>A Reforma Tribut&#225;ria &#233; digital</title>
+          <link>https://bing.com/news/example</link>
+          <pubDate>Mon, 23 Jun 2026 10:00:00 GMT</pubDate>
+          <source>bing.com</source>
+        </item>
+      </channel></rss>`;
+
+    const items = parseGoogleNewsRss(xml);
+    expect(items[0]?.title).toBe("A Reforma Tributária é digital");
   });
 
   it("faz parse basico de RSS do Google News", () => {
