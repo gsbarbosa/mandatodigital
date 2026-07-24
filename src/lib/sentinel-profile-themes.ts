@@ -57,6 +57,25 @@ export function unionSentinelThemes(spheres: SentinelThemeSpheres): string[] {
   return [...new Set([...spheres.federal, ...spheres.estadual])];
 }
 
+/** Lista canônica de temas de interesse (união das colunas + legado). */
+export function resolveInterestThemes(
+  profile: Pick<
+    PoliticianProfile,
+    "sentinelThemes" | "sentinelThemesFederal" | "sentinelThemesEstadual"
+  >,
+): string[] {
+  return unionSentinelThemes(resolveSentinelThemeSpheres(profile));
+}
+
+/**
+ * Espelha a lista unificada nas colunas legacy para compatibilidade de storage/API.
+ * A classificação nacional vs estadual no feed passa a vir do conteúdo/UF/portal.
+ */
+export function mirrorInterestThemesToSpheres(themes: string[]): SentinelThemeSpheres {
+  const interest = canonicalizeSentinelThemes(themes);
+  return { federal: interest, estadual: interest };
+}
+
 export function resolveSentinelThemeSpheres(
   profile: Pick<
     PoliticianProfile,
@@ -65,48 +84,54 @@ export function resolveSentinelThemeSpheres(
 ): SentinelThemeSpheres {
   const federal = canonicalizeSentinelThemes(profile.sentinelThemesFederal ?? []);
   const estadual = canonicalizeSentinelThemes(profile.sentinelThemesEstadual ?? []);
-  const legacyThemes = profile.sentinelThemes ?? [];
+  const legacyThemes = canonicalizeSentinelThemes(profile.sentinelThemes ?? []);
   const hasExplicitColumns =
     profile.sentinelThemesFederal !== undefined || profile.sentinelThemesEstadual !== undefined;
 
   if (hasExplicitColumns) {
     if (federal.length === 0 && estadual.length === 0 && legacyThemes.length > 0) {
-      return migrateFlatSentinelThemes(legacyThemes);
+      // Perfis novos/unificados: sentinelThemes preenchido, colunas vazias.
+      return mirrorInterestThemesToSpheres(legacyThemes);
     }
 
     return { federal, estadual };
   }
 
-  return migrateFlatSentinelThemes(legacyThemes);
+  return mirrorInterestThemesToSpheres(legacyThemes);
 }
 
 export function splitProfileThemesBySphere(profile: PoliticianProfile): ProfileThemesBySphere {
-  const { federal, estadual } = resolveSentinelThemeSpheres(profile);
+  const interest = resolveInterestThemes(profile);
   const municipalCustom = profile.customRadarThemes.map((theme) => theme.trim()).filter(Boolean);
 
   return {
-    federal,
-    estadual,
+    // Espelha a lista unificada — RSS/portais usam hasFederal/hasEstadual + UF.
+    federal: interest,
+    estadual: interest,
     municipalCustom,
-    interest: [...new Set([...federal, ...estadual, ...municipalCustom])],
+    interest: [...new Set([...interest, ...municipalCustom])],
   };
 }
 
 export function hasFederalRadar(profile: PoliticianProfile): boolean {
-  return resolveSentinelThemeSpheres(profile).federal.length > 0;
+  return resolveInterestThemes(profile).length > 0;
 }
 
 export function hasEstadualRadar(profile: PoliticianProfile): boolean {
-  return resolveSentinelThemeSpheres(profile).estadual.length > 0;
+  return resolveInterestThemes(profile).length > 0 && profile.state.trim().length === 2;
 }
 
 export function hasMunicipalRadar(profile: PoliticianProfile): boolean {
   const { municipalCustom } = splitProfileThemesBySphere(profile);
   return (
     municipalCustom.length > 0 ||
-    profile.interestSites.some((site) => site.trim()) ||
-    profile.interestProfiles.some((row) => row.handle.trim())
+    profile.municipalCities.some((city) => city.trim()) ||
+    profile.interestSites.some((site) => site.trim())
   );
+}
+
+export function hasInterestRadar(profile: PoliticianProfile): boolean {
+  return profile.interestProfiles.some((row) => row.handle.trim());
 }
 
 export function hasAdversaryRadar(profile: PoliticianProfile): boolean {

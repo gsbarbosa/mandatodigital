@@ -781,15 +781,19 @@ export function filterSuggestionsForProfile(
     splitProfileThemesBySphere(profile).interest.map((theme) => theme.toLowerCase()),
   );
 
-  if (interestThemes.size === 0) {
-    return suggestions.filter((suggestion) =>
-      (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition"),
-    );
-  }
-
   return suggestions.filter((suggestion) => {
-    if ((suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition")) {
+    const actors = suggestion.evidence.actors ?? [];
+    // Interesse e adversários são por ator (@), sem cruzar temas do radar.
+    if (
+      actors.some(
+        (actor) => actor.sourceList === "opposition" || actor.sourceList === "interest",
+      )
+    ) {
       return true;
+    }
+
+    if (interestThemes.size === 0) {
+      return false;
     }
 
     // O tema exibido no card precisa ser um tema ativo do radar.

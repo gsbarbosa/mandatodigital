@@ -14,6 +14,7 @@ const NO_SIGNALS: OnboardingSignals = {
   hasFederalThemes: false,
   hasEstadualThemes: false,
   hasMunicipalSignal: false,
+  hasInterestSignal: false,
   hasOppositionSignal: false,
   hasAvatarImage: false,
   hasVoiceAudio: false,
@@ -74,6 +75,7 @@ describe("deriveAppDone", () => {
     expect(done["temas-federal"]).toBe(true);
     expect(done["temas-estadual"]).toBe(true);
     expect(done["temas-municipal"]).toBe(false);
+    expect(done["temas-interesse"]).toBe(false);
     expect(done["temas-adversarios"]).toBe(false);
   });
 });
@@ -379,6 +381,7 @@ describe("computeOnboarding", () => {
           "temas-federal",
           "temas-estadual",
           "temas-municipal",
+          "temas-interesse",
           "temas-adversarios",
           "avatar-foto",
         ],

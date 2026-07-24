@@ -148,6 +148,7 @@ function buildDefaultWorkflowProfileConfig() {
     sentinelThemesEstadual: [] as string[],
     oppositionThemes: [] as string[],
     customRadarThemes: [] as string[],
+    municipalCities: [] as string[],
     interestProfiles: [] as SocialHandle[],
     interestSites: [] as string[],
     oppositionProfiles: [] as SocialHandle[],
@@ -227,6 +228,7 @@ function pickWorkflowProfileConfig(
     sentinelThemesEstadual: profile.sentinelThemesEstadual ?? defaults.sentinelThemesEstadual,
     oppositionThemes: profile.oppositionThemes ?? defaults.oppositionThemes,
     customRadarThemes: profile.customRadarThemes ?? defaults.customRadarThemes,
+    municipalCities: profile.municipalCities ?? defaults.municipalCities,
     interestProfiles: profile.interestProfiles ?? defaults.interestProfiles,
     interestSites: profile.interestSites ?? defaults.interestSites,
     oppositionProfiles: profile.oppositionProfiles ?? defaults.oppositionProfiles,
@@ -276,6 +278,9 @@ function mapWorkflowFromDoc(data: Record<string, unknown> | undefined): Workflow
     customRadarThemes: Array.isArray(data.customRadarThemes)
       ? data.customRadarThemes.map(String)
       : defaults.customRadarThemes,
+    municipalCities: Array.isArray(data.municipalCities)
+      ? data.municipalCities.map(String)
+      : defaults.municipalCities,
     interestProfiles: mapSocialHandles(data.interestProfiles),
     interestSites: Array.isArray(data.interestSites)
       ? data.interestSites.map(String)

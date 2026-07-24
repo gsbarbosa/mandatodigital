@@ -114,6 +114,7 @@ function mapProfile(id: string, data: Record<string, unknown>): PoliticianProfil
     sentinelThemesEstadual: strArr(data.sentinelThemesEstadual),
     oppositionThemes: strArr(data.oppositionThemes),
     customRadarThemes: strArr(data.customRadarThemes),
+    municipalCities: strArr(data.municipalCities),
     interestProfiles: Array.isArray(data.interestProfiles)
       ? (data.interestProfiles as PoliticianProfile["interestProfiles"])
       : [],

@@ -36,6 +36,7 @@ const sampleProfile: PoliticianProfile = {
   sentinelThemesEstadual: ["Segurança Pública"],
   oppositionThemes: ["Endurecimento de Penas"],
   customRadarThemes: ["fila do SUS"],
+  municipalCities: ["Campinas"],
   interestProfiles: [],
   interestSites: ["g1.com.br"],
   oppositionProfiles: [],
@@ -141,12 +142,15 @@ describe("sentinel-rss", () => {
     expect(queries.some((query) => query.includes("Vacinação") && query.includes("Brasil"))).toBe(
       true,
     );
+    expect(queries.some((query) => query.includes("Vacinação") && query.includes("Campinas"))).toBe(
+      true,
+    );
     expect(queries.some((query) => query.includes("fila do SUS"))).toBe(true);
     expect(queries.some((query) => query.includes("Endurecimento de Penas"))).toBe(false);
     expect(queries.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("inclui ate 5 temas federal e estadual nas queries", () => {
+  it("inclui ate o teto de temas de interesse nas queries", () => {
     const profile = {
       ...sampleProfile,
       sentinelThemesFederal: [
@@ -166,21 +170,25 @@ describe("sentinel-rss", () => {
         "Agricultura Familiar",
       ],
       sentinelThemes: [],
-      customRadarThemes: ["fila do SUS", "obra da orla", "IPTU", "feira livre", "ciclofaixa", "extra"],
+      customRadarThemes: [
+        "fila do SUS",
+        "obra da orla",
+        "IPTU",
+        "feira livre",
+        "ciclofaixa",
+        "extra",
+        "horta comunitária",
+        "creche noturna",
+        "fora do teto",
+      ],
     };
     const queries = buildSentinelRssQueries(profile);
-    expect(queries.filter((q) => q.endsWith(" Brasil"))).toHaveLength(5);
-    expect(queries.some((q) => q.includes("Privatizações"))).toBe(false);
-    const estadualQueries = queries.filter(
-      (q) =>
-        q.endsWith(" SP") &&
-        !q.startsWith("Campinas") &&
-        profile.sentinelThemesEstadual.some((theme) => q.startsWith(theme)),
-    );
-    expect(estadualQueries).toHaveLength(5);
+    expect(queries.filter((q) => q.endsWith(" Brasil"))).toHaveLength(8);
     expect(queries.some((q) => q.includes("Agricultura Familiar"))).toBe(false);
     expect(queries.some((q) => q.includes("ciclofaixa"))).toBe(true);
-    expect(queries.some((q) => q.includes("extra"))).toBe(false);
+    expect(queries.some((q) => q.includes("creche noturna"))).toBe(true);
+    expect(queries.some((q) => q.includes("fora do teto"))).toBe(false);
+    expect(queries.some((q) => q.includes("Vacinação") && q.includes("Campinas"))).toBe(true);
   });
 
   it("associa temas do radar ao titulo da materia", () => {

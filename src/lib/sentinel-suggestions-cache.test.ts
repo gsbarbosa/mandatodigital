@@ -35,6 +35,7 @@ const profile: PoliticianProfile = {
   sentinelThemes: ["Vacinação"],
   oppositionThemes: [],
   customRadarThemes: [],
+  municipalCities: [],
   interestProfiles: [],
   interestSites: [],
   oppositionProfiles: [],
@@ -185,6 +186,7 @@ describe("sentinel-suggestions cache", () => {
       ...profile,
       sentinelThemes: [],
       customRadarThemes: [],
+      municipalCities: [],
       interestSites: [],
       oppositionSites: [],
     };

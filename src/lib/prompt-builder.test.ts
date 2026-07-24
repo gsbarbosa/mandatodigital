@@ -28,6 +28,7 @@ const profile: PoliticianProfile = {
   sentinelThemes: [],
   oppositionThemes: [],
   customRadarThemes: [],
+  municipalCities: [],
   interestProfiles: [],
   interestSites: [],
   oppositionProfiles: [],

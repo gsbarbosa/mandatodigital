@@ -7,7 +7,7 @@ import {
   hasAdversaryRadar,
   hasEstadualRadar,
   hasFederalRadar,
-  hasMunicipalRadar,
+  resolveInterestThemes,
   splitProfileThemesBySphere,
 } from "@/lib/sentinel-profile-themes";
 import { MAX_THEMES_PER_SPHERE } from "@/lib/sphere-theme-catalog";
@@ -372,25 +372,38 @@ export function normalizePortalHost(site: string) {
 }
 
 export function buildSentinelRssQueries(profile: PoliticianProfile) {
-  const { federal, estadual, municipalCustom } = splitProfileThemesBySphere(profile);
+  const { municipalCustom } = splitProfileThemesBySphere(profile);
+  const interest = resolveInterestThemes(profile);
   const queries: string[] = [];
-  const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
   const state = profile.state.trim().toUpperCase();
+  const cities = profile.municipalCities.map((city) => city.trim()).filter(Boolean);
 
-  if (geo && (hasMunicipalRadar(profile) || municipalCustom.length > 0)) {
-    queries.push(geo);
+  for (const city of cities) {
+    const geo = [city, state].filter(Boolean).join(" ");
+    if (geo) {
+      queries.push(geo);
+    }
   }
 
-  for (const theme of federal.slice(0, MAX_THEME_QUERIES)) {
+  for (const theme of interest.slice(0, MAX_THEME_QUERIES)) {
     queries.push(`${theme} Brasil`);
-  }
-
-  for (const theme of estadual.slice(0, MAX_THEME_QUERIES)) {
-    queries.push(state ? `${theme} ${state}` : theme);
+    if (state) {
+      queries.push(`${theme} ${state}`);
+    }
+    for (const city of cities) {
+      queries.push(`${theme} ${city}`);
+    }
   }
 
   for (const theme of municipalCustom.slice(0, MAX_THEME_QUERIES)) {
-    queries.push(geo ? `${theme} ${geo}` : theme);
+    if (cities.length === 0) {
+      queries.push(theme);
+      continue;
+    }
+    for (const city of cities) {
+      const geo = [city, state].filter(Boolean).join(" ");
+      queries.push(geo ? `${theme} ${geo}` : theme);
+    }
   }
 
   return [...new Set(queries)];

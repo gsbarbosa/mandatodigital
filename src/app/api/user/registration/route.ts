@@ -90,6 +90,7 @@ function buildDraftProfileInput(
       sentinelThemesEstadual: [],
       oppositionThemes: [],
       customRadarThemes: [],
+      municipalCities: [],
       interestProfiles: [],
       interestSites: [],
       oppositionProfiles: [],

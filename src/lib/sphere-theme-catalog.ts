@@ -121,16 +121,42 @@ export function themesInCatalog(selected: string[], groups: readonly SphereTheme
   return canonicalizeSentinelThemes(selected).filter((theme) => catalog.has(theme));
 }
 
-/** Máximo de temas por esfera (Federal ou Estadual) — guest. Premium sem teto na UI. */
-export const MAX_THEMES_PER_SPHERE = 5;
+/** Máximo de temas de interesse (convidado). Premium sem teto na UI. */
+export const MAX_INTEREST_THEMES = 8;
 
-/** Capacidade exibida no total combinado (Federal + Estadual). */
-export const MAX_RADAR_THEMES_TOTAL = 10;
+/**
+ * @deprecated Use MAX_INTEREST_THEMES — radar unificado (sem split nacional/estadual na config).
+ * Mantido como alias para scripts/RSS que ainda importam o nome antigo.
+ */
+export const MAX_THEMES_PER_SPHERE = MAX_INTEREST_THEMES;
 
-export const MAX_MUNICIPAL_PROFILES = 2;
+/** Capacidade total do radar de temas (convidado). */
+export const MAX_RADAR_THEMES_TOTAL = MAX_INTEREST_THEMES;
+
+/** Cidades do radar municipal (convidado). */
+export const MAX_MUNICIPAL_CITIES = 2;
+
+/** Portais do radar municipal (convidado). */
 export const MAX_MUNICIPAL_PORTALS = 2;
-export const MAX_ADVERSARY_PROFILES = 2;
+
+/** Perfis @ de interesse (convidado) — esfera aparte no monitoramento. */
+export const MAX_INTEREST_PROFILES = 8;
+
+/** Perfis @ de adversários (convidado). */
+export const MAX_ADVERSARY_PROFILES = 8;
+
+/**
+ * @deprecated Use MAX_INTEREST_PROFILES — perfis saíram da seção municipal.
+ */
+export const MAX_MUNICIPAL_PROFILES = MAX_INTEREST_PROFILES;
+
+/** Catálogo único da tela “temas de interesse” (catálogo federal completo). */
+export const interestThemeGroups: readonly SphereThemeGroup[] = federalThemeGroups;
 
 export function countRadarThemes(input: { federal: string[]; estadual: string[] }): number {
-  return input.federal.length + input.estadual.length;
+  return new Set([...input.federal, ...input.estadual]).size;
+}
+
+export function countInterestThemes(themes: string[]): number {
+  return canonicalizeSentinelThemes(themes).length;
 }

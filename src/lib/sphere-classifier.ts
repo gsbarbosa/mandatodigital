@@ -26,7 +26,12 @@ import { normalizeSentinelText } from "./sentinel-text";
  * Prioridade: adversários/municipal → **radar do perfil** (onde o tema foi
  * marcado) → catálogo estático → portal/outlet → fallback estadual.
  */
-export type MonitorSphere = "federal" | "estadual" | "municipal" | "adversarios";
+export type MonitorSphere =
+  | "federal"
+  | "estadual"
+  | "municipal"
+  | "interesse"
+  | "adversarios";
 
 export type ProfileRadarThemes = {
   federal?: string[];
@@ -261,7 +266,7 @@ export function classifySuggestionSphere(
     return "adversarios";
   }
   if (actors.some((actor) => actor.sourceList === "interest")) {
-    return "municipal";
+    return "interesse";
   }
 
   const customThemes = new Set(
@@ -335,6 +340,7 @@ export function groupSuggestionsBySphere(
     federal: [],
     estadual: [],
     municipal: [],
+    interesse: [],
     adversarios: [],
   };
   for (const suggestion of suggestions) {

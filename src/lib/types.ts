@@ -127,6 +127,8 @@ export type PoliticianProfile = {
   sentinelThemesEstadual?: string[];
   oppositionThemes: string[];
   customRadarThemes: string[];
+  /** Cidades monitoradas na esfera municipal (radar). Distinto de `city` do mandato. */
+  municipalCities: string[];
   interestProfiles: SocialHandle[];
   interestSites: string[];
   oppositionProfiles: SocialHandle[];

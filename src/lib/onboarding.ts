@@ -2,7 +2,7 @@
  * Onboarding guiado (não fictício): progresso derivado do estado real do app
  * (temas por esfera, assets de avatar, persona/glossário) + marcadores locais.
  *
- * Fase 1 — Selecionar Temas (4 passos): Nacional → Estadual → Municipal → Adversário
+ * Fase 1 — Selecionar Temas (5 passos): Temas → UF → Municipal → Interesse → Adversário
  * Fase 2 — Treinar Avatar (4 passos): Foto → Áudio → Persona → Glossário
  * Fase 3 — Monitoramento de Pautas (1 passo): overview Sentinela → Pautar
  * Fase 4 — Criar Roteiro (4 passos): Arquétipo → Tom → Tema → Aprovar roteiro
@@ -15,6 +15,7 @@ export type OnboardingStepId =
   | "temas-federal"
   | "temas-estadual"
   | "temas-municipal"
+  | "temas-interesse"
   | "temas-adversarios"
   | "avatar-foto"
   | "avatar-audio"
@@ -68,8 +69,8 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     id: "temas-federal",
     phase: "temas",
     phaseOrder: 1,
-    label: "Nível Nacional",
-    route: "/monitoramento/temas#federal",
+    label: "Temas de interesse",
+    route: "/monitoramento/temas#temas",
     anchor: "temas-federal",
     sidebar: "temas-config",
   },
@@ -77,24 +78,33 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     id: "temas-estadual",
     phase: "temas",
     phaseOrder: 2,
-    label: "Nível Estadual",
-    route: "/monitoramento/temas#estadual",
-    anchor: "temas-estadual",
+    label: "UF de cobertura",
+    route: "/monitoramento/temas#temas",
+    anchor: "temas-federal",
     sidebar: "temas-config",
   },
   {
     id: "temas-municipal",
     phase: "temas",
     phaseOrder: 3,
-    label: "Nível Municipal",
+    label: "Cidades e portais",
     route: "/monitoramento/temas#municipal",
     anchor: "temas-municipal",
     sidebar: "temas-config",
   },
   {
-    id: "temas-adversarios",
+    id: "temas-interesse",
     phase: "temas",
     phaseOrder: 4,
+    label: "Perfis de interesse",
+    route: "/monitoramento/temas#interesse",
+    anchor: "temas-interesse",
+    sidebar: "temas-config",
+  },
+  {
+    id: "temas-adversarios",
+    phase: "temas",
+    phaseOrder: 5,
     label: "Adversário político",
     route: "/monitoramento/temas#adversarios",
     anchor: "temas-adversarios",
@@ -206,20 +216,24 @@ export const ONBOARDING_GUIDE_COPY: Record<
   { title: string; body: string }
 > = {
   "temas-federal": {
-    title: "Nível Nacional",
-    body: "Selecione os temas federais do seu radar. É a base do monitoramento político em escala nacional.",
+    title: "Temas de interesse",
+    body: "Selecione os temas do seu radar. Nacional e estadual são organizados depois, no monitoramento.",
   },
   "temas-estadual": {
-    title: "Nível Estadual",
-    body: "Informe a UF e escolha os temas estaduais. O Sentinela passa a olhar também a agenda do seu estado.",
+    title: "UF de cobertura",
+    body: "Informe a UF do mandato. O Sentinela usa isso para priorizar pautas do seu estado.",
   },
   "temas-municipal": {
-    title: "Nível Municipal",
-    body: "Adicione perfis e portais locais para cobrir a política municipal e a sua cidade.",
+    title: "Cidades e portais",
+    body: "Informe até 2 cidades e até 2 portais regionais. O Sentinela cruza seus temas com cada cidade.",
+  },
+  "temas-interesse": {
+    title: "Perfis de interesse",
+    body: "Cadastre contas @ para acompanhar. O radar mostra os últimos posts por engajamento, sem cruzar com seus temas.",
   },
   "temas-adversarios": {
     title: "Adversário político",
-    body: "Cadastre os perfis dos adversários para o radar acompanhar a narrativa deles também.",
+    body: "Cadastre os perfis dos adversários. O radar lista os últimos posts deles por engajamento.",
   },
   "avatar-foto": {
     title: "Enviar foto",
@@ -276,13 +290,14 @@ export function countPhaseSteps(phaseId: OnboardingPhaseId | null): number {
   return ONBOARDING_STEPS.filter((step) => step.phase === phaseId).length;
 }
 
-/** Mínimo de temas (nacional + estadual) para liberar a fase 1 sem rede social. */
+/** Mínimo de temas de interesse para liberar a fase 1 sem rede social. */
 export const TEMAS_PHASE_MIN_THEMES = 5;
 
 export type OnboardingSignals = {
   hasFederalThemes: boolean;
   hasEstadualThemes: boolean;
   hasMunicipalSignal: boolean;
+  hasInterestSignal: boolean;
   hasOppositionSignal: boolean;
   hasAvatarImage: boolean;
   hasVoiceAudio: boolean;
@@ -340,6 +355,7 @@ export function deriveAppDone(signals: OnboardingSignals): Record<OnboardingStep
     "temas-federal": signals.hasFederalThemes,
     "temas-estadual": signals.hasEstadualThemes,
     "temas-municipal": signals.hasMunicipalSignal,
+    "temas-interesse": signals.hasInterestSignal,
     "temas-adversarios": signals.hasOppositionSignal,
     "avatar-foto": signals.hasAvatarImage,
     "avatar-audio": signals.hasVoiceAudio,

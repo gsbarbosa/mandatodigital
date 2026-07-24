@@ -46,7 +46,7 @@ npm run test:e2e:auth
 # smoke autenticado (página + API + selecionar/salvar temas; sem refresh caro)
 npm run test:e2e:sentinel
 
-# fluxo completo: 5+5 temas → Salvar radar → Atualizar pautas → quality gates
+# fluxo completo: até 8 temas unificados → Salvar radar → Atualizar pautas → quality gates
 SENTINEL_E2E_REFRESH=1 npm run test:e2e:sentinel
 ```
 
@@ -55,7 +55,7 @@ SENTINEL_E2E_REFRESH=1 npm run test:e2e:sentinel
 ### O que o fluxo completo cobre
 
 1. Abre `/monitoramento/temas`
-2. Define UF (MG) e seleciona 5 temas nacionais + 5 estaduais (pills com `data-testid="theme-tag-pill"`)
+2. Define UF (MG) e seleciona até 8 temas de interesse (pills com `data-testid="theme-tag-pill"`)
 3. Clica **Salvar radar** e confere o perfil persistido
 4. Vai ao Monitoramento e clica **Atualizar pautas**
 5. Valida quality gates (sem classificados, não monotema, rank/briefing) e que `themeLabel` dos cards ∈ radar salvo

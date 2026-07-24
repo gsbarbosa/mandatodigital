@@ -4,22 +4,22 @@ import { evaluateSentinelFeedQuality } from "../../src/lib/sentinel-quality-asse
 import type { MockSentinelSuggestion } from "../../src/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "../../src/lib/sentinel-types";
 
-/** Temas estáveis para o e2e — cobrem as esferas e costumam ter cobertura RSS. */
-export const E2E_FEDERAL_THEMES = [
+/** Temas estáveis para o e2e — radar unificado (até 8 no convidado). */
+export const E2E_INTEREST_THEMES = [
   "Desemprego",
   "Carga Tributária",
   "Contratos Públicos",
   "Inflação e Preços",
   "Vacinação",
-] as const;
-
-export const E2E_ESTADUAL_THEMES = [
   "Segurança Pública",
-  "Valorização Policial",
   "Saúde Pública (SUS)",
   "Educação Básica",
-  "Mobilidade Urbana",
 ] as const;
+
+/** @deprecated Use E2E_INTEREST_THEMES */
+export const E2E_FEDERAL_THEMES = E2E_INTEREST_THEMES.slice(0, 5);
+/** @deprecated Use E2E_INTEREST_THEMES */
+export const E2E_ESTADUAL_THEMES = E2E_INTEREST_THEMES.slice(5);
 
 /** Impede modais/checklist de onboarding de interceptar o E2E do Sentinela. */
 export async function suppressOnboardingForE2E(page: Page) {
@@ -118,27 +118,20 @@ export async function gotoTemas(page: Page) {
   await dismissOnboardingOverlays(page);
 }
 
-async function clearSphereThemes(page: Page, sphere: "federal" | "estadual") {
+async function clearInterestThemes(page: Page) {
   const active = page.locator(
-    `[data-testid="theme-tag-pill"][data-sphere="${sphere}"][data-active="true"]`,
+    `[data-testid="theme-tag-pill"][data-active="true"]`,
   );
   const count = await active.count();
   for (let index = 0; index < count; index += 1) {
-    // Sempre o primeiro ativo: a lista muda a cada clique.
     await active.first().click();
   }
 }
 
-async function selectSphereThemes(
-  page: Page,
-  sphere: "federal" | "estadual",
-  themes: readonly string[],
-) {
+async function selectInterestThemes(page: Page, themes: readonly string[]) {
   for (const theme of themes) {
-    const pill = page.locator(
-      `[data-testid="theme-tag-pill"][data-sphere="${sphere}"][data-theme="${theme}"]`,
-    );
-    await expect(pill, `Tema ausente no catálogo: ${theme} (${sphere})`).toBeVisible();
+    const pill = page.locator(`[data-testid="theme-tag-pill"][data-theme="${theme}"]`);
+    await expect(pill, `Tema ausente no catálogo: ${theme}`).toBeVisible();
     const isActive = (await pill.getAttribute("data-active")) === "true";
     if (!isActive) {
       await pill.click();
@@ -150,13 +143,22 @@ async function selectSphereThemes(
 export async function configureSentinelThemes(
   page: Page,
   options: {
+    themes?: readonly string[];
+    /** @deprecated Prefer `themes` — radar unificado. */
     federal?: readonly string[];
+    /** @deprecated Prefer `themes` — radar unificado. */
     estadual?: readonly string[];
     state?: string;
   } = {},
 ) {
-  const federal = options.federal ?? E2E_FEDERAL_THEMES;
-  const estadual = options.estadual ?? E2E_ESTADUAL_THEMES;
+  const themes = [
+    ...new Set([
+      ...(options.themes ?? []),
+      ...(options.federal ?? []),
+      ...(options.estadual ?? []),
+    ]),
+  ];
+  const selected = themes.length > 0 ? themes : [...E2E_INTEREST_THEMES];
   const state = options.state ?? "MG";
 
   await gotoTemas(page);
@@ -165,13 +167,15 @@ export async function configureSentinelThemes(
   await uf.selectOption(state);
   await expect(uf).toHaveValue(state);
 
-  await clearSphereThemes(page, "federal");
-  await selectSphereThemes(page, "federal", federal);
+  await clearInterestThemes(page);
+  await selectInterestThemes(page, selected);
 
-  await clearSphereThemes(page, "estadual");
-  await selectSphereThemes(page, "estadual", estadual);
-
-  return { federal: [...federal], estadual: [...estadual], state };
+  return {
+    themes: [...selected],
+    federal: [...selected],
+    estadual: [...selected],
+    state,
+  };
 }
 
 export async function saveRadar(page: Page) {

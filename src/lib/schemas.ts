@@ -59,6 +59,7 @@ export const profileInputSchema = z.object({
   sentinelThemesEstadual: optionalStringList,
   oppositionThemes: optionalStringList,
   customRadarThemes: z.array(z.string().trim().max(60)).max(20).default([]),
+  municipalCities: z.array(z.string().trim().min(2).max(80)).max(20).default([]),
   interestProfiles: z.array(socialHandleSchema).max(50).default([]),
   interestSites: limitedOptionalStringList(50),
   oppositionProfiles: z.array(socialHandleSchema).max(50).default([]),

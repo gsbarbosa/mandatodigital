@@ -66,13 +66,13 @@ describe("classifySuggestionSphere", () => {
     expect(classifySuggestionSphere(suggestion, [])).toBe("adversarios");
   });
 
-  it("classifies interest actors as municipal", () => {
+  it("classifies interest actors as interesse", () => {
     const suggestion = buildSuggestion({
       actors: [
         { handle: "local", network: "tiktok", postUrl: "https://x", sourceList: "interest" },
       ],
     });
-    expect(classifySuggestionSphere(suggestion, [])).toBe("municipal");
+    expect(classifySuggestionSphere(suggestion, [])).toBe("interesse");
   });
 
   it("classifies articles from interest sites as municipal", () => {
@@ -226,7 +226,7 @@ describe("classifySuggestionSphere", () => {
 });
 
 describe("groupSuggestionsBySphere", () => {
-  it("splits suggestions into the four spheres", () => {
+  it("splits suggestions into the five spheres", () => {
     const federal = buildSuggestion({
       articles: [{ title: "t", url: "https://www.estadao.com.br/x" }],
     });
@@ -237,6 +237,7 @@ describe("groupSuggestionsBySphere", () => {
     expect(groups.federal).toHaveLength(1);
     expect(groups.estadual).toHaveLength(1);
     expect(groups.municipal).toHaveLength(0);
+    expect(groups.interesse).toHaveLength(0);
     expect(groups.adversarios).toHaveLength(0);
   });
 });

@@ -25,6 +25,7 @@ describe("buildAvatarVideoTranscriptFallback", () => {
         sentinelThemes: [],
         oppositionThemes: [],
         customRadarThemes: [],
+        municipalCities: [],
         interestProfiles: [],
         interestSites: [],
         oppositionProfiles: [],

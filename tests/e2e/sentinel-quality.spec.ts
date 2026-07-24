@@ -7,8 +7,7 @@ import {
   assertFeedQualityFromApi,
   assertSuggestionThemesWithinRadar,
   configureSentinelThemes,
-  E2E_ESTADUAL_THEMES,
-  E2E_FEDERAL_THEMES,
+  E2E_INTEREST_THEMES,
   fetchProfile,
   fetchSentinelSuggestions,
   goToMonitoramentoFromPrompt,
@@ -52,26 +51,17 @@ test.describe("Sentinela — qualidade", () => {
     test.setTimeout(180_000);
 
     const radar = await configureSentinelThemes(page, {
-      federal: E2E_FEDERAL_THEMES.slice(0, 3),
-      estadual: E2E_ESTADUAL_THEMES.slice(0, 3),
+      themes: E2E_INTEREST_THEMES.slice(0, 6),
       state: "MG",
     });
 
     const saveResult = await saveRadar(page);
-    expect(saveResult.profile?.sentinelThemesFederal?.sort()).toEqual(
-      [...radar.federal].sort(),
-    );
-    expect(saveResult.profile?.sentinelThemesEstadual?.sort()).toEqual(
-      [...radar.estadual].sort(),
-    );
+    expect(saveResult.profile?.sentinelThemesFederal?.sort()).toEqual([...radar.themes].sort());
+    expect(saveResult.profile?.sentinelThemesEstadual?.sort()).toEqual([...radar.themes].sort());
 
     const profileAfter = await fetchProfile(request);
-    expect(profileAfter.profile?.sentinelThemesFederal?.sort()).toEqual(
-      [...radar.federal].sort(),
-    );
-    expect(profileAfter.profile?.sentinelThemesEstadual?.sort()).toEqual(
-      [...radar.estadual].sort(),
-    );
+    expect(profileAfter.profile?.sentinelThemesFederal?.sort()).toEqual([...radar.themes].sort());
+    expect(profileAfter.profile?.sentinelThemesEstadual?.sort()).toEqual([...radar.themes].sort());
     expect(profileAfter.profile?.state).toBe("MG");
   });
 
@@ -87,8 +77,7 @@ test.describe("Sentinela — qualidade", () => {
     test.setTimeout(420_000);
 
     const radar = await configureSentinelThemes(page, {
-      federal: E2E_FEDERAL_THEMES,
-      estadual: E2E_ESTADUAL_THEMES,
+      themes: E2E_INTEREST_THEMES,
       state: "MG",
     });
 
@@ -97,16 +86,16 @@ test.describe("Sentinela — qualidade", () => {
 
     const savedFederal = saveResult.profile?.sentinelThemesFederal ?? [];
     const savedEstadual = saveResult.profile?.sentinelThemesEstadual ?? [];
-    expect(savedFederal.sort()).toEqual([...radar.federal].sort());
-    expect(savedEstadual.sort()).toEqual([...radar.estadual].sort());
+    expect(savedFederal.sort()).toEqual([...radar.themes].sort());
+    expect(savedEstadual.sort()).toEqual([...radar.themes].sort());
     expect(saveResult.profile?.state).toBe("MG");
 
     const profileAfter = await fetchProfile(request);
     expect(profileAfter.profile?.sentinelThemesFederal?.sort()).toEqual(
-      [...radar.federal].sort(),
+      [...radar.themes].sort(),
     );
     expect(profileAfter.profile?.sentinelThemesEstadual?.sort()).toEqual(
-      [...radar.estadual].sort(),
+      [...radar.themes].sort(),
     );
 
     await goToMonitoramentoFromPrompt(page);
@@ -122,8 +111,7 @@ test.describe("Sentinela — qualidade", () => {
     expect(report.stats.jobListings).toBe(0);
     expect(report.stats.rankLlmCalls).toBeGreaterThan(0);
 
-    const radarThemes = [...radar.federal, ...radar.estadual];
-    assertSuggestionThemesWithinRadar(payload.suggestions, radarThemes);
+    assertSuggestionThemesWithinRadar(payload.suggestions, radar.themes);
 
     await expect(page.getByTestId("monitor-signal-card").first()).toBeVisible({
       timeout: 30_000,

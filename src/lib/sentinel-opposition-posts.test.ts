@@ -63,6 +63,7 @@ const baseProfile: PoliticianProfile = {
   sentinelThemesFederal: ["Reforma Fiscal"],
   sentinelThemesEstadual: [],
   customRadarThemes: [],
+  municipalCities: [],
   interestProfiles: [],
   interestSites: [],
   oppositionThemes: ["Voto Impresso"],
@@ -89,13 +90,17 @@ const baseProfile: PoliticianProfile = {
 };
 
 describe("sentinel-opposition-posts", () => {
-  it("monta sinais apenas com posts reais do instagram, sem noticias externas", async () => {
+  it("monta sinais com posts reais do instagram, sem cruzar temas do radar", async () => {
     const suggestions = await buildOppositionPostSuggestions(baseProfile);
 
     expect(suggestions).toHaveLength(2);
     expect(suggestions.every((item) => item.evidence.articles?.length === 0)).toBe(true);
-    expect(suggestions.some((item) => item.topic.includes("Voto impresso"))).toBe(true);
-    expect(suggestions.some((item) => item.matchedThemes.includes("Reforma Fiscal"))).toBe(true);
+    expect(suggestions.every((item) => item.matchedThemes.every((theme) => theme.startsWith("@")))).toBe(
+      true,
+    );
+    expect(suggestions[0]?.engagement.likes).toBeGreaterThanOrEqual(
+      suggestions[1]?.engagement.likes ?? 0,
+    );
     expect(suggestions.every((item) => item.evidence.actors?.[0]?.postUrl.includes("instagram.com/p/"))).toBe(
       true,
     );

@@ -4,7 +4,7 @@ import {
   defaultFormats,
   defaultIntensities,
 } from "@/lib/constants";
-import { resolveSentinelThemeSpheres, unionSentinelThemes } from "@/lib/sentinel-profile-themes";
+import { resolveInterestThemes } from "@/lib/sentinel-profile-themes";
 import type { DashboardData } from "@/lib/types";
 import type {
   ContentFormat,
@@ -33,6 +33,7 @@ export type ProfileFormState = {
   sentinelThemesEstadual: string[];
   oppositionThemes: string[];
   customRadarThemes: string[];
+  municipalCities: string[];
   interestProfiles: SocialHandle[];
   interestSites: string[];
   oppositionProfiles: SocialHandle[];
@@ -85,9 +86,9 @@ export function parseTextarea(value: string) {
 }
 
 export function buildProfileState(data: DashboardData["profile"]): ProfileFormState {
-  const themeSpheres = data
-    ? resolveSentinelThemeSpheres(data)
-    : { federal: [], estadual: [] };
+  const interest = data
+    ? resolveInterestThemes(data)
+    : [];
 
   return {
     id: data?.id,
@@ -112,11 +113,12 @@ export function buildProfileState(data: DashboardData["profile"]): ProfileFormSt
         : data?.archetype
           ? [data.archetype]
           : [],
-    sentinelThemes: data ? unionSentinelThemes(themeSpheres) : [],
-    sentinelThemesFederal: themeSpheres.federal,
-    sentinelThemesEstadual: themeSpheres.estadual,
+    sentinelThemes: interest,
+    sentinelThemesFederal: interest,
+    sentinelThemesEstadual: interest,
     oppositionThemes: data?.oppositionThemes ?? [],
     customRadarThemes: data?.customRadarThemes ?? [],
+    municipalCities: data?.municipalCities ?? [],
     interestProfiles: data?.interestProfiles ?? [],
     interestSites: data?.interestSites ?? [],
     oppositionProfiles: data?.oppositionProfiles ?? [],
@@ -165,6 +167,7 @@ const fieldLabels: Record<string, string> = {
     sentinelThemes: "Temas de interesse",
     oppositionThemes: "Temas da oposicao",
     customRadarThemes: "Temas personalizados",
+    municipalCities: "Cidades monitoradas",
     interestProfiles: "Perfis de interesse",
     interestSites: "Portais monitorados",
     oppositionProfiles: "Perfis da oposicao",
