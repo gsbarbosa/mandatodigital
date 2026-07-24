@@ -124,16 +124,31 @@ export function getApifyToken() {
   return process.env.APIFY_TOKEN?.trim() || process.env.APIFY_API_TOKEN?.trim() || "";
 }
 
+/** Token efetivo: override do admin (Firestore) tem prioridade sobre env. */
+export async function resolveApifyToken(): Promise<string> {
+  try {
+    const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+    const resolved = await resolveProviderApiKey("apify");
+    return resolved.token;
+  } catch {
+    // Firestore/admin indisponível em alguns testes — cai no env.
+  }
+  return getApifyToken();
+}
+
 export function isApifyConfigured() {
   return isSentinelSocialEnabled() && Boolean(getApifyToken());
+}
+
+export async function isApifyReady() {
+  return isSentinelSocialEnabled() && Boolean(await resolveApifyToken());
 }
 
 export async function fetchInstagramProfilePosts(
   handle: string,
   limit = 10,
 ): Promise<InstagramProfilePost[]> {
-  const token = getApifyToken();
-  if (!token || !isSentinelSocialEnabled()) {
+  if (!isSentinelSocialEnabled()) {
     return [];
   }
 
@@ -147,44 +162,74 @@ export async function fetchInstagramProfilePosts(
     "~",
   );
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
+  const runOnce = async (token: string) => {
+    if (!token) {
+      return [] as InstagramProfilePost[];
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
+
+    try {
+      const response = await fetch(
+        `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            directUrls: [`https://www.instagram.com/${username}/`],
+            resultsType: "posts",
+            resultsLimit: Math.max(limit, 10),
+            searchType: "user",
+            addParentData: false,
+          }),
+          signal: controller.signal,
+          next: { revalidate: 0 },
+        },
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        console.warn(
+          `[sentinel-instagram] Apify ${response.status} para @${username}: ${errorBody.slice(0, 200)}`,
+        );
+        const { ProviderHttpError } = await import("@/lib/admin/provider-key-pool");
+        throw new ProviderHttpError({
+          providerId: "apify",
+          status: response.status,
+          message: `Apify HTTP ${response.status}`,
+          body: errorBody.slice(0, 400),
+        });
+      }
+
+      const items = (await response.json()) as unknown[];
+      if (!Array.isArray(items)) {
+        return [];
+      }
+
+      return normalizeApifyInstagramItems(items, username).slice(0, limit);
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
 
   try {
-    const response = await fetch(
-      `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          directUrls: [`https://www.instagram.com/${username}/`],
-          resultsType: "posts",
-          resultsLimit: Math.max(limit, 10),
-          searchType: "user",
-          addParentData: false,
-        }),
-        signal: controller.signal,
-        next: { revalidate: 0 },
-      },
-    );
-
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "");
-      console.warn(
-        `[sentinel-instagram] Apify ${response.status} para @${username}: ${errorBody.slice(0, 200)}`,
-      );
-      return [];
+    const { runWithProviderKeyPool } = await import("@/lib/admin/provider-key-pool");
+    return await runWithProviderKeyPool("apify", async (token) => runOnce(token));
+  } catch (error) {
+    // Sem keys / erro não-failover — mantém comportamento anterior (lista vazia).
+    if (error instanceof Error && error.message.includes("Nenhuma API key")) {
+      const token = await resolveApifyToken();
+      if (!token) {
+        return [];
+      }
+      try {
+        return await runOnce(token);
+      } catch {
+        return [];
+      }
     }
-
-    const items = (await response.json()) as unknown[];
-    if (!Array.isArray(items)) {
-      return [];
-    }
-
-    return normalizeApifyInstagramItems(items, username).slice(0, limit);
-  } catch {
+    console.warn("[sentinel-instagram] pool Apify esgotado:", error);
     return [];
-  } finally {
-    clearTimeout(timeout);
   }
 }
