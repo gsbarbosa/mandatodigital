@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Fragment } from "react";
 
 import { IconShieldCheck } from "@/components/marketing/icons";
-import { MarketingCtaBand } from "@/components/marketing/marketing-cta-band";
 import { MarketingReserveButton } from "@/components/marketing/marketing-reserve-button";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import {
@@ -246,8 +245,8 @@ function TitleAccent({
 export function MarketingPricingPage() {
   return (
     <>
-      <div className="relative z-50 border-b border-cyan-500/30 bg-gradient-to-r from-blue-900/50 via-cyan-900/50 to-blue-900/50 px-4 py-3 text-center backdrop-blur-sm">
-        <p className="text-xs font-medium text-slate-200 md:text-sm">
+      <div className="relative z-50 border-b border-cyan-500/30 bg-gradient-to-r from-blue-900/50 via-cyan-900/50 to-blue-900/50 px-4 py-2 text-center backdrop-blur-sm">
+        <p className="m-0 text-xs font-medium text-slate-200 md:text-sm">
           Planos com <span className="font-bold text-white">vagas limitadas</span> por Lote e preço
           promocional com <span className="font-bold text-cyan-400">50% off</span>.
         </p>
@@ -255,11 +254,12 @@ export function MarketingPricingPage() {
       </div>
 
       <MarketingSection
-        eyebrow={pricingIntro.eyebrow}
         title={pricingIntro.title}
         titleAs="h1"
         lead={pricingIntro.body}
         className="!border-t-0"
+        align="center"
+        contentGapClassName="mt-16 sm:mt-20"
       >
         <div className="group mx-auto grid max-w-6xl grid-cols-1 items-stretch gap-8 lg:grid-cols-3">
           {pricingPlans.map((plan) => (
@@ -271,19 +271,19 @@ export function MarketingPricingPage() {
       <div className="mx-auto max-w-xl px-4 pb-8 sm:px-6">
         <Link
           href={pricingComplianceCta.href}
-          className="group flex w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-emerald-500 bg-gradient-to-b from-[#05131A] to-[#040D14] px-6 py-4 text-center shadow-[0_0_30px_rgba(16,185,129,0.15)] transition hover:border-emerald-400 hover:from-[#071B26] hover:to-[#05121D]"
+          className="group flex w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-emerald-500 bg-gradient-to-b from-[#05131A] to-[#040D14] px-6 py-4 text-center no-underline shadow-[0_0_30px_rgba(16,185,129,0.15)] transition hover:border-emerald-400 hover:from-[#071B26] hover:to-[#05121D]"
         >
           <span className="flex items-center justify-center gap-2 text-base font-extrabold uppercase tracking-wider text-emerald-500 sm:text-lg">
             <IconShieldCheck size={20} />
             {pricingComplianceCta.title}
           </span>
-          <span className="mt-1 text-xs font-medium tracking-wide text-sky-500 group-hover:underline sm:text-sm">
+          <span className="mt-1 text-xs font-medium tracking-wide text-sky-500 sm:text-sm">
             {pricingComplianceCta.subtitle}
           </span>
         </Link>
       </div>
 
-      <MarketingSection>
+      <MarketingSection className="!border-t-0">
         <div className="rounded-[2rem] border border-slate-800/80 bg-[#0B101A] p-8 shadow-2xl md:p-12">
           <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-500">
             <svg
@@ -350,7 +350,7 @@ export function MarketingPricingPage() {
                   <p className="mb-4 text-sm leading-relaxed text-slate-300">{lot.body}</p>
                 </div>
                 <p
-                  className={`mt-2 border-t pt-2.5 text-[11px] font-medium leading-tight ${
+                  className={`mt-2 border-t pt-2.5 text-xs font-medium leading-tight ${
                     lot.tone === "active"
                       ? "border-cyan-500/20 text-cyan-500/90"
                       : "border-slate-800 text-slate-500"
@@ -366,14 +366,19 @@ export function MarketingPricingPage() {
             {pricingRestriction.footnotes.map((note) => (
               <div key={note.title}>
                 <h4 className="mb-2 text-xs font-bold text-white">{note.title}</h4>
-                <p className="text-[11px] leading-relaxed text-slate-500">{note.body}</p>
+                <p className="text-xs leading-relaxed text-slate-500">{note.body}</p>
               </div>
             ))}
           </div>
         </div>
       </MarketingSection>
 
-      <MarketingSection title={pricingComparison.title} lead={pricingComparison.lead}>
+      <MarketingSection
+        title={pricingComparison.title}
+        lead={pricingComparison.lead}
+        align="center"
+        className="!border-t-0 !pt-8"
+      >
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/20 shadow-2xl backdrop-blur-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left">
@@ -442,8 +447,6 @@ export function MarketingPricingPage() {
           {pricingFooterNote}
         </p>
       </MarketingSection>
-
-      <MarketingCtaBand />
     </>
   );
 }

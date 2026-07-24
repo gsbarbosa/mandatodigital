@@ -3,40 +3,15 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { APP_HOME_PATH } from "@/lib/app-home";
-import { clearPlanIntent } from "@/lib/early-access";
 import {
   MARKETING_CTA_HREF,
   MARKETING_CTA_LABEL,
   MARKETING_NAV,
 } from "@/lib/marketing/shared";
-
-/** Entrar limpa intent de plano — cadastro não herda plano de visita anterior. */
-function LoginEntryLink({
-  className,
-  children,
-  onNavigate,
-}: {
-  className?: string;
-  children: ReactNode;
-  onNavigate?: () => void;
-}) {
-  return (
-    <Link
-      href={"/login" as Route}
-      className={className}
-      onClick={() => {
-        clearPlanIntent();
-        onNavigate?.();
-      }}
-    >
-      {children}
-    </Link>
-  );
-}
 
 export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const pathname = usePathname();
@@ -63,7 +38,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                className={`rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${
                   active
                     ? "bg-emerald-500/15 text-emerald-200"
                     : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-100"
@@ -82,10 +57,16 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
             </Link>
           ) : (
             <>
-              <LoginEntryLink className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white">
+              <Link
+                href={"/login" as Route}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 no-underline transition hover:text-white"
+              >
                 Entrar
-              </LoginEntryLink>
-              <Link href={MARKETING_CTA_HREF} className="primary-button !px-4 !py-2 !text-sm">
+              </Link>
+              <Link
+                href={MARKETING_CTA_HREF}
+                className="primary-button !px-4 !py-2 !text-sm no-underline"
+              >
                 {MARKETING_CTA_LABEL}
               </Link>
             </>
@@ -114,7 +95,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 hover:bg-slate-800/60"
+                className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 no-underline hover:bg-slate-800/60"
               >
                 {item.label}
               </Link>
@@ -123,22 +104,23 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
               <Link
                 href={APP_HOME_PATH}
                 onClick={() => setOpen(false)}
-                className="primary-button mt-2 justify-center !text-sm"
+                className="primary-button mt-2 justify-center !text-sm no-underline"
               >
                 Ir ao sistema
               </Link>
             ) : (
               <>
-                <LoginEntryLink
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300"
-                  onNavigate={() => setOpen(false)}
+                <Link
+                  href={"/login" as Route}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 no-underline"
                 >
                   Entrar
-                </LoginEntryLink>
+                </Link>
                 <Link
                   href={MARKETING_CTA_HREF}
                   onClick={() => setOpen(false)}
-                  className="primary-button mt-2 justify-center !text-sm"
+                  className="primary-button mt-2 justify-center !text-sm no-underline"
                 >
                   {MARKETING_CTA_LABEL}
                 </Link>

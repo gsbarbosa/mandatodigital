@@ -29,9 +29,8 @@ export const pricingUrgencyBanner =
   "Planos com vagas limitadas por Lote e preço promocional com 50% off.";
 
 export const pricingIntro = {
-  eyebrow: "Planos e preços",
   title: "Reserva VIP — escolha o pacote da sua campanha",
-  body: "Monitoramento em tempo real, avatares personalizados com voz do candidato, e compliance total com TSE. Tudo integrado em uma plataforma.",
+  body: "Monitoramento em tempo real, avatares personalizados com voz do candidato — compliance total com TSE, tudo integrado em uma plataforma.",
 } as const;
 
 export const pricingPlans: PricingPlan[] = [
@@ -103,7 +102,7 @@ export const pricingPlans: PricingPlan[] = [
 export const pricingComplianceCta = {
   title: "100% Compliance TSE",
   subtitle: "Dossiê de Conformidade (TSE / SPCE)",
-  href: "/conformidade" as Route,
+  href: "/dossie" as Route,
 } as const;
 
 export const pricingRestriction = {

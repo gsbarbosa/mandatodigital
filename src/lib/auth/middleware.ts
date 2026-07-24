@@ -20,7 +20,8 @@ export async function updateSession(request: NextRequest) {
     pathname === "/ecossistema" ||
     pathname.startsWith("/ecossistema/") ||
     pathname === "/conformidade" ||
-    pathname === "/planos";
+    pathname === "/planos" ||
+    pathname === "/dossie";
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
