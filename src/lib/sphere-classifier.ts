@@ -23,10 +23,16 @@ import { normalizeSentinelText } from "./sentinel-text";
  * outlet must be inferred from `sourceName` (RSS <source>) or from the
  * " - Outlet" suffix Google News appends to titles.
  *
- * Prioridade: adversários/municipal → **radar do perfil** (onde o tema foi
- * marcado) → catálogo estático → portal/outlet → fallback estadual.
+ * Prioridade: atores → municipal (cidades/portais) → portais nacional/estadual →
+ * radar exclusivo → catálogo exclusivo → fallback nacional (temas do radar unificado
+ * costumam existir nos dois catálogos; default antigo "estadual" esvaziava Nacional).
  */
-export type MonitorSphere = "federal" | "estadual" | "municipal" | "adversarios";
+export type MonitorSphere =
+  | "federal"
+  | "estadual"
+  | "municipal"
+  | "interesse"
+  | "adversarios";
 
 export type ProfileRadarThemes = {
   federal?: string[];
@@ -251,17 +257,18 @@ export function articleOutletLabel(article: SentinelNewsArticle): string {
 
 export function classifySuggestionSphere(
   suggestion: MockSentinelSuggestion,
-  interestSites: string[],
+  interestSites: string[] = [],
   profileState = "",
   customRadarThemes: string[] = [],
   profileRadar: ProfileRadarThemes = {},
+  municipalCities: string[] = [],
 ): MonitorSphere {
   const actors = suggestion.evidence.actors ?? [];
   if (actors.some((actor) => actor.sourceList === "opposition")) {
     return "adversarios";
   }
   if (actors.some((actor) => actor.sourceList === "interest")) {
-    return "municipal";
+    return "interesse";
   }
 
   const customThemes = new Set(
@@ -275,8 +282,23 @@ export function classifySuggestionSphere(
   const interestDomains = interestSites.map(normalizeDomain).filter(Boolean);
   const hintsList = articles.map(articleSourceHints);
   const stateHosts = getStatePortalHosts(profileState);
+  const haystack = normalizeSentinelText(
+    [suggestion.topic, suggestion.themeLabel, ...articles.map((article) => article.title)]
+      .filter(Boolean)
+      .join(" "),
+  );
 
   if (hintsList.some((hints) => matchesInterestSites(hints, interestDomains))) {
+    return "municipal";
+  }
+
+  const cities = municipalCities.map((city) => city.trim()).filter(Boolean);
+  if (
+    cities.some((city) => {
+      const key = normalizeSentinelText(city);
+      return key.length >= 3 && haystack.includes(key);
+    })
+  ) {
     return "municipal";
   }
 
@@ -316,7 +338,9 @@ export function classifySuggestionSphere(
     return "estadual";
   }
 
-  return "estadual";
+  // Temas do radar unificado existem nos dois catálogos → sem sinal de portal/UF,
+  // trata como agenda nacional (evita despejar tudo em Estadual).
+  return "federal";
 }
 
 /** Weighted engagement from the monitoring footer: likes + 2x comments + 3x shares. */
@@ -326,15 +350,17 @@ export function weightedEngagement(likes: number, comments: number, shares: numb
 
 export function groupSuggestionsBySphere(
   suggestions: MockSentinelSuggestion[],
-  interestSites: string[],
+  interestSites: string[] = [],
   profileState = "",
   customRadarThemes: string[] = [],
   profileRadar: ProfileRadarThemes = {},
+  municipalCities: string[] = [],
 ): Record<MonitorSphere, MockSentinelSuggestion[]> {
   const groups: Record<MonitorSphere, MockSentinelSuggestion[]> = {
     federal: [],
     estadual: [],
     municipal: [],
+    interesse: [],
     adversarios: [],
   };
   for (const suggestion of suggestions) {
@@ -345,6 +371,7 @@ export function groupSuggestionsBySphere(
         profileState,
         customRadarThemes,
         profileRadar,
+        municipalCities,
       )
     ].push(suggestion);
   }

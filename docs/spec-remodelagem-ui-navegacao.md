@@ -54,7 +54,7 @@ O backend não tem conceito de "esfera" nem de planos/reserva. Mapeamentos adota
    - **Estadual**: o restante.
 2. **Card de notícia vs. post**: sugestão com `evidence.articles` → card de notícia (título, fonte,
    `publishedAt`); com `evidence.actors` → card de post (handle, link, engajamento
-   curtidas + 2×comentários + 3×compartilhamentos). Badge "Notícia verificada" quando há artigos com
+   curtidas + 2×comentários + 3×compartilhamentos). Badge "Ver fontes" quando há artigos com
    URL; nos posts, badge "Verificar notícia" abre drawer com as evidências já existentes
    (artigos, atores, tendência). *O fact-check por IA continua acontecendo na aprovação do roteiro
    (contrato existente `POST /api/auditor/fact-check`); não existe verificação sob demanda de URL

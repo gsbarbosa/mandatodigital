@@ -153,7 +153,7 @@ export async function POST(request: Request) {
           groupId,
           consentStatus,
           rerouteUrl: appBaseUrl.startsWith("https://")
-            ? `${appBaseUrl}/curador`
+            ? `${appBaseUrl}/avatares/foto-real`
             : undefined,
         });
         consentUrl = consentResolved.consentUrl;
@@ -169,7 +169,7 @@ export async function POST(request: Request) {
           return NextResponse.json(
             {
               message:
-                "Para o gêmeo digital, envie um vídeo de treino no Curador (MP4, MOV ou WebM).",
+                "Para o gêmeo digital, envie um vídeo de treino em Configurar avatar (MP4, MOV ou WebM).",
             },
             { status: 400 },
           );
@@ -198,7 +198,7 @@ export async function POST(request: Request) {
             consentStatus,
             requireFreshLink: true,
             rerouteUrl: appBaseUrl.startsWith("https://")
-              ? `${appBaseUrl}/curador`
+              ? `${appBaseUrl}/avatares/foto-real`
               : undefined,
           });
           consentUrl = consentResolved.consentUrl;
@@ -297,7 +297,7 @@ export async function POST(request: Request) {
         caricature:
           "Voz clonada para o modo caricato. Agora gere o video com a caricatura aprovada.",
         photo_real:
-          "Voz clonada para foto real. Agora gere o video com a foto enviada no Curador.",
+          "Voz clonada para foto real. Agora gere o video com a foto enviada em Configurar avatar.",
       };
 
       return NextResponse.json(

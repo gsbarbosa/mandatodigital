@@ -26,7 +26,7 @@ export async function POST(
         groupId,
         consentStatus: body.consentStatus ?? null,
         rerouteUrl: appBaseUrl.startsWith("https://")
-          ? `${appBaseUrl}/curador`
+          ? `${appBaseUrl}/avatares/foto-real`
           : undefined,
       });
 

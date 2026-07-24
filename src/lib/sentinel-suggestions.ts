@@ -14,11 +14,14 @@ import {
   scoreSentinelArticle,
   type RssNewsItem,
 } from "@/lib/sentinel-rss";
-import {
-  buildSentinelQualityReport,
-  estimateSentinelLlmCost,
-} from "@/lib/sentinel-quality";
+import { buildSentinelQualityReport, estimateSentinelLlmCost } from "@/lib/sentinel-quality";
 import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
+import {
+  resolveMaxPerTheme,
+  finalizeSuggestionFeed,
+} from "@/lib/sentinel-diversify";
+import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
+import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import {
   countCatalogPortalHosts,
@@ -31,7 +34,7 @@ import {
   buildOppositionPostSuggestions,
   oppositionMonitoringUnavailableReason,
 } from "@/lib/sentinel-opposition-posts";
-import { isApifyConfigured } from "@/lib/sentinel-instagram-posts";
+import { isApifyReady } from "@/lib/sentinel-instagram-posts";
 import { pickBestMatchedTheme, resolveArticleMatchingSearchTerm } from "@/lib/sentinel-theme-synonyms";
 import {
   applyThemeVerificationBatch,
@@ -107,13 +110,11 @@ function buildSuggestionFromCluster(input: {
   const matchingSearchTerm =
     resolveArticleMatchingSearchTerm(haystack, themeLabel) ?? undefined;
   const outletCount = countUniqueOutlets(articles);
-  const sortedArticles = [...articles]
-    .sort((left, right) => {
-      const leftTime = left.publishedAt?.getTime() ?? 0;
-      const rightTime = right.publishedAt?.getTime() ?? 0;
-      return rightTime - leftTime;
-    })
-    .slice(0, MAX_ARTICLES_PER_SUGGESTION);
+  const sortedArticles = orderClusterArticlesForDisplay(
+    primary,
+    articles,
+    MAX_ARTICLES_PER_SUGGESTION,
+  );
 
   return {
     id: buildSuggestionId(primary.link),
@@ -282,9 +283,11 @@ export async function buildSuggestionsFromArticles(
   }
 
   return {
-    suggestions: suggestions
-      .sort((left, right) => right.relevanceScore - left.relevanceScore)
-      .slice(0, MAX_SUGGESTIONS),
+    suggestions: finalizeSuggestionFeed(suggestions, {
+      maxTotal: MAX_SUGGESTIONS,
+      maxPerTheme: resolveMaxPerTheme(interestThemes.length),
+      maxPerPipeline: 10,
+    }),
     themeVerificationStats,
   };
 }
@@ -323,7 +326,7 @@ async function hydrateCachedOppositionSuggestions(
   cacheKey: string,
   cached: SentinelCacheEntry,
 ): Promise<SentinelCacheEntry> {
-  if (!isApifyConfigured()) {
+  if (!(await isApifyReady())) {
     return cached;
   }
 
@@ -382,6 +385,14 @@ function isOppositionSuggestion(suggestion: MockSentinelSuggestion) {
   return (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition");
 }
 
+function isLowQualityNewsSuggestion(suggestion: MockSentinelSuggestion) {
+  if (isOppositionSuggestion(suggestion)) {
+    return false;
+  }
+  const title = suggestion.evidence.articles?.[0]?.title ?? suggestion.topic;
+  return isLikelyJobListingTitle(title) || isWeakFakeNewsTitle(title);
+}
+
 function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSuggestion[] {
   const byId = new Map<string, MockSentinelSuggestion>();
   const oppositionById = new Map<string, MockSentinelSuggestion>();
@@ -395,15 +406,27 @@ function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSu
       continue;
     }
 
+    if (isLowQualityNewsSuggestion(suggestion)) {
+      continue;
+    }
+
     const existing = byId.get(suggestion.id);
     if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
       byId.set(suggestion.id, suggestion);
     }
   }
 
-  const coreSuggestions = [...byId.values()]
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_SUGGESTIONS);
+  const distinctThemes = new Set(
+    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
+  ).size;
+  const coreSuggestions = finalizeSuggestionFeed(
+    [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
+    {
+      maxTotal: MAX_SUGGESTIONS,
+      maxPerTheme: resolveMaxPerTheme(distinctThemes),
+      maxPerPipeline: 10,
+    },
+  );
 
   const oppositionSuggestions = [...oppositionById.values()].sort(
     (left, right) => right.relevanceScore - left.relevanceScore,
@@ -627,10 +650,11 @@ async function buildSuggestions(
 
 export async function getSentinelSuggestions(
   profile: PoliticianProfile,
-  options?: { forceRefresh?: boolean },
+  options?: { forceRefresh?: boolean; qualityRankEnabled?: boolean },
 ) {
   const cacheKey = profile.id || "default";
   const forceRefresh = Boolean(options?.forceRefresh);
+  const qualityRankEnabled = options?.qualityRankEnabled !== false;
   const cached = await readCachedSuggestions(cacheKey, profile, {
     forceRefresh,
     allowStale: true,
@@ -681,6 +705,7 @@ export async function getSentinelSuggestions(
 
   const qualityRank = await applySentinelQualityRank(suggestionsFiltered, {
     profileLabel: [profile.fullName, profile.city, profile.state].filter(Boolean).join(" · "),
+    enabled: qualityRankEnabled,
   });
   const suggestions = qualityRank.suggestions;
 
@@ -718,7 +743,7 @@ export async function getSentinelSuggestions(
       newsPautavelPercent: qualityReport.newsPautavelPercent,
       oppositionTotal: qualityReport.oppositionTotal,
     },
-    qualityRankStats: qualityRank.stats.llmCalls > 0 ? qualityRank.stats : undefined,
+    qualityRankStats: qualityRank.stats,
     llmCostEstimate,
     emptyReason:
       suggestions.length === 0
@@ -756,15 +781,19 @@ export function filterSuggestionsForProfile(
     splitProfileThemesBySphere(profile).interest.map((theme) => theme.toLowerCase()),
   );
 
-  if (interestThemes.size === 0) {
-    return suggestions.filter((suggestion) =>
-      (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition"),
-    );
-  }
-
   return suggestions.filter((suggestion) => {
-    if ((suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition")) {
+    const actors = suggestion.evidence.actors ?? [];
+    // Interesse e adversários são por ator (@), sem cruzar temas do radar.
+    if (
+      actors.some(
+        (actor) => actor.sourceList === "opposition" || actor.sourceList === "interest",
+      )
+    ) {
       return true;
+    }
+
+    if (interestThemes.size === 0) {
+      return false;
     }
 
     // O tema exibido no card precisa ser um tema ativo do radar.

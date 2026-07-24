@@ -61,6 +61,7 @@ const NAV_BLOCKS: NavBlock[] = [
       { label: "Nacional", href: "/monitoramento#federal" },
       { label: "Estadual", href: "/monitoramento#estadual" },
       { label: "Municipal", href: "/monitoramento#municipal" },
+      { label: "Interesse", href: "/monitoramento#interesse" },
       { label: "Adversários", href: "/monitoramento#adversarios" },
       { label: "Selecionar temas", href: "/monitoramento/temas", variant: "settings" },
     ],

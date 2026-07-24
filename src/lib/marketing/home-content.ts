@@ -53,7 +53,8 @@ export const homeAssembly = {
 } as const;
 
 export const homeScale = {
-  title: "Replique a sua identidade em escala industrial",
+  titleLead: "Replique a sua identidade em",
+  titleAccent: "escala industrial",
   pillars: [
     {
       title: "Eficiência de Equipe",

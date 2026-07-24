@@ -5,11 +5,12 @@ import type {
   SentinelSocialNetwork,
   SentinelVerifiedActor,
 } from "@/lib/sentinel-mock-suggestions";
-import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
-import { fetchGoogleNewsQuery, matchSentinelThemes } from "@/lib/sentinel-rss";
+import { buildInterestPostSuggestions } from "@/lib/sentinel-opposition-posts";
+import { fetchGoogleNewsQuery } from "@/lib/sentinel-rss";
+import { weightedEngagement } from "@/lib/sphere-classifier";
 import type { PoliticianProfile, SocialHandle } from "@/lib/types";
 
-const MAX_SOCIAL_SUGGESTIONS = 8;
+const MAX_SOCIAL_SUGGESTIONS = 12;
 
 function normalizeNetwork(network: string): SentinelSocialNetwork {
   const value = network.trim().toLowerCase();
@@ -26,6 +27,11 @@ function normalizeHandle(handle: string): string {
   return handle.trim().replace(/^@+/, "");
 }
 
+function isInstagramProfile(row: SocialHandle) {
+  const network = row.network.trim().toLowerCase();
+  return network.includes("instagram") || network === "ig";
+}
+
 function buildSocialSuggestionId(handle: string, link: string) {
   const hash = createHash("sha256").update(`social|${handle}|${link}`).digest("hex").slice(0, 16);
   return `sentinela-social-${hash}`;
@@ -35,6 +41,7 @@ function buildActor(
   row: SocialHandle,
   sourceList: "interest" | "opposition",
   link: string,
+  publishedAt?: string,
 ): SentinelVerifiedActor {
   return {
     handle: normalizeHandle(row.handle),
@@ -42,11 +49,8 @@ function buildActor(
     postUrl: link,
     profileLabel: row.network,
     sourceList,
+    publishedAt,
   };
-}
-
-async function fetchGoogleNewsRss(query: string) {
-  return fetchGoogleNewsQuery(query);
 }
 
 function buildSocialQueries(row: SocialHandle, geo: string): string[] {
@@ -61,44 +65,56 @@ function buildSocialQueries(row: SocialHandle, geo: string): string[] {
   return [...new Set(queries.filter((query) => query.replace(/\s/g, "").length >= 3))].slice(0, 2);
 }
 
-function scoreSocialSuggestion(input: {
-  matchedThemes: string[];
-  publishedAt: Date | null;
-  sourceList: "interest" | "opposition";
-}): number {
-  let score = input.sourceList === "opposition" ? 55 : 45;
-  score += input.matchedThemes.length * 12;
-
-  if (input.publishedAt) {
-    const ageHours = (Date.now() - input.publishedAt.getTime()) / 3_600_000;
-    if (ageHours <= 24) {
-      score += 18;
-    } else if (ageHours <= 72) {
-      score += 10;
-    }
+function publishedAtMs(suggestion: MockSentinelSuggestion): number {
+  const fromActor = suggestion.evidence.actors?.[0]?.publishedAt;
+  const fromArticle = suggestion.evidence.articles?.[0]?.publishedAt;
+  const raw = fromActor || fromArticle;
+  if (!raw) {
+    return 0;
   }
-
-  return Math.min(99, Math.max(20, score));
+  const ms = new Date(raw).getTime();
+  return Number.isFinite(ms) ? ms : 0;
 }
 
-async function buildSuggestionsForProfiles(input: {
-  profiles: SocialHandle[];
-  sourceList: "interest" | "opposition";
-  profile: PoliticianProfile;
-  matchThemes: string[];
-}): Promise<MockSentinelSuggestion[]> {
-  const geo = [input.profile.city.trim(), input.profile.state.trim()].filter(Boolean).join(" ");
+function sortByEngagementThenRecency(suggestions: MockSentinelSuggestion[]) {
+  return [...suggestions].sort((left, right) => {
+    const leftEng = weightedEngagement(
+      left.engagement.likes,
+      left.engagement.comments,
+      left.engagement.shares,
+    );
+    const rightEng = weightedEngagement(
+      right.engagement.likes,
+      right.engagement.comments,
+      right.engagement.shares,
+    );
+    if (rightEng !== leftEng) {
+      return rightEng - leftEng;
+    }
+    return publishedAtMs(right) - publishedAtMs(left);
+  });
+}
+
+/**
+ * Busca menções do @ no Google News — sem cruzar temas do radar.
+ * Usado para TikTok/X e como fallback quando o Apify (Instagram) falha/sem cota.
+ */
+async function buildInterestNewsFallbacks(
+  profile: PoliticianProfile,
+  rows: SocialHandle[],
+): Promise<MockSentinelSuggestion[]> {
+  const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
   const suggestions: MockSentinelSuggestion[] = [];
   const seen = new Set<string>();
 
-  for (const row of input.profiles) {
+  for (const row of rows) {
     const handle = normalizeHandle(row.handle);
     if (!handle) {
       continue;
     }
 
     const queries = buildSocialQueries(row, geo);
-    const batches = await Promise.all(queries.map((query) => fetchGoogleNewsRss(query)));
+    const batches = await Promise.all(queries.map((query) => fetchGoogleNewsQuery(query)));
     const items = batches.flat();
 
     for (const item of items) {
@@ -106,34 +122,20 @@ async function buildSuggestionsForProfiles(input: {
       if (seen.has(key)) {
         continue;
       }
-
-      const haystack = `${item.title} ${handle} ${item.sourceName ?? ""}`;
-      const matchedThemes =
-        input.sourceList === "opposition"
-          ? matchSentinelThemes(haystack, input.matchThemes).length > 0
-            ? matchSentinelThemes(haystack, input.matchThemes)
-            : [handle]
-          : matchSentinelThemes(haystack, input.matchThemes);
-
-      if (input.sourceList === "interest" && matchedThemes.length === 0) {
-        continue;
-      }
-
       seen.add(key);
-      const actor = buildActor(row, input.sourceList, item.link);
-      const relevanceScore = scoreSocialSuggestion({
-        matchedThemes,
-        publishedAt: item.publishedAt,
-        sourceList: input.sourceList,
-      });
+
+      const publishedAt = item.pubDate ?? item.publishedAt?.toISOString();
+      const actor = buildActor(row, "interest", item.link, publishedAt);
+      const themeLabel = `@${handle}`;
+      const relevanceScore = 40;
 
       suggestions.push({
         id: buildSocialSuggestionId(handle, item.link),
-        themeLabel: matchedThemes[0] ?? handle,
-        matchedThemes,
+        themeLabel,
+        matchedThemes: [themeLabel],
         relevanceScore,
         pipeline: "social",
-        topic: `${handle} · ${item.title.slice(0, 100)}`,
+        topic: `@${handle} · ${item.title.slice(0, 100)}`,
         evidence: {
           postsAnalyzed: 1,
           outletCount: 1,
@@ -152,7 +154,7 @@ async function buildSuggestionsForProfiles(input: {
               title: item.title,
               url: item.link,
               sourceName: item.sourceName,
-              publishedAt: item.pubDate ?? undefined,
+              publishedAt,
             },
           ],
         },
@@ -177,20 +179,37 @@ async function buildSuggestionsForProfiles(input: {
     }
   }
 
-  return suggestions
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_SOCIAL_SUGGESTIONS);
+  return suggestions;
 }
 
 export async function buildSocialSentinelSuggestions(
   profile: PoliticianProfile,
 ): Promise<MockSentinelSuggestion[]> {
-  const themes = splitProfileThemesBySphere(profile);
+  const rows = profile.interestProfiles.filter((row) => row.handle.trim());
+  if (!rows.length) {
+    return [];
+  }
 
-  return buildSuggestionsForProfiles({
-    profiles: profile.interestProfiles,
-    sourceList: "interest",
-    profile,
-    matchThemes: themes.interest,
+  const instagramRows = rows.filter(isInstagramProfile);
+  const otherRows = rows.filter((row) => !isInstagramProfile(row));
+
+  const instagramSuggestions = await buildInterestPostSuggestions({
+    ...profile,
+    interestProfiles: instagramRows,
   });
+
+  // Sem posts do Apify (cota esgotada / erro), cai no Google News pelo @.
+  const instagramNeedingFallback = instagramSuggestions.length
+    ? []
+    : instagramRows;
+
+  const newsFallbacks = await buildInterestNewsFallbacks(profile, [
+    ...otherRows,
+    ...instagramNeedingFallback,
+  ]);
+
+  return sortByEngagementThenRecency([...instagramSuggestions, ...newsFallbacks]).slice(
+    0,
+    MAX_SOCIAL_SUGGESTIONS,
+  );
 }

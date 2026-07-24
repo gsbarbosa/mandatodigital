@@ -11,10 +11,19 @@ export function runWithHeyGenApiKey<T>(apiKey: string, fn: () => T): T {
   return heygenApiKeyOverrideStore.run(apiKey.trim(), fn);
 }
 
-function resolveHeyGenApiKeyForFetch() {
+async function resolveHeyGenApiKeyForFetch() {
   const override = heygenApiKeyOverrideStore.getStore()?.trim();
   if (override) {
     return override;
+  }
+  try {
+    const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+    const resolved = await resolveProviderApiKey("heygen");
+    if (resolved.token) {
+      return resolved.token;
+    }
+  } catch {
+    // Firestore/admin indisponível em testes — cai no env.
   }
   return getHeyGenConfig().apiKey;
 }
@@ -53,40 +62,63 @@ export function formatHeyGenError(error: unknown) {
 
 async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const config = getHeyGenConfig();
-  const apiKey = resolveHeyGenApiKeyForFetch();
-  if (!apiKey) {
-    throw new Error(
-      "Serviço de geração de vídeo indisponível. Tente novamente mais tarde.",
-    );
+  const alsOverride = heygenApiKeyOverrideStore.getStore()?.trim();
+
+  const execute = async (apiKey: string) => {
+    if (!apiKey) {
+      throw new Error(
+        "Serviço de geração de vídeo indisponível. Tente novamente mais tarde.",
+      );
+    }
+
+    const response = await fetch(`${config.baseUrl}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        ...(init?.headers ?? {}),
+      },
+    });
+
+    const text = await response.text();
+    let json: unknown = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
+
+    if (!response.ok) {
+      const payload = (json ?? {}) as HeyGenStandardError;
+      const message =
+        payload.error?.message ||
+        payload.message ||
+        `A plataforma retornou um erro (${response.status}).`;
+      const { ProviderHttpError } = await import("@/lib/admin/provider-key-pool");
+      throw new ProviderHttpError({
+        providerId: "heygen",
+        status: response.status,
+        message,
+        body: text.slice(0, 400),
+      });
+    }
+
+    return (json ?? {}) as T;
+  };
+
+  if (alsOverride) {
+    return execute(alsOverride);
   }
 
-  const response = await fetch(`${config.baseUrl}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  const text = await response.text();
-  let json: unknown = null;
   try {
-    json = text ? JSON.parse(text) : null;
-  } catch {
-    json = null;
+    const { runWithProviderKeyPool } = await import("@/lib/admin/provider-key-pool");
+    return await runWithProviderKeyPool("heygen", async (token) => execute(token));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Nenhuma API key")) {
+      return execute(await resolveHeyGenApiKeyForFetch());
+    }
+    throw error;
   }
-
-  if (!response.ok) {
-    const payload = (json ?? {}) as HeyGenStandardError;
-    const message =
-      payload.error?.message ||
-      payload.message ||
-      `A plataforma retornou um erro (${response.status}).`;
-    throw new Error(message);
-  }
-
-  return (json ?? {}) as T;
 }
 
 export type HeyGenUserMeResponse = {
@@ -94,13 +126,32 @@ export type HeyGenUserMeResponse = {
   message?: string | null;
   data?: {
     username?: string;
-    email?: string;
-    billing_type?: string;
+    email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    billing_type?: "wallet" | "subscription" | "usage_based" | string | null;
     wallet?: {
       currency?: string;
-      remaining_balance?: number;
-      auto_reload?: { enabled?: boolean };
-    };
+      remaining_balance?: number | null;
+      auto_reload?: {
+        enabled?: boolean;
+        threshold_usd?: number | null;
+        amount_usd?: number | null;
+      };
+    } | null;
+    subscription?: {
+      plan?: string;
+      credits?: {
+        premium_credits?: { remaining?: number | null; resets_at?: string | null };
+        add_on_credits?: { remaining?: number | null };
+      };
+      included_credits?: number | null;
+      remaining_credits?: number | null;
+    } | null;
+    usage_based?: {
+      spending_current_usd?: number | null;
+      spending_cap_usd?: number | null;
+    } | null;
   };
 };
 
@@ -125,57 +176,80 @@ export async function heygenUploadAsset(input: {
   mimeType: string;
 }) {
   const config = getHeyGenConfig();
-  const apiKey = resolveHeyGenApiKeyForFetch();
-  if (!apiKey) {
-    throw new Error(
-      "Servico de geracao de video indisponivel. Tente novamente mais tarde.",
-    );
-  }
+  const alsOverride = heygenApiKeyOverrideStore.getStore()?.trim();
 
-  const form = new FormData();
-  const blob = new Blob([new Uint8Array(input.buffer)], { type: input.mimeType });
-  form.append("file", blob, input.filename);
+  const execute = async (apiKey: string) => {
+    if (!apiKey) {
+      throw new Error(
+        "Servico de geracao de video indisponivel. Tente novamente mais tarde.",
+      );
+    }
 
-  const response = await fetch(`${config.baseUrl}/v3/assets`, {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-    },
-    body: form,
-  });
+    const form = new FormData();
+    const blob = new Blob([new Uint8Array(input.buffer)], { type: input.mimeType });
+    form.append("file", blob, input.filename);
 
-  const text = await response.text();
-  let json: unknown = null;
-  try {
-    json = text ? JSON.parse(text) : null;
-  } catch {
-    json = null;
-  }
+    const response = await fetch(`${config.baseUrl}/v3/assets`, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+      },
+      body: form,
+    });
 
-  if (!response.ok) {
-    const payload = (json ?? {}) as HeyGenStandardError;
-    const message =
-      payload.error?.message ||
-      payload.message ||
-      `A plataforma retornou um erro (${response.status}).`;
-    throw new Error(message);
-  }
+    const text = await response.text();
+    let json: unknown = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
 
-  const payload = (json ?? {}) as HeyGenUploadAssetResponse;
-  const assetId =
-    payload.data?.asset_id?.trim() || payload.data?.id?.trim() || "";
+    if (!response.ok) {
+      const payload = (json ?? {}) as HeyGenStandardError;
+      const message =
+        payload.error?.message ||
+        payload.message ||
+        `A plataforma retornou um erro (${response.status}).`;
+      const { ProviderHttpError } = await import("@/lib/admin/provider-key-pool");
+      throw new ProviderHttpError({
+        providerId: "heygen",
+        status: response.status,
+        message,
+        body: text.slice(0, 400),
+      });
+    }
 
-  if (!assetId) {
-    throw new Error("Resposta invalida da HeyGen: asset_id ausente.");
-  }
+    const payload = (json ?? {}) as HeyGenUploadAssetResponse;
+    const assetId =
+      payload.data?.asset_id?.trim() || payload.data?.id?.trim() || "";
 
-  return {
-    assetId,
-    url: payload.data?.url?.trim() || null,
-    mimeType: payload.data?.mime_type?.trim() || input.mimeType,
-    sizeBytes: Number(payload.data?.size_bytes ?? input.buffer.length),
-    raw: payload,
+    if (!assetId) {
+      throw new Error("Resposta invalida da HeyGen: asset_id ausente.");
+    }
+
+    return {
+      assetId,
+      url: payload.data?.url?.trim() || null,
+      mimeType: payload.data?.mime_type?.trim() || input.mimeType,
+      sizeBytes: Number(payload.data?.size_bytes ?? input.buffer.length),
+      raw: payload,
+    };
   };
+
+  if (alsOverride) {
+    return execute(alsOverride);
+  }
+
+  try {
+    const { runWithProviderKeyPool } = await import("@/lib/admin/provider-key-pool");
+    return await runWithProviderKeyPool("heygen", async (token) => execute(token));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Nenhuma API key")) {
+      return execute(await resolveHeyGenApiKeyForFetch());
+    }
+    throw error;
+  }
 }
 
 export type HeyGenCreatePhotoAvatarResponse = {

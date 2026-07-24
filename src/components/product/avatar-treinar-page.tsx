@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AvatarImageCropModal } from "@/components/product/avatar-image-crop-modal";
 import { useProductApp } from "@/components/product/provider";
@@ -11,6 +11,10 @@ import type { TrainingAssetRole } from "@/lib/types";
 
 const VOICE_SCRIPT =
   "“Olá! Eu estou gravando este áudio para treinar a minha voz na plataforma Mandato Digital. O nosso objetivo aqui é garantir que a minha comunicação chegue a cada cidadão do nosso estado, com clareza, verdade e muita energia. Eu acredito que a política precisa de inovação e, acima de tudo, de coragem para mudar o que não está funcionando. Durante a nossa caminhada, vamos enfrentar grandes desafios, mas eu estou preparado para ouvir as pessoas, propor soluções reais e trabalhar incansavelmente. Peço que a inteligência artificial capture o tom da minha voz, o meu sotaque e a minha determinação. Vamos juntos construir um futuro melhor para todos!”";
+
+function trainConsentStorageKey(profileId: string) {
+  return `mandato:avatar-train-consent:${profileId}`;
+}
 
 function latestAssetName(
   assets: Array<{ trainingRole: TrainingAssetRole; originalFilename: string; createdAt: string }>,
@@ -25,12 +29,15 @@ function latestAssetName(
 export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
   const router = useRouter();
   const {
+    profile,
+    profileForm,
     trainingAssets,
     uploadTrainingAssets,
     isUploadingAvatarImageAsset,
     isUploadingVoiceAudioAsset,
   } = useProductApp();
 
+  const profileId = profile?.id ?? profileForm.id ?? null;
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
@@ -42,8 +49,40 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
   const photoName = useMemo(() => latestAssetName(trainingAssets, "avatar_image"), [trainingAssets]);
   const audioName = useMemo(() => latestAssetName(trainingAssets, "voice_audio"), [trainingAssets]);
 
+  useEffect(() => {
+    if (!profileId || typeof window === "undefined") {
+      return;
+    }
+    try {
+      setConsentAccepted(window.localStorage.getItem(trainConsentStorageKey(profileId)) === "1");
+    } catch {
+      // ignore storage errors
+    }
+  }, [profileId]);
+
+  function persistConsent(next: boolean) {
+    setConsentAccepted(next);
+    if (!profileId || typeof window === "undefined") {
+      return;
+    }
+    try {
+      const key = trainConsentStorageKey(profileId);
+      if (next) {
+        window.localStorage.setItem(key, "1");
+      } else {
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }
+
   async function handleUpload(file: File | null | undefined, role: TrainingAssetRole, label: string) {
     if (!file) {
+      return;
+    }
+    if (!consentAccepted) {
+      setUploadMessage("Aceite os termos de treinamento antes de enviar foto ou áudio.");
       return;
     }
     setUploadMessage(null);
@@ -73,9 +112,49 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
         </header>
 
         <section className="bg-slate-900/40 border border-slate-700/80 rounded-[2rem] p-6 md:p-10 shadow-2xl backdrop-blur-xl">
-          <p className="text-sm text-slate-300 mb-8">
+          <p className="text-sm text-slate-300 mb-6">
             Quanto melhor a qualidade da foto e do áudio, mais realistas os avatares.
           </p>
+
+          {/* CONSENTIMENTO — exigido antes do upload */}
+          <div className="bg-[#0F1623] border border-cyan-900/50 rounded-xl p-5 mb-8">
+            <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <svg className="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              Termos de Treinamento de IA e Propaganda Eleitoral
+            </h4>
+            <div className="text-[11px] text-slate-400 space-y-2 mb-4 pr-4">
+              <p>
+                Ao prosseguir, autorizo o Mandato Digital a tratar minha imagem e voz para a
+                finalidade exclusiva de treinamento de modelos de Inteligência Artificial e criação
+                de avatares personalizados.
+              </p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li><strong>Finalidade:</strong> Criação de avatares por foto e voz para uso em propaganda eleitoral.</li>
+                <li><strong>Segurança:</strong> Meus dados biométricos serão criptografados e utilizados exclusivamente para este fim.</li>
+                <li><strong>Direito de Exclusão:</strong> Posso solicitar a exclusão total dos meus dados e do modelo de IA criado a qualquer momento, o que resultará na interrupção imediata dos serviços.</li>
+              </ul>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={consentAccepted}
+                onChange={(event) => persistConsent(event.target.checked)}
+                className="accent-cyan-500 h-5 w-5 rounded border-slate-600 bg-slate-900 cursor-pointer"
+              />
+              <span className="text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors">
+                Li e aceito os termos da Política de Privacidade
+              </span>
+            </label>
+            {!consentAccepted ? (
+              <p className="mt-3 text-xs text-amber-300/90">
+                Aceite os termos para liberar o envio de foto e áudio.
+              </p>
+            ) : null}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
             {/* FOTO */}
             <div
@@ -104,7 +183,13 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
               </ul>
 
               <div className="mt-auto">
-                <label className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-600 hover:border-cyan-500 rounded-xl cursor-pointer bg-slate-800/30 transition-colors group">
+                <label
+                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-slate-800/30 transition-colors group ${
+                    consentAccepted
+                      ? "border-slate-600 hover:border-cyan-500 cursor-pointer"
+                      : "border-slate-700 opacity-50 cursor-not-allowed"
+                  }`}
+                >
                   <svg className="h-8 w-8 text-slate-500 group-hover:text-cyan-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
@@ -117,11 +202,17 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                     type="file"
                     className="hidden"
                     accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                    disabled={isUploadingAvatarImageAsset}
+                    disabled={!consentAccepted || isUploadingAvatarImageAsset}
                     onChange={(event) => {
                       const file = event.target.files?.[0];
                       if (file) {
-                        setPendingPhoto(file);
+                        if (!consentAccepted) {
+                          setUploadMessage(
+                            "Aceite os termos de treinamento antes de enviar foto ou áudio.",
+                          );
+                        } else {
+                          setPendingPhoto(file);
+                        }
                       }
                       event.target.value = "";
                     }}
@@ -169,7 +260,13 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
               </div>
 
               <div className="mt-auto">
-                <label className="w-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-600 hover:border-purple-500 rounded-xl cursor-pointer bg-slate-800/30 transition-colors group">
+                <label
+                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-slate-800/30 transition-colors group ${
+                    consentAccepted
+                      ? "border-slate-600 hover:border-purple-500 cursor-pointer"
+                      : "border-slate-700 opacity-50 cursor-not-allowed"
+                  }`}
+                >
                   <svg className="h-8 w-8 text-slate-500 group-hover:text-purple-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                   </svg>
@@ -182,7 +279,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                     type="file"
                     className="hidden"
                     accept="audio/*"
-                    disabled={isUploadingVoiceAudioAsset}
+                    disabled={!consentAccepted || isUploadingVoiceAudioAsset}
                     onChange={(event) => {
                       void handleUpload(event.target.files?.[0], "voice_audio", "Áudio de voz");
                       event.target.value = "";
@@ -197,44 +294,15 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
           </div>
 
           {uploadMessage ? (
-            <p className="text-sm text-emerald-400 mb-6" role="status">
+            <p
+              className={`text-sm mb-6 ${
+                uploadMessage.startsWith("Aceite") ? "text-amber-300/90" : "text-emerald-400"
+              }`}
+              role="status"
+            >
               {uploadMessage}
             </p>
           ) : null}
-
-          {/* CONSENTIMENTO */}
-          <div className="bg-[#0F1623] border border-cyan-900/50 rounded-xl p-5">
-            <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-              <svg className="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Termos de Treinamento de IA e Propaganda Eleitoral
-            </h4>
-            <div className="text-[11px] text-slate-400 space-y-2 mb-4 pr-4">
-              <p>
-                Ao prosseguir, autorizo o Mandato Digital a tratar minha imagem e voz para a
-                finalidade exclusiva de treinamento de modelos de Inteligência Artificial e criação
-                de avatares personalizados.
-              </p>
-              <ul className="list-disc pl-4 space-y-1">
-                <li><strong>Finalidade:</strong> Criação de avatares por foto e voz para uso em propaganda eleitoral.</li>
-                <li><strong>Segurança:</strong> Meus dados biométricos serão criptografados e utilizados exclusivamente para este fim.</li>
-                <li><strong>Direito de Exclusão:</strong> Posso solicitar a exclusão total dos meus dados e do modelo de IA criado a qualquer momento, o que resultará na interrupção imediata dos serviços.</li>
-              </ul>
-            </div>
-
-            <label className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={consentAccepted}
-                onChange={(event) => setConsentAccepted(event.target.checked)}
-                className="accent-cyan-500 h-5 w-5 rounded border-slate-600 bg-slate-900 cursor-pointer"
-              />
-              <span className="text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors">
-                Li e aceito os termos da Política de Privacidade
-              </span>
-            </label>
-          </div>
 
           <div className="mt-8">
             <button

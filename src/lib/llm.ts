@@ -107,25 +107,45 @@ function normalizeTokenUsage(inputTokens = 0, outputTokens = 0): TokenUsage {
   };
 }
 
-function getConfiguredProvider(provider: Exclude<LlmProvider, "fallback-local">) {
+async function getConfiguredProvider(provider: Exclude<LlmProvider, "fallback-local">) {
   if (provider === "openai") {
+    let apiKey = process.env.OPENAI_API_KEY?.trim() || "";
+    try {
+      const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+      const resolved = await resolveProviderApiKey("openai");
+      if (resolved.token) {
+        apiKey = resolved.token;
+      }
+    } catch {
+      // Firestore indisponível — usa env.
+    }
     return {
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey,
       defaultModel: process.env.OPENAI_MODEL || "gpt-4.1-mini",
     };
   }
 
+  let apiKey = process.env.ANTHROPIC_API_KEY?.trim() || "";
+  try {
+    const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+    const resolved = await resolveProviderApiKey("anthropic");
+    if (resolved.token) {
+      apiKey = resolved.token;
+    }
+  } catch {
+    // Firestore indisponível — usa env.
+  }
   return {
-    apiKey: process.env.ANTHROPIC_API_KEY,
+    apiKey,
     defaultModel: process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-latest",
   };
 }
 
-function resolveExecutionProvider(
+async function resolveExecutionProvider(
   requestedProvider?: Exclude<LlmProvider, "fallback-local">,
 ) {
   if (requestedProvider) {
-    const configured = getConfiguredProvider(requestedProvider);
+    const configured = await getConfiguredProvider(requestedProvider);
     if (!configured.apiKey) {
       return null;
     }
@@ -133,11 +153,13 @@ function resolveExecutionProvider(
     return requestedProvider;
   }
 
-  if (process.env.OPENAI_API_KEY) {
+  const openai = await getConfiguredProvider("openai");
+  if (openai.apiKey) {
     return "openai" as const;
   }
 
-  if (process.env.ANTHROPIC_API_KEY) {
+  const anthropic = await getConfiguredProvider("anthropic");
+  if (anthropic.apiKey) {
     return "anthropic" as const;
   }
 
@@ -149,68 +171,87 @@ async function callOpenAI(
   user: string,
   options: ProviderRequestOptions,
 ): Promise<LlmExecutionResult> {
-  const { apiKey } = getConfiguredProvider("openai");
-
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY nao configurada.");
-  }
-
   const startedAt = Date.now();
+  const { runWithProviderKeyPool, ProviderHttpError } = await import(
+    "@/lib/admin/provider-key-pool"
+  );
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: options.model,
-      temperature: options?.temperature ?? 0.8,
-      max_tokens: options?.maxTokens,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-      response_format: { type: "json_object" },
-    }),
-  });
+  const execute = async (apiKey: string) => {
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY nao configurada.");
+    }
 
-  if (!response.ok) {
-    throw new Error("Falha ao consultar OpenAI.");
-  }
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: options.model,
+        temperature: options?.temperature ?? 0.8,
+        max_tokens: options?.maxTokens,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+        response_format: { type: "json_object" },
+      }),
+    });
 
-  const json = (await response.json()) as {
-    choices?: Array<{
-      message?: {
-        content?: string;
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new ProviderHttpError({
+        providerId: "openai",
+        status: response.status,
+        message: "Falha ao consultar OpenAI.",
+        body: body.slice(0, 400),
+      });
+    }
+
+    const json = (await response.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: string;
+        };
+      }>;
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
       };
-    }>;
-    usage?: {
-      prompt_tokens?: number;
-      completion_tokens?: number;
-      total_tokens?: number;
+    };
+
+    const tokenUsage = json.usage
+      ? normalizeTokenUsage(
+          json.usage.prompt_tokens ?? 0,
+          json.usage.completion_tokens ?? 0,
+        )
+      : null;
+
+    return {
+      rawText: json.choices?.[0]?.message?.content ?? null,
+      provider: "openai" as const,
+      model: options.model,
+      latencyMs: Date.now() - startedAt,
+      tokenUsage: tokenUsage
+        ? {
+            ...tokenUsage,
+            totalTokens: json.usage?.total_tokens ?? tokenUsage.totalTokens,
+          }
+        : null,
     };
   };
 
-  const tokenUsage = json.usage
-    ? normalizeTokenUsage(
-        json.usage.prompt_tokens ?? 0,
-        json.usage.completion_tokens ?? 0,
-      )
-    : null;
-
-  return {
-    rawText: json.choices?.[0]?.message?.content ?? null,
-    provider: "openai",
-    model: options.model,
-    latencyMs: Date.now() - startedAt,
-    tokenUsage: tokenUsage
-      ? {
-          ...tokenUsage,
-          totalTokens: json.usage?.total_tokens ?? tokenUsage.totalTokens,
-        }
-      : null,
-  };
+  try {
+    return await runWithProviderKeyPool("openai", async (token) => execute(token));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Nenhuma API key")) {
+      const { apiKey } = await getConfiguredProvider("openai");
+      return execute(apiKey || "");
+    }
+    throw error;
+  }
 }
 
 async function callAnthropic(
@@ -218,7 +259,7 @@ async function callAnthropic(
   user: string,
   options: ProviderRequestOptions,
 ): Promise<LlmExecutionResult> {
-  const { apiKey } = getConfiguredProvider("anthropic");
+  const { apiKey } = await getConfiguredProvider("anthropic");
 
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY nao configurada.");
@@ -280,67 +321,86 @@ async function callOpenAIPlainText(
   user: string,
   options: ProviderRequestOptions,
 ): Promise<LlmExecutionResult> {
-  const { apiKey } = getConfiguredProvider("openai");
-
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY nao configurada.");
-  }
-
   const startedAt = Date.now();
+  const { runWithProviderKeyPool, ProviderHttpError } = await import(
+    "@/lib/admin/provider-key-pool"
+  );
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: options.model,
-      temperature: options?.temperature ?? 0.8,
-      max_tokens: options?.maxTokens ?? 400,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
+  const execute = async (apiKey: string) => {
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY nao configurada.");
+    }
 
-  if (!response.ok) {
-    throw new Error("Falha ao consultar OpenAI.");
-  }
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: options.model,
+        temperature: options?.temperature ?? 0.8,
+        max_tokens: options?.maxTokens ?? 400,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      }),
+    });
 
-  const json = (await response.json()) as {
-    choices?: Array<{
-      message?: {
-        content?: string;
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new ProviderHttpError({
+        providerId: "openai",
+        status: response.status,
+        message: "Falha ao consultar OpenAI.",
+        body: body.slice(0, 400),
+      });
+    }
+
+    const json = (await response.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: string;
+        };
+      }>;
+      usage?: {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
       };
-    }>;
-    usage?: {
-      prompt_tokens?: number;
-      completion_tokens?: number;
-      total_tokens?: number;
+    };
+
+    const tokenUsage = json.usage
+      ? normalizeTokenUsage(
+          json.usage.prompt_tokens ?? 0,
+          json.usage.completion_tokens ?? 0,
+        )
+      : null;
+
+    return {
+      rawText: json.choices?.[0]?.message?.content ?? null,
+      provider: "openai" as const,
+      model: options.model,
+      latencyMs: Date.now() - startedAt,
+      tokenUsage: tokenUsage
+        ? {
+            ...tokenUsage,
+            totalTokens: json.usage?.total_tokens ?? tokenUsage.totalTokens,
+          }
+        : null,
     };
   };
 
-  const tokenUsage = json.usage
-    ? normalizeTokenUsage(
-        json.usage.prompt_tokens ?? 0,
-        json.usage.completion_tokens ?? 0,
-      )
-    : null;
-
-  return {
-    rawText: json.choices?.[0]?.message?.content ?? null,
-    provider: "openai",
-    model: options.model,
-    latencyMs: Date.now() - startedAt,
-    tokenUsage: tokenUsage
-      ? {
-          ...tokenUsage,
-          totalTokens: json.usage?.total_tokens ?? tokenUsage.totalTokens,
-        }
-      : null,
-  };
+  try {
+    return await runWithProviderKeyPool("openai", async (token) => execute(token));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Nenhuma API key")) {
+      const { apiKey } = await getConfiguredProvider("openai");
+      return execute(apiKey || "");
+    }
+    throw error;
+  }
 }
 
 export async function requestPlainText(
@@ -348,7 +408,7 @@ export async function requestPlainText(
   user: string,
   options?: LlmExecutionOptionsInput,
 ): Promise<LlmExecutionResult> {
-  const provider = resolveExecutionProvider(options?.provider);
+  const provider = await resolveExecutionProvider(options?.provider);
 
   if (!provider) {
     if (options?.strict) {
@@ -364,7 +424,7 @@ export async function requestPlainText(
     };
   }
 
-  const { defaultModel } = getConfiguredProvider(provider);
+  const { defaultModel } = await getConfiguredProvider(provider);
   const requestOptions = {
     model: options?.model?.trim() || defaultModel,
     temperature: options?.temperature,
@@ -381,7 +441,7 @@ export async function requestStructuredJson(
   user: string,
   options?: LlmExecutionOptionsInput,
 ): Promise<LlmExecutionResult> {
-  const provider = resolveExecutionProvider(options?.provider);
+  const provider = await resolveExecutionProvider(options?.provider);
 
   if (!provider) {
     if (options?.strict) {
@@ -397,7 +457,7 @@ export async function requestStructuredJson(
     };
   }
 
-  const { defaultModel } = getConfiguredProvider(provider);
+  const { defaultModel } = await getConfiguredProvider(provider);
   const requestOptions = {
     model: options?.model?.trim() || defaultModel,
     temperature: options?.temperature,

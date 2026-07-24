@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -49,6 +49,7 @@ import {
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
 import { pickLatestCaricatureForVariant } from "@/lib/caricature-asset-variant";
+import { getCriativoGate } from "@/lib/criativo-gate";
 import {
   isConsentApproved,
   isTwinLookReadyForVideo,
@@ -114,24 +115,6 @@ const EMPTY_CREATIVE_FORM: CreativeFormState = {
   personaArchetypes: [],
   voiceTones: [],
 };
-
-function getCriativoGateReason(input: {
-  spectrum: string;
-  hasVoiceAudio: boolean;
-  hasPhotoAvatar: boolean;
-  hasCaricaturePair: boolean;
-}): string | null {
-  if (!input.spectrum.trim()) {
-    return "Defina o posicionamento ideológico no Curador.";
-  }
-  if (!input.hasVoiceAudio) {
-    return "Envie o áudio de voz no Curador.";
-  }
-  if (!input.hasPhotoAvatar && !input.hasCaricaturePair) {
-    return "Envie a foto e/ou gere as caricaturas no Curador.";
-  }
-  return null;
-}
 
 export type CriativoPageMode = "padrao" | "independente";
 
@@ -219,11 +202,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     saveProfile,
     isSavingProfile,
     trainingAssets,
-    uploadTrainingAssets,
-    isUploadingVoiceAudioAsset,
-    isUploadingAvatarImageAsset,
-    isUploadingTrainingVideoAsset,
-    appendTrainingAssets,
   } = useProductApp();
 
   const assetReferenceId = profile?.id ?? profileForm.id ?? null;
@@ -264,30 +242,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   const profileIdForPrefs = profile?.id ?? profileForm.id ?? null;
 
-  const trainingVideoAssets = useMemo(
-    () =>
-      visibleTrainingAssets.filter(
-        (asset) =>
-          asset.trainingRole === "dataset" &&
-          String(asset.mimeType ?? "").toLowerCase().startsWith("video/"),
-      ),
-    [visibleTrainingAssets],
-  );
-
-  const latestTrainingVideo = useMemo(
-    () =>
-      [...trainingVideoAssets].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )[0] ?? null,
-    [trainingVideoAssets],
-  );
-
-  const formatBytes = useCallback((bytes: number) => {
-    if (!Number.isFinite(bytes) || bytes <= 0) return "";
-    const mb = bytes / 1024 / 1024;
-    return `${mb.toFixed(1)} MB`;
-  }, []);
-
   const usableTwinLooks = useMemo(
     () => privateTwinLooks.filter(isUsableRecordedDigitalTwin),
     [privateTwinLooks],
@@ -306,8 +260,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   /** Voz já vinculada (único caso em que "Refazer caricatura" faz sentido). */
   const showRefazerCaricatura =
     Boolean(heygenVoiceId.trim()) || Boolean(elevenLabsVoiceId.trim());
-  const canTrainRealistic = Boolean(latestTrainingVideo && voiceAudioAssets[0]);
-  const canStartTwinTraining = !hasAnyTwinOnPlatform && canTrainRealistic;
   const editorialCaricature = useMemo(
     () => pickLatestCaricatureForVariant(visibleTrainingAssets, "editorial"),
     [visibleTrainingAssets],
@@ -404,39 +356,58 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     canGenerateVideo &&
     (useFreePromptAsTranscript ? freePrompt.trim().length > 0 : scriptClearedForProduction);
 
-  function getGenerateDisabledReason(): string | null {
+  function getGenerateDisabledReason(): { reason: string; href?: Route } | null {
     if (isGenerating) {
       return null;
     }
     if (isPollingTwinTraining && !twinReadyForVideo) {
-      return "Sincronizando com a plataforma. Aguarde a conclusão do treinamento no Curador.";
+      return {
+        reason:
+          "Sincronizando com a plataforma. Aguarde a conclusão do treinamento do avatar.",
+      };
     }
     if (avatarTrack === "photo_real" && !avatarImageAssets[0]) {
-      return "Envie a foto do rosto no Curador.";
+      return {
+        reason: "Envie a foto do rosto em Configurar avatar.",
+        href: "/avatares/foto-real/treinar#foto" as Route,
+      };
     }
     if (avatarTrack === "photo_real" && !voiceAudioAssets[0]) {
-      return "Envie o áudio de voz no Curador.";
+      return {
+        reason: "Envie o áudio de voz em Configurar avatar.",
+        href: "/avatares/foto-real/treinar#audio" as Route,
+      };
     }
     if (avatarTrack === "photo_real" && isTraining) {
-      return "Preparando a voz na plataforma. Aguarde.";
+      return { reason: "Preparando a voz na plataforma. Aguarde." };
     }
     if (avatarTrack === "caricature" && !selectedCaricatureAssetId.trim()) {
-      return "Selecione uma caricatura para gerar o vídeo.";
+      return { reason: "Selecione uma caricatura para gerar o vídeo." };
     }
     if (avatarTrack === "caricature" && !voiceAudioAssets[0]) {
-      return "Envie o áudio de voz no Curador.";
+      return {
+        reason: "Envie o áudio de voz em Configurar avatar.",
+        href: "/avatares/foto-real/treinar#audio" as Route,
+      };
     }
     if (avatarTrack === "caricature" && !hasAnyCaricatureReady) {
-      return "Gere ao menos uma caricatura no Curador.";
+      return {
+        reason: "Gere ao menos uma caricatura no hub de Avatares.",
+        href: "/avatares/caricato" as Route,
+      };
     }
     if (avatarTrack === "caricature" && isTraining) {
-      return "Preparando a voz na plataforma. Aguarde.";
+      return { reason: "Preparando a voz na plataforma. Aguarde." };
     }
     if (manualReviewConsentRequired && !manualReviewConsent) {
-      return "Confirme a revisão manual do roteiro antes de produzir o conteúdo.";
+      return {
+        reason: "Confirme a revisão manual do roteiro antes de produzir o conteúdo.",
+      };
     }
     if (scriptEditedAfterApproval && !scriptEditConsent) {
-      return "Confirme o termo de responsabilidade após editar o roteiro aprovado.";
+      return {
+        reason: "Confirme o termo de responsabilidade após editar o roteiro aprovado.",
+      };
     }
     return null;
   }
@@ -1199,7 +1170,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       return (
         <ProductionTemplateEmptyPreview
           icon="photo"
-          message="Envie a foto no Curador"
+          message="Envie a foto em Configurar avatar"
         />
       );
     }
@@ -1225,7 +1196,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             tier={productionTemplateTier("photo_real")}
             isSelected={activeProductionTemplate === "photo_real"}
             isAvailable={Boolean(avatarImageAssets[0])}
-            unavailableHint="Enviar foto no Curador"
+            unavailableHint="Enviar foto"
+            setupHref={"/avatares/foto-real/treinar#foto" as Route}
             onSelect={() => selectProductionTemplate("photo_real")}
             preview={
               avatarImageAssets[0] ? (
@@ -1233,7 +1205,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               ) : (
                 <ProductionTemplateEmptyPreview
                   icon="photo"
-                  message="Envie a foto no Curador"
+                  message="Envie a foto em Configurar avatar"
                 />
               )
             }
@@ -1244,7 +1216,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             tier={productionTemplateTier("caricature_editorial")}
             isSelected={activeProductionTemplate === "caricature_editorial"}
             isAvailable={Boolean(editorialCaricature)}
-            unavailableHint="Gerar Caricato no Curador"
+            unavailableHint="Gerar Caricato"
+            setupHref={"/avatares/caricato" as Route}
             onSelect={() => selectProductionTemplate("caricature_editorial")}
             preview={renderCaricaturePreview(
               editorialCaricature,
@@ -1257,91 +1230,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             tier={productionTemplateTier("caricature_mascot_3d")}
             isSelected={activeProductionTemplate === "caricature_mascot_3d"}
             isAvailable={Boolean(mascotCaricature)}
-            unavailableHint="Gerar Mascote 3D no Curador"
+            unavailableHint="Gerar Mascote 3D"
+            setupHref={"/avatares/3d" as Route}
             onSelect={() => selectProductionTemplate("caricature_mascot_3d")}
             preview={renderCaricaturePreview(mascotCaricature, "Gerar Mascote 3D")}
           />
-        </div>
-      </div>
-    );
-  }
-
-  function renderTrainingStartControl(
-    canStart: boolean,
-    onStart: () => Promise<void>,
-    options?: { twinSyncMode?: boolean },
-  ) {
-    const trainButtonLabel = options?.twinSyncMode
-      ? "Atualizar status do gêmeo"
-      : "Gerar Gêmeo Digital";
-
-    return (
-      <div className="persona-cta-block persona-top-gap">
-        <div className="persona-cta-row">
-          <button
-            type="button"
-            className="persona-btn persona-btn-large"
-            onClick={() => void onStart()}
-            disabled={
-              !canStart || isTraining || isDeletingTwinGroup || isPollingTwinTraining
-            }
-          >
-            {isTraining || isPollingTwinTraining ? (
-              <span className="persona-loading-row">
-                <span className="persona-spinner" aria-hidden="true" />
-                {isPollingTwinTraining
-                  ? "Finalizando gêmeo digital…"
-                  : options?.twinSyncMode
-                    ? "Atualizando..."
-                    : "Treinando..."}
-              </span>
-            ) : (
-              trainButtonLabel
-            )}
-          </button>
-        </div>
-        <div className="persona-training-status-banner" aria-live="polite">
-          {trainingBannerState === "started" ? (
-            <p className="persona-script-approved">Enviando treino para a plataforma…</p>
-          ) : null}
-          {trainingBannerState === "awaiting_consent" &&
-          !isPollingTwinTraining &&
-          !isConsentApproved(
-            productionTwinLook?.consentStatus ?? linkedTwinLook?.consentStatus,
-          ) ? (
-            <p className="persona-script-approved persona-training-phase-hint">
-              {trainingPhaseMessage("awaiting_consent", {
-                hasConsentUrl: Boolean(heygenConsentUrl.trim()),
-              })}
-            </p>
-          ) : null}
-          {heygenConsentUrl ? (
-            <p className="persona-helper-text persona-helper-highlight persona-top-gap">
-              Consentimento necessário:{" "}
-              <a href={heygenConsentUrl} target="_blank" rel="noreferrer">
-                finalizar criação do gêmeo digital
-              </a>
-            </p>
-          ) : null}
-          {isPollingTwinTraining ||
-          trainingBannerState === "processing" ? (
-            <p className="persona-script-approved persona-training-phase-hint">
-              <span className="persona-loading-row">
-                {isPollingTwinTraining ? (
-                  <span className="persona-spinner" aria-hidden="true" />
-                ) : null}
-                {trainingPhaseMessage("processing")}
-              </span>
-            </p>
-          ) : null}
-          {trainingBannerState === "ready" ? (
-            <p className="persona-script-approved">Gêmeo pronto para gerar conteúdo.</p>
-          ) : null}
-          {trainingBannerState === "failed" ? (
-            <p className="persona-helper-text persona-helper-highlight">
-              {trainingPhaseMessage("failed")}
-            </p>
-          ) : null}
         </div>
       </div>
     );
@@ -1665,7 +1558,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           (avatarTrack === "photo_real" || avatarTrack === "realistic") &&
           !avatarImageAssets[0]
         ) {
-          throw new Error("Envie a foto do rosto no Curador.");
+          throw new Error("Envie a foto do rosto em Configurar avatar.");
         }
         const trainMode =
           avatarTrack === "photo_real" || avatarTrack === "realistic"
@@ -1863,7 +1756,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     sortedCaricatureAssets[0] ??
     null;
   const selectedVoiceAudio = voiceAudioAssets[0] ?? null;
-  const selectedTrainingVideo = latestTrainingVideo;
 
   useEffect(() => {
     if (!videoId || autoPollStartedRef.current || isGenerating) {
@@ -2324,7 +2216,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     );
   }, [searchParams, mode]);
 
-  const criativoGateReason = getCriativoGateReason({
+  const criativoGate = getCriativoGate({
     spectrum: profileForm.spectrum,
     hasVoiceAudio: Boolean(voiceAudioAssets[0]),
     hasPhotoAvatar: Boolean(avatarImageAssets[0]),
@@ -2384,18 +2276,18 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         <PautaContextCard suggestion={sentinelSuggestion} />
       ) : null}
 
-      {criativoGateReason ? (
+      {criativoGate ? (
         <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group relative z-10`}>
-          <p className="text-sm text-amber-300/90 leading-relaxed">{criativoGateReason}</p>
+          <p className="text-sm text-amber-300/90 leading-relaxed">{criativoGate.reason}</p>
           <div className="mt-4">
-            <Link href="/curador" className={CRIATIVO_PRIMARY_BTN_CLASS}>
-              Ir para o Curador
+            <Link href={criativoGate.href as Route} className={CRIATIVO_PRIMARY_BTN_CLASS}>
+              {criativoGate.cta}
             </Link>
           </div>
         </div>
       ) : null}
 
-      {!criativoGateReason ? (
+      {!criativoGate ? (
       <>
       <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group persona-selection-panel relative z-10`}>
         {renderArchetypeIntro()}
@@ -2671,7 +2563,18 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               </button>
               {generateDisabledReason && !isGenerating && !isSealing ? (
                 <p className="persona-helper-text persona-helper-highlight persona-top-gap">
-                  {generateDisabledReason}
+                  {generateDisabledReason.reason}
+                  {generateDisabledReason.href ? (
+                    <>
+                      {" "}
+                      <Link
+                        href={generateDisabledReason.href}
+                        className="text-cyan-400 no-underline hover:underline"
+                      >
+                        Ir para configuração
+                      </Link>
+                    </>
+                  ) : null}
                 </p>
               ) : null}
               {(isGenerating || isSealing) && <div className="persona-progress" />}

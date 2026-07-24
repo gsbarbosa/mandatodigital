@@ -24,6 +24,7 @@ const profile: PoliticianProfile = {
   sentinelThemesEstadual: ["Privatizações"],
   oppositionThemes: [],
   customRadarThemes: [],
+  municipalCities: [],
   interestProfiles: [],
   interestSites: [],
   oppositionProfiles: [],

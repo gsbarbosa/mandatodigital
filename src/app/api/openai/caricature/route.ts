@@ -30,11 +30,13 @@ import {
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
-  if (!process.env.OPENAI_API_KEY?.trim()) {
+  const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+  const openai = await resolveProviderApiKey("openai");
+  if (!openai.token) {
     return NextResponse.json(
       {
         message:
-          "OPENAI_API_KEY nao configurada no servidor. Adicione a chave nas variaveis da Vercel.",
+          "OPENAI_API_KEY nao configurada no servidor. Adicione a chave nas variaveis da Vercel ou no Admin → Provedores.",
       },
       { status: 503 },
     );

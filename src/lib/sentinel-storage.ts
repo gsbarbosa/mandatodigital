@@ -80,6 +80,10 @@ async function deleteDocs(snapshot: QuerySnapshot) {
   await batch.commit();
 }
 
+function omitUndefinedDeep<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export const sentinelStorage = {
   async readCache(profileId: string): Promise<SentinelCacheRecord | null> {
     if (!isSentinelPersistCacheEnabled()) {
@@ -118,8 +122,8 @@ export const sentinelStorage = {
     await col(COLLECTIONS.sentinelSuggestionCache).doc(profileId).set({
       profileId,
       ownerUserId,
-      suggestions: input.suggestions,
-      meta: input.meta,
+      suggestions: omitUndefinedDeep(input.suggestions),
+      meta: omitUndefinedDeep(input.meta),
       expiresAt: input.expiresAt,
       refreshedAt,
       updatedAt: nowIso(),

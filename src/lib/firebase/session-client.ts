@@ -56,6 +56,7 @@ export function formatAuthClientError(message: string) {
 
 export async function persistFirebaseSession(): Promise<{
   registrationComplete: boolean;
+  needsPlanSelection: boolean;
   email: string;
 }> {
   const idToken = await getFirebaseAuth().currentUser?.getIdToken(true);
@@ -73,6 +74,7 @@ export async function persistFirebaseSession(): Promise<{
   const payload = (await response.json().catch(() => null)) as {
     message?: string;
     registrationComplete?: boolean;
+    needsPlanSelection?: boolean;
     email?: string;
   } | null;
 
@@ -82,6 +84,7 @@ export async function persistFirebaseSession(): Promise<{
 
   return {
     registrationComplete: Boolean(payload?.registrationComplete),
+    needsPlanSelection: Boolean(payload?.needsPlanSelection),
     email: String(payload?.email ?? ""),
   };
 }

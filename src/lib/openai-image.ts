@@ -11,8 +11,18 @@ function sanitizeOpenAiApiKey(raw: string) {
   return raw.trim().replace(/^Bearer\s+/i, "").replace(/^["']|["']$/g, "");
 }
 
-function getOpenAiApiKey() {
-  const apiKey = sanitizeOpenAiApiKey(process.env.OPENAI_API_KEY ?? "");
+async function getOpenAiApiKey() {
+  let raw = process.env.OPENAI_API_KEY ?? "";
+  try {
+    const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+    const resolved = await resolveProviderApiKey("openai");
+    if (resolved.token) {
+      raw = resolved.token;
+    }
+  } catch {
+    // Firestore indisponível — usa env.
+  }
+  const apiKey = sanitizeOpenAiApiKey(raw);
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY nao configurada.");
   }
@@ -275,44 +285,67 @@ export async function generateCaricatureFromPhoto(input: {
   variant?: CaricatureVariant;
   styleHint?: string;
 }) {
-  const apiKey = getOpenAiApiKey();
   const model = getCaricatureModel();
   const prompt = resolveCaricaturePrompt({
     variant: input.variant,
     styleHint: input.styleHint,
   });
 
-  try {
-    const result = await requestImageEdit({
-      apiKey,
-      model,
-      imageBuffer: input.imageBuffer,
-      mimeType: input.mimeType,
-      prompt,
-    });
-    return { ...result, model };
-  } catch (editError) {
-    const editMessage =
-      editError instanceof Error ? editError.message : String(editError);
+  const runWithKey = async (apiKey: string) => {
+    try {
+      const result = await requestImageEdit({
+        apiKey,
+        model,
+        imageBuffer: input.imageBuffer,
+        mimeType: input.mimeType,
+        prompt,
+      });
+      return { ...result, model };
+    } catch (editError) {
+      const editMessage =
+        editError instanceof Error ? editError.message : String(editError);
 
-    if (!shouldUseGenerationFallback(editMessage)) {
-      throw editError;
+      if (!shouldUseGenerationFallback(editMessage)) {
+        const { ProviderHttpError } = await import("@/lib/admin/provider-key-pool");
+        if (
+          isOpenAiImageAuthorizationError(editMessage) ||
+          editMessage.toLowerCase().includes("quota") ||
+          editMessage.toLowerCase().includes("billing")
+        ) {
+          throw new ProviderHttpError({
+            providerId: "openai",
+            status: isOpenAiImageAuthorizationError(editMessage) ? 401 : 429,
+            message: editMessage,
+          });
+        }
+        throw editError;
+      }
+
+      const portraitDescription = await describePortraitForCaricature({
+        apiKey,
+        imageBuffer: input.imageBuffer,
+        mimeType: input.mimeType,
+      });
+
+      const generationPrompt =
+        `${prompt} Retrato baseado nesta pessoa: ${portraitDescription}`;
+
+      const result = await requestImageGeneration({
+        apiKey,
+        model,
+        prompt: generationPrompt,
+      });
+      return { ...result, model };
     }
+  };
 
-    const portraitDescription = await describePortraitForCaricature({
-      apiKey,
-      imageBuffer: input.imageBuffer,
-      mimeType: input.mimeType,
-    });
-
-    const generationPrompt =
-      `${prompt} Retrato baseado nesta pessoa: ${portraitDescription}`;
-
-    const result = await requestImageGeneration({
-      apiKey,
-      model,
-      prompt: generationPrompt,
-    });
-    return { ...result, model };
+  try {
+    const { runWithProviderKeyPool } = await import("@/lib/admin/provider-key-pool");
+    return await runWithProviderKeyPool("openai", async (token) => runWithKey(token));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Nenhuma API key")) {
+      return runWithKey(await getOpenAiApiKey());
+    }
+    throw error;
   }
 }

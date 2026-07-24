@@ -6,33 +6,50 @@ export function MarketingCard({
   eyebrow,
   icon,
   className = "",
+  compact = false,
+  titleInline = false,
 }: {
   title: string;
   children: ReactNode;
   eyebrow?: string;
   icon?: ReactNode;
   className?: string;
+  compact?: boolean;
+  titleInline?: boolean;
 }) {
   return (
     <article
-      className={`flex flex-col rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-lg transition hover:border-slate-700 ${className}`}
+      className={`flex flex-col rounded-2xl border border-slate-800/80 bg-slate-900/40 shadow-lg transition hover:border-slate-700 ${
+        compact ? "p-4" : "p-6"
+      } ${className}`}
     >
-      {icon ? (
-        <div className="mb-4 flex items-start justify-between gap-3">
+      {titleInline && icon ? (
+        <div className={`flex items-center gap-3 ${compact ? "mb-1.5" : "mb-3"}`}>
           {icon}
-          {eyebrow ? (
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+          <h3 className="text-lg font-bold text-white">{title}</h3>
+        </div>
+      ) : (
+        <>
+          {icon ? (
+            <div className={`flex items-start justify-between gap-3 ${compact ? "mb-3" : "mb-4"}`}>
+              {icon}
+              {eyebrow ? (
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  {eyebrow}
+                </p>
+              ) : null}
+            </div>
+          ) : eyebrow ? (
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               {eyebrow}
             </p>
           ) : null}
-        </div>
-      ) : eyebrow ? (
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          {eyebrow}
-        </p>
-      ) : null}
-      <h3 className="text-lg font-bold text-white">{title}</h3>
-      <div className="mt-3 text-sm leading-relaxed text-slate-400">{children}</div>
+          <h3 className="text-lg font-bold text-white">{title}</h3>
+        </>
+      )}
+      <div className={`text-sm leading-relaxed text-slate-400 ${compact ? "mt-1.5" : "mt-3"}`}>
+        {children}
+      </div>
     </article>
   );
 }

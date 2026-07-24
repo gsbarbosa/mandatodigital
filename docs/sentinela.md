@@ -214,7 +214,7 @@ Com `SENTINEL_V2_PIPELINES=true`:
 
 | Pipeline | Origem | Comportamento |
 |----------|--------|---------------|
-| **Manual** | 3 temas personalizados | Busca literal (sem sinônimos) |
+| **Manual** | até 5 temas personalizados (guest) | Busca literal (sem sinônimos) |
 | **Portal** | Sites cadastrados | RSS + clustering + trend boost |
 | **Semântico** | Temas do radar + expansão LLM | Termos correlatos gerados ao salvar |
 | **Social** | Perfis @ | Stub até `SENTINEL_SOCIAL_ENABLED` |

@@ -23,6 +23,12 @@ import {
   resolveArticleMatchingSearchTerm,
 } from "@/lib/sentinel-theme-synonyms";
 import {
+  resolveMaxPerTheme,
+  finalizeSuggestionFeed,
+} from "@/lib/sentinel-diversify";
+import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
+import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
+import {
   applyThemeVerificationBatch,
   type ThemeVerificationStats,
 } from "@/lib/sentinel-theme-verify";
@@ -234,13 +240,11 @@ async function buildSuggestionFromCluster(input: {
     matchedExpandedTerms,
   );
   const outletCount = countUniqueOutlets(articles);
-  const sortedArticles = [...articles]
-    .sort((left, right) => {
-      const leftTime = left.publishedAt?.getTime() ?? 0;
-      const rightTime = right.publishedAt?.getTime() ?? 0;
-      return rightTime - leftTime;
-    })
-    .slice(0, MAX_ARTICLES_PER_SUGGESTION);
+  const sortedArticles = orderClusterArticlesForDisplay(
+    primary,
+    articles,
+    MAX_ARTICLES_PER_SUGGESTION,
+  );
 
   const searchTrend = await resolveThemeVolumeTrend({
     profileId,
@@ -285,15 +289,27 @@ function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
   const byId = new Map<string, MockSentinelSuggestion>();
 
   for (const suggestion of suggestions) {
+    const title = suggestion.evidence.articles?.[0]?.title ?? suggestion.topic;
+    const isOpposition = (suggestion.evidence.actors ?? []).some(
+      (actor) => actor.sourceList === "opposition",
+    );
+    if (!isOpposition && (isLikelyJobListingTitle(title) || isWeakFakeNewsTitle(title))) {
+      continue;
+    }
     const existing = byId.get(suggestion.id);
     if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
       byId.set(suggestion.id, suggestion);
     }
   }
 
-  return [...byId.values()]
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_SUGGESTIONS);
+  const distinctThemes = new Set(
+    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
+  ).size;
+  return finalizeSuggestionFeed([...byId.values()], {
+    maxTotal: MAX_SUGGESTIONS,
+    maxPerTheme: resolveMaxPerTheme(distinctThemes),
+    maxPerPipeline: 10,
+  });
 }
 
 export async function buildV2SuggestionsFromArticles(

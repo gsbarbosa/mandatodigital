@@ -41,6 +41,7 @@ const SECTIONS: Array<{
   { sphere: "federal", title: "Nacional", dotClass: "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.8)]" },
   { sphere: "estadual", title: "Estadual", dotClass: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]" },
   { sphere: "municipal", title: "Municipal", dotClass: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" },
+  { sphere: "interesse", title: "Interesse", dotClass: "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]" },
   { sphere: "adversarios", title: "Adversários", dotClass: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" },
 ];
 
@@ -76,6 +77,7 @@ export function MonitoramentoPage() {
     federal: INITIAL_VISIBLE,
     estadual: INITIAL_VISIBLE,
     municipal: INITIAL_VISIBLE,
+    interesse: INITIAL_VISIBLE,
     adversarios: INITIAL_VISIBLE,
   });
   const [evidenceSuggestion, setEvidenceSuggestion] = useState<MockSentinelSuggestion | null>(null);
@@ -243,45 +245,77 @@ export function MonitoramentoPage() {
         federal: themeSpheres.federal,
         estadual: themeSpheres.estadual,
       },
+      profileForm.municipalCities,
     );
   }, [
     suggestions,
     profileForm.interestSites,
     profileForm.state,
     profileForm.customRadarThemes,
+    profileForm.municipalCities,
     profileForm.sentinelThemesFederal,
     profileForm.sentinelThemesEstadual,
     profileForm.sentinelThemes,
   ]);
 
   const chipsBySphere = useMemo<Record<MonitorSphere, string[]>>(() => {
-    const customThemes = profileForm.customRadarThemes.filter((theme) => theme.trim().length > 0);
-    const municipalThemes = Array.from(
-      new Set(grouped.municipal.flatMap((item) => item.matchedThemes)),
-    ).slice(0, 8);
-    const themeSpheres = resolveSentinelThemeSpheres(profileForm);
+    function themesFromCards(cards: typeof suggestions) {
+      return Array.from(
+        new Set(
+          cards.flatMap((item) =>
+            [item.themeLabel, ...(item.matchedThemes ?? [])]
+              .map((theme) => theme.trim())
+              .filter(Boolean),
+          ),
+        ),
+      ).slice(0, 8);
+    }
+
     return {
-      federal: [...themeSpheres.federal, ...customThemes],
-      estadual: themeSpheres.estadual,
-      municipal: municipalThemes,
+      federal: themesFromCards(grouped.federal),
+      estadual: themesFromCards(grouped.estadual),
+      municipal: themesFromCards(grouped.municipal),
+      interesse: [
+        ...themesFromCards(grouped.interesse),
+        ...profileForm.interestProfiles
+          .map((row) => row.handle.trim())
+          .filter(Boolean)
+          .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
+      ],
       adversarios: [
-        ...profileForm.oppositionThemes.filter((theme) => theme.trim()),
+        ...themesFromCards(grouped.adversarios),
         ...profileForm.oppositionProfiles
           .map((row) => row.handle.trim())
           .filter(Boolean)
           .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
       ],
     };
-  }, [
-    profileForm.customRadarThemes,
-    profileForm.oppositionProfiles,
-    profileForm.oppositionThemes,
-    profileForm.sentinelThemesFederal,
-    profileForm.sentinelThemesEstadual,
-    grouped.municipal,
-  ]);
+  }, [grouped, profileForm.interestProfiles, profileForm.oppositionProfiles]);
 
   const interestSitesLabel = profileForm.interestSites.filter(Boolean).join(", ");
+  const municipalCitiesLabel = profileForm.municipalCities.filter(Boolean).join(", ");
+
+  function emptyMessageForSphere(sphere: MonitorSphere): string {
+    if (sphere === "municipal") {
+      const hasCities = profileForm.municipalCities.some((city) => city.trim());
+      const hasPortals = profileForm.interestSites.some((site) => site.trim());
+      if (hasCities && !hasPortals) {
+        return "Nenhuma pauta municipal ainda. Adicione links de portais regionais para ampliar a cobertura.";
+      }
+      if (hasCities || hasPortals) {
+        return "Nenhuma pauta municipal capturada nesta rodada. Tente atualizar as pautas mais tarde.";
+      }
+      return "Configure cidades e portais municipais no radar de temas.";
+    }
+    if (sphere === "interesse") {
+      const hasProfiles = profileForm.interestProfiles.some((row) => row.handle.trim());
+      if (hasProfiles) {
+        return "Nenhuma pauta de interesse capturada nesta rodada.";
+      }
+      return "Configure perfis @ de interesse no radar de temas.";
+    }
+    return "Nenhuma pauta nesta esfera ainda.";
+  }
 
   const firstPautarSuggestionId = useMemo(() => {
     for (const { sphere } of SECTIONS) {
@@ -299,7 +333,7 @@ export function MonitoramentoPage() {
       : undefined;
 
   return (
-    <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
+    <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20" data-testid="monitoramento-page">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
       <header className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 relative z-10">
@@ -327,6 +361,24 @@ export function MonitoramentoPage() {
           {meta?.refreshedAt ? (
             <span className="text-xs text-slate-500">
               Atualizado em {new Date(meta.refreshedAt).toLocaleString("pt-BR")}
+            </span>
+          ) : null}
+          {meta?.qualityRankStats || meta?.qualityReport || meta?.themeVerificationStats ? (
+            <span className="hidden sm:inline text-[10px] text-slate-500 max-w-[16rem] leading-snug">
+              {meta.qualityRankStats
+                ? `Rank LLM: ${meta.qualityRankStats.kept} mantidos / ${meta.qualityRankStats.dropped} fora`
+                : null}
+              {meta.qualityRankStats &&
+              (meta.themeVerificationStats || meta.qualityReport)
+                ? " · "
+                : null}
+              {meta.themeVerificationStats
+                ? `Verify ${meta.themeVerificationStats.llmCalls} LLM / ${meta.themeVerificationStats.cacheHits} cache`
+                : null}
+              {meta.themeVerificationStats && meta.qualityReport ? " · " : null}
+              {meta.qualityReport
+                ? `Heurística ${meta.qualityReport.newsPautavelPercent}% pautável`
+                : null}
             </span>
           ) : null}
           <RefreshPautasButton
@@ -372,6 +424,19 @@ export function MonitoramentoPage() {
               <Link href="/monitoramento/temas" className="text-cyan-300 underline hover:text-cyan-200">
                 Selecionar temas
               </Link>
+            </p>
+          </div>
+        ) : null}
+
+        {meta?.oppositionUnavailableReason ? (
+          <div
+            className="rounded-xl border border-amber-500/30 bg-amber-950/30 px-5 py-3"
+            role="status"
+            data-testid="opposition-unavailable-banner"
+          >
+            <p className="text-sm leading-relaxed text-amber-100/90">
+              <span className="font-semibold text-amber-200">Adversários: </span>
+              {meta.oppositionUnavailableReason}
             </p>
           </div>
         ) : null}
@@ -432,16 +497,21 @@ export function MonitoramentoPage() {
               ) : null}
 
               {!isLoading && !items.length ? (
-                <p className="text-sm text-slate-500">Nenhuma pauta nesta esfera ainda.</p>
+                <p className="text-sm text-slate-500">{emptyMessageForSphere(sphere)}</p>
               ) : null}
             </section>
           );
         })}
       </div>
 
-      {interestSitesLabel ? (
+      {municipalCitiesLabel || interestSitesLabel ? (
         <p className="mt-10 text-xs text-slate-500 relative z-10">
-          Portais municipais: {interestSitesLabel}
+          {[
+            municipalCitiesLabel ? `Cidades: ${municipalCitiesLabel}` : null,
+            interestSitesLabel ? `Portais municipais: ${interestSitesLabel}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       ) : null}
 

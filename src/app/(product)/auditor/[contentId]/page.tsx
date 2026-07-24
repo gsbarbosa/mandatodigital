@@ -6,5 +6,5 @@ export default async function AuditorDetailRoute({
   params: Promise<{ contentId: string }>;
 }) {
   await params;
-  redirect("/curador");
+  redirect("/auditoria");
 }

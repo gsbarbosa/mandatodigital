@@ -8,11 +8,16 @@ export function ThemeTagPill({
   onClick,
   disabled = false,
   children,
+  themeLabel,
+  sphere,
 }: {
   active: boolean;
   onClick: () => void;
   disabled?: boolean;
   children: ReactNode;
+  /** Label estável para e2e (data-theme). */
+  themeLabel?: string;
+  sphere?: "federal" | "estadual";
 }) {
   const base =
     "px-4 py-1.5 rounded-full border text-xs sm:text-sm font-medium transition-all select-none";
@@ -28,6 +33,11 @@ export function ThemeTagPill({
       type="button"
       onClick={onClick}
       disabled={disabled}
+      data-testid="theme-tag-pill"
+      data-theme={themeLabel}
+      data-sphere={sphere}
+      data-active={active ? "true" : "false"}
+      aria-pressed={active}
       className={`${base} ${disabled ? disabledClasses : active ? activeClasses : idle}`}
     >
       {children}

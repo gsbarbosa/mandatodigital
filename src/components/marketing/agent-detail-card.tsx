@@ -112,12 +112,15 @@ export function AgentDetailCard({ agent }: { agent: EcosystemAgent }) {
       </div>
 
       {agent.learnMoreHref ? (
-        <Link
-          href={agent.learnMoreHref as Route}
-          className="mt-6 inline-flex text-sm font-semibold text-emerald-400 hover:text-emerald-300"
-        >
-          Saiba mais →
-        </Link>
+        <div className="mt-6 flex justify-end">
+          <Link
+            href={agent.learnMoreHref as Route}
+            className={`inline-flex items-center gap-1.5 text-sm font-semibold transition hover:opacity-90 ${accent.text}`}
+          >
+            Saiba mais
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
       ) : null}
     </article>
   );

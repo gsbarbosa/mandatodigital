@@ -2,75 +2,48 @@ import { createHash } from "node:crypto";
 
 import {
   fetchInstagramProfilePosts,
-  isApifyConfigured,
+  isApifyReady,
   isInstagramFeedPost,
   normalizeInstagramHandle,
   type InstagramProfilePost,
 } from "@/lib/sentinel-instagram-posts";
-import { isSentinelSocialEnabled } from "@/lib/feature-flags";
 import type {
   MockSentinelSuggestion,
   SentinelVerifiedActor,
 } from "@/lib/sentinel-mock-suggestions";
-import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
-import { pickBestMatchedTheme, matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
+import { fetchGoogleNewsQuery } from "@/lib/sentinel-rss";
+import { weightedEngagement } from "@/lib/sphere-classifier";
 import type { PoliticianProfile, SocialHandle } from "@/lib/types";
 
-const MAX_OPPOSITION_SUGGESTIONS = 10;
-const MAX_POSTS_PER_PROFILE = 10;
+const MAX_OPPOSITION_SUGGESTIONS = 12;
+const MAX_INTEREST_SUGGESTIONS = 12;
+const MAX_POSTS_PER_PROFILE = 12;
 
-function buildOppositionSuggestionId(handle: string, postUrl: string) {
-  const hash = createHash("sha256").update(`opposition|${handle}|${postUrl}`).digest("hex").slice(0, 16);
-  return `sentinela-opposition-${hash}`;
+function buildProfilePostSuggestionId(
+  sourceList: "interest" | "opposition",
+  handle: string,
+  postUrl: string,
+) {
+  const hash = createHash("sha256")
+    .update(`${sourceList}|${handle}|${postUrl}`)
+    .digest("hex")
+    .slice(0, 16);
+  return `sentinela-${sourceList}-${hash}`;
 }
 
 function buildActor(
   row: SocialHandle,
   post: InstagramProfilePost,
+  sourceList: "interest" | "opposition",
 ): SentinelVerifiedActor {
   return {
     handle: normalizeInstagramHandle(row.handle),
     network: "instagram",
     postUrl: post.url,
     profileLabel: row.network,
-    sourceList: "opposition",
+    sourceList,
     publishedAt: post.publishedAt ?? undefined,
   };
-}
-
-function oppositionThemesToMatch(profile: PoliticianProfile): string[] {
-  const spheres = splitProfileThemesBySphere(profile);
-  return [
-    ...new Set([
-      ...profile.oppositionThemes.map((theme) => theme.trim()).filter(Boolean),
-      ...spheres.federal,
-      ...spheres.estadual,
-      ...spheres.municipalCustom,
-    ]),
-  ];
-}
-
-function scoreOppositionPost(input: {
-  matchedThemes: string[];
-  likes: number;
-  comments: number;
-  shares: number;
-  publishedAt: string | null;
-}): number {
-  let score = 50 + input.matchedThemes.length * 14;
-  score += Math.min(20, Math.log10(input.likes + 1) * 6);
-  score += Math.min(12, Math.log10(input.comments + 1) * 5);
-
-  if (input.publishedAt) {
-    const ageHours = (Date.now() - new Date(input.publishedAt).getTime()) / 3_600_000;
-    if (ageHours <= 48) {
-      score += 15;
-    } else if (ageHours <= 168) {
-      score += 8;
-    }
-  }
-
-  return Math.min(99, Math.max(25, Math.round(score)));
 }
 
 function captionHeadline(caption: string, handle: string) {
@@ -81,38 +54,34 @@ function captionHeadline(caption: string, handle: string) {
   return `Novo post de @${handle}`;
 }
 
+function defaultThemeLabel(handle: string) {
+  return `@${handle}`;
+}
+
 function suggestionFromPost(input: {
   row: SocialHandle;
   post: InstagramProfilePost;
-  matchThemes: string[];
+  sourceList: "interest" | "opposition";
 }): MockSentinelSuggestion | null {
   const handle = normalizeInstagramHandle(input.row.handle);
   if (!handle || !isInstagramFeedPost(input.post)) {
     return null;
   }
 
-  const haystack = input.post.caption.trim() || captionHeadline("", handle);
-  const matchedThemes = matchThemesWithSynonyms(haystack, input.matchThemes);
-  const themeLabel =
-    pickBestMatchedTheme(haystack, matchedThemes) ||
-    matchedThemes[0] ||
-    "Ação da Oposição";
-
-  const actor = buildActor(input.row, input.post);
-  const relevanceScore = scoreOppositionPost({
-    matchedThemes,
-    likes: input.post.likes,
-    comments: input.post.comments,
-    shares: input.post.shares,
-    publishedAt: input.post.publishedAt,
-  });
-
+  const likes = input.post.likes;
+  const comments = input.post.comments;
+  const shares = input.post.shares;
+  const engagement = weightedEngagement(likes, comments, shares);
+  // relevanceScore fica alinhado ao engajamento para ordenação/UI sem cruzar temas.
+  const relevanceScore = Math.min(99, Math.max(20, Math.round(30 + Math.log10(engagement + 1) * 22)));
+  const themeLabel = defaultThemeLabel(handle);
+  const actor = buildActor(input.row, input.post, input.sourceList);
   const headline = captionHeadline(input.post.caption, handle);
 
   return {
-    id: buildOppositionSuggestionId(handle, input.post.url),
+    id: buildProfilePostSuggestionId(input.sourceList, handle, input.post.url),
     themeLabel,
-    matchedThemes: matchedThemes.length > 0 ? matchedThemes : [themeLabel],
+    matchedThemes: [themeLabel],
     relevanceScore,
     pipeline: "social",
     topic: `@${handle} · ${headline}`,
@@ -123,9 +92,9 @@ function suggestionFromPost(input: {
       byNetwork: [
         {
           network: "instagram",
-          likes: input.post.likes,
-          comments: input.post.comments,
-          shares: input.post.shares,
+          likes,
+          comments,
+          shares,
         },
       ],
       actors: [actor],
@@ -134,56 +103,67 @@ function suggestionFromPost(input: {
     engagement: {
       relevanceScore,
       scoreTrendPercent: 0,
-      likes: input.post.likes,
-      comments: input.post.comments,
-      shares: input.post.shares,
+      likes,
+      comments,
+      shares,
       postsAnalyzed: 1,
       sources: ["instagram"],
       byNetwork: [
         {
           network: "instagram",
-          likes: input.post.likes,
-          comments: input.post.comments,
-          shares: input.post.shares,
+          likes,
+          comments,
+          shares,
         },
       ],
     },
   };
 }
 
-function isInstagramOppositionProfile(row: SocialHandle) {
+function isInstagramProfile(row: SocialHandle) {
   const network = row.network.trim().toLowerCase();
   return network.includes("instagram") || network === "ig";
 }
 
-export function oppositionMonitoringUnavailableReason() {
-  if (isApifyConfigured()) {
-    return null;
+function publishedAtMs(suggestion: MockSentinelSuggestion): number {
+  const raw = suggestion.evidence.actors?.[0]?.publishedAt;
+  if (!raw) {
+    return 0;
   }
-
-  if (!isSentinelSocialEnabled()) {
-    return "Ative SENTINEL_SOCIAL_ENABLED para monitorar os ultimos posts do Instagram dos adversarios.";
-  }
-
-  return "Configure APIFY_TOKEN ou APIFY_API_TOKEN para monitorar os ultimos posts do Instagram dos adversarios.";
+  const ms = new Date(raw).getTime();
+  return Number.isFinite(ms) ? ms : 0;
 }
 
-export async function buildOppositionPostSuggestions(
-  profile: PoliticianProfile,
-): Promise<MockSentinelSuggestion[]> {
-  const profiles = profile.oppositionProfiles.filter(
-    (row) => row.handle.trim() && isInstagramOppositionProfile(row),
-  );
+function sortByEngagementThenRecency(suggestions: MockSentinelSuggestion[]) {
+  return [...suggestions].sort((left, right) => {
+    const leftEng = weightedEngagement(
+      left.engagement.likes,
+      left.engagement.comments,
+      left.engagement.shares,
+    );
+    const rightEng = weightedEngagement(
+      right.engagement.likes,
+      right.engagement.comments,
+      right.engagement.shares,
+    );
+    if (rightEng !== leftEng) {
+      return rightEng - leftEng;
+    }
+    return publishedAtMs(right) - publishedAtMs(left);
+  });
+}
 
-  if (!profiles.length) {
+export async function buildInstagramProfilePostSuggestions(input: {
+  profiles: SocialHandle[];
+  sourceList: "interest" | "opposition";
+  maxSuggestions: number;
+}): Promise<MockSentinelSuggestion[]> {
+  const profiles = input.profiles.filter((row) => row.handle.trim() && isInstagramProfile(row));
+
+  if (!profiles.length || !(await isApifyReady())) {
     return [];
   }
 
-  if (!isApifyConfigured()) {
-    return [];
-  }
-
-  const matchThemes = oppositionThemesToMatch(profile);
   const suggestions: MockSentinelSuggestion[] = [];
   const seen = new Set<string>();
 
@@ -197,7 +177,11 @@ export async function buildOppositionPostSuggestions(
         continue;
       }
 
-      const suggestion = suggestionFromPost({ row, post, matchThemes });
+      const suggestion = suggestionFromPost({
+        row,
+        post,
+        sourceList: input.sourceList,
+      });
       if (!suggestion) {
         continue;
       }
@@ -207,7 +191,119 @@ export async function buildOppositionPostSuggestions(
     }
   }
 
-  return suggestions
-    .sort((left, right) => right.relevanceScore - left.relevanceScore)
-    .slice(0, MAX_OPPOSITION_SUGGESTIONS);
+  return sortByEngagementThenRecency(suggestions).slice(0, input.maxSuggestions);
+}
+
+export function oppositionMonitoringUnavailableReason(): string | null {
+  // Posts de adversários usam Apify quando disponível; sem cota/token caem no Google News.
+  return null;
+}
+
+async function buildOppositionNewsFallbacks(
+  profile: PoliticianProfile,
+  rows: SocialHandle[],
+): Promise<MockSentinelSuggestion[]> {
+  const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
+  const suggestions: MockSentinelSuggestion[] = [];
+  const seen = new Set<string>();
+
+  for (const row of rows) {
+    const handle = normalizeInstagramHandle(row.handle);
+    if (!handle) {
+      continue;
+    }
+
+    const queries = [`"@${handle}"`, `${handle} Instagram`, `${handle} ${geo}`.trim()]
+      .filter((query) => query.replace(/\s/g, "").length >= 3)
+      .slice(0, 2);
+    const batches = await Promise.all(queries.map((query) => fetchGoogleNewsQuery(query)));
+
+    for (const item of batches.flat()) {
+      const key = `${handle}|${item.link}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+
+      const publishedAt = item.pubDate ?? item.publishedAt?.toISOString();
+      const themeLabel = `@${handle}`;
+      const relevanceScore = 42;
+      const actor: SentinelVerifiedActor = {
+        handle,
+        network: "instagram",
+        postUrl: item.link,
+        profileLabel: row.network,
+        sourceList: "opposition",
+        publishedAt,
+      };
+
+      suggestions.push({
+        id: buildProfilePostSuggestionId("opposition", handle, item.link),
+        themeLabel,
+        matchedThemes: [themeLabel],
+        relevanceScore,
+        pipeline: "social",
+        topic: `@${handle} · ${item.title.slice(0, 100)}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [{ network: "instagram", likes: 0, comments: 0, shares: 0 }],
+          actors: [actor],
+          articles: [
+            {
+              title: item.title,
+              url: item.link,
+              sourceName: item.sourceName,
+              publishedAt,
+            },
+          ],
+        },
+        engagement: {
+          relevanceScore,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: ["instagram"],
+          byNetwork: [{ network: "instagram", likes: 0, comments: 0, shares: 0 }],
+        },
+      });
+    }
+  }
+
+  return sortByEngagementThenRecency(suggestions).slice(0, MAX_OPPOSITION_SUGGESTIONS);
+}
+
+export async function buildOppositionPostSuggestions(
+  profile: PoliticianProfile,
+): Promise<MockSentinelSuggestion[]> {
+  const fromApify = await buildInstagramProfilePostSuggestions({
+    profiles: profile.oppositionProfiles,
+    sourceList: "opposition",
+    maxSuggestions: MAX_OPPOSITION_SUGGESTIONS,
+  });
+  if (fromApify.length) {
+    return fromApify;
+  }
+
+  const rows = profile.oppositionProfiles.filter(
+    (row) => row.handle.trim() && isInstagramProfile(row),
+  );
+  if (!rows.length) {
+    return [];
+  }
+
+  return buildOppositionNewsFallbacks(profile, rows);
+}
+
+export async function buildInterestPostSuggestions(
+  profile: PoliticianProfile,
+): Promise<MockSentinelSuggestion[]> {
+  return buildInstagramProfilePostSuggestions({
+    profiles: profile.interestProfiles,
+    sourceList: "interest",
+    maxSuggestions: MAX_INTEREST_SUGGESTIONS,
+  });
 }

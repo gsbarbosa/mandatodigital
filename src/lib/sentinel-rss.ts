@@ -7,10 +7,12 @@ import {
   hasAdversaryRadar,
   hasEstadualRadar,
   hasFederalRadar,
-  hasMunicipalRadar,
+  resolveInterestThemes,
   splitProfileThemesBySphere,
 } from "@/lib/sentinel-profile-themes";
+import { MAX_THEMES_PER_SPHERE } from "@/lib/sphere-theme-catalog";
 import { matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
+import { softQualityPenaltyForTitle } from "@/lib/sentinel-title-filters";
 import { normalizeSentinelText } from "@/lib/sentinel-text";
 
 export { normalizeSentinelText } from "@/lib/sentinel-text";
@@ -30,7 +32,8 @@ export type RssNewsItem = {
   siteHost?: string;
 };
 
-const MAX_THEME_QUERIES = 4;
+/** Alinhado ao teto de temas por esfera — o 5º tema precisa virar query. */
+const MAX_THEME_QUERIES = MAX_THEMES_PER_SPHERE;
 const MAX_PORTAL_SITES_PER_LIST = 10;
 const MAX_COLLECTED_NEWS_ITEMS = 350;
 const RSS_FETCH_TIMEOUT_MS = 12_000;
@@ -187,11 +190,20 @@ export function decodeXmlEntities(text: string) {
   return text
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
     .replace(/&amp;/g, "&")
+    .replace(/&#x([0-9a-fA-F]+);/gi, (match, hex: string) => {
+      const code = Number.parseInt(hex, 16);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    })
+    .replace(/&#(\d+);/g, (match, dec: string) => {
+      const code = Number.parseInt(dec, 10);
+      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+    })
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
     .trim();
 }
 
@@ -369,25 +381,38 @@ export function normalizePortalHost(site: string) {
 }
 
 export function buildSentinelRssQueries(profile: PoliticianProfile) {
-  const { federal, estadual, municipalCustom } = splitProfileThemesBySphere(profile);
+  const { municipalCustom } = splitProfileThemesBySphere(profile);
+  const interest = resolveInterestThemes(profile);
   const queries: string[] = [];
-  const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
   const state = profile.state.trim().toUpperCase();
+  const cities = profile.municipalCities.map((city) => city.trim()).filter(Boolean);
 
-  if (geo && (hasMunicipalRadar(profile) || municipalCustom.length > 0)) {
-    queries.push(geo);
+  for (const city of cities) {
+    const geo = [city, state].filter(Boolean).join(" ");
+    if (geo) {
+      queries.push(geo);
+    }
   }
 
-  for (const theme of federal.slice(0, MAX_THEME_QUERIES)) {
+  for (const theme of interest.slice(0, MAX_THEME_QUERIES)) {
     queries.push(`${theme} Brasil`);
+    if (state) {
+      queries.push(`${theme} ${state}`);
+    }
+    for (const city of cities) {
+      queries.push(`${theme} ${city}`);
+    }
   }
 
-  for (const theme of estadual.slice(0, MAX_THEME_QUERIES)) {
-    queries.push(state ? `${theme} ${state}` : theme);
-  }
-
-  for (const theme of municipalCustom.slice(0, 3)) {
-    queries.push(geo ? `${theme} ${geo}` : theme);
+  for (const theme of municipalCustom.slice(0, MAX_THEME_QUERIES)) {
+    if (cities.length === 0) {
+      queries.push(theme);
+      continue;
+    }
+    for (const city of cities) {
+      const geo = [city, state].filter(Boolean).join(" ");
+      queries.push(geo ? `${theme} ${geo}` : theme);
+    }
   }
 
   return [...new Set(queries)];
@@ -411,14 +436,91 @@ export function isPortalOriginArticle(article: RssNewsItem) {
   return article.origin === "portal-rss" || article.origin === "google-news-site";
 }
 
+function stemTitleToken(word: string) {
+  if (word.length < 5) {
+    return word;
+  }
+  if (word.endsWith("oes") && word.length >= 6) {
+    return `${word.slice(0, -3)}ao`;
+  }
+  if (word.endsWith("ais") && word.length >= 6) {
+    return `${word.slice(0, -2)}l`;
+  }
+  if ((word.endsWith("as") || word.endsWith("os")) && word.length >= 6) {
+    return word.slice(0, -1);
+  }
+  if ((word.endsWith("a") || word.endsWith("o") || word.endsWith("s")) && word.length >= 6) {
+    return word.slice(0, -1);
+  }
+  return word;
+}
+
+/** Números relevantes da manchete (ex.: 5,6% → n56; 32,4 → n324). */
+export function extractTitleNumericSignals(title: string) {
+  const normalized = normalizeSentinelText(title).replace(/(\d)\s*[.,]\s*(\d)/g, "$1$2");
+  const signals = new Set<string>();
+  for (const match of normalized.matchAll(/\b\d{2,4}\b/g)) {
+    signals.add(`n${match[0]}`);
+  }
+  return [...signals];
+}
+
 export function buildStoryClusterKey(title: string) {
-  const words = normalizeSentinelText(title)
+  const normalized = normalizeSentinelText(title).replace(/(\d)\s*[.,]\s*(\d)/g, "$1$2");
+  const words = normalized
     .split(" ")
     .filter((word) => word.length >= 4 && !TITLE_STOP_WORDS.has(word))
-    .sort()
-    .slice(0, 5);
+    .map(stemTitleToken)
+    .filter((word) => word.length >= 4);
 
-  return words.join("|");
+  const tokens = [...new Set([...words, ...extractTitleNumericSignals(title)])].sort().slice(0, 7);
+  return tokens.join("|");
+}
+
+function storyClusterKeysSimilar(left: string, right: string) {
+  if (!left || !right) {
+    return false;
+  }
+  if (left === right) {
+    return true;
+  }
+
+  const leftWords = new Set(left.split("|").filter(Boolean));
+  const rightWords = new Set(right.split("|").filter(Boolean));
+  let overlap = 0;
+
+  for (const word of leftWords) {
+    if (rightWords.has(word)) {
+      overlap += 1;
+    }
+  }
+
+  const leftNums = [...leftWords].filter((word) => word.startsWith("n"));
+  const sharedNum = leftNums.some((word) => rightWords.has(word));
+
+  // Mesmo número + 1 token lexical = mesma pauta (ex.: desemprego 5,6%).
+  if (sharedNum && overlap >= 2) {
+    return true;
+  }
+
+  // 2 tokens longos já costumam identificar a mesma pauta parafraseada.
+  if (overlap >= 2) {
+    return true;
+  }
+
+  const unionSize = new Set([...leftWords, ...rightWords]).size;
+  if (unionSize === 0) {
+    return false;
+  }
+  return overlap / unionSize >= 0.5 && overlap >= 1;
+}
+
+/** Compara títulos brutos (cluster key) — usado no agrupamento RSS e no near-dup de cards. */
+export function titlesAreNearDuplicate(leftTitle: string, rightTitle: string) {
+  return storyClusterKeysSimilar(
+    buildStoryClusterKey(leftTitle),
+    buildStoryClusterKey(rightTitle),
+  );
 }
 
 export function countUniqueOutlets(articles: RssNewsItem[]) {
@@ -880,11 +982,17 @@ export function scoreSentinelArticle(
   score += matchedOpposition.length * 10;
 
   if (article.siteList === "federal") {
-    score += 7;
+    score += 10;
   } else if (article.siteList === "estadual") {
-    score += 7;
+    score += 12;
   } else if (article.siteList === "interest") {
-    score += 5;
+    score += 8;
+  }
+
+  if (article.origin === "portal-rss") {
+    score += 8;
+  } else if (article.origin === "bing-news") {
+    score += 3;
   }
 
   const normalizedTitle = normalizeSentinelText(article.title);
@@ -917,6 +1025,8 @@ export function scoreSentinelArticle(
     score += Math.max(0, cluster.articleCount - 1) * 4;
   }
 
+  score -= softQualityPenaltyForTitle(article.title);
+
   return Math.min(99, Math.max(10, score));
 }
 
@@ -929,24 +1039,6 @@ type ScoredArticle = {
   pipeline?: string;
   sphere?: "federal" | "estadual" | "municipal";
 };
-
-function storyClusterKeysSimilar(left: string, right: string) {
-  if (left === right) {
-    return true;
-  }
-
-  const leftWords = new Set(left.split("|").filter(Boolean));
-  const rightWords = new Set(right.split("|").filter(Boolean));
-  let overlap = 0;
-
-  for (const word of leftWords) {
-    if (rightWords.has(word)) {
-      overlap += 1;
-    }
-  }
-
-  return overlap >= 3;
-}
 
 export function clusterScoredArticles(scored: ScoredArticle[]) {
   const byTheme = new Map<string, ScoredArticle[]>();

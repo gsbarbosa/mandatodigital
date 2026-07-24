@@ -8,6 +8,11 @@ export function MarketingSection({
   lead,
   children,
   className = "",
+  align = "left",
+  contentGapClassName = "mt-10",
+  titleNoWrap = false,
+  justifyLead = false,
+  wideLead = false,
 }: {
   id?: string;
   eyebrow?: string;
@@ -16,8 +21,20 @@ export function MarketingSection({
   lead?: string;
   children?: ReactNode;
   className?: string;
+  align?: "left" | "center";
+  contentGapClassName?: string;
+  titleNoWrap?: boolean;
+  justifyLead?: boolean;
+  wideLead?: boolean;
 }) {
   const TitleTag = titleAs;
+  const centered = align === "center";
+  const titleClass = titleNoWrap
+    ? "m-0 whitespace-nowrap text-[clamp(0.65rem,3vw,2.3rem)] font-bold tracking-tight text-white"
+    : `m-0 text-3xl font-bold tracking-tight text-white sm:text-4xl ${centered ? "mx-auto text-center" : "max-w-3xl"}`;
+  const leadClass = justifyLead
+    ? "mt-4 text-justify text-base leading-relaxed text-slate-400 sm:text-lg"
+    : `mt-4 text-base leading-relaxed text-slate-400 sm:text-lg ${centered ? "mx-auto max-w-4xl text-center" : wideLead ? "" : "max-w-3xl"}`;
 
   return (
     <section
@@ -26,21 +43,17 @@ export function MarketingSection({
     >
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         {eyebrow ? (
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400/90">
+          <p
+            className={`mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400/90 ${centered ? "text-center" : ""}`}
+          >
             {eyebrow}
           </p>
         ) : null}
-        {title ? (
-          <TitleTag className="max-w-3xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            {title}
-          </TitleTag>
+        {title ? <TitleTag className={titleClass}>{title}</TitleTag> : null}
+        {lead ? <p className={leadClass}>{lead}</p> : null}
+        {children ? (
+          <div className={title || lead ? contentGapClassName : undefined}>{children}</div>
         ) : null}
-        {lead ? (
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-400 sm:text-lg">
-            {lead}
-          </p>
-        ) : null}
-        {children ? <div className={title || lead ? "mt-10" : undefined}>{children}</div> : null}
       </div>
     </section>
   );

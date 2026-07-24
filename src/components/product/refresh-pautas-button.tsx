@@ -46,6 +46,7 @@ export function RefreshPautasButton({
   return (
     <button
       type="button"
+      data-testid="refresh-pautas-button"
       className={`refresh-pautas-btn ${variantClass}${busy ? " is-loading" : ""}${className ? ` ${className}` : ""}`}
       onClick={handleClick}
       disabled={busy || disabled}

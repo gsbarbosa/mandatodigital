@@ -444,7 +444,7 @@ export function ProductionTemplateOption({
   isSelected,
   isAvailable,
   unavailableHint,
-  curadorHref = "/curador",
+  setupHref = "/avatares/foto-real/treinar" as Route,
   onSelect,
   preview,
 }: {
@@ -454,7 +454,8 @@ export function ProductionTemplateOption({
   isSelected: boolean;
   isAvailable: boolean;
   unavailableHint?: string;
-  curadorHref?: string;
+  /** Destination when the template is unavailable (treino, hub caricato/3d, etc.). */
+  setupHref?: Route;
   onSelect: () => void;
   preview: ReactNode;
 }) {
@@ -470,10 +471,10 @@ export function ProductionTemplateOption({
           <span className="persona-production-template-description">{description}</span>
         </div>
         <Link
-          href={curadorHref as Route}
+          href={setupHref}
           className="persona-production-template-curador-link"
         >
-          {unavailableHint ?? "Configurar no Curador"}
+          {unavailableHint ?? "Configurar avatar"}
           <span aria-hidden="true"> →</span>
         </Link>
       </div>

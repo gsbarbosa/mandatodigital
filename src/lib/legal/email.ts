@@ -12,7 +12,16 @@ export async function sendContractAcceptanceEmail(input: {
   acceptanceId: string;
   attachments: ContractEmailAttachment[];
 }) {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+  let apiKey = process.env.RESEND_API_KEY?.trim() || "";
+  try {
+    const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+    const resolved = await resolveProviderApiKey("resend");
+    if (resolved.token) {
+      apiKey = resolved.token;
+    }
+  } catch {
+    // Firestore indisponível — usa env.
+  }
   const from = process.env.EMAIL_FROM?.trim();
   const internalCopy = process.env.EMAIL_INTERNAL_COPY?.trim();
 

@@ -1,6 +1,6 @@
 import type { EarlyAccessPlanId } from "@/lib/early-access-types";
 
-export type UserRegistrationStatus = "incomplete" | "complete";
+export type UserRegistrationStatus = "incomplete" | "complete" | "reserve";
 
 /** Cadastro real do usuário (fonte da verdade no Firestore). */
 export type UserRegistration = {
@@ -23,8 +23,8 @@ export type UserRegistration = {
   completedAt: string | null;
 };
 
-/** Payload de conclusão do cadastro (form de dados pessoais). */
-export type UserRegistrationCompleteInput = {
+/** Payload de dados pessoais do cadastro. */
+export type UserRegistrationPersonalInput = {
   fullName: string;
   party: string;
   cpf: string;
@@ -35,5 +35,16 @@ export type UserRegistrationCompleteInput = {
   email: string;
   teamEmail: string;
   teamPhone: string;
+};
+
+/** Payload de conclusão do cadastro (dados + plano). */
+export type UserRegistrationCompleteInput = UserRegistrationPersonalInput & {
   planId: EarlyAccessPlanId;
+};
+
+export type SeatAssignment = {
+  status: "complete" | "reserve";
+  activeSeats: number;
+  maxSeats: number;
+  message: string;
 };

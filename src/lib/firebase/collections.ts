@@ -26,6 +26,8 @@ export const COLLECTIONS = {
   guestCredits: "guestCredits",
   /** Tasks do roadmap no painel de gestão (compartilhado). */
   adminRoadmapTasks: "adminRoadmapTasks",
+  /** Overrides de API keys de provedores (criptografados; só Admin SDK). */
+  adminProviderSecrets: "adminProviderSecrets",
   /** Threads de suporte N1/N2 (subcollection messages). */
   supportThreads: "supportThreads",
   /** Casos resolvidos para RAG do suporte (embeddings OpenAI). */

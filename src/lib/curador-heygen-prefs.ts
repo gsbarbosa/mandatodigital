@@ -120,8 +120,8 @@ export function sanitizeProviderFacingMessage(message: string) {
     .replace(/Voice Library do painel HeyGen/gi, "biblioteca de vozes do painel")
     .replace(/wallet da API da HeyGen/gi, "saldo da conta")
     .replace(/HeyGen falhou/gi, "A plataforma retornou um erro")
-    .replace(/Treinar \(HeyGen\)/gi, "treine no Curador")
-    .replace(/Preparar voz \(HeyGen\)/gi, "prepare a voz no Curador")
+    .replace(/Treinar \(HeyGen\)/gi, "treine em Configurar avatar")
+    .replace(/Preparar voz \(HeyGen\)/gi, "prepare a voz em Configurar avatar")
     .replace(/\s*\(HeyGen[^)]*\)/gi, "")
     .replace(/\s*—\s*HeyGen/gi, "")
     .replace(/\bHeyGen\b/gi, "a plataforma")
@@ -129,10 +129,11 @@ export function sanitizeProviderFacingMessage(message: string) {
     .replace(/\bHeyGen\b/gi, "a plataforma")
     .replace(/OPENAI_API_KEY/gi, "configuração do servidor")
     .replace(/HEYGEN_API_KEY/gi, "configuração do servidor")
-    .replace(/Utilizar Gêmeo Digital Atual/gi, "use o gêmeo já treinado no Curador")
-    .replace(/Treinar outro Gêmeo Digital/gi, "use Refazer no Curador")
+    .replace(/Utilizar Gêmeo Digital Atual/gi, "use o gêmeo já treinado")
+    .replace(/Treinar outro Gêmeo Digital/gi, "use Refazer no hub de Avatares")
     .replace(/Remover personagem caricato/gi, "Refazer no card Caricatura")
     .replace(/Remover gêmeo digital/gi, "Refazer no card Gêmeo digital")
+    .replace(/\bno Curador\b/gi, "em Configurar avatar")
     .replace(/\bVoice Library\b/gi, "biblioteca de vozes")
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -206,7 +207,7 @@ export function formatProviderLimitHint(message: string): string | null {
   if (normalized.includes("verified avatar group")) {
     hints.push(
       "Limite de gêmeo digital verificado: no plano atual só é permitido 1 slot ativo. " +
-        "Aguarde o treinamento em andamento ou use Refazer no Curador para treinar outro.",
+        "Aguarde o treinamento em andamento ou use Refazer no hub de Avatares para treinar outro.",
     );
   }
 

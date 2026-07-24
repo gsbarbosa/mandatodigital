@@ -13,7 +13,6 @@ import {
 } from "react";
 
 import { mergeProfileInputForSave } from "@/lib/profile-save";
-import { unionSentinelThemes } from "@/lib/sentinel-profile-themes";
 import {
   contentRequestInputSchema,
   profileInputSchema,
@@ -247,14 +246,12 @@ export function ProductAppProvider({
         referenceExamples: parseTextarea(profileForm.referenceExamples),
         bio: profileForm.bio,
         personaArchetypes: profileForm.personaArchetypes,
-        sentinelThemesFederal: profileForm.sentinelThemesFederal,
-        sentinelThemesEstadual: profileForm.sentinelThemesEstadual,
-        sentinelThemes: unionSentinelThemes({
-          federal: profileForm.sentinelThemesFederal,
-          estadual: profileForm.sentinelThemesEstadual,
-        }),
+        sentinelThemesFederal: profileForm.sentinelThemes,
+        sentinelThemesEstadual: profileForm.sentinelThemes,
+        sentinelThemes: profileForm.sentinelThemes,
         oppositionThemes: profileForm.oppositionThemes,
         customRadarThemes: profileForm.customRadarThemes.filter(Boolean),
+        municipalCities: profileForm.municipalCities.map((city) => city.trim()).filter(Boolean),
         interestProfiles: profileForm.interestProfiles.filter(
           (item) => item.network.trim() && item.handle.trim(),
         ),
@@ -752,7 +749,7 @@ export function ProductAppProvider({
   async function signOut() {
     clearEarlyAccessBrowserState();
     await fetch("/api/auth/signout", { method: "POST" });
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   const value: ProductAppContextValue = {

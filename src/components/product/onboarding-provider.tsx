@@ -63,8 +63,14 @@ function buildSignals(
   profileForm: ProfileFormState,
   trainingAssets: { trainingRole?: string | null }[],
 ): OnboardingSignals {
-  const federalCount = profileForm.sentinelThemesFederal?.length ?? 0;
-  const estadualCount = profileForm.sentinelThemesEstadual?.length ?? 0;
+  const interestCount = [
+    ...new Set([
+      ...(profileForm.sentinelThemes ?? []),
+      ...(profileForm.sentinelThemesFederal ?? []),
+      ...(profileForm.sentinelThemesEstadual ?? []),
+    ]),
+  ].filter((theme) => theme.trim()).length;
+  const hasCoverageUf = profileForm.state.trim().length === 2;
   const hasInterestSocial = (profileForm.interestProfiles ?? []).some((row) =>
     row.handle?.trim(),
   );
@@ -72,20 +78,21 @@ function buildSignals(
     row.handle?.trim(),
   );
   const hasMunicipalSignal =
+    (profileForm.municipalCities ?? []).some((city) => city.trim()) ||
     (profileForm.customRadarThemes ?? []).some((theme) => theme.trim()) ||
-    (profileForm.interestSites ?? []).some((site) => site.trim()) ||
-    hasInterestSocial;
+    (profileForm.interestSites ?? []).some((site) => site.trim());
 
   return {
-    hasFederalThemes: federalCount > 0,
-    hasEstadualThemes: estadualCount > 0,
+    hasFederalThemes: interestCount > 0,
+    hasEstadualThemes: hasCoverageUf,
     hasMunicipalSignal,
+    hasInterestSignal: hasInterestSocial,
     hasOppositionSignal: hasOppositionSocial,
     hasAvatarImage: trainingAssets.some((asset) => asset.trainingRole === "avatar_image"),
     hasVoiceAudio: trainingAssets.some((asset) => asset.trainingRole === "voice_audio"),
     hasPersonaSpectrum: Boolean(profileForm.spectrum?.trim()),
     hasGlossary: parseTextarea(profileForm.glossaryTerms ?? "").length > 0,
-    selectedThemeCount: federalCount + estadualCount,
+    selectedThemeCount: interestCount,
     hasSocialProfile: hasInterestSocial || hasOppositionSocial,
   };
 }

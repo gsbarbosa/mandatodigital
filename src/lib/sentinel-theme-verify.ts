@@ -8,6 +8,7 @@ import type { RssNewsItem } from "@/lib/sentinel-rss";
 import {
   SENTINEL_THEME_VERIFY_MODEL_VERSION,
   SENTINEL_THEME_VERIFY_TTL_DAYS,
+  SENTINEL_UMBRELLA_THEMES,
 } from "@/lib/sentinel-theme-verify-constants";
 import {
   readArticleThemeVerdicts,
@@ -24,6 +25,16 @@ export {
 export type { ArticleThemeVerdictRecord as ArticleThemeVerdict } from "@/lib/sentinel-theme-verify-storage";
 
 const LLM_CONCURRENCY = 5;
+/** Teto de calls LLM por refresh — com 5+5 temas a coleta facilmente passa de 100 artigos. */
+const DEFAULT_MAX_THEME_VERIFY_LLM = 40;
+
+function maxThemeVerifyLlmCalls() {
+  const raw = Number(process.env.SENTINEL_THEME_VERIFY_MAX_LLM?.trim() || DEFAULT_MAX_THEME_VERIFY_LLM);
+  if (!Number.isFinite(raw) || raw < 1) {
+    return DEFAULT_MAX_THEME_VERIFY_LLM;
+  }
+  return Math.floor(raw);
+}
 
 const themeVerifyResponseSchema = z.object({
   primaryTheme: z.string().trim().optional().default(""),
@@ -88,6 +99,11 @@ function buildVerifyPrompt(input: {
   candidateThemes: string[];
 }) {
   const themesList = input.candidateThemes.map((theme) => `- ${theme}`).join("\n");
+  const umbrellaHit = input.candidateThemes.some((theme) =>
+    SENTINEL_UMBRELLA_THEMES.some(
+      (umbrella) => normalizeSentinelText(umbrella) === normalizeSentinelText(theme),
+    ),
+  );
 
   return {
     system:
@@ -95,12 +111,19 @@ function buildVerifyPrompt(input: {
       "Responda apenas JSON valido: " +
       '{ "primaryTheme": "tema principal", "themes": [{ "theme": "...", "approved": true|false, "confidence": 0-1, "rationale": "..." }] }. ' +
       "Aprove somente quando a materia trata do tema de forma substantiva (nao basta mencao lateral). " +
-      "primaryTheme deve ser um dos temas aprovados com maior aderencia, ou string vazia se nenhum.",
+      "primaryTheme deve ser um dos temas aprovados com maior aderencia, ou string vazia se nenhum. " +
+      "Temas guarda-chuva (Fake News, Regulamentacao de Redes, Liberdade de Expressao, Transparencia): " +
+      "so aprove se houver fato politico concreto (PL, TSE/TRE, governo, plataforma, decisao judicial). " +
+      "Rejeite material educativo generico, 'como identificar fake news', Dia da Mentira, palestra academica " +
+      "ou alerta municipal operacional sem angulo politico.",
     user: [
       `Titulo: ${input.article.title.trim()}`,
       input.article.sourceName ? `Fonte: ${input.article.sourceName}` : "",
       input.article.pubDate ? `Data: ${input.article.pubDate}` : "",
       `Temas candidatos:\n${themesList}`,
+      umbrellaHit
+        ? "ATENCAO: ha tema guarda-chuva na lista — seja rigoroso no approved."
+        : "",
       "Para cada tema candidato, indique approved true/false.",
     ]
       .filter(Boolean)
@@ -207,7 +230,14 @@ export async function applyThemeVerificationBatch(
   };
 
   if (!isSentinelLlmThemeVerifyEnabled() || classified.length === 0) {
-    return { items: classified, stats };
+    return {
+      items: classified,
+      stats: {
+        ...stats,
+        // Distingue "verify off" de "verify rodou sem hits".
+        articlesProcessed: isSentinelLlmThemeVerifyEnabled() ? classified.length : 0,
+      },
+    };
   }
 
   const lookupKeys: Array<{ fingerprint: string; themeCanonical: string; themeLabel: string }> = [];
@@ -260,8 +290,10 @@ export async function applyThemeVerificationBatch(
   const newVerdicts: ArticleThemeVerdictRecord[] = [];
 
   if (articlesNeedingLlm.length > 0) {
+    const maxLlm = maxThemeVerifyLlmCalls();
+    const queue = articlesNeedingLlm.slice(0, maxLlm);
     const llmResults = await mapWithConcurrency(
-      articlesNeedingLlm,
+      queue,
       LLM_CONCURRENCY,
       async ({ item, uncachedThemes }) => {
         stats.llmCalls += 1;

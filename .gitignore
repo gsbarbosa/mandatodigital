@@ -5,6 +5,7 @@ coverage
 dist
 playwright-report
 test-results
+playwright/.auth/
 *.log
 .env
 .env.local
@@ -17,4 +18,4 @@ meta-app-review-credentials.txt
 data/mandato-digital.json
 *-firebase-adminsdk-*.json
 tsconfig.tsbuildinfo
-site_old/
+public/_ref_siteold/

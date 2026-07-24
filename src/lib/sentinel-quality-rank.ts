@@ -28,6 +28,8 @@ export type QualityRankOptions = {
   concurrency?: number;
   minScore?: number;
   profileLabel?: string;
+  /** false = no-op (guest / custo). Default: respeita a feature flag. */
+  enabled?: boolean;
 };
 
 function buildRankPrompt(suggestion: MockSentinelSuggestion, profileLabel: string) {
@@ -43,6 +45,9 @@ function buildRankPrompt(suggestion: MockSentinelSuggestion, profileLabel: strin
       '{ "pautavel": true|false, "score": 0-1, "briefing": "...", "creativeAngle": "..." }. ' +
       "pautavel=true so se a materia serve para um mandato produzir um criativo util nas proximas 24-48h " +
       "(fato concreto, angulo local/nacional claro, nao clickbait vazio). " +
+      "Rejeite (pautavel=false): ensaio/analise generica sem fato novo; " +
+      "opiniao tecnica ('a relacao de X com Y') sem evento concreto; " +
+      "classificado/concurso de vagas sem angulo politico util. " +
       "briefing: 1 frase objetiva. creativeAngle: gancho curto para video/post.",
     user: [
       profileLabel ? `Mandato/contexto: ${profileLabel}` : "",
@@ -104,7 +109,11 @@ export async function applySentinelQualityRank(
     dropped: 0,
   };
 
-  if (!isSentinelLlmQualityRankEnabled() || suggestions.length === 0) {
+  if (
+    options.enabled === false ||
+    !isSentinelLlmQualityRankEnabled() ||
+    suggestions.length === 0
+  ) {
     return { suggestions, stats };
   }
 
@@ -170,6 +179,8 @@ export async function applySentinelQualityRank(
       suggestion: {
         ...suggestion,
         topic: nextTopic.slice(0, 160),
+        briefing: briefing.trim().slice(0, 280) || suggestion.briefing,
+        creativeAngle: creativeAngle.trim().slice(0, 160) || suggestion.creativeAngle,
         relevanceScore: Math.max(
           suggestion.relevanceScore,
           Math.round(40 + score * 55),

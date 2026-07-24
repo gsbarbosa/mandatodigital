@@ -5,6 +5,7 @@ import {
   buildStoryClusterKey,
   clusterScoredArticles,
   countUniqueOutlets,
+  decodeXmlEntities,
   matchLiteralThemes,
   matchSentinelThemes,
   normalizeSentinelText,
@@ -36,6 +37,7 @@ const sampleProfile: PoliticianProfile = {
   sentinelThemesEstadual: ["Segurança Pública"],
   oppositionThemes: ["Endurecimento de Penas"],
   customRadarThemes: ["fila do SUS"],
+  municipalCities: ["Campinas"],
   interestProfiles: [],
   interestSites: ["g1.com.br"],
   oppositionProfiles: [],
@@ -115,6 +117,27 @@ describe("sentinel-rss", () => {
     expect(normalizeSentinelText("Reforma Tributária")).toBe("reforma tributaria");
   });
 
+  it("decodifica entidades HTML numericas em titulos do RSS", () => {
+    expect(
+      decodeXmlEntities(
+        "A Reforma Tribut&#225;ria &#233; digital: transforma&#231;&#227;o fiscal",
+      ),
+    ).toBe("A Reforma Tributária é digital: transformação fiscal");
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+      <rss><channel>
+        <item>
+          <title>A Reforma Tribut&#225;ria &#233; digital</title>
+          <link>https://bing.com/news/example</link>
+          <pubDate>Mon, 23 Jun 2026 10:00:00 GMT</pubDate>
+          <source>bing.com</source>
+        </item>
+      </channel></rss>`;
+
+    const items = parseGoogleNewsRss(xml);
+    expect(items[0]?.title).toBe("A Reforma Tributária é digital");
+  });
+
   it("faz parse basico de RSS do Google News", () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
       <rss><channel>
@@ -141,9 +164,53 @@ describe("sentinel-rss", () => {
     expect(queries.some((query) => query.includes("Vacinação") && query.includes("Brasil"))).toBe(
       true,
     );
+    expect(queries.some((query) => query.includes("Vacinação") && query.includes("Campinas"))).toBe(
+      true,
+    );
     expect(queries.some((query) => query.includes("fila do SUS"))).toBe(true);
     expect(queries.some((query) => query.includes("Endurecimento de Penas"))).toBe(false);
     expect(queries.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("inclui ate o teto de temas de interesse nas queries", () => {
+    const profile = {
+      ...sampleProfile,
+      sentinelThemesFederal: [
+        "Vacinação",
+        "Desemprego",
+        "Carga Tributária",
+        "Inflação e Preços",
+        "Empreendedorismo",
+        "Privatizações",
+      ],
+      sentinelThemesEstadual: [
+        "Segurança Pública",
+        "Saúde Pública (SUS)",
+        "Educação Básica",
+        "Mobilidade Urbana",
+        "Saneamento Básico",
+        "Agricultura Familiar",
+      ],
+      sentinelThemes: [],
+      customRadarThemes: [
+        "fila do SUS",
+        "obra da orla",
+        "IPTU",
+        "feira livre",
+        "ciclofaixa",
+        "extra",
+        "horta comunitária",
+        "creche noturna",
+        "fora do teto",
+      ],
+    };
+    const queries = buildSentinelRssQueries(profile);
+    expect(queries.filter((q) => q.endsWith(" Brasil"))).toHaveLength(8);
+    expect(queries.some((q) => q.includes("Agricultura Familiar"))).toBe(false);
+    expect(queries.some((q) => q.includes("ciclofaixa"))).toBe(true);
+    expect(queries.some((q) => q.includes("creche noturna"))).toBe(true);
+    expect(queries.some((q) => q.includes("fora do teto"))).toBe(false);
+    expect(queries.some((q) => q.includes("Vacinação") && q.includes("Campinas"))).toBe(true);
   });
 
   it("associa temas do radar ao titulo da materia", () => {

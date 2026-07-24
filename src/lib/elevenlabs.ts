@@ -22,6 +22,19 @@ export function getElevenLabsConfig() {
   return { apiKey, baseUrl, ttsModelId, ttsLanguageCode, ttsOutputFormat };
 }
 
+async function resolveElevenLabsApiKey() {
+  try {
+    const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
+    const resolved = await resolveProviderApiKey("elevenlabs");
+    if (resolved.token) {
+      return resolved.token;
+    }
+  } catch {
+    // Firestore/admin indisponível em testes — cai no env.
+  }
+  return getElevenLabsConfig().apiKey;
+}
+
 export function formatElevenLabsError(error: unknown) {
   if (!error) return "Erro desconhecido na ElevenLabs.";
   if (error instanceof Error) return error.message;
@@ -69,21 +82,55 @@ function messageFromElevenLabsBody(json: unknown, status: number) {
 
 async function elevenLabsFetch(path: string, init?: RequestInit) {
   const config = getElevenLabsConfig();
-  if (!config.apiKey) {
-    throw new Error(
-      "Servico de voz (ElevenLabs) indisponivel. Configure ELEVENLABS_API_KEY.",
-    );
+
+  const execute = async (apiKey: string) => {
+    if (!apiKey) {
+      throw new Error(
+        "Servico de voz (ElevenLabs) indisponivel. Configure ELEVENLABS_API_KEY.",
+      );
+    }
+
+    const response = await fetch(`${config.baseUrl}${path}`, {
+      ...init,
+      headers: {
+        "xi-api-key": apiKey,
+        ...(init?.headers ?? {}),
+      },
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      const message = messageFromElevenLabsBody(
+        (() => {
+          try {
+            return body ? JSON.parse(body) : null;
+          } catch {
+            return null;
+          }
+        })(),
+        response.status,
+      );
+      const { ProviderHttpError } = await import("@/lib/admin/provider-key-pool");
+      throw new ProviderHttpError({
+        providerId: "elevenlabs",
+        status: response.status,
+        message,
+        body: body.slice(0, 400),
+      });
+    }
+
+    return response;
+  };
+
+  try {
+    const { runWithProviderKeyPool } = await import("@/lib/admin/provider-key-pool");
+    return await runWithProviderKeyPool("elevenlabs", async (token) => execute(token));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Nenhuma API key")) {
+      return execute(await resolveElevenLabsApiKey());
+    }
+    throw error;
   }
-
-  const response = await fetch(`${config.baseUrl}${path}`, {
-    ...init,
-    headers: {
-      "xi-api-key": config.apiKey,
-      ...(init?.headers ?? {}),
-    },
-  });
-
-  return response;
 }
 
 async function downloadAudioFromUrl(url: string) {

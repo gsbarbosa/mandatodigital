@@ -1,4 +1,8 @@
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
+import {
+  isLikelyJobListingTitle,
+  isWeakFakeNewsTitle,
+} from "@/lib/sentinel-title-filters";
 
 /** Limiar padrão: card com score ≥ isso conta como pautável na métrica da spike. */
 export const SENTINEL_PAUTAVEL_THRESHOLD = 0.55;
@@ -119,14 +123,23 @@ export function scoreSuggestionPautavel(suggestion: MockSentinelSuggestion): Sen
   } else if (outlets >= 2) {
     score += 0.1;
     reasons.push("2 veiculos");
-  } else if (outlets >= 1) {
-    score += 0.05;
+  } else if (outlets === 1) {
+    score -= 0.05;
+    reasons.push("outlet unico");
   }
 
   const titleNorm = title.toLowerCase();
   if (GENERIC_TITLE_MARKERS.some((marker) => titleNorm.includes(marker)) && title.length < 40) {
     score -= 0.15;
     reasons.push("titulo generico");
+  }
+
+  if (isLikelyJobListingTitle(title)) {
+    score -= 0.35;
+    reasons.push("classificado de vagas");
+  } else if (isWeakFakeNewsTitle(title)) {
+    score -= 0.25;
+    reasons.push("fake news generica");
   }
 
   if ((suggestion.matchedThemes?.length ?? 0) >= 2) {

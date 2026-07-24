@@ -42,5 +42,11 @@ export async function signInWithGoogle(auth: Auth): Promise<UserCredential | nul
 }
 
 export async function completeSocialRedirectSignIn(auth: Auth) {
-  return getRedirectResult(auth);
+  // getRedirectResult pode pendurar em headless/E2E sem redirect pendente.
+  return Promise.race([
+    getRedirectResult(auth),
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), 4_000);
+    }),
+  ]);
 }

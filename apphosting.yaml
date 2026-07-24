@@ -135,9 +135,9 @@ env:
     availability:
       - RUNTIME
 
-  # Spike qualidade — off até validar custo/métrica (docs/spike-sentinela-qualidade.md)
+  # Spike qualidade — rank editorial top-N (custo ~premium; ver docs/spike-sentinela-qualidade.md)
   - variable: SENTINEL_LLM_QUALITY_RANK
-    value: "false"
+    value: "true"
     availability:
       - RUNTIME
 

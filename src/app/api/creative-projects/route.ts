@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     if (!profileId) {
       return NextResponse.json(
-        { message: "Salve o perfil no Curador antes de criar um criativo." },
+        { message: "Salve o perfil antes de criar um criativo." },
         { status: 400 },
       );
     }

@@ -25,7 +25,9 @@ type VerdictLookupKey = {
   themeLabel?: string;
 };
 
-const FIRESTORE_IN_QUERY_LIMIT = 10;
+/** getAll aceita no máx. ~100 refs por chamada na prática segura. */
+const FIRESTORE_GETALL_LIMIT = 100;
+const FIRESTORE_BATCH_LIMIT = 400;
 
 function nowIso() {
   return new Date().toISOString();
@@ -48,11 +50,15 @@ function mapVerdictRow(data: DocumentData): ArticleThemeVerdictRecord {
   };
 }
 
-function verdictIdentity(record: ArticleThemeVerdictRecord) {
-  return `${record.articleFingerprint}|${record.themeCanonical}|${record.modelVersion}`;
+function verdictIdentity(record: {
+  articleFingerprint: string;
+  themeCanonical: string;
+  modelVersion?: string;
+}) {
+  return `${record.articleFingerprint}|${record.themeCanonical}|${record.modelVersion ?? SENTINEL_THEME_VERIFY_MODEL_VERSION}`;
 }
 
-function chunkValues<T>(values: T[], size = FIRESTORE_IN_QUERY_LIMIT): T[][] {
+function chunkValues<T>(values: T[], size: number): T[][] {
   if (values.length === 0) {
     return [];
   }
@@ -64,31 +70,10 @@ function chunkValues<T>(values: T[], size = FIRESTORE_IN_QUERY_LIMIT): T[][] {
   return chunks;
 }
 
-async function queryVerdictCandidates(
-  fingerprints: string[],
-  themeCanonicals: string[],
-): Promise<ArticleThemeVerdictRecord[]> {
-  const rows: ArticleThemeVerdictRecord[] = [];
-  const fingerprintChunks = chunkValues(fingerprints);
-  const themeChunks = chunkValues(themeCanonicals);
-
-  for (const fingerprintChunk of fingerprintChunks) {
-    for (const themeChunk of themeChunks) {
-      const snap = await col(COLLECTIONS.sentinelArticleThemeVerdicts)
-        .where("modelVersion", "==", SENTINEL_THEME_VERIFY_MODEL_VERSION)
-        .where("articleFingerprint", "in", fingerprintChunk)
-        .where("themeCanonical", "in", themeChunk)
-        .get();
-
-      for (const doc of snap.docs) {
-        rows.push(mapVerdictRow(doc.data()));
-      }
-    }
-  }
-
-  return rows;
-}
-
+/**
+ * Lê vereditos por ID de documento (fingerprint|theme|version).
+ * Evita `in` × `in` no Firestore, que explode disjunctions (máx. 30).
+ */
 export async function readArticleThemeVerdicts(
   keys: VerdictLookupKey[],
 ): Promise<ArticleThemeVerdictRecord[]> {
@@ -96,25 +81,34 @@ export async function readArticleThemeVerdicts(
     return [];
   }
 
-  const uniqueFingerprints = [...new Set(keys.map((key) => key.fingerprint))];
-  const themeCanonicals = [...new Set(keys.map((key) => key.themeCanonical))];
-  const wanted = new Set(
-    keys.map(
-      (key) => `${key.fingerprint}|${key.themeCanonical}|${SENTINEL_THEME_VERIFY_MODEL_VERSION}`,
+  const uniqueIds = [
+    ...new Set(
+      keys.map(
+        (key) =>
+          `${key.fingerprint}|${key.themeCanonical}|${SENTINEL_THEME_VERIFY_MODEL_VERSION}`,
+      ),
     ),
-  );
+  ];
   const now = Date.now();
+  const db = getFirestore();
+  const rows: ArticleThemeVerdictRecord[] = [];
 
-  const candidates = await queryVerdictCandidates(uniqueFingerprints, themeCanonicals);
-
-  return candidates.filter((row) => {
-    if (!wanted.has(verdictIdentity(row))) {
-      return false;
+  for (const idChunk of chunkValues(uniqueIds, FIRESTORE_GETALL_LIMIT)) {
+    const refs = idChunk.map((id) => col(COLLECTIONS.sentinelArticleThemeVerdicts).doc(id));
+    const snaps = await db.getAll(...refs);
+    for (const snap of snaps) {
+      if (!snap.exists) {
+        continue;
+      }
+      const row = mapVerdictRow(snap.data() ?? {});
+      const expiresAt = new Date(row.expiresAt).getTime();
+      if (!Number.isNaN(expiresAt) && expiresAt > now) {
+        rows.push(row);
+      }
     }
+  }
 
-    const expiresAt = new Date(row.expiresAt).getTime();
-    return !Number.isNaN(expiresAt) && expiresAt > now;
-  });
+  return rows;
 }
 
 export async function writeArticleThemeVerdicts(records: ArticleThemeVerdictRecord[]) {
@@ -122,12 +116,13 @@ export async function writeArticleThemeVerdicts(records: ArticleThemeVerdictReco
     return;
   }
 
-  const batch = getFirestore().batch();
-
-  for (const record of records) {
-    const ref = col(COLLECTIONS.sentinelArticleThemeVerdicts).doc(verdictIdentity(record));
-    batch.set(ref, record);
+  const db = getFirestore();
+  for (const recordChunk of chunkValues(records, FIRESTORE_BATCH_LIMIT)) {
+    const batch = db.batch();
+    for (const record of recordChunk) {
+      const ref = col(COLLECTIONS.sentinelArticleThemeVerdicts).doc(verdictIdentity(record));
+      batch.set(ref, record);
+    }
+    await batch.commit();
   }
-
-  await batch.commit();
 }

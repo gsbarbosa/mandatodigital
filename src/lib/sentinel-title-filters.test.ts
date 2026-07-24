@@ -1,0 +1,267 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  isLikelyJobListingTitle,
+  isWeakFakeNewsTitle,
+  softQualityPenaltyForTitle,
+} from "./sentinel-title-filters";
+import { diversifySuggestionsByTheme } from "./sentinel-diversify";
+import type { MockSentinelSuggestion } from "./sentinel-mock-suggestions";
+
+describe("isLikelyJobListingTitle", () => {
+  it("detecta classificados de estágio e candidatura", () => {
+    expect(isLikelyJobListingTitle("IEL-MG abre vagas de estágio em Minas Gerais")).toBe(true);
+    expect(
+      isLikelyJobListingTitle("Bradesco abre inscrições para programa de estágio com vagas em MG"),
+    ).toBe(true);
+    expect(
+      isLikelyJobListingTitle("Minas Gerais tem 14 mil vagas; saiba como se candidatar"),
+    ).toBe(true);
+  });
+
+  it("nao marca fato politico de desemprego", () => {
+    expect(
+      isLikelyJobListingTitle("Minas Gerais atinge menor taxa de desemprego desde 2012"),
+    ).toBe(false);
+    expect(
+      isLikelyJobListingTitle("Carga tributária do Brasil atinge recorde de 32,4% do PIB"),
+    ).toBe(false);
+  });
+});
+
+describe("isWeakFakeNewsTitle", () => {
+  it("marca conteudo educativo generico", () => {
+    expect(isWeakFakeNewsTitle("No Dia da Mentira, saiba identificar e como evitar as fake news")).toBe(
+      true,
+    );
+    expect(isWeakFakeNewsTitle("Alerta de fake news! Barreiras continuam em funcionamento")).toBe(
+      true,
+    );
+  });
+
+  it("preserva fato politico sobre PL / TRE", () => {
+    expect(
+      isWeakFakeNewsTitle("TRE-MG firma pacto com partidos para combater fake news nas eleições"),
+    ).toBe(false);
+  });
+});
+
+describe("softQualityPenaltyForTitle", () => {
+  it("aplica penalidade forte em classificado", () => {
+    expect(softQualityPenaltyForTitle("Tem emprego! Empresa abre 23 vagas")).toBe(35);
+  });
+});
+
+describe("diversifySuggestionsByTheme", () => {
+  function card(id: string, theme: string, relevance: number): MockSentinelSuggestion {
+    return {
+      id,
+      themeLabel: theme,
+      matchedThemes: [theme],
+      relevanceScore: relevance,
+      topic: `${theme} · ${id}`,
+      evidence: {
+        postsAnalyzed: 1,
+        outletCount: 1,
+        engagementTrendPercent: 0,
+        byNetwork: [],
+        actors: [],
+        articles: [{ title: id, url: "https://x.com", sourceName: "X" }],
+      },
+      engagement: {
+        relevanceScore: relevance,
+        scoreTrendPercent: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        postsAnalyzed: 1,
+        sources: [],
+        byNetwork: [],
+      },
+    };
+  }
+
+  it("limita cards por tema sem completar com o mesmo tema", () => {
+    const input = [
+      card("d1", "Desemprego", 90),
+      card("d2", "Desemprego", 89),
+      card("d3", "Desemprego", 88),
+      card("d4", "Desemprego", 87),
+      card("d5", "Desemprego", 86),
+      card("c1", "Carga Tributária", 85),
+      card("c2", "Carga Tributária", 84),
+    ];
+    const out = diversifySuggestionsByTheme(input, { maxTotal: 6, maxPerTheme: 2 });
+    expect(out).toHaveLength(4);
+    expect(out.filter((s) => s.themeLabel === "Desemprego")).toHaveLength(2);
+    expect(out.filter((s) => s.themeLabel === "Carga Tributária")).toHaveLength(2);
+  });
+});
+
+describe("collapseNearDuplicateSuggestions", () => {
+  it("remove cards do mesmo tema com titulo quase igual", async () => {
+    const { collapseNearDuplicateSuggestions } = await import("./sentinel-diversify");
+    function card(id: string, theme: string, title: string, relevance: number): MockSentinelSuggestion {
+      return {
+        id,
+        themeLabel: theme,
+        matchedThemes: [theme],
+        relevanceScore: relevance,
+        topic: `${theme} · ${title}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [],
+          actors: [],
+          articles: [{ title, url: `https://x.com/${id}`, sourceName: "X" }],
+        },
+        engagement: {
+          relevanceScore: relevance,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: [],
+          byNetwork: [],
+        },
+      };
+    }
+
+    const out = collapseNearDuplicateSuggestions([
+      card(
+        "a",
+        "Segurança Pública",
+        "Campinas reforça segurança pública após operação",
+        90,
+      ),
+      card(
+        "b",
+        "Segurança Pública",
+        "Segurança pública é reforçada em Campinas após operação",
+        80,
+      ),
+      card("c", "Vacinação", "Vacinação contra gripe avança em Campinas", 70),
+    ]);
+
+    expect(out).toHaveLength(2);
+    expect(out.map((item) => item.id)).toEqual(["a", "c"]);
+  });
+
+  it("colapsa desemprego 5,6% parafraseado", async () => {
+    const { collapseNearDuplicateSuggestions } = await import("./sentinel-diversify");
+    const { titlesAreNearDuplicate } = await import("./sentinel-rss");
+    expect(
+      titlesAreNearDuplicate(
+        "Taxa de desemprego no país cai para 5,6% em maio e atinge menor nível histórico",
+        "Brasil tem 5,6% de desemprego, menor taxa da série histórica",
+      ),
+    ).toBe(true);
+
+    function card(id: string, title: string, relevance: number): MockSentinelSuggestion {
+      return {
+        id,
+        themeLabel: "Desemprego",
+        matchedThemes: ["Desemprego"],
+        relevanceScore: relevance,
+        topic: `Desemprego · ${title}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [],
+          actors: [],
+          articles: [{ title, url: `https://x.com/${id}`, sourceName: "X" }],
+        },
+        engagement: {
+          relevanceScore: relevance,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: [],
+          byNetwork: [],
+        },
+      };
+    }
+
+    const out = collapseNearDuplicateSuggestions([
+      card(
+        "a",
+        "Taxa de desemprego no país cai para 5,6% em maio e atinge menor nível histórico",
+        90,
+      ),
+      card("b", "Brasil tem 5,6% de desemprego, menor taxa da série histórica", 85),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]?.id).toBe("a");
+  });
+});
+
+describe("interleaveSuggestionsByTheme", () => {
+  it("alterna temas no topo", async () => {
+    const { interleaveSuggestionsByTheme } = await import("./sentinel-diversify");
+    function card(id: string, theme: string, relevance: number): MockSentinelSuggestion {
+      return {
+        id,
+        themeLabel: theme,
+        matchedThemes: [theme],
+        relevanceScore: relevance,
+        topic: `${theme} · ${id}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [],
+          actors: [],
+          articles: [{ title: id, url: "https://x.com", sourceName: "X" }],
+        },
+        engagement: {
+          relevanceScore: relevance,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: [],
+          byNetwork: [],
+        },
+      };
+    }
+    const out = interleaveSuggestionsByTheme([
+      card("d1", "Desemprego", 90),
+      card("d2", "Desemprego", 80),
+      card("c1", "Carga Tributária", 70),
+    ]);
+    expect(out.map((s) => s.themeLabel)).toEqual([
+      "Desemprego",
+      "Carga Tributária",
+      "Desemprego",
+    ]);
+  });
+});
+
+describe("orderClusterArticlesForDisplay", () => {
+  it("mantem primary em articles[0]", async () => {
+    const { orderClusterArticlesForDisplay } = await import("./sentinel-cluster-order");
+    const primary = {
+      title: "Primary",
+      link: "https://a.com/1",
+      pubDate: null,
+      publishedAt: new Date("2026-01-01"),
+      sourceName: "A",
+    };
+    const newer = {
+      title: "Newer",
+      link: "https://a.com/2",
+      pubDate: null,
+      publishedAt: new Date("2026-01-02"),
+      sourceName: "B",
+    };
+    const ordered = orderClusterArticlesForDisplay(primary, [newer, primary], 4);
+    expect(ordered[0]?.title).toBe("Primary");
+    expect(ordered[1]?.title).toBe("Newer");
+  });
+});

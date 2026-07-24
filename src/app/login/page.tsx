@@ -2,21 +2,26 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
 
-import { APP_HOME_PATH } from "@/lib/app-home";
 import { getSessionUser } from "@/lib/auth/session";
 import { getAuthSetupMessage, isFirebaseAuthConfigured } from "@/lib/firebase/env";
-import { REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
+import { resolvePostLoginPath } from "@/lib/registration-gate";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
+  needsPlanSelection,
 } from "@/lib/user-registration-storage";
 
 import { LoginForm } from "./login-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
   const setupMessage = getAuthSetupMessage();
+  const params = await searchParams;
 
   if (isFirebaseAuthConfigured()) {
     const sessionUser = await getSessionUser();
@@ -26,9 +31,11 @@ export default async function LoginPage() {
         email: sessionUser.email,
       });
       redirect(
-        (isUserRegistrationComplete(registration)
-          ? APP_HOME_PATH
-          : REGISTRATION_REQUIRED_PATH) as Route,
+        resolvePostLoginPath({
+          registrationComplete: isUserRegistrationComplete(registration),
+          needsPlanSelection: needsPlanSelection(registration),
+          nextPath: params.next,
+        }) as Route,
       );
     }
   }

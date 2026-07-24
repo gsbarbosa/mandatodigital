@@ -5,10 +5,14 @@ import { MarketingHomePage } from "@/components/marketing/marketing-home-page";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { getSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
-import { REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
+import {
+  PLAN_SELECTION_PATH,
+  REGISTRATION_REQUIRED_PATH,
+} from "@/lib/registration-gate";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
+  needsPlanSelection,
 } from "@/lib/user-registration-storage";
 
 export const metadata: Metadata = {
@@ -32,7 +36,11 @@ export default async function HomePage() {
         email: sessionUser.email,
       });
       if (!isUserRegistrationComplete(registration)) {
-        redirect(REGISTRATION_REQUIRED_PATH);
+        redirect(
+          needsPlanSelection(registration)
+            ? PLAN_SELECTION_PATH
+            : REGISTRATION_REQUIRED_PATH,
+        );
       }
     }
   }

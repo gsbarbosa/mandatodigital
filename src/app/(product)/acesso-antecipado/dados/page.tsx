@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { AcessoDadosPage } from "@/components/product/acesso-antecipado/dados-page";
 
 export const metadata = {
@@ -5,5 +7,15 @@ export const metadata = {
 };
 
 export default function AcessoDadosRoute() {
-  return <AcessoDadosPage />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-400">
+          Carregando cadastro...
+        </div>
+      }
+    >
+      <AcessoDadosPage />
+    </Suspense>
+  );
 }

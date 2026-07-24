@@ -12,6 +12,7 @@ import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
+  needsPlanSelection,
 } from "@/lib/user-registration-storage";
 
 export async function POST(request: Request) {
@@ -49,12 +50,14 @@ export async function POST(request: Request) {
     });
 
     let registrationComplete = false;
+    let needsPlan = false;
     try {
       const registration = await ensureUserRegistration({
         ownerUserId: decoded.uid,
         email: decoded.email ?? "",
       });
       registrationComplete = isUserRegistrationComplete(registration);
+      needsPlan = needsPlanSelection(registration);
     } catch (bootstrapError) {
       console.error("[auth/session] ensureUserRegistration failed:", bootstrapError);
     }
@@ -66,6 +69,7 @@ export async function POST(request: Request) {
       payload: {
         email: decoded.email ?? "",
         registrationComplete,
+        needsPlanSelection: needsPlan,
       },
     });
 
@@ -73,6 +77,7 @@ export async function POST(request: Request) {
       ok: true,
       email: decoded.email ?? "",
       registrationComplete,
+      needsPlanSelection: needsPlan,
     });
   } catch (error) {
     console.error("[auth/session] createSessionCookie failed:", error);

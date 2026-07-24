@@ -34,6 +34,7 @@ const baseProfile: PoliticianProfile = {
   sentinelThemes: ["Vacinação", "Desemprego"],
   oppositionThemes: [],
   customRadarThemes: [],
+  municipalCities: [],
   interestProfiles: [],
   interestSites: [],
   oppositionProfiles: [],
@@ -74,18 +75,19 @@ describe("sentinel-portal-catalog", () => {
 });
 
 describe("sentinel-profile-themes", () => {
-  it("separa temas federal e estadual pelos catálogos explícitos", () => {
+  it("unifica temas de interesse nas duas colunas (compat RSS)", () => {
     const split = splitProfileThemesBySphere({
       ...baseProfile,
       sentinelThemesFederal: ["Reforma Fiscal"],
       sentinelThemesEstadual: ["Desemprego"],
       sentinelThemes: ["Reforma Fiscal", "Desemprego"],
     });
-    expect(split.federal).toEqual(["Reforma Fiscal"]);
-    expect(split.estadual).toEqual(["Desemprego"]);
+    expect(split.federal).toEqual(["Reforma Fiscal", "Desemprego"]);
+    expect(split.estadual).toEqual(["Reforma Fiscal", "Desemprego"]);
+    expect(split.interest).toEqual(["Reforma Fiscal", "Desemprego"]);
   });
 
-  it("nao duplica tema compartilhado entre esferas quando atribuido explicitamente", () => {
+  it("resolve colunas explícitas sem forçar união no resolveSentinelThemeSpheres", () => {
     const spheres = resolveSentinelThemeSpheres({
       sentinelThemes: ["Contratos Públicos"],
       sentinelThemesFederal: [],
@@ -95,26 +97,28 @@ describe("sentinel-profile-themes", () => {
     expect(spheres.estadual).toEqual(["Contratos Públicos"]);
   });
 
-  it("migra sentinelThemes legado quando colunas novas estao vazias", () => {
+  it("espelha sentinelThemes quando colunas novas estao vazias", () => {
     const spheres = resolveSentinelThemeSpheres({
       sentinelThemes: ["Vacinação", "Desemprego"],
       sentinelThemesFederal: [],
       sentinelThemesEstadual: [],
     });
-    expect(spheres.federal).toEqual(["Vacinação"]);
-    expect(spheres.estadual).toEqual(["Desemprego"]);
+    expect(spheres.federal).toEqual(["Vacinação", "Desemprego"]);
+    expect(spheres.estadual).toEqual(["Vacinação", "Desemprego"]);
   });
 
-  it("migra lista unica priorizando estadual para temas sobrepostos", () => {
+  it("migra lista unica priorizando estadual para temas sobrepostos (legado)", () => {
     expect(listOverlappingSentinelThemes()).toContain("Contratos Públicos");
     const migrated = migrateFlatSentinelThemes(["Contratos Públicos", "Vacinação"]);
     expect(migrated.estadual).toEqual(["Contratos Públicos"]);
     expect(migrated.federal).toEqual(["Vacinação"]);
   });
 
-  it("migra perfil legado sem campos por esfera", () => {
+  it("perfil legado sem campos por esfera vira lista unificada", () => {
     const split = splitProfileThemesBySphere(baseProfile);
-    expect(split.federal).toContain("Vacinação");
-    expect(split.estadual).toContain("Desemprego");
+    expect(split.federal).toEqual(split.estadual);
+    expect(split.interest).toEqual(
+      expect.arrayContaining(["Vacinação", "Desemprego"]),
+    );
   });
 });

@@ -93,7 +93,7 @@ function ComplianceIconCard({
       className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/45 p-6 pt-5 shadow-lg ${a.glow}`}
     >
       <div className={`absolute inset-x-0 top-0 h-0.5 ${a.top}`} aria-hidden />
-      <h3 className={`text-lg font-bold ${a.text}`}>{title}</h3>
+      <h3 className={`min-h-14 text-lg font-bold ${a.text}`}>{title}</h3>
       <div className="mt-3 mb-5 h-px w-full bg-slate-700/70" aria-hidden />
       <div className="flex-1 text-sm leading-relaxed text-slate-300">{children}</div>
       <div className={`mt-8 flex justify-center ${a.text}`} aria-hidden>
@@ -147,13 +147,13 @@ function HeroLockVisual() {
 function FingerprintVisual() {
   return (
     <div className="relative mx-auto flex h-full min-h-[200px] items-center justify-center lg:min-h-0">
-      <div className="relative w-full max-w-[180px]">
+      <div className="relative w-full max-w-[220px]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/marketing/fingerprint-scan.png"
           alt=""
-          width={179}
-          height={179}
+          width={640}
+          height={640}
           className="relative z-10 h-auto w-full"
           decoding="async"
         />

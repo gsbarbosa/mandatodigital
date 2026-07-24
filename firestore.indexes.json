@@ -107,6 +107,15 @@
         { "fieldPath": "ownerUserId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "userRegistrations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "party", "order": "ASCENDING" },
+        { "fieldPath": "uf", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
