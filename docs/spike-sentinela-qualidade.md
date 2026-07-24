@@ -87,7 +87,9 @@ Ligar rank em staging/prod (App Hosting):
 | 2026-07-11 | cache `188ba77b` | A0 | **100%** (20/20) | n/a | baseline heurística |
 | 2026-07-11 | cache `92add5a6` | A0 | **100%** (20/20) | n/a | baseline heurística |
 | 2026-07-24 | cache `ae8fed6f` (92add5a6) | A0 | heurística **100%** / editorial LLM **60%** (9/15 top) | verify/rank=0 | Top poluído: 16/20 Desemprego; 5 classificados de vaga/estágio; sinônimo `vagas`/`emprego` amplo |
-| 2026-07-24 | — | A1 | pending refresh | — | `SENTINEL_LLM_QUALITY_RANK=true` em `apphosting.yaml` + filtros de título/diversidade |
+| 2026-07-24 | refresh local 4 temas | A1 | editorial **80%** (8/10) | ~US$ 0,01 | Rank on; 0 classificados; monotema 30% |
+| 2026-07-24 | refresh 5+5 E2E themes (pré-fix) | A1 | editorial **70%** (7/10) | verify off/quebrado | Near-dups 5,6% e carga; verify Firestore disjunctions |
+| 2026-07-24 | refresh 5+5 pós-fix | A1 | editorial **88,9%** (8/9) | ~US$ 0,023 | Verify 80 cache+40 LLM; 98 rejected; near-dup ok; só falha geo EUA |
 
 ### Achados 2026-07-24 (amostra humana+LLM)
 

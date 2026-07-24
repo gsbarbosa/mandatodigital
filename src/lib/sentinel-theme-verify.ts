@@ -25,6 +25,16 @@ export {
 export type { ArticleThemeVerdictRecord as ArticleThemeVerdict } from "@/lib/sentinel-theme-verify-storage";
 
 const LLM_CONCURRENCY = 5;
+/** Teto de calls LLM por refresh — com 5+5 temas a coleta facilmente passa de 100 artigos. */
+const DEFAULT_MAX_THEME_VERIFY_LLM = 40;
+
+function maxThemeVerifyLlmCalls() {
+  const raw = Number(process.env.SENTINEL_THEME_VERIFY_MAX_LLM?.trim() || DEFAULT_MAX_THEME_VERIFY_LLM);
+  if (!Number.isFinite(raw) || raw < 1) {
+    return DEFAULT_MAX_THEME_VERIFY_LLM;
+  }
+  return Math.floor(raw);
+}
 
 const themeVerifyResponseSchema = z.object({
   primaryTheme: z.string().trim().optional().default(""),
@@ -220,7 +230,14 @@ export async function applyThemeVerificationBatch(
   };
 
   if (!isSentinelLlmThemeVerifyEnabled() || classified.length === 0) {
-    return { items: classified, stats };
+    return {
+      items: classified,
+      stats: {
+        ...stats,
+        // Distingue "verify off" de "verify rodou sem hits".
+        articlesProcessed: isSentinelLlmThemeVerifyEnabled() ? classified.length : 0,
+      },
+    };
   }
 
   const lookupKeys: Array<{ fingerprint: string; themeCanonical: string; themeLabel: string }> = [];
@@ -273,8 +290,10 @@ export async function applyThemeVerificationBatch(
   const newVerdicts: ArticleThemeVerdictRecord[] = [];
 
   if (articlesNeedingLlm.length > 0) {
+    const maxLlm = maxThemeVerifyLlmCalls();
+    const queue = articlesNeedingLlm.slice(0, maxLlm);
     const llmResults = await mapWithConcurrency(
-      articlesNeedingLlm,
+      queue,
       LLM_CONCURRENCY,
       async ({ item, uncachedThemes }) => {
         stats.llmCalls += 1;

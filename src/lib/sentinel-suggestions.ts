@@ -16,7 +16,10 @@ import {
 } from "@/lib/sentinel-rss";
 import { buildSentinelQualityReport, estimateSentinelLlmCost } from "@/lib/sentinel-quality";
 import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
-import { diversifySuggestionsByTheme, interleaveSuggestionsByTheme } from "@/lib/sentinel-diversify";
+import {
+  resolveMaxPerTheme,
+  finalizeSuggestionFeed,
+} from "@/lib/sentinel-diversify";
 import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
@@ -280,13 +283,11 @@ export async function buildSuggestionsFromArticles(
   }
 
   return {
-    suggestions: interleaveSuggestionsByTheme(
-      diversifySuggestionsByTheme(suggestions, {
-        maxTotal: MAX_SUGGESTIONS,
-        maxPerTheme: 4,
-        maxPerPipeline: 10,
-      }),
-    ),
+    suggestions: finalizeSuggestionFeed(suggestions, {
+      maxTotal: MAX_SUGGESTIONS,
+      maxPerTheme: resolveMaxPerTheme(interestThemes.length),
+      maxPerPipeline: 10,
+    }),
     themeVerificationStats,
   };
 }
@@ -415,11 +416,16 @@ function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSu
     }
   }
 
-  const coreSuggestions = interleaveSuggestionsByTheme(
-    diversifySuggestionsByTheme(
-      [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
-      { maxTotal: MAX_SUGGESTIONS, maxPerTheme: 4, maxPerPipeline: 10 },
-    ),
+  const distinctThemes = new Set(
+    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
+  ).size;
+  const coreSuggestions = finalizeSuggestionFeed(
+    [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
+    {
+      maxTotal: MAX_SUGGESTIONS,
+      maxPerTheme: resolveMaxPerTheme(distinctThemes),
+      maxPerPipeline: 10,
+    },
   );
 
   const oppositionSuggestions = [...oppositionById.values()].sort(
@@ -737,7 +743,7 @@ export async function getSentinelSuggestions(
       newsPautavelPercent: qualityReport.newsPautavelPercent,
       oppositionTotal: qualityReport.oppositionTotal,
     },
-    qualityRankStats: qualityRank.stats.llmCalls > 0 ? qualityRank.stats : undefined,
+    qualityRankStats: qualityRank.stats,
     llmCostEstimate,
     emptyReason:
       suggestions.length === 0

@@ -88,7 +88,7 @@ Configurado no perfil do mandato:
 
 \* Ainda sujeito ao rate limit de plataforma (ex.: 30/dia em `rate-limit.ts`), independente dos créditos guest.
 
-Outros caps guest: ~3 temas por esfera. Premium = allowlist + cookie `mandato-dev-account-mode`.
+Outros caps guest: ~5 temas por esfera. Premium = allowlist + cookie `mandato-dev-account-mode`.
 
 **Créditos:** Firestore `guestCredits/{ownerUserId}` (`sentinelForceUsed`, `updatedAt`). Limite `GUEST_SENTINEL_FORCE_CREDITS = 5` em `guest-limits.ts`. Helpers: `getGuestSentinelCredits`, `tryConsumeGuestSentinelCredit` (`guest-credits-storage.ts`); ciclo `sentinelDailyCycleKey` / `needsDailySentinelRefresh`.
 

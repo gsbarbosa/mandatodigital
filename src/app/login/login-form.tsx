@@ -18,6 +18,7 @@ import {
   signInWithGoogle,
 } from "@/lib/firebase/social-auth";
 import { resolvePostLoginPath } from "@/lib/registration-gate";
+import { clearPlanIntent, parseEarlyAccessPlanId } from "@/lib/early-access";
 import type { Route } from "next";
 
 function GoogleIcon() {
@@ -44,15 +45,27 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") || "/app";
+  const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
 
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  useEffect(() => {
+    // Sem ?plan= no next → não herdar intent antigo de "Reservar".
+    try {
+      const url = new URL(nextPath, "http://local.invalid");
+      if (!parseEarlyAccessPlanId(url.searchParams.get("plan"))) {
+        clearPlanIntent();
+      }
+    } catch {
+      clearPlanIntent();
+    }
+  }, [nextPath]);
+
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
   const [isFinishingAuth, setIsFinishingAuth] = useState(false);
 
   useEffect(() => {
@@ -74,12 +87,12 @@ export function LoginForm() {
           return;
         }
 
-        setIsCheckingRedirect(false);
         setIsFinishingAuth(true);
         const session = await persistFirebaseSession();
         router.replace(
           resolvePostLoginPath({
             registrationComplete: session.registrationComplete,
+            needsPlanSelection: session.needsPlanSelection,
             nextPath,
           }) as Route,
         );
@@ -90,10 +103,6 @@ export function LoginForm() {
             error instanceof Error ? error.message : "Nao foi possivel autenticar.";
           setErrorMessage(formatAuthClientError(rawMessage));
           setIsFinishingAuth(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsCheckingRedirect(false);
         }
       }
     }
@@ -113,6 +122,7 @@ export function LoginForm() {
       router.replace(
         resolvePostLoginPath({
           registrationComplete: session.registrationComplete,
+          needsPlanSelection: session.needsPlanSelection,
           nextPath,
         }) as Route,
       );
@@ -174,14 +184,6 @@ export function LoginForm() {
 
   const isBusy = isSubmitting || isGoogleLoading || isFinishingAuth;
 
-  if (isCheckingRedirect) {
-    return (
-      <section className="login-card persona-card">
-        <LoginLoading message="Verificando sessao..." />
-      </section>
-    );
-  }
-
   return (
     <section className={`login-card persona-card${isFinishingAuth ? " login-card-busy" : ""}`}>
       {isFinishingAuth && (
@@ -213,6 +215,9 @@ export function LoginForm() {
             </>
           )}
         </button>
+        <p className="persona-helper-text" style={{ marginTop: "0.75rem", textAlign: "center" }}>
+          Após autenticar, complete o cadastro para acessar o sistema.
+        </p>
       </div>
 
       <p className="login-divider">
@@ -222,6 +227,7 @@ export function LoginForm() {
       <div className="persona-crop-aspect-row">
         <button
           type="button"
+          data-testid="login-mode-login"
           className={mode === "login" ? "persona-tag active" : "persona-tag"}
           onClick={() => setMode("login")}
         >
@@ -229,6 +235,7 @@ export function LoginForm() {
         </button>
         <button
           type="button"
+          data-testid="login-mode-signup"
           className={mode === "signup" ? "persona-tag active" : "persona-tag"}
           onClick={() => setMode("signup")}
         >

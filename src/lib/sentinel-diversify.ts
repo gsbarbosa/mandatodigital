@@ -1,4 +1,53 @@
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
+import { titlesAreNearDuplicate } from "@/lib/sentinel-rss";
+
+/** Teto padrão por tema no topo do feed — com 5 temas/esfera, 4+ virava monotema. */
+export const SENTINEL_DEFAULT_MAX_PER_THEME = 3;
+
+/** Com radar amplo, aperta o teto para forçar cobertura entre esferas. */
+export function resolveMaxPerTheme(radarThemeCount: number) {
+  if (radarThemeCount >= 8) {
+    return 2;
+  }
+  if (radarThemeCount >= 5) {
+    return SENTINEL_DEFAULT_MAX_PER_THEME;
+  }
+  return 4;
+}
+
+function suggestionPrimaryTitle(suggestion: MockSentinelSuggestion) {
+  return suggestion.evidence.articles?.[0]?.title?.trim() || suggestion.topic;
+}
+
+/**
+ * Dentro do mesmo themeLabel, mantém só o card de maior score quando os títulos
+ * descrevem a mesma pauta (parafraseada / multi-outlet já não clusterizado).
+ */
+export function collapseNearDuplicateSuggestions(
+  suggestions: MockSentinelSuggestion[],
+): MockSentinelSuggestion[] {
+  const sorted = [...suggestions].sort(
+    (left, right) => right.relevanceScore - left.relevanceScore,
+  );
+  const kept: MockSentinelSuggestion[] = [];
+
+  for (const candidate of sorted) {
+    const candidateTheme = candidate.themeLabel.trim() || "(sem tema)";
+    const candidateTitle = suggestionPrimaryTitle(candidate);
+    const isDup = kept.some((existing) => {
+      const existingTheme = existing.themeLabel.trim() || "(sem tema)";
+      if (existingTheme !== candidateTheme) {
+        return false;
+      }
+      return titlesAreNearDuplicate(suggestionPrimaryTitle(existing), candidateTitle);
+    });
+    if (!isDup) {
+      kept.push(candidate);
+    }
+  }
+
+  return kept;
+}
 
 /**
  * Mantém ordem por relevanceScore, mas limita cards por themeLabel
@@ -13,7 +62,7 @@ export function diversifySuggestionsByTheme(
   } = {},
 ): MockSentinelSuggestion[] {
   const maxTotal = options.maxTotal ?? 20;
-  const maxPerTheme = options.maxPerTheme ?? 4;
+  const maxPerTheme = options.maxPerTheme ?? SENTINEL_DEFAULT_MAX_PER_THEME;
   const maxPerPipeline = options.maxPerPipeline ?? 10;
   const perTheme = new Map<string, number>();
   const perPipeline = new Map<string, number>();
@@ -88,4 +137,22 @@ export function interleaveSuggestionsByTheme(
   }
 
   return result;
+}
+
+/** Pipeline padrão pós-score: near-dup → diversify → interleave. */
+export function finalizeSuggestionFeed(
+  suggestions: MockSentinelSuggestion[],
+  options: {
+    maxTotal?: number;
+    maxPerTheme?: number;
+    maxPerPipeline?: number;
+  } = {},
+): MockSentinelSuggestion[] {
+  return interleaveSuggestionsByTheme(
+    diversifySuggestionsByTheme(collapseNearDuplicateSuggestions(suggestions), {
+      maxTotal: options.maxTotal ?? 20,
+      maxPerTheme: options.maxPerTheme ?? SENTINEL_DEFAULT_MAX_PER_THEME,
+      maxPerPipeline: options.maxPerPipeline ?? 10,
+    }),
+  );
 }

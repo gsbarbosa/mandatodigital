@@ -123,8 +123,9 @@ export function scoreSuggestionPautavel(suggestion: MockSentinelSuggestion): Sen
   } else if (outlets >= 2) {
     score += 0.1;
     reasons.push("2 veiculos");
-  } else if (outlets >= 1) {
-    score += 0.05;
+  } else if (outlets === 1) {
+    score -= 0.05;
+    reasons.push("outlet unico");
   }
 
   const titleNorm = title.toLowerCase();

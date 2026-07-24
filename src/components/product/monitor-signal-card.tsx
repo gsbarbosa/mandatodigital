@@ -300,7 +300,7 @@ export function MonitorSignalCard({
                   className="flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20 cursor-pointer hover:bg-emerald-400/20 transition-colors"
                 >
                   <CheckBadgeIcon />
-                  Notícia verificada
+                  Ver fontes
                 </button>
               </div>
             </>

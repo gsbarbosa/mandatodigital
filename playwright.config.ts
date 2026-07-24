@@ -39,9 +39,14 @@ export default defineConfig({
       testMatch: /auth\.setup\.ts/,
     },
     {
+      name: "bootstrap-e2e",
+      testMatch: /bootstrap-e2e-account\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: /auth\.setup\.ts|sentinel-quality\.spec\.ts/,
+      testIgnore: /auth\.setup\.ts|sentinel-quality\.spec\.ts|bootstrap-e2e-account\.spec\.ts/,
     },
     {
       name: "chromium-authenticated",

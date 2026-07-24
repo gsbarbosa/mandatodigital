@@ -22,7 +22,10 @@ import {
   pickBestMatchedTheme,
   resolveArticleMatchingSearchTerm,
 } from "@/lib/sentinel-theme-synonyms";
-import { diversifySuggestionsByTheme, interleaveSuggestionsByTheme } from "@/lib/sentinel-diversify";
+import {
+  resolveMaxPerTheme,
+  finalizeSuggestionFeed,
+} from "@/lib/sentinel-diversify";
 import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import {
@@ -299,13 +302,14 @@ function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
     }
   }
 
-  return interleaveSuggestionsByTheme(
-    diversifySuggestionsByTheme([...byId.values()], {
-      maxTotal: MAX_SUGGESTIONS,
-      maxPerTheme: 4,
-      maxPerPipeline: 10,
-    }),
-  );
+  const distinctThemes = new Set(
+    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
+  ).size;
+  return finalizeSuggestionFeed([...byId.values()], {
+    maxTotal: MAX_SUGGESTIONS,
+    maxPerTheme: resolveMaxPerTheme(distinctThemes),
+    maxPerPipeline: 10,
+  });
 }
 
 export async function buildV2SuggestionsFromArticles(

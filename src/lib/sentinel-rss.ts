@@ -10,6 +10,7 @@ import {
   hasMunicipalRadar,
   splitProfileThemesBySphere,
 } from "@/lib/sentinel-profile-themes";
+import { MAX_THEMES_PER_SPHERE } from "@/lib/sphere-theme-catalog";
 import { matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
 import { softQualityPenaltyForTitle } from "@/lib/sentinel-title-filters";
 import { normalizeSentinelText } from "@/lib/sentinel-text";
@@ -31,7 +32,8 @@ export type RssNewsItem = {
   siteHost?: string;
 };
 
-const MAX_THEME_QUERIES = 4;
+/** Alinhado ao teto de temas por esfera — o 5º tema precisa virar query. */
+const MAX_THEME_QUERIES = MAX_THEMES_PER_SPHERE;
 const MAX_PORTAL_SITES_PER_LIST = 10;
 const MAX_COLLECTED_NEWS_ITEMS = 350;
 const RSS_FETCH_TIMEOUT_MS = 12_000;
@@ -387,7 +389,7 @@ export function buildSentinelRssQueries(profile: PoliticianProfile) {
     queries.push(state ? `${theme} ${state}` : theme);
   }
 
-  for (const theme of municipalCustom.slice(0, 3)) {
+  for (const theme of municipalCustom.slice(0, MAX_THEME_QUERIES)) {
     queries.push(geo ? `${theme} ${geo}` : theme);
   }
 
@@ -412,14 +414,91 @@ export function isPortalOriginArticle(article: RssNewsItem) {
   return article.origin === "portal-rss" || article.origin === "google-news-site";
 }
 
+function stemTitleToken(word: string) {
+  if (word.length < 5) {
+    return word;
+  }
+  if (word.endsWith("oes") && word.length >= 6) {
+    return `${word.slice(0, -3)}ao`;
+  }
+  if (word.endsWith("ais") && word.length >= 6) {
+    return `${word.slice(0, -2)}l`;
+  }
+  if ((word.endsWith("as") || word.endsWith("os")) && word.length >= 6) {
+    return word.slice(0, -1);
+  }
+  if ((word.endsWith("a") || word.endsWith("o") || word.endsWith("s")) && word.length >= 6) {
+    return word.slice(0, -1);
+  }
+  return word;
+}
+
+/** Números relevantes da manchete (ex.: 5,6% → n56; 32,4 → n324). */
+export function extractTitleNumericSignals(title: string) {
+  const normalized = normalizeSentinelText(title).replace(/(\d)\s*[.,]\s*(\d)/g, "$1$2");
+  const signals = new Set<string>();
+  for (const match of normalized.matchAll(/\b\d{2,4}\b/g)) {
+    signals.add(`n${match[0]}`);
+  }
+  return [...signals];
+}
+
 export function buildStoryClusterKey(title: string) {
-  const words = normalizeSentinelText(title)
+  const normalized = normalizeSentinelText(title).replace(/(\d)\s*[.,]\s*(\d)/g, "$1$2");
+  const words = normalized
     .split(" ")
     .filter((word) => word.length >= 4 && !TITLE_STOP_WORDS.has(word))
-    .sort()
-    .slice(0, 5);
+    .map(stemTitleToken)
+    .filter((word) => word.length >= 4);
 
-  return words.join("|");
+  const tokens = [...new Set([...words, ...extractTitleNumericSignals(title)])].sort().slice(0, 7);
+  return tokens.join("|");
+}
+
+function storyClusterKeysSimilar(left: string, right: string) {
+  if (!left || !right) {
+    return false;
+  }
+  if (left === right) {
+    return true;
+  }
+
+  const leftWords = new Set(left.split("|").filter(Boolean));
+  const rightWords = new Set(right.split("|").filter(Boolean));
+  let overlap = 0;
+
+  for (const word of leftWords) {
+    if (rightWords.has(word)) {
+      overlap += 1;
+    }
+  }
+
+  const leftNums = [...leftWords].filter((word) => word.startsWith("n"));
+  const sharedNum = leftNums.some((word) => rightWords.has(word));
+
+  // Mesmo número + 1 token lexical = mesma pauta (ex.: desemprego 5,6%).
+  if (sharedNum && overlap >= 2) {
+    return true;
+  }
+
+  // 2 tokens longos já costumam identificar a mesma pauta parafraseada.
+  if (overlap >= 2) {
+    return true;
+  }
+
+  const unionSize = new Set([...leftWords, ...rightWords]).size;
+  if (unionSize === 0) {
+    return false;
+  }
+  return overlap / unionSize >= 0.5 && overlap >= 1;
+}
+
+/** Compara títulos brutos (cluster key) — usado no agrupamento RSS e no near-dup de cards. */
+export function titlesAreNearDuplicate(leftTitle: string, rightTitle: string) {
+  return storyClusterKeysSimilar(
+    buildStoryClusterKey(leftTitle),
+    buildStoryClusterKey(rightTitle),
+  );
 }
 
 export function countUniqueOutlets(articles: RssNewsItem[]) {
@@ -938,24 +1017,6 @@ type ScoredArticle = {
   pipeline?: string;
   sphere?: "federal" | "estadual" | "municipal";
 };
-
-function storyClusterKeysSimilar(left: string, right: string) {
-  if (left === right) {
-    return true;
-  }
-
-  const leftWords = new Set(left.split("|").filter(Boolean));
-  const rightWords = new Set(right.split("|").filter(Boolean));
-  let overlap = 0;
-
-  for (const word of leftWords) {
-    if (rightWords.has(word)) {
-      overlap += 1;
-    }
-  }
-
-  return overlap >= 3;
-}
 
 export function clusterScoredArticles(scored: ScoredArticle[]) {
   const byTheme = new Map<string, ScoredArticle[]>();

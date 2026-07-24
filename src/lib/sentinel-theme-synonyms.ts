@@ -5,7 +5,15 @@ import { normalizeSentinelText } from "@/lib/sentinel-text";
  * Chaves devem corresponder aos labels em sentinelThemeGroups.
  */
 export const sentinelThemeSynonyms: Record<string, string[]> = {
-  "Carga Tributária": ["imposto", "tributacao", "carga fiscal", "taxa", "aliquota"],
+  "Carga Tributária": [
+    "carga tributaria",
+    "carga fiscal",
+    "tributacao",
+    "aliquota",
+    "arrecadacao tributaria",
+    "pressao tributária",
+    "pressao tributaria",
+  ],
   "Reforma Fiscal": [
     "reforma tributaria",
     "iva",
@@ -99,6 +107,16 @@ export function scoreThemeTermMatch(text: string, term: string): number {
   const termNorm = normalizeSentinelText(term);
 
   if (termNorm.length < 3) {
+    return 0;
+  }
+
+  // Termos curtos (ex.: "sus", "iva") exigem fronteira de palavra — evita
+  // "sus" casar dentro de "sustentabilidade".
+  if (termNorm.length <= 4) {
+    const boundary = new RegExp(`(?:^|\\s)${termNorm}(?:\\s|$)`);
+    if (boundary.test(normalized)) {
+      return termNorm.length * 10;
+    }
     return 0;
   }
 

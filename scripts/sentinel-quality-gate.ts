@@ -138,17 +138,44 @@ function mapProfile(id: string, data: Record<string, unknown>): PoliticianProfil
 async function main() {
   process.env.SENTINEL_LLM_QUALITY_RANK ??= "true";
   process.env.SENTINEL_V2_PIPELINES ??= "true";
+  process.env.SENTINEL_LLM_THEME_VERIFY ??= "true";
+  process.env.SENTINEL_PERSIST_CACHE ??= "true";
 
   const db = initAdmin();
   const forceRefresh = process.env.REFRESH === "1" || process.env.REFRESH === "true";
+  const applyE2eThemes =
+    process.env.APPLY_E2E_THEMES === "1" ||
+    process.env.APPLY_E2E_THEMES === "true" ||
+    forceRefresh;
   const expectRank =
     process.env.EXPECT_RANK === "1" ||
     process.env.EXPECT_RANK === "true" ||
     forceRefresh;
+  const expectThemeVerify =
+    process.env.EXPECT_THEME_VERIFY === "1" ||
+    process.env.EXPECT_THEME_VERIFY === "true" ||
+    forceRefresh;
+
+  /** Espelha o e2e Playwright: 5 nacional + 5 estadual. */
+  const E2E_FEDERAL = [
+    "Desemprego",
+    "Carga Tributária",
+    "Contratos Públicos",
+    "Inflação e Preços",
+    "Vacinação",
+  ];
+  const E2E_ESTADUAL = [
+    "Segurança Pública",
+    "Valorização Policial",
+    "Saúde Pública (SUS)",
+    "Educação Básica",
+    "Mobilidade Urbana",
+  ];
 
   let suggestions: MockSentinelSuggestion[] = [];
   let meta: SentinelSuggestionsMeta | null = null;
   let source = "cache";
+  let radarApplied: { federal: string[]; estadual: string[]; state: string } | null = null;
 
   if (forceRefresh) {
     const profileId =
@@ -161,7 +188,21 @@ async function main() {
     const ownerUserId =
       process.env.OWNER_USER_ID?.trim() || String(raw.ownerUserId ?? profileId);
     const profile = mapProfile(profileId, raw);
-    if (
+
+    if (applyE2eThemes) {
+      profile.sentinelThemesFederal = [...E2E_FEDERAL];
+      profile.sentinelThemesEstadual = [...E2E_ESTADUAL];
+      profile.sentinelThemes = [...E2E_FEDERAL, ...E2E_ESTADUAL];
+      profile.customRadarThemes = [];
+      if (!profile.state?.trim()) {
+        profile.state = "MG";
+      }
+      radarApplied = {
+        federal: [...E2E_FEDERAL],
+        estadual: [...E2E_ESTADUAL],
+        state: profile.state,
+      };
+    } else if (
       !(
         profile.sentinelThemes.length ||
         profile.sentinelThemesFederal?.length ||
@@ -176,6 +217,7 @@ async function main() {
         "Valorização Policial",
       ];
     }
+
     invalidateSentinelMemoryCache(profileId);
     source = "refresh";
     const result = await runWithStorageOwner(ownerUserId, () =>
@@ -203,8 +245,14 @@ async function main() {
 
   const report = evaluateSentinelFeedQuality(
     { suggestions, meta },
-    { expectQualityRank: expectRank },
+    { expectQualityRank: expectRank, expectThemeVerify },
   );
+
+  const themeCounts = new Map<string, number>();
+  for (const suggestion of suggestions) {
+    const theme = suggestion.themeLabel.trim() || "(sem tema)";
+    themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
+  }
 
   console.log(
     JSON.stringify(
@@ -213,10 +261,21 @@ async function main() {
         ok: report.ok,
         failures: report.failures,
         stats: report.stats,
+        radarApplied,
+        themes: Object.fromEntries(themeCounts),
+        cards: suggestions.slice(0, 15).map((s, i) => ({
+          i: i + 1,
+          theme: s.themeLabel,
+          title: s.evidence.articles?.[0]?.title || s.topic,
+          briefing: (s.briefing || "").slice(0, 100),
+          outlets: s.evidence.outletCount,
+        })),
         metaSnippet: {
           refreshedAt: meta?.refreshedAt,
           qualityRankStats: meta?.qualityRankStats,
+          themeVerificationStats: meta?.themeVerificationStats,
           qualityReport: meta?.qualityReport,
+          llmCostEstimate: meta?.llmCostEstimate,
         },
       },
       null,

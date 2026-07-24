@@ -3,13 +3,17 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 
+import { APP_HOME_PATH } from "@/lib/app-home";
 import {
   earlyAccessPlans,
   useEarlyAccess,
+  writePlanIntent,
   type EarlyAccessPlanId,
+  type EarlyAccessReservation,
 } from "@/lib/early-access";
+import { REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
 
 const COMPARISON_ROWS: Array<{
   section?: string;
@@ -34,15 +38,92 @@ const COMPARISON_ROWS: Array<{
 
 export function AcessoPlanosPage() {
   const router = useRouter();
-  const [earlyAccess] = useEarlyAccess();
+  const [earlyAccess, updateEarlyAccess] = useEarlyAccess();
   const selectedPlanId = earlyAccess.reservation?.planId ?? null;
+  const [needsPlan, setNeedsPlan] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [savingPlanId, setSavingPlanId] = useState<EarlyAccessPlanId | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrate() {
+      try {
+        const response = await fetch("/api/user/registration", {
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as {
+          needsPlanSelection?: boolean;
+          reservation?: EarlyAccessReservation | null;
+        };
+        if (cancelled) {
+          return;
+        }
+        setNeedsPlan(Boolean(payload.needsPlanSelection));
+        if (payload.reservation) {
+          updateEarlyAccess({ reservation: payload.reservation });
+        }
+      } finally {
+        if (!cancelled) {
+          setHydrated(true);
+        }
+      }
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [updateEarlyAccess]);
 
   function handleReserveIntent(planId: EarlyAccessPlanId) {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("mandato-early-access-plan-intent", planId);
-    }
-    router.push("/acesso-antecipado/dados" as Route);
+    writePlanIntent(planId);
+    router.push(`${REGISTRATION_REQUIRED_PATH}?plan=${planId}` as Route);
   }
+
+  async function handleConfirmPlan(planId: EarlyAccessPlanId) {
+    setErrorMessage(null);
+    setSavingPlanId(planId);
+    try {
+      const response = await fetch("/api/user/registration", {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        message?: string;
+        reservation?: EarlyAccessReservation | null;
+        seatStatus?: "active" | "reserve";
+      } | null;
+
+      if (!response.ok || !payload?.reservation) {
+        throw new Error(payload?.message || "Nao foi possivel confirmar o plano.");
+      }
+
+      updateEarlyAccess({
+        reservation: {
+          ...payload.reservation,
+          seatStatus: payload.reservation.seatStatus ?? payload.seatStatus ?? "active",
+        },
+      });
+      writePlanIntent(planId);
+      router.replace(APP_HOME_PATH);
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "Nao foi possivel confirmar o plano.",
+      );
+    } finally {
+      setSavingPlanId(null);
+    }
+  }
+
+  const choosingPlan = needsPlan && !selectedPlanId;
 
   return (
     <div className="min-h-full relative pb-24">
@@ -52,19 +133,33 @@ export function AcessoPlanosPage() {
       <div className="max-w-6xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-12">
         <header className="text-center mb-12">
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight mb-3">
-            Planos e Preços
+            {choosingPlan ? "Escolha seu plano" : "Planos e Preços"}
           </h1>
           <p className="text-slate-400 text-sm md:text-base max-w-2xl mx-auto">
-            Monitoramento em tempo real, avatares personalizados com voz do candidato, e compliance
-            total com TSE. Tudo integrado em uma plataforma.
+            {choosingPlan
+              ? "Seus dados já estão salvos. Compare o que cada plano inclui e confirme para liberar o acesso."
+              : "Monitoramento em tempo real, avatares personalizados com voz do candidato, e compliance total com TSE. Tudo integrado em uma plataforma."}
           </p>
+          {choosingPlan ? (
+            <p className="mt-4 text-xs text-cyan-400/90">
+              Cadastro quase pronto — falta só o plano.
+            </p>
+          ) : null}
         </header>
+
+        {errorMessage ? (
+          <p className="mb-6 text-center text-sm text-red-400" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch mb-12">
           {earlyAccessPlans.map((plan) => {
             const isSelected = selectedPlanId === plan.id;
             const isRecommendedSlot = !selectedPlanId && plan.id === "avancado";
             const highlighted = isSelected || isRecommendedSlot;
+            const isSaving = savingPlanId === plan.id;
+
             return (
               <div
                 key={plan.id}
@@ -86,7 +181,11 @@ export function AcessoPlanosPage() {
 
                 <h2
                   className={`text-lg font-bold mb-3 ${
-                    plan.accent === "purple" ? "text-purple-400" : plan.accent === "cyan" ? "text-cyan-400" : "text-white"
+                    plan.accent === "purple"
+                      ? "text-purple-400"
+                      : plan.accent === "cyan"
+                        ? "text-cyan-400"
+                        : "text-white"
                   }`}
                 >
                   {plan.name}
@@ -130,6 +229,19 @@ export function AcessoPlanosPage() {
                     }`}
                   >
                     {isSelected ? "Plano da sua reserva" : "Troca de plano indisponível"}
+                  </button>
+                ) : choosingPlan ? (
+                  <button
+                    type="button"
+                    disabled={!hydrated || Boolean(savingPlanId)}
+                    onClick={() => void handleConfirmPlan(plan.id)}
+                    className={`w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
+                      plan.id === "avancado"
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-[0_0_15px_rgba(6,182,212,0.2)]"
+                        : "bg-slate-800/80 border border-slate-700 text-slate-200 hover:bg-slate-700"
+                    }`}
+                  >
+                    {isSaving ? "Confirmando..." : "Confirmar este plano"}
                   </button>
                 ) : (
                   <button
@@ -230,9 +342,15 @@ export function AcessoPlanosPage() {
                   <th className="p-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Serviço / Funcionalidade
                   </th>
-                  <th className="p-4 text-[11px] font-bold uppercase tracking-wider text-slate-200 text-center">Essencial</th>
-                  <th className="p-4 text-[11px] font-bold uppercase tracking-wider text-cyan-400 text-center">Avançado</th>
-                  <th className="p-4 text-[11px] font-bold uppercase tracking-wider text-purple-400 text-center">Elite</th>
+                  <th className="p-4 text-[11px] font-bold uppercase tracking-wider text-slate-200 text-center">
+                    Essencial
+                  </th>
+                  <th className="p-4 text-[11px] font-bold uppercase tracking-wider text-cyan-400 text-center">
+                    Avançado
+                  </th>
+                  <th className="p-4 text-[11px] font-bold uppercase tracking-wider text-purple-400 text-center">
+                    Elite
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -240,7 +358,10 @@ export function AcessoPlanosPage() {
                   <Fragment key={row.label}>
                     {row.section ? (
                       <tr className="bg-slate-900/60">
-                        <td colSpan={4} className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-cyan-500">
+                        <td
+                          colSpan={4}
+                          className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-cyan-500"
+                        >
                           {row.section}
                         </td>
                       </tr>

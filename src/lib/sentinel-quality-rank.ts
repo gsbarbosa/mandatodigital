@@ -45,6 +45,9 @@ function buildRankPrompt(suggestion: MockSentinelSuggestion, profileLabel: strin
       '{ "pautavel": true|false, "score": 0-1, "briefing": "...", "creativeAngle": "..." }. ' +
       "pautavel=true so se a materia serve para um mandato produzir um criativo util nas proximas 24-48h " +
       "(fato concreto, angulo local/nacional claro, nao clickbait vazio). " +
+      "Rejeite (pautavel=false): ensaio/analise generica sem fato novo; " +
+      "opiniao tecnica ('a relacao de X com Y') sem evento concreto; " +
+      "classificado/concurso de vagas sem angulo politico util. " +
       "briefing: 1 frase objetiva. creativeAngle: gancho curto para video/post.",
     user: [
       profileLabel ? `Mandato/contexto: ${profileLabel}` : "",

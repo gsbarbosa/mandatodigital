@@ -4,6 +4,11 @@ export const DEV_ACCOUNT_MODE_ALLOWLIST = [
   "tribeiro81@gmail.com",
 ] as const;
 
+/** Domínio de contas E2E/local — premium liberado para validar Sentinela com rank.
+ *  Usa example.com (RFC 2606) — Firebase Auth aceita sem verificação de e-mail.
+ */
+export const E2E_ACCOUNT_EMAIL_DOMAIN = "example.com";
+
 export const DEV_ACCOUNT_MODE_COOKIE = "mandato-dev-account-mode";
 
 export type DevAccountMode = "guest" | "premium";
@@ -12,9 +17,17 @@ export function normalizeAccountEmail(email: string | null | undefined) {
   return (email ?? "").trim().toLowerCase();
 }
 
+export function isE2eAccountEmail(email: string | null | undefined) {
+  const normalized = normalizeAccountEmail(email);
+  return normalized.startsWith("e2e.") && normalized.endsWith(`@${E2E_ACCOUNT_EMAIL_DOMAIN}`);
+}
+
 export function isDevAccountModeEmail(email: string | null | undefined) {
   const normalized = normalizeAccountEmail(email);
-  return (DEV_ACCOUNT_MODE_ALLOWLIST as readonly string[]).includes(normalized);
+  if ((DEV_ACCOUNT_MODE_ALLOWLIST as readonly string[]).includes(normalized)) {
+    return true;
+  }
+  return isE2eAccountEmail(normalized);
 }
 
 export function parseDevAccountMode(value: string | null | undefined): DevAccountMode {

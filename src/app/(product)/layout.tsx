@@ -5,16 +5,19 @@ import { redirect } from "next/navigation";
 import { OnboardingProvider } from "@/components/product/onboarding-provider";
 import { ProductAppProvider } from "@/components/product/provider";
 import { ProductShell } from "@/components/product/shell";
+import { RegistrationShell } from "@/components/product/registration-shell";
 import { runWithSessionRepository } from "@/lib/auth/runner";
 import { requireSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import {
   isRegistrationAllowedPath,
+  PLAN_SELECTION_PATH,
   REGISTRATION_REQUIRED_PATH,
 } from "@/lib/registration-gate";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
+  needsPlanSelection,
 } from "@/lib/user-registration-storage";
 
 export const dynamic = "force-dynamic";
@@ -25,17 +28,23 @@ export default async function ProductLayout({
   children: ReactNode;
 }) {
   const sessionUser = isFirebaseAuthConfigured() ? await requireSessionUser() : null;
+  let registrationComplete = true;
 
   if (sessionUser && isFirebaseAuthConfigured()) {
     const registration = await ensureUserRegistration({
       ownerUserId: sessionUser.id,
       email: sessionUser.email,
     });
+    registrationComplete = isUserRegistrationComplete(registration);
 
-    if (!isUserRegistrationComplete(registration)) {
+    if (!registrationComplete) {
       const pathname = (await headers()).get("x-pathname") ?? "";
       if (!isRegistrationAllowedPath(pathname)) {
-        redirect(REGISTRATION_REQUIRED_PATH);
+        redirect(
+          needsPlanSelection(registration)
+            ? PLAN_SELECTION_PATH
+            : REGISTRATION_REQUIRED_PATH,
+        );
       }
     }
   }
@@ -47,9 +56,13 @@ export default async function ProductLayout({
 
   return (
     <ProductAppProvider initialData={initialData} sessionUser={sessionUser}>
-      <OnboardingProvider>
-        <ProductShell>{children}</ProductShell>
-      </OnboardingProvider>
+      {registrationComplete ? (
+        <OnboardingProvider>
+          <ProductShell>{children}</ProductShell>
+        </OnboardingProvider>
+      ) : (
+        <RegistrationShell>{children}</RegistrationShell>
+      )}
     </ProductAppProvider>
   );
 }

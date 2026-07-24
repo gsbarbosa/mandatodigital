@@ -20,6 +20,9 @@ export type SentinelFeedQualityReport = {
     maxThemeShare: number;
     rankLlmCalls: number;
     rankDropped: number;
+    verifyLlmCalls: number;
+    verifyCacheHits: number;
+    verifyProcessed: number;
   };
 };
 
@@ -43,6 +46,7 @@ export function evaluateSentinelFeedQuality(
     maxThemeShare?: number;
     minCards?: number;
     expectQualityRank?: boolean;
+    expectThemeVerify?: boolean;
   } = {},
 ): SentinelFeedQualityReport {
   const requireBriefingWhenRanked = options.requireBriefingWhenRanked !== false;
@@ -50,6 +54,7 @@ export function evaluateSentinelFeedQuality(
   const maxThemeShare = options.maxThemeShare ?? 0.55;
   const minCards = options.minCards ?? 3;
   const expectQualityRank = Boolean(options.expectQualityRank);
+  const expectThemeVerify = Boolean(options.expectThemeVerify);
 
   const failures: string[] = [];
   const suggestions = input.suggestions ?? [];
@@ -80,6 +85,9 @@ export function evaluateSentinelFeedQuality(
   const maxShare = news.length ? maxThemeCount / news.length : 0;
   const rankLlmCalls = input.meta?.qualityRankStats?.llmCalls ?? 0;
   const rankDropped = input.meta?.qualityRankStats?.dropped ?? 0;
+  const verifyLlmCalls = input.meta?.themeVerificationStats?.llmCalls ?? 0;
+  const verifyCacheHits = input.meta?.themeVerificationStats?.cacheHits ?? 0;
+  const verifyProcessed = input.meta?.themeVerificationStats?.articlesProcessed ?? 0;
 
   if (news.length < minCards) {
     failures.push(`Poucos cards de notícia: ${news.length} (mín. ${minCards}).`);
@@ -110,6 +118,17 @@ export function evaluateSentinelFeedQuality(
     failures.push("Rank rodou, mas nenhum card tem briefing/ângulo.");
   }
 
+  // Cache quente de vereditos deixa llmCalls=0; saúde = llm + cache.
+  if (
+    expectThemeVerify &&
+    verifyProcessed > 0 &&
+    verifyLlmCalls + verifyCacheHits === 0
+  ) {
+    failures.push(
+      "Theme verify processou artigos, mas llmCalls+cacheHits = 0 (verify aparenta morto).",
+    );
+  }
+
   return {
     ok: failures.length === 0,
     failures,
@@ -123,6 +142,9 @@ export function evaluateSentinelFeedQuality(
       maxThemeShare: Number(maxShare.toFixed(3)),
       rankLlmCalls,
       rankDropped,
+      verifyLlmCalls,
+      verifyCacheHits,
+      verifyProcessed,
     },
   };
 }

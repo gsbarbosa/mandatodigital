@@ -329,12 +329,19 @@ export function MonitoramentoPage() {
               Atualizado em {new Date(meta.refreshedAt).toLocaleString("pt-BR")}
             </span>
           ) : null}
-          {meta?.qualityRankStats || meta?.qualityReport ? (
-            <span className="hidden sm:inline text-[10px] text-slate-500 max-w-[14rem] leading-snug">
+          {meta?.qualityRankStats || meta?.qualityReport || meta?.themeVerificationStats ? (
+            <span className="hidden sm:inline text-[10px] text-slate-500 max-w-[16rem] leading-snug">
               {meta.qualityRankStats
                 ? `Rank LLM: ${meta.qualityRankStats.kept} mantidos / ${meta.qualityRankStats.dropped} fora`
                 : null}
-              {meta.qualityRankStats && meta.qualityReport ? " · " : null}
+              {meta.qualityRankStats &&
+              (meta.themeVerificationStats || meta.qualityReport)
+                ? " · "
+                : null}
+              {meta.themeVerificationStats
+                ? `Verify ${meta.themeVerificationStats.llmCalls} LLM / ${meta.themeVerificationStats.cacheHits} cache`
+                : null}
+              {meta.themeVerificationStats && meta.qualityReport ? " · " : null}
               {meta.qualityReport
                 ? `Heurística ${meta.qualityReport.newsPautavelPercent}% pautável`
                 : null}
@@ -383,6 +390,19 @@ export function MonitoramentoPage() {
               <Link href="/monitoramento/temas" className="text-cyan-300 underline hover:text-cyan-200">
                 Selecionar temas
               </Link>
+            </p>
+          </div>
+        ) : null}
+
+        {meta?.oppositionUnavailableReason ? (
+          <div
+            className="rounded-xl border border-amber-500/30 bg-amber-950/30 px-5 py-3"
+            role="status"
+            data-testid="opposition-unavailable-banner"
+          >
+            <p className="text-sm leading-relaxed text-amber-100/90">
+              <span className="font-semibold text-amber-200">Adversários: </span>
+              {meta.oppositionUnavailableReason}
             </p>
           </div>
         ) : null}

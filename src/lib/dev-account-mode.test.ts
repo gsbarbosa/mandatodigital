@@ -6,9 +6,11 @@ import {
 } from "./dev-account-mode";
 
 describe("dev-account-mode", () => {
-  it("reconhece apenas os emails da allowlist", () => {
+  it("reconhece allowlist e dominio E2E", () => {
     expect(isDevAccountModeEmail("gsbarbosa180@gmail.com")).toBe(true);
     expect(isDevAccountModeEmail("TRIBEIRO81@gmail.com")).toBe(true);
+    expect(isDevAccountModeEmail("e2e.abc@example.com")).toBe(true);
+    expect(isDevAccountModeEmail("outro@example.com")).toBe(false);
     expect(isDevAccountModeEmail("outro@gmail.com")).toBe(false);
   });
 

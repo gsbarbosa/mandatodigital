@@ -1,4 +1,4 @@
-import type { EarlyAccessPlanId } from "@/lib/early-access-types";
+export type EarlyAccessPlanId = "essencial" | "avancado" | "elite";
 
 export type EarlyAccessReservation = {
   fullName: string;

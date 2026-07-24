@@ -95,4 +95,74 @@ describe("evaluateSentinelFeedQuality", () => {
     expect(report.ok).toBe(true);
     expect(report.stats.withBriefing).toBe(3);
   });
+
+  it("aceita theme verify saudavel so com cacheHits", () => {
+    const report = evaluateSentinelFeedQuality(
+      {
+        suggestions: [
+          card({ title: "Minas atinge menor taxa de desemprego desde 2012" }),
+          card({
+            themeLabel: "Carga Tributária",
+            title: "Carga tributária sobe a 32,4% do PIB",
+          }),
+          card({
+            themeLabel: "Contratos Públicos",
+            title: "TCEMG suspende licitação por cobrança irregular",
+          }),
+        ],
+        meta: {
+          source: "sentinel-v2-pipelines",
+          cached: true,
+          refreshedAt: new Date().toISOString(),
+          radarThemesCount: 5,
+          articlesScanned: 80,
+          portalsMonitored: 4,
+          themeVerificationStats: {
+            articlesProcessed: 12,
+            cacheHits: 12,
+            llmCalls: 0,
+            articlesRejected: 2,
+          },
+        },
+      },
+      { expectThemeVerify: true },
+    );
+    expect(report.ok).toBe(true);
+    expect(report.stats.verifyCacheHits).toBe(12);
+  });
+
+  it("reprova theme verify morto com processed>0 e zero hits", () => {
+    const report = evaluateSentinelFeedQuality(
+      {
+        suggestions: [
+          card({ title: "Minas atinge menor taxa de desemprego desde 2012" }),
+          card({
+            themeLabel: "Carga Tributária",
+            title: "Carga tributária sobe a 32,4% do PIB",
+          }),
+          card({
+            themeLabel: "Contratos Públicos",
+            title: "TCEMG suspende licitação por cobrança irregular",
+          }),
+        ],
+        meta: {
+          source: "sentinel-v2-pipelines",
+          cached: false,
+          refreshedAt: new Date().toISOString(),
+          radarThemesCount: 5,
+          articlesScanned: 80,
+          portalsMonitored: 4,
+          themeVerificationStats: {
+            articlesProcessed: 10,
+            cacheHits: 0,
+            llmCalls: 0,
+            articlesRejected: 0,
+          },
+        },
+      },
+      { expectThemeVerify: true },
+    );
+    expect(report.ok).toBe(false);
+    expect(report.failures.some((f) => f.includes("Theme verify"))).toBe(true);
+  });
 });

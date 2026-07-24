@@ -146,6 +146,43 @@ describe("sentinel-rss", () => {
     expect(queries.length).toBeGreaterThanOrEqual(3);
   });
 
+  it("inclui ate 5 temas federal e estadual nas queries", () => {
+    const profile = {
+      ...sampleProfile,
+      sentinelThemesFederal: [
+        "Vacinação",
+        "Desemprego",
+        "Carga Tributária",
+        "Inflação e Preços",
+        "Empreendedorismo",
+        "Privatizações",
+      ],
+      sentinelThemesEstadual: [
+        "Segurança Pública",
+        "Saúde Pública (SUS)",
+        "Educação Básica",
+        "Mobilidade Urbana",
+        "Saneamento Básico",
+        "Agricultura Familiar",
+      ],
+      sentinelThemes: [],
+      customRadarThemes: ["fila do SUS", "obra da orla", "IPTU", "feira livre", "ciclofaixa", "extra"],
+    };
+    const queries = buildSentinelRssQueries(profile);
+    expect(queries.filter((q) => q.endsWith(" Brasil"))).toHaveLength(5);
+    expect(queries.some((q) => q.includes("Privatizações"))).toBe(false);
+    const estadualQueries = queries.filter(
+      (q) =>
+        q.endsWith(" SP") &&
+        !q.startsWith("Campinas") &&
+        profile.sentinelThemesEstadual.some((theme) => q.startsWith(theme)),
+    );
+    expect(estadualQueries).toHaveLength(5);
+    expect(queries.some((q) => q.includes("Agricultura Familiar"))).toBe(false);
+    expect(queries.some((q) => q.includes("ciclofaixa"))).toBe(true);
+    expect(queries.some((q) => q.includes("extra"))).toBe(false);
+  });
+
   it("associa temas do radar ao titulo da materia", () => {
     const matches = matchSentinelThemes(
       "Operação reforça segurança pública em Campinas",

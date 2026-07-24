@@ -98,6 +98,108 @@ describe("diversifySuggestionsByTheme", () => {
   });
 });
 
+describe("collapseNearDuplicateSuggestions", () => {
+  it("remove cards do mesmo tema com titulo quase igual", async () => {
+    const { collapseNearDuplicateSuggestions } = await import("./sentinel-diversify");
+    function card(id: string, theme: string, title: string, relevance: number): MockSentinelSuggestion {
+      return {
+        id,
+        themeLabel: theme,
+        matchedThemes: [theme],
+        relevanceScore: relevance,
+        topic: `${theme} · ${title}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [],
+          actors: [],
+          articles: [{ title, url: `https://x.com/${id}`, sourceName: "X" }],
+        },
+        engagement: {
+          relevanceScore: relevance,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: [],
+          byNetwork: [],
+        },
+      };
+    }
+
+    const out = collapseNearDuplicateSuggestions([
+      card(
+        "a",
+        "Segurança Pública",
+        "Campinas reforça segurança pública após operação",
+        90,
+      ),
+      card(
+        "b",
+        "Segurança Pública",
+        "Segurança pública é reforçada em Campinas após operação",
+        80,
+      ),
+      card("c", "Vacinação", "Vacinação contra gripe avança em Campinas", 70),
+    ]);
+
+    expect(out).toHaveLength(2);
+    expect(out.map((item) => item.id)).toEqual(["a", "c"]);
+  });
+
+  it("colapsa desemprego 5,6% parafraseado", async () => {
+    const { collapseNearDuplicateSuggestions } = await import("./sentinel-diversify");
+    const { titlesAreNearDuplicate } = await import("./sentinel-rss");
+    expect(
+      titlesAreNearDuplicate(
+        "Taxa de desemprego no país cai para 5,6% em maio e atinge menor nível histórico",
+        "Brasil tem 5,6% de desemprego, menor taxa da série histórica",
+      ),
+    ).toBe(true);
+
+    function card(id: string, title: string, relevance: number): MockSentinelSuggestion {
+      return {
+        id,
+        themeLabel: "Desemprego",
+        matchedThemes: ["Desemprego"],
+        relevanceScore: relevance,
+        topic: `Desemprego · ${title}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [],
+          actors: [],
+          articles: [{ title, url: `https://x.com/${id}`, sourceName: "X" }],
+        },
+        engagement: {
+          relevanceScore: relevance,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: [],
+          byNetwork: [],
+        },
+      };
+    }
+
+    const out = collapseNearDuplicateSuggestions([
+      card(
+        "a",
+        "Taxa de desemprego no país cai para 5,6% em maio e atinge menor nível histórico",
+        90,
+      ),
+      card("b", "Brasil tem 5,6% de desemprego, menor taxa da série histórica", 85),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]?.id).toBe("a");
+  });
+});
+
 describe("interleaveSuggestionsByTheme", () => {
   it("alterna temas no topo", async () => {
     const { interleaveSuggestionsByTheme } = await import("./sentinel-diversify");

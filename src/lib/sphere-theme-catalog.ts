@@ -121,8 +121,8 @@ export function themesInCatalog(selected: string[], groups: readonly SphereTheme
   return canonicalizeSentinelThemes(selected).filter((theme) => catalog.has(theme));
 }
 
-/** Máximo de temas por esfera (Federal ou Estadual). */
-export const MAX_THEMES_PER_SPHERE = 3;
+/** Máximo de temas por esfera (Federal ou Estadual) — guest. Premium sem teto na UI. */
+export const MAX_THEMES_PER_SPHERE = 5;
 
 /** Capacidade exibida no total combinado (Federal + Estadual). */
 export const MAX_RADAR_THEMES_TOTAL = 10;

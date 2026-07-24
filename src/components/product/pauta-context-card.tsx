@@ -141,7 +141,7 @@ export function PautaContextCard({ suggestion }: { suggestion: MockSentinelSugge
                   </span>
                   <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20">
                     <CheckBadgeIcon />
-                    Notícia verificada
+                    Ver fontes
                   </span>
                 </div>
               </>

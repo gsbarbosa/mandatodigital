@@ -752,7 +752,7 @@ export function ProductAppProvider({
   async function signOut() {
     clearEarlyAccessBrowserState();
     await fetch("/api/auth/signout", { method: "POST" });
-    window.location.href = "/login";
+    window.location.href = "/";
   }
 
   const value: ProductAppContextValue = {

@@ -45,6 +45,43 @@ export function isWeakFakeNewsTitle(title: string): boolean {
   return WEAK_FAKE_NEWS_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
+/** Ensaios/análises genéricas sem fato concreto. */
+const WEAK_ANALYSIS_PATTERNS = [
+  /\ba\s+relacao\s+(?:da|de|do|entre)\b/,
+  /\banalise\s*:\s*/,
+  /\bo\s+que\s+(?:voce|vc)\s+precisa\s+saber\b/,
+];
+
+const FOREIGN_GEO_PATTERNS = [
+  /\beua\b/,
+  /\bestados\s+unidos\b/,
+  /\bchina\b/,
+  /\bargentina\b/,
+  /\beuropa\b/,
+  /\bwall\s+street\b/,
+];
+
+export function isWeakAnalysisTitle(title: string): boolean {
+  const normalized = normalizeSentinelText(title);
+  if (!normalized) {
+    return false;
+  }
+  return WEAK_ANALYSIS_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+/** Manchete só sobre exterior, sem sinal Brasil/UF — pouco útil ao mandato. */
+export function isForeignOnlyTitle(title: string): boolean {
+  const normalized = normalizeSentinelText(title);
+  if (!normalized) {
+    return false;
+  }
+  const foreign = FOREIGN_GEO_PATTERNS.some((pattern) => pattern.test(normalized));
+  if (!foreign) {
+    return false;
+  }
+  return !/\b(?:brasil|brasileir\w*|minas|belo\s+horizonte)\b/.test(normalized);
+}
+
 /** Penalidade de relevanceScore (0–99) para classificados / fake news fraca. */
 export function softQualityPenaltyForTitle(title: string): number {
   if (isLikelyJobListingTitle(title)) {
@@ -52,6 +89,12 @@ export function softQualityPenaltyForTitle(title: string): number {
   }
   if (isWeakFakeNewsTitle(title)) {
     return 25;
+  }
+  if (isWeakAnalysisTitle(title)) {
+    return 18;
+  }
+  if (isForeignOnlyTitle(title)) {
+    return 22;
   }
   return 0;
 }

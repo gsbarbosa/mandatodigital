@@ -3,15 +3,40 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { APP_HOME_PATH } from "@/lib/app-home";
+import { clearPlanIntent } from "@/lib/early-access";
 import {
   MARKETING_CTA_HREF,
   MARKETING_CTA_LABEL,
   MARKETING_NAV,
 } from "@/lib/marketing/shared";
+
+/** Entrar limpa intent de plano — cadastro não herda plano de visita anterior. */
+function LoginEntryLink({
+  className,
+  children,
+  onNavigate,
+}: {
+  className?: string;
+  children: ReactNode;
+  onNavigate?: () => void;
+}) {
+  return (
+    <Link
+      href={"/login" as Route}
+      className={className}
+      onClick={() => {
+        clearPlanIntent();
+        onNavigate?.();
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
 
 export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const pathname = usePathname();
@@ -57,12 +82,9 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
             </Link>
           ) : (
             <>
-              <Link
-                href={"/login" as Route}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white"
-              >
+              <LoginEntryLink className="rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:text-white">
                 Entrar
-              </Link>
+              </LoginEntryLink>
               <Link href={MARKETING_CTA_HREF} className="primary-button !px-4 !py-2 !text-sm">
                 {MARKETING_CTA_LABEL}
               </Link>
@@ -107,13 +129,12 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
               </Link>
             ) : (
               <>
-                <Link
-                  href={"/login" as Route}
-                  onClick={() => setOpen(false)}
+                <LoginEntryLink
                   className="rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300"
+                  onNavigate={() => setOpen(false)}
                 >
                   Entrar
-                </Link>
+                </LoginEntryLink>
                 <Link
                   href={MARKETING_CTA_HREF}
                   onClick={() => setOpen(false)}

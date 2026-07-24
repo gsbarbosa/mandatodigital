@@ -14,6 +14,7 @@ import type {
   SeatAssignment,
   UserRegistration,
   UserRegistrationCompleteInput,
+  UserRegistrationPersonalInput,
   UserRegistrationStatus,
 } from "@/lib/user-registration-types";
 
@@ -131,6 +132,41 @@ async function readRegistrationDoc(ownerUserId: string): Promise<UserRegistratio
 }
 
 /**
+ * Busca cadastro completo/reserva pelo CPF (apenas dígitos).
+ * Aceita docs legados com CPF mascarado.
+ */
+export async function findRegistrationByCpf(input: {
+  cpf: string;
+  excludeOwnerUserId?: string;
+}): Promise<UserRegistration | null> {
+  const cpfDigits = input.cpf.replace(/\D/g, "");
+  if (cpfDigits.length !== 11) {
+    return null;
+  }
+
+  const formatted = `${cpfDigits.slice(0, 3)}.${cpfDigits.slice(3, 6)}.${cpfDigits.slice(6, 9)}-${cpfDigits.slice(9)}`;
+  const snap = await col(COLLECTIONS.userRegistrations)
+    .where("cpf", "in", [cpfDigits, formatted])
+    .limit(10)
+    .get();
+
+  for (const doc of snap.docs) {
+    if (input.excludeOwnerUserId && doc.id === input.excludeOwnerUserId) {
+      continue;
+    }
+    const row = mapDoc(doc.id, doc.data());
+    if (!row) {
+      continue;
+    }
+    if (row.status === "complete" || row.status === "reserve") {
+      return row;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Conta vagas ativas (status complete) em planos com teto para o mesmo partido+UF.
  * Exclui o próprio usuário (reenvio do form não conta duas vezes).
  */
@@ -240,6 +276,73 @@ export async function getUserRegistrationForOwner(
   return readRegistrationDoc(resolveOwnerUserId(ownerUserId));
 }
 
+/** Dados pessoais mínimos preenchidos (ainda pode faltar o plano). */
+export function hasRegistrationPersonalData(
+  registration: UserRegistration | null | undefined,
+): boolean {
+  if (!registration) {
+    return false;
+  }
+  return Boolean(
+    registration.fullName.trim() &&
+      registration.party.trim() &&
+      registration.cpf.trim() &&
+      registration.uf.trim() &&
+      registration.role.trim() &&
+      registration.address.trim() &&
+      registration.phone.trim() &&
+      registration.email.trim(),
+  );
+}
+
+/** Cadastro incompleto com dados ok — falta só escolher o plano. */
+export function needsPlanSelection(
+  registration: UserRegistration | null | undefined,
+): boolean {
+  return (
+    Boolean(registration) &&
+    !isUserRegistrationComplete(registration) &&
+    hasRegistrationPersonalData(registration) &&
+    !registration?.planId
+  );
+}
+
+/** Grava dados pessoais sem concluir a reserva (sem plano ainda). */
+export async function saveUserRegistrationPersonalData(input: {
+  data: UserRegistrationPersonalInput;
+  profileId?: string | null;
+}): Promise<UserRegistration> {
+  const ownerUserId = resolveOwnerUserId();
+  const existing = await readRegistrationDoc(ownerUserId);
+  const now = nowIso();
+  const email = input.data.email.trim().toLowerCase();
+  const party = normalizePartyKey(input.data.party);
+  const uf = normalizeUfKey(input.data.uf);
+
+  const row: UserRegistration = {
+    ownerUserId,
+    profileId: input.profileId ?? existing?.profileId ?? null,
+    status: "incomplete",
+    fullName: input.data.fullName.trim(),
+    party,
+    cpf: input.data.cpf.replace(/\D/g, ""),
+    uf,
+    role: input.data.role.trim(),
+    address: input.data.address.trim(),
+    phone: input.data.phone.replace(/\D/g, ""),
+    email,
+    teamEmail: input.data.teamEmail.trim(),
+    teamPhone: input.data.teamPhone.replace(/\D/g, ""),
+    planId: "",
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    completedAt: null,
+  };
+
+  await col(COLLECTIONS.userRegistrations).doc(ownerUserId).set(row, { merge: true });
+  return row;
+}
+
 export async function completeUserRegistration(input: {
   data: UserRegistrationCompleteInput;
   profileId?: string | null;
@@ -265,18 +368,54 @@ export async function completeUserRegistration(input: {
     status: seat.status,
     fullName: input.data.fullName.trim(),
     party,
-    cpf: input.data.cpf.trim(),
+    cpf: input.data.cpf.replace(/\D/g, ""),
     uf,
     role: input.data.role.trim(),
     address: input.data.address.trim(),
-    phone: input.data.phone.trim(),
+    phone: input.data.phone.replace(/\D/g, ""),
     email,
     teamEmail: input.data.teamEmail.trim(),
-    teamPhone: input.data.teamPhone.trim(),
+    teamPhone: input.data.teamPhone.replace(/\D/g, ""),
     planId: input.data.planId,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     completedAt: existing?.completedAt ?? now,
+  };
+
+  await col(COLLECTIONS.userRegistrations).doc(ownerUserId).set(row, { merge: true });
+  return { registration: row, seat };
+}
+
+/** Associa o plano e conclui a reserva (após dados pessoais já salvos). */
+export async function assignUserRegistrationPlan(
+  planId: EarlyAccessPlanId,
+): Promise<{ registration: UserRegistration; seat: SeatAssignment }> {
+  const ownerUserId = resolveOwnerUserId();
+  const existing = await readRegistrationDoc(ownerUserId);
+
+  if (!existing || !hasRegistrationPersonalData(existing)) {
+    throw new Error("Preencha os dados pessoais antes de escolher o plano.");
+  }
+
+  if (isUserRegistrationComplete(existing) && existing.planId) {
+    throw new Error("Sua reserva ja possui um plano definido.");
+  }
+
+  const seat = await resolveSeatAssignment({
+    planId,
+    party: existing.party,
+    uf: existing.uf,
+    ownerUserId,
+    existingStatus: existing.status,
+  });
+
+  const now = nowIso();
+  const row: UserRegistration = {
+    ...existing,
+    status: seat.status,
+    planId,
+    updatedAt: now,
+    completedAt: existing.completedAt ?? now,
   };
 
   await col(COLLECTIONS.userRegistrations).doc(ownerUserId).set(row, { merge: true });

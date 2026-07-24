@@ -6,6 +6,9 @@ const packageJson = require("./package.json") as { version: string };
 
 const nextConfig: NextConfig = {
   typedRoutes: true,
+  // Playwright e alguns clients usam 127.0.0.1; Next 16 bloqueia HMR/dev assets
+  // como cross-origin se o server subiu como localhost.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   env: {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
   },

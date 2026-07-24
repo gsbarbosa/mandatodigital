@@ -4,24 +4,29 @@ import { z } from "zod";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
+import { digitsOnly, isValidCpf, isValidPhoneBr } from "@/lib/br-input";
 import { mergeProfileInputForSave } from "@/lib/profile-save";
 import { profileInputSchema } from "@/lib/schemas";
 import {
+  assignUserRegistrationPlan,
   completeUserRegistration,
   ensureUserRegistration,
+  findRegistrationByCpf,
   getUserRegistrationForOwner,
+  needsPlanSelection,
+  saveUserRegistrationPersonalData,
   toEarlyAccessReservationShape,
   updateUserRegistrationTeamContact,
 } from "@/lib/user-registration-storage";
 
-const completeSchema = z.object({
+const personalFields = {
   fullName: z.string().trim().min(3),
   party: z.string().trim().min(2),
   cpf: z
     .string()
     .trim()
-    .refine((value) => value.replace(/\D/g, "").length === 11, {
-      message: "CPF invalido — informe os 11 digitos.",
+    .refine((value) => isValidCpf(value), {
+      message: "CPF invalido.",
     }),
   uf: z
     .string()
@@ -30,17 +35,84 @@ const completeSchema = z.object({
     .transform((value) => value.toUpperCase()),
   role: z.string().trim().min(2),
   address: z.string().trim().min(5),
-  phone: z.string().trim().min(8),
+  phone: z
+    .string()
+    .trim()
+    .refine((value) => isValidPhoneBr(value), {
+      message: "Telefone invalido — use DDD + numero.",
+    }),
   email: z.string().trim().email().or(z.literal("")).optional(),
   teamEmail: z.string().trim().email().or(z.literal("")).default(""),
   teamPhone: z.string().trim().default(""),
-  planId: z.enum(["essencial", "avancado", "elite"]),
+};
+
+const completeSchema = z.object({
+  ...personalFields,
+  planId: z.enum(["essencial", "avancado", "elite"]).optional(),
 });
 
 const teamSchema = z.object({
   teamEmail: z.string().trim().email().or(z.literal("")).default(""),
   teamPhone: z.string().trim().default(""),
 });
+
+const planSchema = z.object({
+  planId: z.enum(["essencial", "avancado", "elite"]),
+});
+
+function buildDraftProfileInput(
+  data: {
+    fullName: string;
+    role: string;
+    uf: string;
+  },
+  email: string,
+  dashboardProfile: Parameters<typeof mergeProfileInputForSave>[1],
+) {
+  return mergeProfileInputForSave(
+    {
+      fullName: data.fullName,
+      role: data.role,
+      city: "",
+      state: data.uf,
+      audience: "",
+      spectrum: "",
+      archetype: "",
+      voiceTones: [],
+      keyIssues: [],
+      slogans: [],
+      redLines: [],
+      referenceExamples: [],
+      bio: "",
+      personaArchetypes: [],
+      sentinelThemes: [],
+      sentinelThemesFederal: [],
+      sentinelThemesEstadual: [],
+      oppositionThemes: [],
+      customRadarThemes: [],
+      interestProfiles: [],
+      interestSites: [],
+      oppositionProfiles: [],
+      oppositionSites: [],
+      glossaryTerms: [],
+      trainingReferenceLinks: [],
+      youtubeVideoUrl: "",
+      avatarType: "",
+      avatarVideoTopic: "",
+      notificationEmail: email,
+      avatarEmotions: [],
+      voicePace: "",
+      editingStyles: [],
+      factCheckingSources: [],
+      hardDataSources: [],
+      distributionChannels: [],
+      distributionWindows: [],
+      autoPublish: false,
+    },
+    dashboardProfile,
+    { allowDraftDefaults: true },
+  );
+}
 
 export async function GET() {
   return apiRoute(async () => {
@@ -58,6 +130,7 @@ export async function GET() {
       reservation: stored ? toEarlyAccessReservationShape(stored) : null,
       profileId: stored?.profileId ?? null,
       authEmail: session?.email?.trim() || null,
+      needsPlanSelection: needsPlanSelection(stored),
     });
   });
 }
@@ -77,56 +150,56 @@ export async function POST(request: Request) {
         );
       }
 
-      const data = { ...body, email };
+      const personal = {
+        fullName: body.fullName,
+        party: body.party,
+        cpf: digitsOnly(body.cpf),
+        uf: body.uf,
+        role: body.role,
+        address: body.address,
+        phone: digitsOnly(body.phone),
+        email,
+        teamEmail: body.teamEmail,
+        teamPhone: digitsOnly(body.teamPhone),
+      };
+
+      const duplicate = await findRegistrationByCpf({
+        cpf: personal.cpf,
+        excludeOwnerUserId: session?.id,
+      });
+      if (duplicate) {
+        return NextResponse.json(
+          { message: "Ja existe uma conta cadastrada com este CPF." },
+          { status: 409 },
+        );
+      }
 
       const dashboard = await repository.getDashboard();
-      const merged = mergeProfileInputForSave(
-        {
-          fullName: data.fullName,
-          role: data.role,
-          city: "",
-          state: data.uf,
-          audience: "",
-          spectrum: "",
-          archetype: "",
-          voiceTones: [],
-          keyIssues: [],
-          slogans: [],
-          redLines: [],
-          referenceExamples: [],
-          bio: "",
-          personaArchetypes: [],
-          sentinelThemes: [],
-          sentinelThemesFederal: [],
-          sentinelThemesEstadual: [],
-          oppositionThemes: [],
-          customRadarThemes: [],
-          interestProfiles: [],
-          interestSites: [],
-          oppositionProfiles: [],
-          oppositionSites: [],
-          glossaryTerms: [],
-          trainingReferenceLinks: [],
-          youtubeVideoUrl: "",
-          avatarType: "",
-          avatarVideoTopic: "",
-          notificationEmail: email,
-          avatarEmotions: [],
-          voicePace: "",
-          editingStyles: [],
-          factCheckingSources: [],
-          hardDataSources: [],
-          distributionChannels: [],
-          distributionWindows: [],
-          autoPublish: false,
-        },
-        dashboard.profile,
-        { allowDraftDefaults: true },
-      );
+      const merged = buildDraftProfileInput(personal, email, dashboard.profile);
       const profile = await repository.saveProfile(profileInputSchema.parse(merged));
 
+      if (!body.planId) {
+        const stored = await saveUserRegistrationPersonalData({
+          data: personal,
+          profileId: profile.id,
+        });
+
+        return NextResponse.json(
+          {
+            registration: stored,
+            reservation: null,
+            profileId: stored.profileId,
+            profile,
+            authEmail: authEmail || null,
+            needsPlanSelection: true,
+            message: "Dados salvos. Escolha um plano para concluir a reserva.",
+          },
+          { status: 201 },
+        );
+      }
+
       const { registration: stored, seat } = await completeUserRegistration({
-        data,
+        data: { ...personal, planId: body.planId },
         profileId: profile.id,
       });
 
@@ -137,6 +210,7 @@ export async function POST(request: Request) {
           profileId: stored.profileId,
           profile,
           authEmail: authEmail || null,
+          needsPlanSelection: false,
           seatStatus: seat.status === "reserve" ? "reserve" : "active",
           message: seat.message,
         },
@@ -151,7 +225,22 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     return await apiRoute(async () => {
-      const body = teamSchema.parse(await request.json());
+      const raw = await request.json();
+
+      if (raw && typeof raw === "object" && "planId" in raw && !("teamEmail" in raw)) {
+        const body = planSchema.parse(raw);
+        const { registration: stored, seat } = await assignUserRegistrationPlan(body.planId);
+        return NextResponse.json({
+          registration: stored,
+          reservation: toEarlyAccessReservationShape(stored),
+          profileId: stored.profileId,
+          needsPlanSelection: false,
+          seatStatus: seat.status === "reserve" ? "reserve" : "active",
+          message: seat.message,
+        });
+      }
+
+      const body = teamSchema.parse(raw);
       const stored = await updateUserRegistrationTeamContact(body);
       return NextResponse.json({
         registration: stored,

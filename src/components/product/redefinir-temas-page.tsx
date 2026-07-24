@@ -82,16 +82,18 @@ function SphereThemeSections({
   selected,
   onToggle,
   selectionLimit,
+  sphere,
 }: {
   groups: readonly SphereThemeGroup[];
   selected: string[];
   onToggle: (theme: string) => void;
   selectionLimit: number | null;
+  sphere: "federal" | "estadual";
 }) {
   const atSphereLimit = selectionLimit !== null && selected.length >= selectionLimit;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-testid={`temas-sphere-${sphere}`}>
       {groups.map((group) => (
         <div key={group.title}>
           <h3 className="text-sm font-semibold text-white mb-3 uppercase tracking-wider">
@@ -105,6 +107,8 @@ function SphereThemeSections({
               return (
                 <ThemeTagPill
                   key={option}
+                  themeLabel={option}
+                  sphere={sphere}
                   active={isActive}
                   disabled={isDisabled}
                   onClick={() => onToggle(option)}
@@ -309,7 +313,7 @@ export function RedefinirTemasPage() {
   }
 
   return (
-    <div className="min-h-full relative pb-28">
+    <div className="min-h-full relative pb-28" data-testid="temas-page">
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[40%] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-[40%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -335,6 +339,7 @@ export function RedefinirTemasPage() {
           </div>
 
           <SphereThemeSections
+            sphere="federal"
             groups={federalThemeGroups}
             selected={profileForm.sentinelThemesFederal}
             selectionLimit={themeLimit}
@@ -364,6 +369,7 @@ export function RedefinirTemasPage() {
                 Estado {!hasUf ? <span className="text-red-400 font-bold">*</span> : null}
               </label>
               <select
+                data-testid="temas-uf-select"
                 value={profileForm.state}
                 onChange={(event) =>
                   setProfileForm((current) => ({ ...current, state: event.target.value }))
@@ -390,6 +396,7 @@ export function RedefinirTemasPage() {
             }
           >
             <SphereThemeSections
+              sphere="estadual"
               groups={estadualThemeGroups}
               selected={profileForm.sentinelThemesEstadual}
               selectionLimit={themeLimit}
@@ -528,6 +535,7 @@ export function RedefinirTemasPage() {
           </div>
           <button
             type="button"
+            data-testid="salvar-radar-button"
             onClick={() => void handleSave()}
             disabled={isSavingProfile}
             className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"
@@ -549,6 +557,7 @@ export function RedefinirTemasPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="monitoramento-prompt-title"
+            data-testid="monitoramento-prompt"
             className="relative bg-[#0F1623] border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl"
           >
             <h3 id="monitoramento-prompt-title" className="text-lg font-bold text-white mb-6">
@@ -557,6 +566,7 @@ export function RedefinirTemasPage() {
             <div className="flex justify-end gap-3">
               <button
                 type="button"
+                data-testid="monitoramento-prompt-nao"
                 onClick={() => setShowMonitoramentoPrompt(false)}
                 className="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors"
               >
@@ -564,6 +574,7 @@ export function RedefinirTemasPage() {
               </button>
               <button
                 type="button"
+                data-testid="monitoramento-prompt-sim"
                 onClick={() => router.push("/monitoramento")}
                 className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-semibold transition-all"
               >

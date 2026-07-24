@@ -23,8 +23,8 @@ export type UserRegistration = {
   completedAt: string | null;
 };
 
-/** Payload de conclusão do cadastro (form de dados pessoais). */
-export type UserRegistrationCompleteInput = {
+/** Payload de dados pessoais do cadastro. */
+export type UserRegistrationPersonalInput = {
   fullName: string;
   party: string;
   cpf: string;
@@ -35,6 +35,10 @@ export type UserRegistrationCompleteInput = {
   email: string;
   teamEmail: string;
   teamPhone: string;
+};
+
+/** Payload de conclusão do cadastro (dados + plano). */
+export type UserRegistrationCompleteInput = UserRegistrationPersonalInput & {
   planId: EarlyAccessPlanId;
 };
 

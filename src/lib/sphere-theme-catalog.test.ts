@@ -26,7 +26,7 @@ describe("sphere-theme-catalog limits", () => {
   });
 
   it("expõe limites do radar", () => {
-    expect(MAX_THEMES_PER_SPHERE).toBe(3);
+    expect(MAX_THEMES_PER_SPHERE).toBe(5);
     expect(MAX_RADAR_THEMES_TOTAL).toBe(10);
     expect(MAX_MUNICIPAL_PROFILES).toBe(2);
     expect(MAX_MUNICIPAL_PORTALS).toBe(2);

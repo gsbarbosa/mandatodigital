@@ -74,8 +74,48 @@ export function clearEarlyAccessBrowserState() {
   }
 
   window.localStorage.removeItem(STORAGE_KEY);
-  window.sessionStorage.removeItem("mandato-early-access-plan-intent");
+  window.sessionStorage.removeItem(PLAN_INTENT_STORAGE_KEY);
   window.dispatchEvent(new Event(CHANGE_EVENT));
+}
+
+export const PLAN_INTENT_STORAGE_KEY = "mandato-early-access-plan-intent";
+
+export function parseEarlyAccessPlanId(
+  value: string | null | undefined,
+): EarlyAccessPlanId | null {
+  if (value === "essencial" || value === "avancado" || value === "elite") {
+    return value;
+  }
+  return null;
+}
+
+/**
+ * Lê plano escolhido (URL ?plan= ou sessionStorage).
+ * Retorna null se o usuário ainda não escolheu (ex.: veio só de "Entrar").
+ */
+export function readPlanIntent(searchPlan?: string | null): EarlyAccessPlanId | null {
+  const fromQuery = parseEarlyAccessPlanId(searchPlan ?? null);
+  if (fromQuery) {
+    return fromQuery;
+  }
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return parseEarlyAccessPlanId(window.sessionStorage.getItem(PLAN_INTENT_STORAGE_KEY));
+}
+
+export function writePlanIntent(planId: EarlyAccessPlanId) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.setItem(PLAN_INTENT_STORAGE_KEY, planId);
+}
+
+export function clearPlanIntent() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.sessionStorage.removeItem(PLAN_INTENT_STORAGE_KEY);
 }
 
 export function useEarlyAccess(): [EarlyAccessState, (update: Partial<EarlyAccessState>) => void] {
