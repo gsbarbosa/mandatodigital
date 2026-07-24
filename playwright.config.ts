@@ -5,6 +5,8 @@ const localBaseUrl = process.env.PW_DEV_PORT
   ? `http://127.0.0.1:${process.env.PW_DEV_PORT}`
   : "http://127.0.0.1:3000";
 
+const authFile = "playwright/.auth/user.json";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 120_000,
@@ -33,8 +35,22 @@ export default defineConfig({
       },
   projects: [
     {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      testIgnore: /auth\.setup\.ts|sentinel-quality\.spec\.ts/,
+    },
+    {
+      name: "chromium-authenticated",
+      dependencies: ["setup"],
+      testMatch: /sentinel-quality\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: authFile,
+      },
     },
   ],
 });

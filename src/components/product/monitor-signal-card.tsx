@@ -208,7 +208,10 @@ export function MonitorSignalCard({
   );
 
   return (
-    <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 transition-colors">
+    <div
+      className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 transition-colors"
+      data-testid="monitor-signal-card"
+    >
       <div className="flex flex-col md:flex-row justify-between gap-6">
         <div className="shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-700/50 pb-4 md:pb-0 md:pr-6 md:w-48">
           {actor ? <SocialNetworkBadge network={actor.network} /> : null}

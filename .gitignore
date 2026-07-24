@@ -5,6 +5,7 @@ coverage
 dist
 playwright-report
 test-results
+playwright/.auth/
 *.log
 .env
 .env.local
