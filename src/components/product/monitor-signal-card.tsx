@@ -265,7 +265,20 @@ export function MonitorSignalCard({
           {isNewsCard && article ? (
             <>
               <h3 className="text-lg font-bold text-slate-100 mb-1">{article.title}</h3>
-              <p className="text-sm text-slate-400 mb-3 line-clamp-2">{suggestion.topic}</p>
+              {suggestion.briefing?.trim() ? (
+                <p className="text-sm text-cyan-100/90 mb-2 leading-relaxed">
+                  {suggestion.briefing.trim()}
+                </p>
+              ) : null}
+              {suggestion.creativeAngle?.trim() ? (
+                <p className="text-xs text-amber-200/80 mb-3">
+                  Ângulo: {suggestion.creativeAngle.trim()}
+                </p>
+              ) : !suggestion.briefing?.trim() ? (
+                <p className="text-sm text-slate-400 mb-3 line-clamp-2">{suggestion.topic}</p>
+              ) : (
+                <div className="mb-3" />
+              )}
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <span className="text-slate-500">
                   Fonte:{" "}

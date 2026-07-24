@@ -2,8 +2,9 @@ export type SentinelPipeline = "manual" | "portal" | "semantic" | "social" | "le
 
 export const SENTINEL_PIPELINE_WEIGHT: Record<SentinelPipeline, number> = {
   manual: 1,
-  social: 1,
-  portal: 0.95,
+  social: 1.05,
+  /** Portais UF/nacionais: prioridade sobre Google News genérico. */
+  portal: 1.12,
   semantic: 0.78,
   legacy: 0.9,
 };

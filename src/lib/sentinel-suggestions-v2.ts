@@ -22,7 +22,8 @@ import {
   pickBestMatchedTheme,
   resolveArticleMatchingSearchTerm,
 } from "@/lib/sentinel-theme-synonyms";
-import { diversifySuggestionsByTheme } from "@/lib/sentinel-diversify";
+import { diversifySuggestionsByTheme, interleaveSuggestionsByTheme } from "@/lib/sentinel-diversify";
+import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import {
   applyThemeVerificationBatch,
@@ -236,13 +237,11 @@ async function buildSuggestionFromCluster(input: {
     matchedExpandedTerms,
   );
   const outletCount = countUniqueOutlets(articles);
-  const sortedArticles = [...articles]
-    .sort((left, right) => {
-      const leftTime = left.publishedAt?.getTime() ?? 0;
-      const rightTime = right.publishedAt?.getTime() ?? 0;
-      return rightTime - leftTime;
-    })
-    .slice(0, MAX_ARTICLES_PER_SUGGESTION);
+  const sortedArticles = orderClusterArticlesForDisplay(
+    primary,
+    articles,
+    MAX_ARTICLES_PER_SUGGESTION,
+  );
 
   const searchTrend = await resolveThemeVolumeTrend({
     profileId,
@@ -300,10 +299,13 @@ function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
     }
   }
 
-  return diversifySuggestionsByTheme([...byId.values()], {
-    maxTotal: MAX_SUGGESTIONS,
-    maxPerTheme: 4,
-  });
+  return interleaveSuggestionsByTheme(
+    diversifySuggestionsByTheme([...byId.values()], {
+      maxTotal: MAX_SUGGESTIONS,
+      maxPerTheme: 4,
+      maxPerPipeline: 10,
+    }),
+  );
 }
 
 export async function buildV2SuggestionsFromArticles(

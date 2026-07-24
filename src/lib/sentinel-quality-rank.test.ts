@@ -86,5 +86,16 @@ describe("applySentinelQualityRank", () => {
     expect(result.stats.llmCalls).toBe(1);
     expect(result.stats.kept).toBe(1);
     expect(result.suggestions[0]?.topic).toContain("Emprego em alta");
+    expect(result.suggestions[0]?.briefing).toContain("IBGE");
+    expect(result.suggestions[0]?.creativeAngle).toContain("Emprego em alta");
+  });
+
+  it("respeita enabled=false mesmo com flag ligada", async () => {
+    process.env.SENTINEL_LLM_QUALITY_RANK = "true";
+    vi.resetModules();
+    const { applySentinelQualityRank } = await import("./sentinel-quality-rank");
+    const result = await applySentinelQualityRank([newsCard()], { enabled: false });
+    expect(result.stats.llmCalls).toBe(0);
+    expect(result.suggestions).toHaveLength(1);
   });
 });

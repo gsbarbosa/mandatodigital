@@ -97,3 +97,69 @@ describe("diversifySuggestionsByTheme", () => {
     expect(out.filter((s) => s.themeLabel === "Carga Tributária")).toHaveLength(2);
   });
 });
+
+describe("interleaveSuggestionsByTheme", () => {
+  it("alterna temas no topo", async () => {
+    const { interleaveSuggestionsByTheme } = await import("./sentinel-diversify");
+    function card(id: string, theme: string, relevance: number): MockSentinelSuggestion {
+      return {
+        id,
+        themeLabel: theme,
+        matchedThemes: [theme],
+        relevanceScore: relevance,
+        topic: `${theme} · ${id}`,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          engagementTrendPercent: 0,
+          byNetwork: [],
+          actors: [],
+          articles: [{ title: id, url: "https://x.com", sourceName: "X" }],
+        },
+        engagement: {
+          relevanceScore: relevance,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: [],
+          byNetwork: [],
+        },
+      };
+    }
+    const out = interleaveSuggestionsByTheme([
+      card("d1", "Desemprego", 90),
+      card("d2", "Desemprego", 80),
+      card("c1", "Carga Tributária", 70),
+    ]);
+    expect(out.map((s) => s.themeLabel)).toEqual([
+      "Desemprego",
+      "Carga Tributária",
+      "Desemprego",
+    ]);
+  });
+});
+
+describe("orderClusterArticlesForDisplay", () => {
+  it("mantem primary em articles[0]", async () => {
+    const { orderClusterArticlesForDisplay } = await import("./sentinel-cluster-order");
+    const primary = {
+      title: "Primary",
+      link: "https://a.com/1",
+      pubDate: null,
+      publishedAt: new Date("2026-01-01"),
+      sourceName: "A",
+    };
+    const newer = {
+      title: "Newer",
+      link: "https://a.com/2",
+      pubDate: null,
+      publishedAt: new Date("2026-01-02"),
+      sourceName: "B",
+    };
+    const ordered = orderClusterArticlesForDisplay(primary, [newer, primary], 4);
+    expect(ordered[0]?.title).toBe("Primary");
+    expect(ordered[1]?.title).toBe("Newer");
+  });
+});

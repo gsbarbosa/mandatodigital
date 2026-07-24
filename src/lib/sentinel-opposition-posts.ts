@@ -16,8 +16,8 @@ import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
 import { pickBestMatchedTheme, matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
 import type { PoliticianProfile, SocialHandle } from "@/lib/types";
 
-const MAX_OPPOSITION_SUGGESTIONS = 10;
-const MAX_POSTS_PER_PROFILE = 10;
+const MAX_OPPOSITION_SUGGESTIONS = 12;
+const MAX_POSTS_PER_PROFILE = 12;
 
 function buildOppositionSuggestionId(handle: string, postUrl: string) {
   const hash = createHash("sha256").update(`opposition|${handle}|${postUrl}`).digest("hex").slice(0, 16);
@@ -57,20 +57,20 @@ function scoreOppositionPost(input: {
   shares: number;
   publishedAt: string | null;
 }): number {
-  let score = 50 + input.matchedThemes.length * 14;
+  let score = 58 + input.matchedThemes.length * 14;
   score += Math.min(20, Math.log10(input.likes + 1) * 6);
   score += Math.min(12, Math.log10(input.comments + 1) * 5);
 
   if (input.publishedAt) {
     const ageHours = (Date.now() - new Date(input.publishedAt).getTime()) / 3_600_000;
     if (ageHours <= 48) {
-      score += 15;
+      score += 18;
     } else if (ageHours <= 168) {
-      score += 8;
+      score += 10;
     }
   }
 
-  return Math.min(99, Math.max(25, Math.round(score)));
+  return Math.min(99, Math.max(30, Math.round(score)));
 }
 
 function captionHeadline(caption: string, handle: string) {

@@ -329,6 +329,17 @@ export function MonitoramentoPage() {
               Atualizado em {new Date(meta.refreshedAt).toLocaleString("pt-BR")}
             </span>
           ) : null}
+          {meta?.qualityRankStats || meta?.qualityReport ? (
+            <span className="hidden sm:inline text-[10px] text-slate-500 max-w-[14rem] leading-snug">
+              {meta.qualityRankStats
+                ? `Rank LLM: ${meta.qualityRankStats.kept} mantidos / ${meta.qualityRankStats.dropped} fora`
+                : null}
+              {meta.qualityRankStats && meta.qualityReport ? " · " : null}
+              {meta.qualityReport
+                ? `Heurística ${meta.qualityReport.newsPautavelPercent}% pautável`
+                : null}
+            </span>
+          ) : null}
           <RefreshPautasButton
             variant="monitor"
             isLoading={isRefreshing}

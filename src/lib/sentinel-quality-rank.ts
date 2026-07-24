@@ -28,6 +28,8 @@ export type QualityRankOptions = {
   concurrency?: number;
   minScore?: number;
   profileLabel?: string;
+  /** false = no-op (guest / custo). Default: respeita a feature flag. */
+  enabled?: boolean;
 };
 
 function buildRankPrompt(suggestion: MockSentinelSuggestion, profileLabel: string) {
@@ -104,7 +106,11 @@ export async function applySentinelQualityRank(
     dropped: 0,
   };
 
-  if (!isSentinelLlmQualityRankEnabled() || suggestions.length === 0) {
+  if (
+    options.enabled === false ||
+    !isSentinelLlmQualityRankEnabled() ||
+    suggestions.length === 0
+  ) {
     return { suggestions, stats };
   }
 
@@ -170,6 +176,8 @@ export async function applySentinelQualityRank(
       suggestion: {
         ...suggestion,
         topic: nextTopic.slice(0, 160),
+        briefing: briefing.trim().slice(0, 280) || suggestion.briefing,
+        creativeAngle: creativeAngle.trim().slice(0, 160) || suggestion.creativeAngle,
         relevanceScore: Math.max(
           suggestion.relevanceScore,
           Math.round(40 + score * 55),

@@ -16,7 +16,8 @@ import {
 } from "@/lib/sentinel-rss";
 import { buildSentinelQualityReport, estimateSentinelLlmCost } from "@/lib/sentinel-quality";
 import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
-import { diversifySuggestionsByTheme } from "@/lib/sentinel-diversify";
+import { diversifySuggestionsByTheme, interleaveSuggestionsByTheme } from "@/lib/sentinel-diversify";
+import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import {
@@ -106,13 +107,11 @@ function buildSuggestionFromCluster(input: {
   const matchingSearchTerm =
     resolveArticleMatchingSearchTerm(haystack, themeLabel) ?? undefined;
   const outletCount = countUniqueOutlets(articles);
-  const sortedArticles = [...articles]
-    .sort((left, right) => {
-      const leftTime = left.publishedAt?.getTime() ?? 0;
-      const rightTime = right.publishedAt?.getTime() ?? 0;
-      return rightTime - leftTime;
-    })
-    .slice(0, MAX_ARTICLES_PER_SUGGESTION);
+  const sortedArticles = orderClusterArticlesForDisplay(
+    primary,
+    articles,
+    MAX_ARTICLES_PER_SUGGESTION,
+  );
 
   return {
     id: buildSuggestionId(primary.link),
@@ -281,10 +280,13 @@ export async function buildSuggestionsFromArticles(
   }
 
   return {
-    suggestions: diversifySuggestionsByTheme(suggestions, {
-      maxTotal: MAX_SUGGESTIONS,
-      maxPerTheme: 4,
-    }),
+    suggestions: interleaveSuggestionsByTheme(
+      diversifySuggestionsByTheme(suggestions, {
+        maxTotal: MAX_SUGGESTIONS,
+        maxPerTheme: 4,
+        maxPerPipeline: 10,
+      }),
+    ),
     themeVerificationStats,
   };
 }
@@ -413,9 +415,11 @@ function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSu
     }
   }
 
-  const coreSuggestions = diversifySuggestionsByTheme(
-    [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
-    { maxTotal: MAX_SUGGESTIONS, maxPerTheme: 4 },
+  const coreSuggestions = interleaveSuggestionsByTheme(
+    diversifySuggestionsByTheme(
+      [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
+      { maxTotal: MAX_SUGGESTIONS, maxPerTheme: 4, maxPerPipeline: 10 },
+    ),
   );
 
   const oppositionSuggestions = [...oppositionById.values()].sort(
@@ -640,10 +644,11 @@ async function buildSuggestions(
 
 export async function getSentinelSuggestions(
   profile: PoliticianProfile,
-  options?: { forceRefresh?: boolean },
+  options?: { forceRefresh?: boolean; qualityRankEnabled?: boolean },
 ) {
   const cacheKey = profile.id || "default";
   const forceRefresh = Boolean(options?.forceRefresh);
+  const qualityRankEnabled = options?.qualityRankEnabled !== false;
   const cached = await readCachedSuggestions(cacheKey, profile, {
     forceRefresh,
     allowStale: true,
@@ -694,6 +699,7 @@ export async function getSentinelSuggestions(
 
   const qualityRank = await applySentinelQualityRank(suggestionsFiltered, {
     profileLabel: [profile.fullName, profile.city, profile.state].filter(Boolean).join(" · "),
+    enabled: qualityRankEnabled,
   });
   const suggestions = qualityRank.suggestions;
 

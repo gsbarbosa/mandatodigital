@@ -89,7 +89,10 @@ export async function PUT(request: Request) {
           void (async () => {
             await syncSentinelThemeExpansions(profile);
             await invalidateSentinelCacheAsync(profile.id);
-            const result = await getSentinelSuggestions(profile, { forceRefresh: true });
+            const result = await getSentinelSuggestions(profile, {
+              forceRefresh: true,
+              qualityRankEnabled: premium,
+            });
             const sourceFailed = isGuestSentinelRefreshSourceFailure(result.meta);
             if (consumeOnSuccess && !sourceFailed) {
               await tryConsumeGuestSentinelCredit(ownerUserId);

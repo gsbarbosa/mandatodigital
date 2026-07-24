@@ -113,7 +113,20 @@ export function PautaContextCard({ suggestion }: { suggestion: MockSentinelSugge
             {isNewsCard && article ? (
               <>
                 <h2 className="text-lg font-bold text-slate-100 mb-2 leading-snug">{article.title}</h2>
-                <p className="text-sm text-slate-400 mb-4 line-clamp-3">{suggestion.topic}</p>
+                {suggestion.briefing?.trim() ? (
+                  <p className="text-sm text-cyan-100/90 mb-2 leading-relaxed">
+                    {suggestion.briefing.trim()}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-400 mb-2 line-clamp-3">{suggestion.topic}</p>
+                )}
+                {suggestion.creativeAngle?.trim() ? (
+                  <p className="text-xs text-amber-200/80 mb-4">
+                    Ângulo: {suggestion.creativeAngle.trim()}
+                  </p>
+                ) : (
+                  <div className="mb-4" />
+                )}
                 <div className="flex flex-wrap items-center gap-4 text-xs">
                   <span className="text-slate-500">
                     Fonte:{" "}

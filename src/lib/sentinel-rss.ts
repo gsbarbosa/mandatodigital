@@ -881,11 +881,17 @@ export function scoreSentinelArticle(
   score += matchedOpposition.length * 10;
 
   if (article.siteList === "federal") {
-    score += 7;
+    score += 10;
   } else if (article.siteList === "estadual") {
-    score += 7;
+    score += 12;
   } else if (article.siteList === "interest") {
-    score += 5;
+    score += 8;
+  }
+
+  if (article.origin === "portal-rss") {
+    score += 8;
+  } else if (article.origin === "bing-news") {
+    score += 3;
   }
 
   const normalizedTitle = normalizeSentinelText(article.title);

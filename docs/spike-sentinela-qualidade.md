@@ -97,6 +97,17 @@ Ligar rank em staging/prod (App Hosting):
 4. `SENTINEL_LLM_QUALITY_RANK` estava off neste refresh.
 5. Mitigações: sinônimos apertados; filtro de título (vagas/fake news fraca); diversify máx. 4/tema; **quality rank ligado** em staging/prod config.
 
-**Próximo gate:** deploy + refresh → conferir `meta.qualityRankStats.llmCalls > 0` e amostrar top 15 (≥ 60% pautável editorial).
+**Próximo gate:** deploy + refresh premium → conferir `meta.qualityRankStats.llmCalls > 0`, briefing no card e amostrar top 15 (≥ 60% pautável editorial).
+
+### Entregas 2026-07-24 (pacote qualidade)
+
+- Briefing + ângulo no card (Monitor + Criativo) e no handoff do Criativo
+- Cluster: primary sempre em `articles[0]` (headline = topic)
+- Quality rank só em conta **premium** (`qualityRankEnabled`)
+- Theme verify v2 mais rigoroso em temas guarda-chuva (invalida cache de vereditos)
+- Diversidade por tema + pipeline + interleave no topo
+- Boost de portais UF/nacionais no score
+- Oposição: score/limite um pouco maiores (ainda depende de Apify + handles)
+- Meta no monitoramento: kept/dropped do rank + % heurística
 
 

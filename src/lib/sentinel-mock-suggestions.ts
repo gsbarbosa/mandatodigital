@@ -70,6 +70,10 @@ export type MockSentinelSuggestion = {
    * quando distinto do themeLabel.
    */
   matchingSearchTerm?: string;
+  /** Briefing editorial (quality rank LLM) — 1 frase objetiva. */
+  briefing?: string;
+  /** Gancho curto para vídeo/post (quality rank LLM). */
+  creativeAngle?: string;
   evidence: SentinelVerifiedEvidence;
   engagement: SentinelEngagementMetrics;
 };
@@ -332,11 +336,20 @@ export function formatSentinelActorSource(sourceList: SentinelVerifiedActor["sou
 /** Briefing enviado ao Criativo — somente dados verificáveis. */
 export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggestion) {
   const { evidence, matchedThemes } = suggestion;
-  const parts = [
+  const parts: string[] = [];
+
+  if (suggestion.briefing?.trim()) {
+    parts.push(`Briefing editorial: ${suggestion.briefing.trim()}`);
+  }
+  if (suggestion.creativeAngle?.trim()) {
+    parts.push(`Angulo criativo: ${suggestion.creativeAngle.trim()}`);
+  }
+
+  parts.push(
     `Tema do radar: ${suggestion.themeLabel}`,
     `Temas correspondentes: ${matchedThemes.join(", ")}`,
     `Materias analisadas: ${evidence.postsAnalyzed}`,
-  ];
+  );
 
   if (evidence.outletCount && evidence.outletCount > 1) {
     parts.push(`Cobertura editorial: ${evidence.outletCount} veiculos distintos`);

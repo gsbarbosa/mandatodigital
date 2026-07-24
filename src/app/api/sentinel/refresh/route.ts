@@ -102,7 +102,10 @@ export async function POST(request: Request) {
 
     let result;
     try {
-      result = await getSentinelSuggestions(dashboard.profile, { forceRefresh: true });
+      result = await getSentinelSuggestions(dashboard.profile, {
+        forceRefresh: true,
+        qualityRankEnabled: premium,
+      });
     } catch (error) {
       console.error(
         "[sentinel-refresh] falha",
