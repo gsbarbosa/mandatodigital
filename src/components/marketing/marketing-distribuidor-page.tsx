@@ -1,4 +1,4 @@
-import { SOCIAL_ICONS } from "@/components/marketing/icons";
+import { IconFileCheck, SOCIAL_ICONS } from "@/components/marketing/icons";
 import {
   AgentDetailClosing,
   AgentDetailHero,
@@ -9,7 +9,7 @@ import { AGENT_ACCENT_CLASS } from "@/lib/marketing/shared";
 
 export function MarketingDistribuidorPage() {
   const accent = AGENT_ACCENT_CLASS.distribuidor;
-  const { painel } = distribuidorDetail;
+  const { painel, propagation } = distribuidorDetail;
 
   return (
     <>
@@ -20,12 +20,43 @@ export function MarketingDistribuidorPage() {
         titleAccent={distribuidorDetail.titleAccent}
         metrics={distribuidorDetail.metrics}
         stories={distribuidorDetail.stories}
-        visual={{
-          src: "/marketing/distribuidor/painel.jpg",
-          alt: "Painel de disparo coordenado do Agente Distribuidor",
-          aspect: "video",
-        }}
       />
+
+      <AgentDetailSection
+        title={propagation.title}
+        titleAccent={propagation.titleAccent}
+        lead={propagation.lead}
+        wideLead
+        accent="distribuidor"
+      >
+        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/40 px-4 py-8 sm:px-8">
+          <div className="flex flex-col items-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-300">
+              <IconFileCheck size={14} />
+              {propagation.source}
+            </span>
+            <span aria-hidden className="my-4 h-8 w-px bg-slate-700" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-7">
+            {propagation.networks.map((item) => {
+              const Icon = SOCIAL_ICONS[item.network];
+              return (
+                <div
+                  key={item.network}
+                  className="flex flex-col items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-center"
+                >
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300">
+                    <Icon size={18} />
+                  </span>
+                  <p className="text-xs font-semibold text-white">{item.network}</p>
+                  <p className="text-[11px] leading-snug text-slate-400">{item.format}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </AgentDetailSection>
 
       <AgentDetailSection
         title={painel.title}

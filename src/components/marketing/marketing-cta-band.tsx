@@ -34,7 +34,7 @@ export function MarketingCtaBand({
           <h2 className="max-w-3xl text-2xl font-bold tracking-tight text-white sm:text-3xl">
             {renderTitle(title)}
           </h2>
-          <p className="mt-4 max-w-3xl text-base leading-relaxed text-slate-300">{body}</p>
+          <p className="mt-4 text-base leading-relaxed text-slate-300">{body}</p>
           <Link
             href={ctaHref}
             className="primary-button mt-8 inline-flex"

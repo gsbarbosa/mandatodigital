@@ -24,6 +24,21 @@ function highlightPhrase(text: string, phrase: string, accentClass: string) {
   );
 }
 
+function renderClosingBody(text: string, breakBefore: string, accentPhrase: string, accentClass: string) {
+  const breakIndex = text.indexOf(breakBefore);
+  if (breakIndex < 0) return highlightPhrase(text, accentPhrase, accentClass);
+  const before = text.slice(0, breakIndex);
+  const after = text.slice(breakIndex);
+
+  return (
+    <>
+      {before}
+      <br />
+      {highlightPhrase(after, accentPhrase, accentClass)}
+    </>
+  );
+}
+
 export function AgentDetailBackLink() {
   return (
     <Link
@@ -195,12 +210,14 @@ export function AgentDetailSection({
   titleAccent,
   accent = "sentinela",
   lead,
+  wideLead = false,
   children,
 }: {
   title: string;
   titleAccent?: string;
   accent?: AgentAccent;
   lead?: string;
+  wideLead?: boolean;
   children: ReactNode;
 }) {
   const classes = AGENT_ACCENT_CLASS[accent];
@@ -218,7 +235,9 @@ export function AgentDetailSection({
           ) : null}
         </h2>
         {lead ? (
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400 sm:text-base">
+          <p
+            className={`mt-3 text-sm leading-relaxed text-slate-400 sm:text-base ${wideLead ? "" : "max-w-3xl"}`}
+          >
             {lead}
           </p>
         ) : null}
@@ -229,7 +248,8 @@ export function AgentDetailSection({
 }
 
 export function AgentDetailClosing() {
-  const { title, titleAccent, body, bodyAccent, ctaHref, ctaLabel } = AGENT_DETAIL_CLOSING;
+  const { title, titleAccent, body, bodyBreakBefore, bodyAccent, ctaHref, ctaLabel } =
+    AGENT_DETAIL_CLOSING;
 
   return (
     <section className="border-t border-slate-800/60 py-16 sm:py-20">
@@ -238,7 +258,7 @@ export function AgentDetailClosing() {
           {highlightPhrase(title, titleAccent, "text-emerald-400")}
         </h2>
         <p className="mt-5 text-base leading-relaxed text-slate-400 sm:text-lg">
-          {highlightPhrase(body, bodyAccent, "text-emerald-400")}
+          {renderClosingBody(body, bodyBreakBefore, bodyAccent, "text-emerald-400")}
         </p>
         <Link href={ctaHref as Route} className="primary-button mt-8 inline-flex">
           {ctaLabel}

@@ -3,7 +3,7 @@ import type { ComponentType, SVGProps } from "react";
 import {
   IconBolt,
   IconInstagram,
-  IconX,
+  IconTikTok,
 } from "@/components/marketing/icons";
 import {
   AgentDetailClosing,
@@ -14,9 +14,9 @@ import { sentinelaDetail } from "@/lib/marketing/sentinela-detail-content";
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
-const NETWORK_ICONS: Record<"x" | "instagram", ComponentType<IconProps>> = {
-  x: IconX,
+const NETWORK_ICONS: Record<"instagram" | "tiktok", ComponentType<IconProps>> = {
   instagram: IconInstagram,
+  tiktok: IconTikTok,
 };
 
 const THEME_TONE: Record<"purple" | "blue", string> = {
@@ -37,7 +37,7 @@ export function MarketingSentinelaPage() {
         metrics={sentinelaDetail.metrics}
         stories={sentinelaDetail.stories}
         visual={{
-          src: "/marketing/sentinela/ops.jpg",
+          src: "/marketing/sentinela/ops-brasil.jpg",
           alt: "Console de monitoramento do Agente Sentinela",
           aspect: "video",
         }}
@@ -100,15 +100,12 @@ export function MarketingSentinelaPage() {
             </table>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-slate-800/80 bg-slate-950/40 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+          <div className="flex flex-col items-start gap-3 border-t border-slate-800/80 bg-slate-950/40 px-4 py-4 sm:flex-row sm:items-center sm:justify-start sm:gap-4 sm:px-5">
             <div className="flex shrink-0 items-center gap-2 text-sm font-medium text-sky-300">
               <IconBolt size={16} aria-hidden />
               {liveConsole.newPautaLabel}
             </div>
-            <div className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-500">
-              {liveConsole.newPautaPlaceholder}
-            </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {liveConsole.formatOptions.map((option, index) => (
                 <span
                   key={option}
