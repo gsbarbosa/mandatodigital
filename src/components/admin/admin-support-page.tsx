@@ -34,7 +34,7 @@ function statusClass(status: SupportThreadStatus) {
   if (status === "human") {
     return "text-emerald-300";
   }
-  return "text-slate-400";
+  return "text-md-text-soft";
 }
 
 function formatWhen(iso: string) {
@@ -58,9 +58,9 @@ function bubbleClass(role: SupportMessage["role"]) {
     return "bg-emerald-600/15 border-emerald-500/30 text-emerald-50";
   }
   if (role === "system") {
-    return "bg-slate-800/70 border-slate-700 text-slate-400 text-center text-xs";
+    return "bg-md-surface-inset border-md-border text-md-text-soft text-center text-xs";
   }
-  return "bg-slate-800/80 border-slate-700 text-slate-200";
+  return "bg-md-surface-inset border-md-border text-md-text";
 }
 
 export function AdminSupportPage() {
@@ -187,8 +187,8 @@ export function AdminSupportPage() {
   return (
     <div>
       <header className="mb-8">
-        <h2 className="text-2xl font-bold text-white">Suporte</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-2xl font-bold text-md-text">Suporte</h2>
+        <p className="mt-1 text-sm text-md-text-soft">
           Fila N2 — responda no mesmo chat do produto.
         </p>
       </header>
@@ -200,18 +200,18 @@ export function AdminSupportPage() {
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <div className="overflow-hidden rounded-2xl border border-slate-800/80">
-          <div className="border-b border-slate-800 bg-slate-900/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+        <div className="overflow-hidden rounded-2xl border border-md-border">
+          <div className="border-b border-md-border bg-md-surface/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-md-text-soft">
             Fila ({threads.length})
           </div>
-          <ul className="max-h-[70vh] divide-y divide-slate-800/80 overflow-y-auto">
+          <ul className="max-h-[70vh] divide-y divide-md-border/80 overflow-y-auto">
             {loadingList && threads.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-slate-500">
+              <li className="px-4 py-8 text-center text-sm text-md-text-soft">
                 Carregando…
               </li>
             ) : null}
             {!loadingList && threads.length === 0 ? (
-              <li className="px-4 py-8 text-center text-sm text-slate-500">
+              <li className="px-4 py-8 text-center text-sm text-md-text-soft">
                 Nenhum atendimento na fila.
               </li>
             ) : null}
@@ -220,12 +220,12 @@ export function AdminSupportPage() {
                 <button
                   type="button"
                   onClick={() => setSelectedId(item.id)}
-                  className={`w-full px-4 py-3 text-left transition hover:bg-slate-900/70 ${
+                  className={`w-full px-4 py-3 text-left transition hover:bg-md-surface/70 ${
                     selectedId === item.id ? "bg-cyan-500/10" : ""
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm font-medium text-white">
+                    <p className="truncate text-sm font-medium text-md-text">
                       {item.userEmail || item.ownerUserId}
                     </p>
                     <span
@@ -234,10 +234,10 @@ export function AdminSupportPage() {
                       {statusLabel(item.status)}
                     </span>
                   </div>
-                  <p className="mt-1 truncate text-xs text-slate-500">
+                  <p className="mt-1 truncate text-xs text-md-text-soft">
                     {item.lastMessagePreview || item.escalationSummary || "—"}
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-600">
+                  <p className="mt-1 text-[11px] text-md-text-soft">
                     {formatWhen(item.lastMessageAt)}
                     {item.escalationReason
                       ? ` · via ${item.escalationReason === "user" ? "usuário" : "IA"}`
@@ -249,20 +249,20 @@ export function AdminSupportPage() {
           </ul>
         </div>
 
-        <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-slate-800/80">
+        <div className="flex min-h-[420px] flex-col overflow-hidden rounded-2xl border border-md-border">
           {!selectedId ? (
-            <div className="flex flex-1 items-center justify-center px-6 text-sm text-slate-500">
+            <div className="flex flex-1 items-center justify-center px-6 text-sm text-md-text-soft">
               Selecione um atendimento na fila.
             </div>
           ) : (
             <>
-              <div className="flex items-start justify-between gap-3 border-b border-slate-800 bg-slate-900/80 px-4 py-3">
+              <div className="flex items-start justify-between gap-3 border-b border-md-border bg-md-surface/80 px-4 py-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">
+                  <p className="truncate text-sm font-semibold text-md-text">
                     {detail?.userEmail || "Atendimento"}
                   </p>
                   {detail?.escalationSummary ? (
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-xs text-md-text-soft">
                       {detail.escalationSummary}
                     </p>
                   ) : null}
@@ -271,7 +271,7 @@ export function AdminSupportPage() {
                   type="button"
                   onClick={() => void handleClose()}
                   disabled={closing || detail?.status === "closed"}
-                  className="shrink-0 rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:border-rose-500/40 hover:text-rose-200 disabled:opacity-50"
+                  className="shrink-0 rounded-lg border border-md-border px-3 py-1.5 text-xs text-md-text-muted transition hover:border-rose-500/40 hover:text-rose-200 disabled:opacity-50"
                 >
                   {closing ? "Encerrando…" : "Encerrar"}
                 </button>
@@ -279,7 +279,7 @@ export function AdminSupportPage() {
 
               <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
                 {loadingDetail && !detail ? (
-                  <p className="text-center text-sm text-slate-500">
+                  <p className="text-center text-sm text-md-text-soft">
                     Carregando conversa…
                   </p>
                 ) : null}
@@ -289,7 +289,7 @@ export function AdminSupportPage() {
                     className={`rounded-lg border px-3 py-2 text-sm leading-relaxed ${bubbleClass(message.role)}`}
                   >
                     {message.role !== "system" ? (
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-md-text-soft">
                         {message.authorLabel || message.role}
                       </p>
                     ) : null}
@@ -302,7 +302,7 @@ export function AdminSupportPage() {
               {detail && detail.status !== "closed" ? (
                 <form
                   onSubmit={(event) => void handleReply(event)}
-                  className="border-t border-slate-800 p-3"
+                  className="border-t border-md-border p-3"
                 >
                   <div className="flex gap-2">
                     <textarea
@@ -311,7 +311,7 @@ export function AdminSupportPage() {
                       rows={2}
                       placeholder="Responder ao usuário…"
                       disabled={sending}
-                      className="min-w-0 flex-1 resize-none rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/50"
+                      className="min-w-0 flex-1 resize-none rounded-lg border border-md-border bg-md-bg/80 px-3 py-2 text-sm text-md-text outline-none placeholder:text-md-text-soft focus:border-cyan-500/50"
                       maxLength={4000}
                     />
                     <button

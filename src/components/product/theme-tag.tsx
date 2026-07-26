@@ -22,11 +22,11 @@ export function ThemeTagPill({
   const base =
     "px-4 py-1.5 rounded-full border text-xs sm:text-sm font-medium transition-all select-none";
   const idle =
-    "border-slate-700 bg-slate-800/80 text-slate-300 hover:border-cyan-500/50 hover:text-cyan-200 cursor-pointer";
+    "border-md-border bg-md-surface-inset text-md-text-muted hover:border-[var(--curador-border)] hover:text-[var(--curador-text)] cursor-pointer";
   const activeClasses =
-    "border-cyan-400 bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)] cursor-pointer";
+    "border-[var(--curador-border)] bg-[var(--curador-soft)] text-[var(--curador-text)] shadow-sm cursor-pointer";
   const disabledClasses =
-    "border-slate-800 bg-slate-900/40 text-slate-600 cursor-not-allowed opacity-60";
+    "border-md-border bg-md-surface/40 text-md-text-soft cursor-not-allowed opacity-60";
 
   return (
     <button

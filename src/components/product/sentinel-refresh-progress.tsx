@@ -37,7 +37,7 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
 
   return (
     <div
-      className="rounded-2xl border border-cyan-500/25 bg-gradient-to-b from-cyan-950/40 to-slate-950/60 px-5 py-6 shadow-[0_0_40px_rgba(6,182,212,0.08)]"
+      className="rounded-2xl border border-[var(--sentinela-border)] bg-gradient-to-b from-[var(--sentinela-soft)] to-md-surface px-5 py-6 shadow-sm"
       role="status"
       aria-live="polite"
       aria-busy="true"
@@ -45,14 +45,14 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
     >
       <div className="flex items-start gap-4 mb-5">
         <span
-          className="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-400 motion-reduce:animate-none"
+          className="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-md-border border-t-[var(--sentinela)] motion-reduce:animate-none"
           aria-hidden="true"
         />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white tracking-tight">
+          <p className="text-sm font-semibold text-md-text tracking-tight">
             Sentinela em ação
           </p>
-          <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+          <p className="mt-1 text-xs text-md-text-soft leading-relaxed">
             Estamos varrendo fontes e montando suas pautas. Isso pode levar até cerca de 2
             minutos na primeira busca.
           </p>
@@ -60,11 +60,11 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
       </div>
 
       <div
-        className="mb-5 h-1.5 overflow-hidden rounded-full bg-slate-800/80 border border-slate-700/50"
+        className="mb-5 h-1.5 overflow-hidden rounded-full bg-md-surface-inset border border-md-border/50"
         aria-hidden="true"
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-[width] duration-700 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-[var(--sentinela)] to-[var(--curador)] transition-[width] duration-700 ease-out"
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -78,7 +78,7 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
               key={label}
               className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors duration-300 ${
                 current
-                  ? "bg-cyan-500/10 border border-cyan-500/25"
+                  ? "bg-[var(--sentinela-soft)] border border-[var(--sentinela-border)]"
                   : done
                     ? "border border-transparent"
                     : "border border-transparent opacity-45"
@@ -87,10 +87,10 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
               <span
                 className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
                   done
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    ? "bg-[var(--sentinela-soft)] text-[var(--sentinela-text)] border border-[var(--sentinela-border)]"
                     : current
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 animate-pulse motion-reduce:animate-none"
-                      : "bg-slate-800 text-slate-500 border border-slate-700"
+                      ? "bg-[var(--sentinela-soft)] text-[var(--sentinela-text)] border border-[var(--sentinela-border)] animate-pulse motion-reduce:animate-none"
+                      : "bg-md-slate-800 text-md-text-soft border border-md-border"
                 }`}
                 aria-hidden="true"
               >
@@ -104,7 +104,11 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
               </span>
               <span
                 className={`text-sm leading-snug ${
-                  current ? "text-cyan-100 font-medium" : done ? "text-slate-300" : "text-slate-500"
+                  current
+                    ? "text-md-text font-medium"
+                    : done
+                      ? "text-md-text-muted"
+                      : "text-md-text-soft"
                 }`}
               >
                 {label}

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
+import { AppearanceToggle } from "@/components/appearance-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
@@ -42,7 +43,7 @@ function OnbHighlightDot() {
   return (
     <span
       aria-hidden="true"
-      className="mr-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 align-middle shadow-[0_0_6px_rgba(34,211,238,0.9)] animate-pulse"
+      className="mr-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--curador)] align-middle shadow-[0_0_6px_color-mix(in_srgb,var(--curador)_55%,transparent)] animate-pulse"
     />
   );
 }
@@ -139,14 +140,14 @@ function isChildActive(
 
 function navParentClassName(active: boolean) {
   return active
-    ? "block py-2 text-sm text-cyan-400 font-medium transition-colors no-underline"
-    : "block py-2 text-sm text-slate-200 hover:text-white transition-colors no-underline";
+    ? "block py-2 text-sm text-[var(--curador-text)] font-medium transition-colors no-underline"
+    : "block py-2 text-sm text-md-text hover:text-md-text transition-colors no-underline";
 }
 
 function childClassName(active: boolean) {
   return active
-    ? "block pl-3 py-1.5 text-sm text-cyan-400 font-medium no-underline"
-    : "block pl-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors no-underline";
+    ? "block pl-3 py-1.5 text-sm text-[var(--curador-text)] font-medium no-underline"
+    : "block pl-3 py-1.5 text-sm text-md-text-soft hover:text-md-text transition-colors no-underline";
 }
 
 export function NavSidebar({
@@ -227,8 +228,8 @@ export function NavSidebar({
   ];
 
   return (
-    <aside className="w-64 bg-[#0B0F19] border-r border-slate-800 flex flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
-      <div className="border-b border-slate-800/50 px-4 py-5">
+    <aside className="w-64 bg-md-bg border-r border-md-border flex flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(15,23,42,0.12)]">
+      <div className="border-b border-md-border-soft px-4 py-5">
         <Link
           href="/monitoramento"
           className="flex w-full items-center no-underline"
@@ -239,7 +240,7 @@ export function NavSidebar({
           <BrandLogo fluid priority />
         </Link>
         <p
-          className="mt-2 text-center text-[10px] font-normal tracking-wide text-slate-600 select-none"
+          className="mt-2 text-center text-[10px] font-normal tracking-wide text-md-text-soft select-none"
           aria-label={`Versão ${APP_VERSION}`}
         >
           v{APP_VERSION}
@@ -257,7 +258,7 @@ export function NavSidebar({
           <div key={block.label}>
             <Link
               href={block.href as Route}
-              className={`${navParentClassName(blockActive)}${blockHl ? " !text-cyan-300" : ""}`}
+              className={`${navParentClassName(blockActive)}${blockHl ? " !text-[var(--curador-text)]" : ""}`}
               data-onboarding-anchor={
                 block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
               }
@@ -265,7 +266,7 @@ export function NavSidebar({
               {blockHl ? <OnbHighlightDot /> : null}
               {block.label}
             </Link>
-            <ul className="pl-4 mt-1 space-y-1 border-l-2 border-slate-800/80 ml-2">
+            <ul className="pl-4 mt-1 space-y-1 border-l-2 border-md-border ml-2">
               {(block.children ?? []).map((child) => {
                 const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
                 const childHl =
@@ -276,7 +277,7 @@ export function NavSidebar({
                 return (
                 <li
                   key={child.href + child.label}
-                  className={child.variant === "settings" ? "mt-2 pt-2 border-t border-slate-800/60" : undefined}
+                  className={child.variant === "settings" ? "mt-2 pt-2 border-t border-md-border-soft" : undefined}
                 >
                   {child.href.includes("#") ? (
                     <a
@@ -292,7 +293,7 @@ export function NavSidebar({
                   ) : (
                   <Link
                     href={child.href as Route}
-                    className={`flex items-center gap-1.5 ${childClassName(childActive)}${childHl ? " !text-cyan-300" : ""}`}
+                    className={`flex items-center gap-1.5 ${childClassName(childActive)}${childHl ? " !text-[var(--curador-text)]" : ""}`}
                     data-onboarding-anchor={
                       child.href === "/monitoramento/temas"
                         ? "temas-config"
@@ -305,7 +306,7 @@ export function NavSidebar({
                     {child.variant === "settings" ? (
                       <SettingsGearIcon
                         className={`w-3.5 h-3.5 shrink-0 ${
-                          childActive || childHl ? "text-cyan-400" : "text-slate-500"
+                          childActive || childHl ? "text-[var(--curador-text)]" : "text-md-text-soft"
                         }`}
                       />
                     ) : null}
@@ -331,7 +332,7 @@ export function NavSidebar({
             <Link
               key={item.href}
               href={item.href as Route}
-              className={`${navParentClassName(itemActive || Boolean(singleHl))}${singleHl ? " !text-cyan-300" : ""}`}
+              className={`${navParentClassName(itemActive || Boolean(singleHl))}${singleHl ? " !text-[var(--curador-text)]" : ""}`}
               data-onboarding-anchor={item.href === "/criativo" ? "criativo" : undefined}
             >
               {singleHl ? <OnbHighlightDot /> : null}
@@ -348,7 +349,7 @@ export function NavSidebar({
           >
             Acesso antecipado
           </Link>
-          <ul className="pl-4 mt-1 space-y-1 border-l-2 border-slate-800/80 ml-2">
+          <ul className="pl-4 mt-1 space-y-1 border-l-2 border-md-border ml-2">
             {earlyAccessChildren.map((child) => {
               const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
 
@@ -373,22 +374,23 @@ export function NavSidebar({
         </div>
       </nav>
 
-      <div className="px-4 pb-3 border-t border-slate-800/50 pt-3">
+      <div className="px-4 pb-3 border-t border-md-border-soft pt-3 space-y-3">
+        <AppearanceToggle />
         <Link
           href={"/" as Route}
-          className="block text-[11px] font-medium text-slate-500 hover:text-slate-300 transition-colors no-underline"
+          className="block text-[11px] font-medium text-md-text-soft hover:text-md-text transition-colors no-underline"
         >
           Site institucional
         </Link>
       </div>
 
       {sessionEmail ? (
-        <div className="p-4 border-t border-slate-800/50 space-y-2">
+        <div className="p-4 border-t border-md-border-soft space-y-2">
           {mounted && !pathname.startsWith("/acesso-antecipado") ? (
             <button
               type="button"
               onClick={() => restartOnboarding()}
-              className="w-full text-left text-[11px] font-medium text-cyan-400/90 hover:text-cyan-300 border border-slate-700/80 hover:border-cyan-500/40 rounded-lg px-2.5 py-2 transition-colors"
+              className="w-full text-left text-[11px] font-medium text-[var(--curador-text)] hover:opacity-80 border border-md-border hover:border-[var(--curador-border)] rounded-lg px-2.5 py-2 transition-colors"
             >
               Começar onboarding do zero
             </button>
@@ -398,20 +400,20 @@ export function NavSidebar({
               <button
                 type="button"
                 onClick={() => setEmailMenuOpen((open) => !open)}
-                className="text-xs text-slate-500 truncate text-left hover:text-slate-400 transition-colors"
+                className="text-xs text-md-text-soft truncate text-left hover:text-md-text transition-colors"
                 title={sessionEmail}
               >
                 {sessionEmail}
               </button>
             ) : (
-              <span className="text-xs text-slate-500 truncate" title={sessionEmail}>
+              <span className="text-xs text-md-text-soft truncate" title={sessionEmail}>
                 {sessionEmail}
               </span>
             )}
             <button
               type="button"
               onClick={onSignOut}
-              className="text-xs text-slate-400 hover:text-white border border-slate-700 rounded-lg px-2.5 py-1 transition-colors shrink-0"
+              className="text-xs text-md-text-soft hover:text-md-text border border-md-border rounded-lg px-2.5 py-1 transition-colors shrink-0"
             >
               Sair
             </button>
@@ -419,7 +421,7 @@ export function NavSidebar({
           {canToggleAccountMode && emailMenuOpen ? (
             <Link
               href={"/dev/modo-conta" as Route}
-              className="block text-[10px] tracking-wide text-slate-600 hover:text-slate-400 transition-colors no-underline"
+              className="block text-[10px] tracking-wide text-md-text-soft hover:text-md-text transition-colors no-underline"
               onClick={() => setEmailMenuOpen(false)}
             >
               Alternar modo da conta

@@ -53,14 +53,14 @@ function ModalShell({
       aria-modal="true"
     >
       <div
-        className={`relative w-full ${maxWidth} rounded-[18px] border border-slate-800 bg-[#10141f] p-7 shadow-[0_30px_70px_rgba(0,0,0,0.5)]`}
+        className={`relative w-full ${maxWidth} rounded-[18px] border border-md-border bg-md-surface p-7 shadow-[0_30px_70px_rgba(0,0,0,0.5)]`}
       >
         {onClose ? (
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="absolute right-3.5 top-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-700/40 text-slate-400 transition-colors hover:bg-slate-700/70 hover:text-white"
+            className="absolute right-3.5 top-3.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-700/40 text-md-text-soft transition-colors hover:bg-md-overlay-hover/70 hover:text-md-text"
           >
             <IconClose />
           </button>
@@ -85,7 +85,7 @@ function PrimaryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="w-full rounded-[10px] bg-gradient-to-r from-cyan-400 to-blue-600 px-5 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(6,182,212,0.22)] transition-[filter] hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
+      className="w-full rounded-[10px] bg-gradient-to-r from-cyan-400 to-blue-600 px-5 py-3 text-sm font-bold text-md-text shadow-[0_0_20px_rgba(6,182,212,0.22)] transition-[filter] hover:brightness-110 disabled:cursor-wait disabled:opacity-70"
     >
       {children}
     </button>
@@ -108,10 +108,10 @@ function WelcomeModal() {
       <div className="mb-4 flex h-24 items-center justify-center">
         <RadarVisual />
       </div>
-      <h2 className="mb-2 text-balance text-center text-lg font-bold text-white">
+      <h2 className="mb-2 text-balance text-center text-lg font-bold text-md-text">
         Boas-vindas ao Mandato Digital
       </h2>
-      <p className="text-center text-[13px] leading-relaxed text-slate-400">
+      <p className="text-center text-[13px] leading-relaxed text-md-text-soft">
         Vamos configurar seus temas de interesse, fontes e adversários — e depois treinar
         o avatar (foto, áudio, persona e glossário).
       </p>
@@ -121,7 +121,7 @@ function WelcomeModal() {
       <button
         type="button"
         onClick={markWelcomeSeen}
-        className="mt-3 w-full text-center text-[12px] font-medium text-slate-500 transition hover:text-slate-300"
+        className="mt-3 w-full text-center text-[12px] font-medium text-md-text-soft transition hover:text-md-text-muted"
       >
         Ver checklist depois
       </button>
@@ -139,8 +139,8 @@ function AfterThemesBridge() {
       <div className="mb-4 flex h-24 items-center justify-center">
         <RadarVisual />
       </div>
-      <h2 className="mb-2.5 text-center text-lg font-bold text-white">Temas configurados!</h2>
-      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+      <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Temas configurados!</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
         Seu radar foi salvo e o Sentinela já está buscando as pautas. Enquanto isso, vamos treinar o
         avatar: foto, áudio, calibragem de persona e glossário.
       </p>
@@ -167,10 +167,10 @@ function AfterAvatarBridge() {
       <div className="mb-4 flex h-24 items-center justify-center">
         <RadarVisual />
       </div>
-      <h2 className="mb-2.5 text-center text-lg font-bold text-white">
+      <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">
         O Sentinela já montou suas pautas
       </h2>
-      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
         Com os temas e o avatar prontos, o Sentinela vasculhou portais e redes e organizou as
         primeiras pautas do radar. No próximo passo, você vai pautar a primeira delas no Criativo.
       </p>
@@ -193,11 +193,11 @@ function AfterPautasBridge() {
 
   return (
     <ModalShell onClose={closeBridge}>
-      <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-cyan-400">
+      <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-[var(--curador-text)]">
         <IconSpark />
       </div>
-      <h2 className="mb-2.5 text-center text-lg font-bold text-white">Hora de criar o roteiro</h2>
-      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+      <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Hora de criar o roteiro</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
         Com a pauta escolhida, vamos definir arquétipo, tom de linguagem, tema e aprovar o roteiro
         antes de produzir o vídeo.
       </p>
@@ -228,11 +228,11 @@ function AfterRoteiroBridge() {
 
   return (
     <ModalShell onClose={closeBridge}>
-      <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-cyan-400">
+      <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-[var(--curador-text)]">
         <IconSpark />
       </div>
-      <h2 className="mb-2.5 text-center text-lg font-bold text-white">Roteiro pronto</h2>
-      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+      <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Roteiro pronto</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
         Agora escolha o avatar e gere o vídeo. Em poucos cliques o conteúdo sai com a sua cara e a
         sua voz.
       </p>
@@ -280,11 +280,11 @@ function BridgeModal({ kind }: { kind: Exclude<OnboardingBridge, null> }) {
   if (kind === "afterUploads") {
     return (
       <ModalShell onClose={closeBridge}>
-        <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-cyan-400">
+        <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-[var(--curador-text)]">
           <IconSpark />
         </div>
-        <h2 className="mb-2.5 text-center text-lg font-bold text-white">Mídia enviada</h2>
-        <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+        <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Mídia enviada</h2>
+        <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
           Próximo passo: calibrar a persona e o glossário em Personalizar.
         </p>
         <PrimaryButton
@@ -302,8 +302,8 @@ function BridgeModal({ kind }: { kind: Exclude<OnboardingBridge, null> }) {
 
   return (
     <ModalShell onClose={closeBridge}>
-      <h2 className="mb-2 text-center text-lg font-bold text-white">Onboarding quase lá</h2>
-      <p className="mb-6 text-center text-[13px] leading-relaxed text-slate-400">
+      <h2 className="mb-2 text-center text-lg font-bold text-md-text">Onboarding quase lá</h2>
+      <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
         Continue pelo checklist no canto inferior direito.
       </p>
       <PrimaryButton onClick={closeBridge}>Entendi</PrimaryButton>

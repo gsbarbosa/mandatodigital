@@ -76,19 +76,19 @@ export function ExportComplianceModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="export-compliance-title"
-        className="relative w-full max-w-lg rounded-2xl border border-slate-700 bg-[#0F1623] p-6 shadow-2xl"
+        className="relative w-full max-w-lg rounded-2xl border border-md-border bg-md-surface p-6 shadow-2xl"
       >
-        <h2 id="export-compliance-title" className="text-lg font-bold text-white">
+        <h2 id="export-compliance-title" className="text-lg font-bold text-md-text">
           Aviso de Conformidade - Justiça Eleitoral
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-slate-300">
+        <p className="mt-3 text-sm leading-relaxed text-md-text-muted">
           {EXPORT_COMPLIANCE_MESSAGE}
         </p>
 
-        <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm text-slate-200">
+        <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm text-md-text">
           <input
             type="checkbox"
-            className="mt-1 h-4 w-4 rounded border-slate-600"
+            className="mt-1 h-4 w-4 rounded border-md-border-hover"
             checked={accepted}
             onChange={(event) => setAccepted(event.target.checked)}
           />
@@ -105,7 +105,7 @@ export function ExportComplianceModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-800"
+            className="rounded-lg border border-md-border px-4 py-2.5 text-sm font-medium text-md-text-muted hover:bg-md-overlay-hover"
           >
             Cancelar
           </button>
@@ -113,7 +113,7 @@ export function ExportComplianceModal({
             type="button"
             disabled={!accepted || submitting}
             onClick={() => void handleConfirm()}
-            className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-md-text disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? "Registrando…" : "Confirmar e Baixar"}
           </button>

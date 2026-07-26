@@ -44,8 +44,8 @@ export function AdminUsersPage() {
   return (
     <div>
       <header className="mb-8">
-        <h2 className="text-2xl font-bold text-white">Usuários</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-2xl font-bold text-md-text">Usuários</h2>
+        <p className="mt-1 text-sm text-md-text-soft">
           Cadastros em `userRegistrations` (somente leitura neste MVP).
         </p>
       </header>
@@ -56,9 +56,9 @@ export function AdminUsersPage() {
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-800/80">
+      <div className="overflow-x-auto rounded-2xl border border-md-border">
         <table className="min-w-full text-left text-sm">
-          <thead className="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-500">
+          <thead className="bg-md-surface/80 text-[11px] uppercase tracking-wider text-md-text-soft">
             <tr>
               <th className="px-4 py-3 font-semibold">Nome</th>
               <th className="px-4 py-3 font-semibold">E-mail</th>
@@ -70,14 +70,14 @@ export function AdminUsersPage() {
           <tbody>
             {users.length === 0 && !error ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-md-text-soft">
                   Nenhum usuário ou ainda carregando…
                 </td>
               </tr>
             ) : null}
             {users.map((user) => (
-              <tr key={user.ownerUserId} className="border-t border-slate-800/80 text-slate-300">
-                <td className="px-4 py-3 text-white">{user.fullName || "—"}</td>
+              <tr key={user.ownerUserId} className="border-t border-md-border text-md-text-muted">
+                <td className="px-4 py-3 text-md-text">{user.fullName || "—"}</td>
                 <td className="px-4 py-3">{user.email || "—"}</td>
                 <td className="px-4 py-3">
                   {[user.party, user.uf].filter(Boolean).join(" / ") || "—"}

@@ -29,7 +29,7 @@ export function AssemblyLine() {
           return (
             <li key={step.stage} className="min-w-0 list-none">
               <article
-                className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-slate-900/55 shadow-lg ${accent.border}`}
+                className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-md-surface/55 shadow-lg ${accent.border}`}
               >
                 <div className={`h-1 w-full ${ACCENT_BAR[step.accent]}`} aria-hidden />
 
@@ -41,7 +41,7 @@ export function AssemblyLine() {
                     <StepIcon size={22} />
                   </div>
 
-                  <h3 className="text-xl font-bold tracking-tight text-white">{step.stage}</h3>
+                  <h3 className="text-xl font-bold tracking-tight text-md-text">{step.stage}</h3>
 
                   <span
                     className={`mt-3 inline-flex w-fit rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${ACCENT_PILL[step.accent]}`}
@@ -49,7 +49,7 @@ export function AssemblyLine() {
                     {step.agent}
                   </span>
 
-                  <p className="mt-4 flex-1 text-sm leading-relaxed text-slate-400">
+                  <p className="mt-4 flex-1 text-sm leading-relaxed text-md-text-soft">
                     {step.description}
                   </p>
                 </div>
@@ -59,7 +59,7 @@ export function AssemblyLine() {
         })}
       </ol>
 
-      <aside className="mt-8 rounded-2xl border border-slate-800/80 bg-slate-950/50 p-5 sm:p-6">
+      <aside className="mt-8 rounded-2xl border border-md-border bg-md-bg/50 p-5 sm:p-6">
         <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3">
           <IconShieldCheck
             size={18}
@@ -67,10 +67,10 @@ export function AssemblyLine() {
             aria-hidden
           />
           <div className="min-w-0">
-            <p className="m-0 text-sm font-semibold leading-[1.5] text-slate-100">
+            <p className="m-0 text-sm font-semibold leading-[1.5] text-md-text">
               {homeAssembly.footer}
             </p>
-            <p className="mt-1.5 m-0 text-xs leading-[1.5] text-slate-500">
+            <p className="mt-1.5 m-0 text-xs leading-[1.5] text-md-text-soft">
               {homeAssembly.note}
             </p>
           </div>

@@ -80,9 +80,9 @@ export function DevAccountModePage() {
   if (!allowed) {
     return (
       <div className="max-w-md mx-auto p-8">
-        <h1 className="text-lg font-semibold text-white mb-2">Modo da conta</h1>
-        <p className="text-sm text-slate-400 mb-6">Esta conta não tem acesso a esta tela.</p>
-        <Link href="/monitoramento" className="text-sm text-cyan-400 hover:text-cyan-300">
+        <h1 className="text-lg font-semibold text-md-text mb-2">Modo da conta</h1>
+        <p className="text-sm text-md-text-soft mb-6">Esta conta não tem acesso a esta tela.</p>
+        <Link href="/monitoramento" className="text-sm text-[var(--curador-text)] hover:text-[var(--curador-text)]">
           Voltar
         </Link>
       </div>
@@ -91,9 +91,9 @@ export function DevAccountModePage() {
 
   return (
     <div className="max-w-md mx-auto p-8">
-      <p className="text-xs text-slate-500 mb-1 truncate">{email}</p>
-      <h1 className="text-lg font-semibold text-white mb-2">Modo da conta</h1>
-      <p className="text-sm text-slate-400 mb-8">
+      <p className="text-xs text-md-text-soft mb-1 truncate">{email}</p>
+      <h1 className="text-lg font-semibold text-md-text mb-2">Modo da conta</h1>
+      <p className="text-sm text-md-text-soft mb-8">
         Alterna entre a versão para convidados (limites) e premium (sem esses limites), só para
         testes internos.
       </p>
@@ -105,12 +105,12 @@ export function DevAccountModePage() {
           onClick={() => void handleSave("guest")}
           className={`w-full text-left rounded-xl border px-4 py-3 transition-colors ${
             mode === "guest"
-              ? "border-cyan-700/60 bg-cyan-950/40 text-cyan-100"
-              : "border-slate-800 bg-slate-900/40 text-slate-300 hover:border-slate-700"
+              ? "border-cyan-700/60 bg-[var(--curador-soft)] text-md-text"
+              : "border-md-border bg-md-surface/40 text-md-text-muted hover:border-md-border"
           }`}
         >
           <span className="block text-sm font-medium">Convidado</span>
-          <span className="block text-xs text-slate-500 mt-0.5">
+          <span className="block text-xs text-md-text-soft mt-0.5">
             5 créditos de atualizar pautas · máx. 3 caricaturas por estilo
           </span>
         </button>
@@ -121,21 +121,21 @@ export function DevAccountModePage() {
           onClick={() => void handleSave("premium")}
           className={`w-full text-left rounded-xl border px-4 py-3 transition-colors ${
             mode === "premium"
-              ? "border-amber-700/60 bg-amber-950/30 text-amber-100"
-              : "border-slate-800 bg-slate-900/40 text-slate-300 hover:border-slate-700"
+              ? "border-amber-700/60 bg-[var(--distribuidor-soft)] text-md-text"
+              : "border-md-border bg-md-surface/40 text-md-text-muted hover:border-md-border"
           }`}
         >
           <span className="block text-sm font-medium">Premium</span>
-          <span className="block text-xs text-slate-500 mt-0.5">
+          <span className="block text-xs text-md-text-soft mt-0.5">
             Sem os limites da versão para convidados
           </span>
         </button>
       </div>
 
-      {message ? <p className="text-xs text-emerald-400 mb-3">{message}</p> : null}
+      {message ? <p className="text-xs text-[var(--sentinela-text)] mb-3">{message}</p> : null}
       {error ? <p className="text-xs text-red-400 mb-3">{error}</p> : null}
 
-      <Link href="/monitoramento" className="text-sm text-slate-500 hover:text-slate-300">
+      <Link href="/monitoramento" className="text-sm text-md-text-soft hover:text-md-text-muted">
         ← Voltar ao monitoramento
       </Link>
     </div>

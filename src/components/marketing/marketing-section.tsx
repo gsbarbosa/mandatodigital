@@ -30,16 +30,16 @@ export function MarketingSection({
   const TitleTag = titleAs;
   const centered = align === "center";
   const titleClass = titleNoWrap
-    ? "m-0 whitespace-nowrap text-[clamp(0.65rem,3vw,2.3rem)] font-bold tracking-tight text-white"
-    : `m-0 text-3xl font-bold tracking-tight text-white sm:text-4xl ${centered ? "mx-auto text-center" : "max-w-3xl"}`;
+    ? "m-0 whitespace-nowrap text-[clamp(0.65rem,3vw,2.3rem)] font-bold tracking-tight text-md-text"
+    : `m-0 text-3xl font-bold tracking-tight text-md-text sm:text-4xl ${centered ? "mx-auto text-center" : "max-w-3xl"}`;
   const leadClass = justifyLead
-    ? "mt-4 text-justify text-base leading-relaxed text-slate-400 sm:text-lg"
-    : `mt-4 text-base leading-relaxed text-slate-400 sm:text-lg ${centered ? "mx-auto max-w-4xl text-center" : wideLead ? "" : "max-w-3xl"}`;
+    ? "mt-4 text-justify text-base leading-relaxed text-md-text-soft sm:text-lg"
+    : `mt-4 text-base leading-relaxed text-md-text-soft sm:text-lg ${centered ? "mx-auto max-w-4xl text-center" : wideLead ? "" : "max-w-3xl"}`;
 
   return (
     <section
       id={id}
-      className={`scroll-mt-24 border-t border-slate-800/60 py-16 sm:py-20 ${className}`}
+      className={`scroll-mt-24 border-t border-md-border-soft py-16 sm:py-20 ${className}`}
     >
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         {eyebrow ? (

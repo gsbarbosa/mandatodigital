@@ -32,7 +32,7 @@ export function MarketingDistribuidorPage() {
         titleAccent={painel.titleAccent}
         accent="distribuidor"
       >
-        <div className="rounded-3xl border border-slate-800/80 bg-slate-900/40 px-4 py-8 sm:px-8">
+        <div className="rounded-3xl border border-md-border bg-md-surface/40 px-4 py-8 sm:px-8">
           <div className="relative mx-auto max-w-4xl">
             <div className="absolute left-4 right-4 top-[0.55rem] h-px bg-slate-600 sm:left-8 sm:right-8" />
             <div className="relative grid grid-cols-2 gap-6 sm:grid-cols-4 sm:gap-4">
@@ -41,8 +41,8 @@ export function MarketingDistribuidorPage() {
                   <span
                     className={`relative z-10 h-3 w-3 rounded-full ${accent.soft} ring-2 ring-amber-400`}
                   />
-                  <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-950/70 px-3 py-3">
-                    <p className="text-sm font-bold text-white">{slot.time}</p>
+                  <div className="mt-4 rounded-2xl border border-md-border bg-md-bg/70 px-3 py-3">
+                    <p className="text-sm font-bold text-md-text">{slot.time}</p>
                     <p className={`mt-1 text-xs font-semibold ${accent.text}`}>{slot.reach}</p>
                   </div>
                 </div>
@@ -56,7 +56,7 @@ export function MarketingDistribuidorPage() {
               return (
                 <span
                   key={network}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-sky-500/30 bg-slate-950/70 text-sky-300"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-sky-500/30 bg-md-bg/70 text-sky-300"
                   title={network}
                 >
                   <Icon size={18} />

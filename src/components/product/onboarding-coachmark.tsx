@@ -264,18 +264,18 @@ export function OnboardingCoachmark() {
       ) : null}
 
       <div
-        className="fixed z-[50] w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-slate-700 bg-[#0F1623] p-4 text-slate-200 shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+        className="fixed z-[50] w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-md-border bg-md-surface p-4 text-md-text shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
         style={{ top: tipPos.top, left: tipPos.left }}
         role="dialog"
         aria-modal="false"
         aria-labelledby="onboarding-coach-title"
       >
         {phaseLabel ? (
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-md-text-soft">
             {phaseLabel}
           </p>
         ) : null}
-        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-400">
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--curador-text)]">
           Passo {stepNumber} de {phaseStepCount}
         </p>
         <div className="mt-2 mb-3 flex gap-1.5" aria-hidden="true">
@@ -289,22 +289,22 @@ export function OnboardingCoachmark() {
             />
           ))}
         </div>
-        <h3 id="onboarding-coach-title" className="text-[15px] font-bold leading-snug text-white">
+        <h3 id="onboarding-coach-title" className="text-[15px] font-bold leading-snug text-md-text">
           {copy.title}
         </h3>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-slate-400">{copy.body}</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-md-text-soft">{copy.body}</p>
 
         {gateHint === "temas" && isLastTemasStep && !temasPhaseReady ? (
-          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-amber-200/90" role="alert">
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-[var(--distribuidor-text)]" role="alert">
             Selecione pelo menos 5 temas ou 1 rede social para continuar.{" "}
-            <span className="tabular-nums text-amber-100/80">
+            <span className="tabular-nums text-md-text-muted">
               ({selectedThemeCount}/5 temas)
             </span>
           </p>
         ) : null}
 
         {gateHint === "audio" && isAudioStep && !hasVoiceAudio ? (
-          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-amber-200/90" role="alert">
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-[var(--distribuidor-text)]" role="alert">
             Envie o áudio de voz antes de continuar. Sem áudio não dá para produzir o vídeo.
           </p>
         ) : null}
@@ -313,14 +313,14 @@ export function OnboardingCoachmark() {
           <button
             type="button"
             onClick={dismiss}
-            className="text-[13px] font-medium text-slate-500 transition hover:text-slate-300"
+            className="text-[13px] font-medium text-md-text-soft transition hover:text-md-text-muted"
           >
             Pular
           </button>
           <button
             type="button"
             onClick={goNext}
-            className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_0_18px_rgba(6,182,212,0.25)] transition hover:from-cyan-400 hover:to-blue-500"
+            className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-[13px] font-bold text-md-text shadow-[0_0_18px_rgba(6,182,212,0.25)] transition hover:from-cyan-400 hover:to-blue-500"
           >
             {isFinalStep ? "Concluir" : "Próximo →"}
           </button>

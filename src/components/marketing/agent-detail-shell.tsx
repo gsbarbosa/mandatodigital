@@ -28,7 +28,7 @@ export function AgentDetailBackLink() {
   return (
     <Link
       href={AGENT_DETAIL_BACK.href}
-      className="mb-8 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-slate-400 no-underline transition hover:text-white"
+      className="mb-8 inline-flex w-fit items-center gap-1.5 text-sm font-medium text-md-text-soft no-underline transition hover:text-md-text"
     >
       <IconArrowRight size={14} className="rotate-180 opacity-80" aria-hidden />
       {AGENT_DETAIL_BACK.label}
@@ -49,16 +49,16 @@ export function AgentDetailVisual({
   aspect?: "video" | "square" | "portrait";
   className?: string;
 }) {
-  const border = accent ? AGENT_ACCENT_CLASS[accent].border : "border-slate-800/80";
+  const border = accent ? AGENT_ACCENT_CLASS[accent].border : "border-md-border";
   const aspectClass =
     aspect === "square" ? "aspect-square" : aspect === "portrait" ? "aspect-[4/5]" : "aspect-video";
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border bg-slate-950 ${aspectClass} ${border} ${className}`}
+      className={`relative overflow-hidden rounded-3xl border bg-md-bg ${aspectClass} ${border} ${className}`}
     >
       <Image src={src} alt={alt} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 720px" />
-      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent" />
+      <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-md-bg/40 via-transparent to-transparent" />
     </div>
   );
 }
@@ -93,7 +93,7 @@ export function AgentDetailMetricsStories({
                   <p className={`text-4xl font-bold tracking-tight sm:text-5xl ${classes.text}`}>
                     {metric.value}
                   </p>
-                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-md-text-soft">
                     {metric.label}
                   </p>
                 </>
@@ -105,7 +105,7 @@ export function AgentDetailMetricsStories({
                   <h2 className="text-base font-semibold text-emerald-400 sm:text-lg">
                     {story.title}
                   </h2>
-                  <p className="mt-2.5 text-sm leading-relaxed text-slate-300 sm:text-[15px] sm:leading-relaxed">
+                  <p className="mt-2.5 text-sm leading-relaxed text-md-text-muted sm:text-[15px] sm:leading-relaxed">
                     {story.body}
                   </p>
                 </>
@@ -158,7 +158,7 @@ export function AgentDetailHero({
           </span>
         </div>
 
-        <h1 className="mt-5 max-w-4xl text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+        <h1 className="mt-5 max-w-4xl text-2xl font-bold tracking-tight text-md-text sm:text-3xl lg:text-4xl">
           {titleLead}{" "}
           <span className={`whitespace-nowrap ${classes.text}`}>{titleAccent}</span>
         </h1>
@@ -206,9 +206,9 @@ export function AgentDetailSection({
   const classes = AGENT_ACCENT_CLASS[accent];
 
   return (
-    <section className="border-t border-slate-800/60 py-14 sm:py-16">
+    <section className="border-t border-md-border-soft py-14 sm:py-16">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+        <h2 className="text-2xl font-bold tracking-tight text-md-text sm:text-3xl">
           {title}
           {titleAccent ? (
             <>
@@ -218,7 +218,7 @@ export function AgentDetailSection({
           ) : null}
         </h2>
         {lead ? (
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-400 sm:text-base">
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-md-text-soft sm:text-base">
             {lead}
           </p>
         ) : null}
@@ -232,12 +232,12 @@ export function AgentDetailClosing() {
   const { title, titleAccent, body, bodyAccent, ctaHref, ctaLabel } = AGENT_DETAIL_CLOSING;
 
   return (
-    <section className="border-t border-slate-800/60 py-16 sm:py-20">
+    <section className="border-t border-md-border-soft py-16 sm:py-20">
       <div className="mx-auto w-full max-w-3xl px-4 text-center sm:px-6">
-        <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        <h2 className="text-3xl font-bold tracking-tight text-md-text sm:text-4xl">
           {highlightPhrase(title, titleAccent, "text-emerald-400")}
         </h2>
-        <p className="mt-5 text-base leading-relaxed text-slate-400 sm:text-lg">
+        <p className="mt-5 text-base leading-relaxed text-md-text-soft sm:text-lg">
           {highlightPhrase(body, bodyAccent, "text-emerald-400")}
         </p>
         <Link href={ctaHref as Route} className="primary-button mt-8 inline-flex">

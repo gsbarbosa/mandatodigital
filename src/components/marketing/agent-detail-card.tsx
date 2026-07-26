@@ -71,7 +71,7 @@ export function AgentDetailCard({ agent }: { agent: EcosystemAgent }) {
   return (
     <article
       id={agent.id}
-      className={`scroll-mt-28 rounded-3xl border bg-slate-900/40 p-6 sm:p-8 ${accent.border}`}
+      className={`scroll-mt-28 rounded-3xl border bg-md-surface/40 p-6 sm:p-8 ${accent.border}`}
     >
       <div className="flex flex-wrap items-start gap-4">
         <MarketingIconBadge className={`${accent.soft} ${accent.text} ${accent.border} !h-12 !w-12`}>
@@ -81,8 +81,8 @@ export function AgentDetailCard({ agent }: { agent: EcosystemAgent }) {
           <p className={`text-sm font-semibold ${accent.text}`}>
             {agent.number}. {agent.name}
           </p>
-          <h2 className="mt-1 text-2xl font-bold text-white">{agent.title}</h2>
-          <p className="mt-3 text-sm leading-relaxed text-slate-400 sm:text-base">
+          <h2 className="mt-1 text-2xl font-bold text-md-text">{agent.title}</h2>
+          <p className="mt-3 text-sm leading-relaxed text-md-text-soft sm:text-base">
             {agent.description}
           </p>
         </div>
@@ -94,7 +94,7 @@ export function AgentDetailCard({ agent }: { agent: EcosystemAgent }) {
           items={agent.inputs}
           iconClassName={accent.text}
           headerIcon={
-            <MarketingIconBadge className="border-slate-700 bg-slate-950/60 text-slate-300 !h-8 !w-8">
+            <MarketingIconBadge className="border-md-border bg-md-bg/60 text-md-text-muted !h-8 !w-8">
               <IconInbox size={16} />
             </MarketingIconBadge>
           }
@@ -104,7 +104,7 @@ export function AgentDetailCard({ agent }: { agent: EcosystemAgent }) {
           items={agent.outputs}
           iconClassName={accent.text}
           headerIcon={
-            <MarketingIconBadge className="border-slate-700 bg-slate-950/60 text-slate-300 !h-8 !w-8">
+            <MarketingIconBadge className="border-md-border bg-md-bg/60 text-md-text-muted !h-8 !w-8">
               <IconOutbox size={16} />
             </MarketingIconBadge>
           }
@@ -139,9 +139,9 @@ function IoGroup({
 }) {
   return (
     <div>
-      <div className="mb-5 flex items-center gap-2.5 border-b border-slate-800/80 pb-3">
+      <div className="mb-5 flex items-center gap-2.5 border-b border-md-border pb-3">
         {headerIcon}
-        <h3 className="m-0 text-xs font-semibold uppercase tracking-wider text-slate-500">
+        <h3 className="m-0 text-xs font-semibold uppercase tracking-wider text-md-text-soft">
           {title}
         </h3>
       </div>
@@ -159,7 +159,7 @@ function IoGroup({
                 className={`mt-[1.5px] block ${iconClassName}`}
                 aria-hidden
               />
-              <p className="m-0 text-sm leading-[1.5] text-slate-300">{item.text}</p>
+              <p className="m-0 text-sm leading-[1.5] text-md-text-muted">{item.text}</p>
             </li>
           );
         })}

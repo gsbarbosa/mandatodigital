@@ -7,6 +7,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
+import { AppearanceToggle } from "@/components/appearance-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import {
@@ -194,6 +195,10 @@ export function LoginForm() {
 
       <div className="login-brand">
         <BrandLogo width={260} priority className="login-brand-logo" />
+      </div>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <AppearanceToggle />
       </div>
 
       <div className="login-social-group">

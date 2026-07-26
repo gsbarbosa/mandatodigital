@@ -45,13 +45,13 @@ export function MarketingSentinelaPage() {
 
       <AgentDetailSection title={liveConsole.title} lead={liveConsole.subtitle} accent="sentinela">
         <div
-          className="overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-900/50"
+          className="overflow-hidden rounded-3xl border border-md-border bg-md-surface/50"
           aria-hidden
         >
           <div className="overflow-x-auto">
             <table className="min-w-[920px] w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-800/80 text-[11px] uppercase tracking-wider text-slate-500">
+                <tr className="border-b border-md-border text-[11px] uppercase tracking-wider text-md-text-soft">
                   {liveConsole.columns.map((column) => (
                     <th
                       key={column}
@@ -66,7 +66,7 @@ export function MarketingSentinelaPage() {
                 {liveConsole.rows.map((row) => {
                   const NetworkIcon = NETWORK_ICONS[row.network];
                   return (
-                    <tr key={row.topic} className="border-b border-slate-800/60 last:border-b-0">
+                    <tr key={row.topic} className="border-b border-md-border-soft last:border-b-0">
                       <td className="px-4 py-3.5 first:pl-5">
                         <span
                           className={`inline-flex rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${THEME_TONE[row.themeTone]}`}
@@ -74,7 +74,7 @@ export function MarketingSentinelaPage() {
                           {row.theme}
                         </span>
                       </td>
-                      <td className="max-w-[220px] px-4 py-3.5 text-slate-200">{row.topic}</td>
+                      <td className="max-w-[220px] px-4 py-3.5 text-md-text">{row.topic}</td>
                       <td className="px-4 py-3.5">
                         <span className="inline-flex items-center gap-2 text-emerald-400">
                           <NetworkIcon size={14} />
@@ -82,13 +82,13 @@ export function MarketingSentinelaPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5 font-semibold text-emerald-400">{row.score}</td>
-                      <td className="px-4 py-3.5 tabular-nums text-slate-300">{row.likes}</td>
-                      <td className="px-4 py-3.5 tabular-nums text-slate-300">{row.comments}</td>
-                      <td className="px-4 py-3.5 tabular-nums text-slate-300">{row.shares}</td>
+                      <td className="px-4 py-3.5 tabular-nums text-md-text-muted">{row.likes}</td>
+                      <td className="px-4 py-3.5 tabular-nums text-md-text-muted">{row.comments}</td>
+                      <td className="px-4 py-3.5 tabular-nums text-md-text-muted">{row.shares}</td>
                       <td className="px-4 py-3.5 last:pr-5">
-                        <span className="inline-flex min-w-[8.5rem] items-center justify-between rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-1.5 text-xs text-slate-300">
+                        <span className="inline-flex min-w-[8.5rem] items-center justify-between rounded-lg border border-md-border bg-md-bg/70 px-3 py-1.5 text-xs text-md-text-muted">
                           {row.action}
-                          <span aria-hidden className="text-slate-500">
+                          <span aria-hidden className="text-md-text-soft">
                             ▾
                           </span>
                         </span>
@@ -100,12 +100,12 @@ export function MarketingSentinelaPage() {
             </table>
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-slate-800/80 bg-slate-950/40 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+          <div className="flex flex-col gap-3 border-t border-md-border bg-md-bg/40 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
             <div className="flex shrink-0 items-center gap-2 text-sm font-medium text-sky-300">
               <IconBolt size={16} aria-hidden />
               {liveConsole.newPautaLabel}
             </div>
-            <div className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-sm text-slate-500">
+            <div className="min-w-0 flex-1 rounded-xl border border-md-border bg-md-bg/80 px-3 py-2.5 text-sm text-md-text-soft">
               {liveConsole.newPautaPlaceholder}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -115,7 +115,7 @@ export function MarketingSentinelaPage() {
                   className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
                     index === 0
                       ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                      : "border-slate-700 bg-slate-900/80 text-slate-400"
+                      : "border-md-border bg-md-surface/80 text-md-text-soft"
                   }`}
                 >
                   {option}
@@ -126,7 +126,7 @@ export function MarketingSentinelaPage() {
         </div>
 
         <div className="mt-6 flex justify-center">
-          <span className="inline-flex cursor-default rounded-2xl bg-sky-600 px-8 py-3 text-sm font-bold text-white shadow-[0_12px_28px_rgba(2,132,199,0.28)]">
+          <span className="inline-flex cursor-default rounded-2xl bg-sky-600 px-8 py-3 text-sm font-bold text-md-text shadow-[0_12px_28px_rgba(2,132,199,0.28)]">
             {liveConsole.generateLabel}
           </span>
         </div>

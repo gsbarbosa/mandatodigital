@@ -30,7 +30,7 @@ export function MarketingCuradorPage() {
             </span>
           </div>
 
-          <h1 className="mt-5 max-w-4xl text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+          <h1 className="mt-5 max-w-4xl text-2xl font-bold tracking-tight text-md-text sm:text-3xl lg:text-4xl">
             {curadorDetail.titleLead}{" "}
             <span className={`whitespace-nowrap ${accent.text}`}>{curadorDetail.titleAccent}</span>
           </h1>
@@ -50,20 +50,20 @@ export function MarketingCuradorPage() {
                 sizes="(max-width: 1024px) 100vw, 420px"
                 priority
               />
-              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-transparent" />
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-md-bg/50 via-transparent to-transparent" />
             </div>
 
             <div>
-              <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
+              <p className="text-sm leading-relaxed text-md-text-muted sm:text-base">
                 {curadorDetail.identityBody}
               </p>
-              <div className="mt-6 rounded-2xl border border-slate-800/80 bg-slate-900/50 p-5 sm:p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <div className="mt-6 rounded-2xl border border-md-border bg-md-surface/50 p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-md-text-soft">
                   {curadorDetail.personality.title}
                 </p>
                 <ul className="mt-4 space-y-3">
                   {curadorDetail.personality.items.map((item) => (
-                    <li key={item} className="flex gap-3 text-sm text-slate-300">
+                    <li key={item} className="flex gap-3 text-sm text-md-text-muted">
                       <IconCheck size={16} className={`mt-0.5 shrink-0 ${accent.text}`} />
                       <span>{item}</span>
                     </li>
@@ -93,28 +93,28 @@ export function MarketingCuradorPage() {
         accent="curador"
       >
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-slate-800/80 bg-slate-900/50 p-6">
-            <p className="text-sm font-semibold text-white">Perfil e Vocabulário</p>
+          <div className="rounded-3xl border border-md-border bg-md-surface/50 p-6">
+            <p className="text-sm font-semibold text-md-text">Perfil e Vocabulário</p>
             <div className="mt-6 flex flex-col items-center">
               <div
                 className={`flex h-36 w-36 items-center justify-center rounded-full border-4 ${accent.border} ${accent.soft}`}
               >
                 <div className="text-center">
                   <p className={`text-3xl font-bold ${accent.text}`}>{persona.coherence}</p>
-                  <p className="mt-1 max-w-[7rem] text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                  <p className="mt-1 max-w-[7rem] text-[10px] font-semibold uppercase tracking-wider text-md-text-soft">
                     {persona.coherenceLabel}
                   </p>
                 </div>
               </div>
             </div>
-            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-md-text-soft">
               {persona.vocabularyTitle}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {persona.vocabulary.map((term) => (
                 <span
                   key={term}
-                  className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-1.5 text-xs font-medium text-slate-300"
+                  className="rounded-lg border border-md-border bg-md-bg/70 px-3 py-1.5 text-xs font-medium text-md-text-muted"
                 >
                   {term}
                 </span>
@@ -122,20 +122,20 @@ export function MarketingCuradorPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-800/80 bg-slate-900/50 p-6">
-            <p className="text-sm font-semibold text-white">{persona.toneTitle}</p>
+          <div className="rounded-3xl border border-md-border bg-md-surface/50 p-6">
+            <p className="text-sm font-semibold text-md-text">{persona.toneTitle}</p>
             <div className="mt-5 space-y-4">
               <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wider text-rose-400">
                   {persona.genericLabel}
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{persona.genericQuote}</p>
+                <p className="mt-2 text-sm leading-relaxed text-md-text-muted">{persona.genericQuote}</p>
               </div>
               <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
                   {persona.curatedLabel}
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{persona.curatedQuote}</p>
+                <p className="mt-2 text-sm leading-relaxed text-md-text-muted">{persona.curatedQuote}</p>
               </div>
             </div>
           </div>

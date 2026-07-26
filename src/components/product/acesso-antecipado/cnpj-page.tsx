@@ -103,24 +103,24 @@ export function AcessoCnpjPage() {
   }
 
   return (
-    <div className="min-h-full relative pb-24 bg-gradient-to-b from-[#0B0F19] via-[#0d1526] to-[#0B0F19]">
+    <div className="min-h-full relative pb-24 bg-gradient-to-b from-md-bg via-md-surface to-md-bg">
       <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[70%] h-[40%] bg-cyan-600/10 rounded-full blur-[140px] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
         <div className="text-center mb-6">
-          <span className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold uppercase tracking-widest rounded-full px-4 py-1.5">
+          <span className="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/40 text-[var(--curador-text)] text-[10px] font-bold uppercase tracking-widest rounded-full px-4 py-1.5">
             Reserva VIP Ativa
           </span>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-md-text-soft mt-2">
             Última etapa: assine o contrato e libere acesso antecipado ao painel.
           </p>
         </div>
 
         {!signed ? (
           <div className="bg-gradient-to-r from-blue-900/40 to-emerald-900/30 border border-blue-500/30 rounded-2xl py-5 px-6 md:px-8 text-center mb-6">
-            <p className="text-white font-bold text-base md:text-lg">
+            <p className="text-md-text font-bold text-base md:text-lg">
               Faltam{" "}
-              <span className="bg-slate-900/80 text-cyan-300 rounded-md px-2 py-0.5">
+              <span className="bg-md-surface/80 text-[var(--curador-text)] rounded-md px-2 py-0.5">
                 {remainingDays} dias
               </span>{" "}
               para garantir sua assinatura
@@ -133,32 +133,32 @@ export function AcessoCnpjPage() {
           </div>
         ) : null}
 
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 lg:p-10 shadow-2xl">
+        <div className="bg-md-surface/50 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 lg:p-10 shadow-2xl">
           <div className="text-center mb-6">
-            <div className="mx-auto w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+            <div className="mx-auto w-12 h-12 rounded-xl bg-md-surface-inset border border-md-border flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-[var(--curador-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             </div>
 
-            <h1 className="text-xl md:text-2xl font-bold text-white mb-2">
+            <h1 className="text-xl md:text-2xl font-bold text-md-text mb-2">
               Contrato de Adesão Antecipada
             </h1>
           </div>
 
           {signed ? (
             <div className="text-center">
-              <p className="text-sm text-slate-400 mb-6">
+              <p className="text-sm text-md-text-soft mb-6">
                 Aceite registrado com trilha de auditoria (IP, timestamp de servidor, User-Agent e
                 hash do contrato). Sua vaga está garantida.
               </p>
-              <div className="inline-flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-6 py-4 mb-4">
-                <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+              <div className="inline-flex items-center gap-3 bg-emerald-500/10 border border-[var(--sentinela-border)] rounded-xl px-6 py-4 mb-4">
+                <svg className="w-5 h-5 text-[var(--sentinela-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div className="text-left">
-                  <p className="text-white font-mono font-bold">{earlyAccess.cnpj}</p>
-                  <p className="text-[11px] text-emerald-400">
+                  <p className="text-md-text font-mono font-bold">{earlyAccess.cnpj}</p>
+                  <p className="text-[11px] text-[var(--sentinela-text)]">
                     Assinado em{" "}
                     {earlyAccess.cnpjSignedAt
                       ? new Date(earlyAccess.cnpjSignedAt).toLocaleString("pt-BR")
@@ -167,14 +167,14 @@ export function AcessoCnpjPage() {
                 </div>
               </div>
               {emailNote ? (
-                <p className="text-xs text-slate-400 mt-2" role="status">
+                <p className="text-xs text-md-text-soft mt-2" role="status">
                   {emailNote}
                 </p>
               ) : null}
             </div>
           ) : (
             <>
-              <p className="text-sm md:text-base text-slate-400 mb-5 leading-relaxed">
+              <p className="text-sm md:text-base text-md-text-soft mb-5 leading-relaxed">
                 Se você já possui o CNPJ de campanha registrado no TSE, insira abaixo para assinar o
                 Contrato de Prestação de Serviços Eleitorais e desbloquear a plataforma
                 provisoriamente. O CNPJ será validado quanto à natureza jurídica (Comitê Financeiro
@@ -182,7 +182,7 @@ export function AcessoCnpjPage() {
               </p>
 
               <div className="text-left w-full">
-                <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-2">
+                <label className="block text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-2">
                   CNPJ da Campanha
                 </label>
                 <input
@@ -190,21 +190,21 @@ export function AcessoCnpjPage() {
                   onChange={(event) => setCnpjInput(formatCnpj(event.target.value))}
                   placeholder="00.000.000/0000-00"
                   inputMode="numeric"
-                  className="w-full bg-[#0E1321] border border-slate-700 text-slate-200 text-center font-mono text-lg rounded-xl p-3.5 outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
+                  className="w-full bg-md-surface-inset border border-md-border text-md-text text-center font-mono text-lg rounded-xl p-3.5 outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500"
                 />
 
-                <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 mt-3 text-xs md:text-sm text-slate-400 leading-relaxed text-left">
-                  <strong className="text-slate-300">Atenção ao Calendário:</strong> Para facilitar
+                <div className="bg-md-overlay-subtle border border-md-border/60 rounded-xl p-4 mt-3 text-xs md:text-sm text-md-text-soft leading-relaxed text-left">
+                  <strong className="text-md-text-muted">Atenção ao Calendário:</strong> Para facilitar
                   sua prestação de contas no SPCE/TSE, os boletos no seu CNPJ serão emitidos somente
                   a partir de <strong>16/Agosto</strong>. O pagamento é mensal e o desconto VIP de
                   50% é válido exclusivamente durante os meses de eleição para quem realizou esta
                   reserva.
                 </div>
 
-                <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-slate-200">
+                <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-md-text">
                   <input
                     type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-slate-600"
+                    className="mt-1 h-4 w-4 rounded border-md-border-hover"
                     checked={accepted}
                     onChange={(event) => setAccepted(event.target.checked)}
                   />
@@ -224,7 +224,7 @@ export function AcessoCnpjPage() {
                   type="button"
                   disabled={submitting}
                   onClick={() => void handleSign()}
-                  className="mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="mt-3 w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-md-text font-bold py-3.5 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.3)] flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -232,7 +232,7 @@ export function AcessoCnpjPage() {
                   {submitting ? "Validando e gerando documentos…" : "Assinar contrato"}
                 </button>
 
-                <p className="text-[10px] text-slate-600 text-center mt-3">
+                <p className="text-[10px] text-md-text-soft text-center mt-3">
                   O aceite registra IP, timestamp de servidor, User-Agent e hash SHA-256 da versão
                   do contrato. Contrato e Dossiê em PDF são gerados automaticamente.
                 </p>
@@ -240,7 +240,7 @@ export function AcessoCnpjPage() {
             </>
           )}
 
-          <p className="mt-5 text-[10px] text-slate-600 text-center">
+          <p className="mt-5 text-[10px] text-md-text-soft text-center">
             Fase de acesso antecipado: o resumo local fica neste dispositivo; a trilha jurídica
             completa é gravada no servidor.
           </p>

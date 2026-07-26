@@ -10,7 +10,7 @@ export default function AcessoDadosRoute() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-400">
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-md-text-soft">
           Carregando cadastro...
         </div>
       }
