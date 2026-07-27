@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useProductApp } from "./provider";
 
@@ -19,6 +19,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
     setOpen: setHeygenDevOpen,
     handleSecretClick: handleHeygenLogoSecretClick,
   } = useHeygenDevPanelReveal();
+  const [supportOpen, setSupportOpen] = useState(false);
 
   return (
     <div className="h-screen flex overflow-hidden bg-md-app-bg text-md-text-soft">
@@ -26,15 +27,14 @@ export function ProductShell({ children }: { children: ReactNode }) {
         sessionEmail={sessionUser?.email ?? null}
         onSignOut={() => void signOut()}
         onLogoSecretClick={handleHeygenLogoSecretClick}
+        onOpenSupport={() => setSupportOpen(true)}
       />
 
       <main className="flex-1 overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-slate-900 relative">
         <OnboardingModals />
         <OnboardingCoachmark />
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-6">
-          <OnboardingChecklist />
-          <SupportWidget />
-        </div>
+        <OnboardingChecklist />
+        {supportOpen ? <SupportWidget onClose={() => setSupportOpen(false)} /> : null}
 
         <HeygenDevKeyPanel
           open={heygenDevOpen}
