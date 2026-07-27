@@ -529,7 +529,7 @@ export function RedefinirTemasPage() {
           <div
             id="municipal"
             data-onboarding-anchor="temas-municipal"
-            className="rounded-2xl border border-emerald-900/40 bg-[var(--sentinela-soft)] shadow-[0_0_20px_rgba(16,185,129,0.1)] p-6"
+            className="rounded-2xl border border-emerald-900/40 bg-md-surface/40 p-6"
           >
             <h3 className="text-lg font-bold text-md-text mb-2">
               Nível <span className="text-[var(--sentinela-text)]">Municipal</span>
