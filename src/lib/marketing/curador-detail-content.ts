@@ -4,13 +4,13 @@ export const curadorDetail = {
   titleAccent: "Preservação Absoluta",
   subtitle: "A Alma Comunicacional do Político",
   identityBody:
-    "O ecossistema não produz conteúdo genérico. Ele preserva a voz, os valores e o vocabulário que o eleitor já reconhece como seus — para que cada peça soe inequivocamente como o mandato.",
+    "O ecossistema não escreve em piloto automático. Cada roteiro parte do seu posicionamento ideológico, do tom de linguagem e do arquétipo escolhido para aquela pauta — com o glossário pessoal ajustando o sotaque final.",
   personality: {
-    title: "Codificação da Personalidade",
+    title: "O Que Molda Cada Roteiro",
     items: [
-      "Valores e tom alinhados ao perfil político real.",
-      "Prioridades e ênfases que a base já espera ouvir.",
-      "Vocabulário, sotaque e expressões próprias do mandato.",
+      "Posicionamento ideológico calibrado num espectro ajustável.",
+      "Tom de linguagem definido pauta a pauta, do institucional ao coloquial.",
+      "Arquétipo de personalidade aplicado a cada notícia, antes da escrita.",
     ],
   },
   metrics: [
@@ -24,22 +24,30 @@ export const curadorDetail = {
     },
     {
       title: "A Ativação da IA",
-      body: "O Agente Curador é treinado com vídeos de referência, glossário pessoal e arquétipo de persona. A calibração preserva cadência, bordões e vocabulário — reduzindo o “não é ele” para 1.2%.",
+      body: "O Agente Curador calibra posicionamento ideológico, tom e arquétipo em cada pauta, com o glossário pessoal reforçando cadência e bordões — reduzindo o “não é ele” para 1.2%.",
     },
   ],
-  persona: {
-    title: "Ficha de Persona:",
-    titleAccent: "Controle de Identidade",
-    coherence: "100%",
-    coherenceLabel: "Índice de Coerência",
-    vocabularyTitle: "Vocabulário prioritário",
-    vocabulary: ["trabalhador", "família", "responsabilidade", "transparência", "nós"],
-    toneTitle: "Tradução de Tom (Amostra)",
-    genericLabel: "IA genérica",
-    genericQuote:
-      "“É fundamental que possamos articular, no contexto sistêmico atual, alternativas estruturais para a economia.”",
-    curatedLabel: "Agente Curador",
-    curatedQuote:
-      "“A nossa gente trabalha duro todo santo dia. O que ela precisa é responsabilidade na ponta — não promessa.”",
+  controls: {
+    title: "Três Ajustes,",
+    titleAccent: "Antes de Cada Roteiro",
+    lead: "A identidade não é revisada depois — ela é definida antes da primeira palavra ser escrita.",
+    items: [
+      {
+        icon: "scale",
+        title: "Posicionamento Ideológico",
+        body: "Um espectro ajustável entre esquerda e direita orienta o enquadramento de cada roteiro gerado.",
+      },
+      {
+        icon: "volume",
+        title: "Tom de Linguagem",
+        body: "Do institucional ao coloquial — o tom é escolhido pauta a pauta, sem sair do estilo do mandato.",
+      },
+      {
+        icon: "userCog",
+        title: "Arquétipo Narrativo",
+        body: "A postura do roteiro — empático, combativo, técnico — é definida antes da escrita, para cada notícia.",
+      },
+    ],
+    footnote: "O glossário pessoal entra por cima, com as expressões e o sotaque que só o seu eleitor reconhece.",
   },
 } as const;

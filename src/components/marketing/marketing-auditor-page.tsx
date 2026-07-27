@@ -1,6 +1,13 @@
-import Image from "next/image";
+import type { ComponentType, SVGProps } from "react";
 
-import { IconCheck, IconLink } from "@/components/marketing/icons";
+import {
+  IconArrowRight,
+  IconCheck,
+  IconFileCheck,
+  IconGlobe,
+  IconLink,
+  IconSparkles,
+} from "@/components/marketing/icons";
 import {
   AgentDetailClosing,
   AgentDetailHero,
@@ -8,8 +15,16 @@ import {
 } from "@/components/marketing/agent-detail-shell";
 import { auditorDetail } from "@/lib/marketing/auditor-detail-content";
 
+type IconProps = SVGProps<SVGSVGElement> & { size?: number };
+
+const VERIFICATION_ICONS: Record<"globe" | "sparkles" | "fileCheck", ComponentType<IconProps>> = {
+  globe: IconGlobe,
+  sparkles: IconSparkles,
+  fileCheck: IconFileCheck,
+};
+
 export function MarketingAuditorPage() {
-  const { report, approval } = auditorDetail;
+  const { report, verification } = auditorDetail;
 
   return (
     <>
@@ -95,40 +110,39 @@ export function MarketingAuditorPage() {
         </div>
       </AgentDetailSection>
 
-      <AgentDetailSection title={approval.title} accent="auditor">
-        <div className="grid gap-5 md:grid-cols-3">
-          {approval.cards.map((card) => (
-            <article
-              key={card.title}
-              className="flex flex-col rounded-3xl border border-md-border bg-md-surface/50 p-5"
-              aria-hidden
-            >
-              <p className="text-sm font-semibold text-md-text">{card.title}</p>
-              <div className="relative mt-4 aspect-video overflow-hidden rounded-2xl border border-md-border">
-                <Image
-                  src={card.image}
-                  alt={card.imageAlt}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
-                <span className="absolute inset-0 bg-gradient-to-t from-md-bg/45 via-transparent to-transparent" />
+      <AgentDetailSection
+        title={verification.title}
+        titleAccent={verification.titleAccent}
+        lead={verification.lead}
+        wideLead
+        accent="auditor"
+      >
+        <div className="flex flex-col gap-4 md:flex-row md:items-stretch md:gap-3">
+          {verification.steps.map((step, index) => {
+            const Icon = VERIFICATION_ICONS[step.icon];
+            return (
+              <div key={step.title} className="flex flex-1 items-stretch gap-3">
+                <div className="flex-1 rounded-3xl border border-md-border bg-md-surface/50 p-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+                    <Icon size={20} className="text-emerald-400" />
+                  </div>
+                  <p className="mt-4 text-sm font-semibold text-md-text">{step.title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-md-text-soft">{step.body}</p>
+                </div>
+                {index < verification.steps.length - 1 ? (
+                  <div className="hidden shrink-0 items-center text-slate-700 md:flex">
+                    <IconArrowRight size={18} />
+                  </div>
+                ) : null}
               </div>
-              <p className="mt-4 flex-1 text-sm leading-relaxed text-md-text-soft">{card.body}</p>
-              <span className="mt-3 inline-flex w-fit rounded-md bg-md-surface-inset px-2.5 py-1 text-xs text-md-text-soft">
-                {card.tag}
-              </span>
-              <div className="mt-5 space-y-2">
-                <span className="flex w-full items-center justify-center rounded-xl bg-emerald-500 px-3 py-2.5 text-sm font-bold text-slate-950">
-                  Aprovar Publicação
-                </span>
-                <span className="flex w-full items-center justify-center rounded-xl border border-md-border-hover px-3 py-2.5 text-sm font-medium text-md-text-muted">
-                  Gerar Nova Matéria
-                </span>
-              </div>
-            </article>
-          ))}
+            );
+          })}
         </div>
+
+        <p className="mt-6 flex items-start gap-2 text-sm text-md-text-soft">
+          <IconCheck size={16} className="mt-0.5 shrink-0 text-emerald-400" />
+          {verification.footnote}
+        </p>
       </AgentDetailSection>
 
       <AgentDetailClosing />

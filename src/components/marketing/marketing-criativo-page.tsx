@@ -40,16 +40,12 @@ export function MarketingCriativoPage() {
         titleAccent={criativoDetail.titleAccent}
         metrics={criativoDetail.metrics}
         stories={criativoDetail.stories}
-        visual={{
-          src: "/marketing/criativo/content-cards.jpg",
-          alt: "Painel de Content Creation Cards do Agente Criativo",
-          aspect: "portrait",
-        }}
       />
 
       <AgentDetailSection
         title={criativoDetail.entregas.title}
         lead={criativoDetail.entregas.lead}
+        wideLead
         accent="criativo"
       >
         <div className="grid gap-5 md:grid-cols-3">
