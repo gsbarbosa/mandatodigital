@@ -332,11 +332,6 @@ export function MonitoramentoPage() {
     return null;
   }, [grouped]);
 
-  const creditsLabel =
-    isGuestUi && credits
-      ? `${credits.remaining}/${credits.limit} créditos`
-      : undefined;
-
   const refreshedDate = meta?.refreshedAt ? new Date(meta.refreshedAt) : null;
   const refreshedIsToday = refreshedDate
     ? refreshedDate.toDateString() === new Date().toDateString()
@@ -362,7 +357,6 @@ export function MonitoramentoPage() {
           <RefreshPautasButton
             variant="monitor"
             isLoading={isRefreshing}
-            creditsLabel={creditsLabel}
             disabled={Boolean(isGuestUi && credits && credits.remaining <= 0)}
             onClick={() => void handleRefresh()}
           />
