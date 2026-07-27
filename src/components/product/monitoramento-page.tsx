@@ -46,12 +46,13 @@ const SECTIONS: Array<{
 ];
 
 function ThemeChips({ themes }: { themes: string[] }) {
-  if (!themes.length) {
+  const uniqueThemes = Array.from(new Set(themes.map((theme) => theme.trim()).filter(Boolean)));
+  if (!uniqueThemes.length) {
     return null;
   }
   return (
     <div className="flex flex-wrap gap-2 mb-6 items-center">
-      {themes.map((theme) => (
+      {uniqueThemes.map((theme) => (
         <span
           key={theme}
           className="px-3 py-1.5 bg-[var(--sentinela-soft)] border border-[var(--sentinela-border)] text-[var(--sentinela-text)] rounded-full text-xs font-medium"
@@ -275,20 +276,24 @@ export function MonitoramentoPage() {
       federal: themesFromCards(grouped.federal),
       estadual: themesFromCards(grouped.estadual),
       municipal: themesFromCards(grouped.municipal),
-      interesse: [
-        ...themesFromCards(grouped.interesse),
-        ...profileForm.interestProfiles
-          .map((row) => row.handle.trim())
-          .filter(Boolean)
-          .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
-      ],
-      adversarios: [
-        ...themesFromCards(grouped.adversarios),
-        ...profileForm.oppositionProfiles
-          .map((row) => row.handle.trim())
-          .filter(Boolean)
-          .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
-      ],
+      interesse: Array.from(
+        new Set([
+          ...themesFromCards(grouped.interesse),
+          ...profileForm.interestProfiles
+            .map((row) => row.handle.trim())
+            .filter(Boolean)
+            .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
+        ]),
+      ).slice(0, 8),
+      adversarios: Array.from(
+        new Set([
+          ...themesFromCards(grouped.adversarios),
+          ...profileForm.oppositionProfiles
+            .map((row) => row.handle.trim())
+            .filter(Boolean)
+            .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
+        ]),
+      ).slice(0, 8),
     };
   }, [grouped, profileForm.interestProfiles, profileForm.oppositionProfiles]);
 
