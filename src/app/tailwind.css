@@ -19,6 +19,8 @@
   --color-md-app-bg: var(--app-bg);
   --color-md-surface: var(--surface);
   --color-md-surface-inset: var(--surface-inset);
+  --color-md-onboarding-surface: var(--onboarding-surface);
+  --color-md-onboarding-border: var(--onboarding-border);
   --color-md-panel: var(--panel);
   --color-md-border: var(--border);
   --color-md-border-soft: var(--border-soft);

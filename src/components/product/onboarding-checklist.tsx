@@ -128,12 +128,12 @@ export function OnboardingChecklist() {
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-40 w-[min(300px,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(15,23,42,0.12)]"
+      className="fixed bottom-6 right-6 z-40 w-[min(300px,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-md-onboarding-border bg-md-onboarding-surface text-md-text shadow-[0_16px_40px_rgba(15,23,42,0.12)]"
       role="complementary"
       aria-label="Checklist de onboarding"
     >
       <div
-        className={`${PANEL_ROW} border-b border-md-border bg-md-surface/80 py-2`}
+        className={`${PANEL_ROW} border-b border-md-border bg-md-onboarding-surface/80 py-2`}
       >
         <p className="col-span-2 text-[13px] font-bold leading-none text-md-text">
           Onboarding {phasesDone}/{phasesTotal}

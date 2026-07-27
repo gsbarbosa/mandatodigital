@@ -9,17 +9,38 @@ import { NavSidebar } from "./nav-sidebar";
 import { OnboardingChecklist } from "./onboarding-checklist";
 import { OnboardingCoachmark } from "./onboarding-coachmark";
 import { OnboardingModals } from "./onboarding-modals";
+import { useOnboarding } from "./onboarding-provider";
 import { SupportWidget } from "./support-widget";
+import { getStepDef } from "@/lib/onboarding";
+
+/**
+ * Passos com tip fixo na lateral: o conteúdo abre espaço (só em telas largas)
+ * para o card do onboarding não cobrir o texto da página.
+ */
+function guidedGutterClass(side: "left" | "right" | null) {
+  if (side === "left") {
+    return "xl:pl-[22rem]";
+  }
+  if (side === "right") {
+    return "xl:pr-[22rem]";
+  }
+  return "";
+}
 
 export function ProductShell({ children }: { children: ReactNode }) {
   const { statusMessage, errorMessage, dismissMessages, sessionUser, signOut } =
     useProductApp();
+  const { guideOpen, guideStepId } = useOnboarding();
   const {
     open: heygenDevOpen,
     setOpen: setHeygenDevOpen,
     handleSecretClick: handleHeygenLogoSecretClick,
   } = useHeygenDevPanelReveal();
   const [supportOpen, setSupportOpen] = useState(false);
+
+  const guidedPlacement = guideOpen ? getStepDef(guideStepId)?.placement : undefined;
+  const guidedSide =
+    guidedPlacement === "left" || guidedPlacement === "right" ? guidedPlacement : null;
 
   return (
     <div className="h-screen flex overflow-hidden bg-md-app-bg text-md-text-soft">
@@ -30,7 +51,9 @@ export function ProductShell({ children }: { children: ReactNode }) {
         onOpenSupport={() => setSupportOpen(true)}
       />
 
-      <main className="flex-1 overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-slate-900 relative">
+      <main
+        className={`flex-1 overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-slate-900 relative transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
+      >
         <OnboardingModals />
         <OnboardingCoachmark />
         <OnboardingChecklist />

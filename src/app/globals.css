@@ -20,6 +20,11 @@
   --overlay-hover: rgba(255, 255, 255, 0.08);
   --overlay-subtle: rgba(255, 255, 255, 0.03);
   --grid-line: rgba(255, 255, 255, 0.03);
+  /* --surface aqui coincide com --slate-900, o tom para o qual o fundo do
+     produto degrada (shell.tsx). Pop-ups do onboarding (coachmark/checklist/
+     modais) precisam de um tom elevado próprio para não "sumir" no fundo. */
+  --onboarding-surface: #17213a;
+  --onboarding-border: rgba(255, 255, 255, 0.16);
 
   /* Tipografia */
   --text: #f8fafc;
@@ -107,6 +112,9 @@
   --overlay-hover: rgba(15, 23, 42, 0.06);
   --overlay-subtle: rgba(15, 23, 42, 0.035);
   --grid-line: rgba(15, 23, 42, 0.05);
+  /* Claro já diferencia --surface (branco) do fundo — mantém igual ao padrão. */
+  --onboarding-surface: var(--surface);
+  --onboarding-border: var(--border);
 
   --text: #0f172a;
   --text-main: var(--text);

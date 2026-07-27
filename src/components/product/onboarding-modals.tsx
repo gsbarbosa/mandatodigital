@@ -53,7 +53,7 @@ function ModalShell({
       aria-modal="true"
     >
       <div
-        className={`relative w-full ${maxWidth} rounded-[18px] border border-md-border bg-md-surface p-7 shadow-[0_30px_70px_rgba(0,0,0,0.5)]`}
+        className={`relative w-full ${maxWidth} rounded-[18px] border border-md-onboarding-border bg-md-onboarding-surface p-7 shadow-[0_30px_70px_rgba(0,0,0,0.5)]`}
       >
         {onClose ? (
           <button
@@ -98,9 +98,9 @@ function WelcomeModal() {
 
   function begin() {
     markWelcomeSeen();
-    const step = currentStepId ?? "temas-federal";
+    const step = currentStepId ?? "temas-territorio";
     startGuide(step);
-    router.push("/monitoramento/temas#temas" as Route);
+    router.push("/monitoramento/temas#territorio" as Route);
   }
 
   return (
@@ -109,14 +109,13 @@ function WelcomeModal() {
         <RadarVisual />
       </div>
       <h2 className="mb-2 text-balance text-center text-lg font-bold text-md-text">
-        Boas-vindas ao Mandato Digital
+        Bem-vindo ao Mandato Digital
       </h2>
       <p className="text-center text-[13px] leading-relaxed text-md-text-soft">
-        Vamos configurar seus temas de interesse, fontes e adversários — e depois treinar
-        o avatar (foto, áudio, persona e glossário).
+        Vamos configurar seus temas, treinar seu avatar, pautar notícias e gerar vídeos.
       </p>
       <div className="mt-6">
-        <PrimaryButton onClick={begin}>Começar pelo nível nacional</PrimaryButton>
+        <PrimaryButton onClick={begin}>Vamos começar!</PrimaryButton>
       </div>
       <button
         type="button"
@@ -141,8 +140,7 @@ function AfterThemesBridge() {
       </div>
       <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Temas configurados!</h2>
       <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
-        Seu radar foi salvo e o Sentinela já está buscando as pautas. Enquanto isso, vamos treinar o
-        avatar: foto, áudio, calibragem de persona e glossário.
+        Seu radar foi salvo e já está buscando as pautas. Enquanto isso, vamos treinar o avatar.
       </p>
       <PrimaryButton
         disabled={isSavingProfile}
@@ -168,20 +166,20 @@ function AfterAvatarBridge() {
         <RadarVisual />
       </div>
       <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">
-        O Sentinela já montou suas pautas
+        O monitoramento está pronto
       </h2>
       <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
-        Com os temas e o avatar prontos, o Sentinela vasculhou portais e redes e organizou as
-        primeiras pautas do radar. No próximo passo, você vai pautar a primeira delas no Criativo.
+        O sistema já vasculhou portais e redes sociais e organizou as primeiras notícias da sua
+        bandeira. No próximo passo, você vai pautar alguma notícia e gerar seu primeiro vídeo.
       </p>
       <PrimaryButton
         onClick={() => {
           closeBridge();
-          startGuide("pautas-pautar");
+          startGuide("pautas-radar");
           router.push("/monitoramento" as Route);
         }}
       >
-        Ver as pautas
+        Ver as notícias
       </PrimaryButton>
     </ModalShell>
   );
@@ -196,7 +194,7 @@ function AfterPautasBridge() {
       <div className="mx-auto mb-4 flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-cyan-400/10 text-[var(--curador-text)]">
         <IconSpark />
       </div>
-      <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Hora de criar o roteiro</h2>
+      <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Hora de criar o vídeo</h2>
       <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
         Com a pauta escolhida, vamos definir arquétipo, tom de linguagem, tema e aprovar o roteiro
         antes de produzir o vídeo.
@@ -216,7 +214,7 @@ function AfterPautasBridge() {
           }
         }}
       >
-        Começar pelo arquétipo
+        Atributos do vídeo
       </PrimaryButton>
     </ModalShell>
   );
@@ -233,8 +231,8 @@ function AfterRoteiroBridge() {
       </div>
       <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Roteiro pronto</h2>
       <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
-        Agora escolha o avatar e gere o vídeo. Em poucos cliques o conteúdo sai com a sua cara e a
-        sua voz.
+        Agora escolha o avatar e gere o vídeo. Em minutos o conteúdo sai com a sua cara e a sua
+        voz.
       </p>
       <PrimaryButton
         onClick={() => {
@@ -285,7 +283,8 @@ function BridgeModal({ kind }: { kind: Exclude<OnboardingBridge, null> }) {
         </div>
         <h2 className="mb-2.5 text-center text-lg font-bold text-md-text">Mídia enviada</h2>
         <p className="mb-6 text-center text-[13px] leading-relaxed text-md-text-soft">
-          Próximo passo: calibrar a persona e o glossário em Personalizar.
+          Próximo passo: definir o posicionamento ideológico e o glossário na Calibragem de
+          Persona.
         </p>
         <PrimaryButton
           onClick={() => {

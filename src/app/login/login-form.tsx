@@ -45,7 +45,7 @@ function LoginLoading({ message }: { message: string }) {
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/app";
+  const nextPath = searchParams.get("next") || "/monitoramento";
   const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
 
   useEffect(() => {
