@@ -93,7 +93,9 @@ function SemanticExpansionNote() {
 }
 
 const REMOVE_ROW_BUTTON_CLASS =
-  "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-md-border/60 bg-transparent text-md-text-soft hover:border-slate-600 hover:bg-slate-800/50 hover:text-slate-200 transition-colors shrink-0";
+  "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-md-border/60 bg-transparent text-md-text-soft hover:border-md-border-hover hover:bg-md-overlay-hover hover:text-md-text transition-colors shrink-0";
+
+const SECTION_CARD_CLASS = "md-product-section p-6 md:p-8 mb-8 scroll-mt-24";
 
 const TEXT_LINK_BUTTON_CLASS =
   "inline bg-transparent p-0 text-xs text-[var(--curador-text)] hover:text-[var(--curador-text)] underline underline-offset-2";
@@ -244,7 +246,7 @@ function SocialHandleRows({
             <select
               value={row.network}
               onChange={(event) => updateRow(index, { network: event.target.value })}
-              className={`bg-md-slate-900 border border-md-border text-md-text-muted text-xs rounded-lg w-full min-w-0 px-2 py-2.5 outline-none ${focusRing}`}
+              className={`bg-md-surface-inset border border-md-border text-md-text-muted text-xs rounded-lg w-full min-w-0 px-2 py-2.5 outline-none ${focusRing}`}
             >
               {SOCIAL_NETWORKS.map((network) => (
                 <option key={network} value={network}>
@@ -257,7 +259,7 @@ function SocialHandleRows({
               value={row.handle}
               placeholder="@perfil"
               onChange={(event) => updateRow(index, { handle: event.target.value })}
-              className={`bg-md-slate-900 border border-md-border text-md-text-muted text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none ${focusRing}`}
+              className={`bg-md-surface-inset border border-md-border text-md-text-muted text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none ${focusRing}`}
             />
             <button
               type="button"
@@ -415,9 +417,11 @@ export function RedefinirTemasPage() {
   ) : null;
 
   return (
-    <div className="min-h-full relative pb-28" data-testid="temas-page">
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[40%] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-[40%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="relative min-h-full overflow-x-hidden pb-28" data-testid="temas-page">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute top-[-10%] left-[-10%] h-[40%] w-[50%] rounded-full bg-blue-600/10 blur-[140px]" />
+        <div className="absolute top-[40%] right-[-10%] h-[40%] w-[40%] rounded-full bg-cyan-600/10 blur-[120px]" />
+      </div>
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
         <header className="mb-10 text-center">
@@ -433,7 +437,7 @@ export function RedefinirTemasPage() {
         <section
           id="territorio"
           data-onboarding-anchor="temas-territorio"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className={SECTION_CARD_CLASS}
         >
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:divide-x md:divide-md-border">
             <div className="md:pr-8">
@@ -471,7 +475,7 @@ export function RedefinirTemasPage() {
         <section
           id="temas"
           data-onboarding-anchor="temas-federal"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className={SECTION_CARD_CLASS}
         >
           <div className="border-b border-md-border pb-4 mb-8">
             <div className="flex flex-wrap items-center gap-3">
@@ -504,7 +508,7 @@ export function RedefinirTemasPage() {
         <section
           id="monitoramento-esferas"
           data-onboarding-anchor="temas-monitoramento-esferas"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className={SECTION_CARD_CLASS}
         >
           <h2 className="text-2xl font-bold text-md-text mb-1">Detalhes do monitoramento</h2>
           <p className="text-md-text-soft text-sm mb-8 border-b border-md-border pb-4">
@@ -548,7 +552,7 @@ export function RedefinirTemasPage() {
           <div
             id="municipal"
             data-onboarding-anchor="temas-municipal"
-            className="rounded-2xl border border-emerald-900/40 bg-md-surface/40 p-6"
+            className="rounded-2xl border border-md-border bg-md-surface-inset p-6"
           >
             <h3 className="text-lg font-bold text-md-text mb-2">
               Nível <span className="text-[var(--sentinela-text)]">Municipal</span>
@@ -582,7 +586,7 @@ export function RedefinirTemasPage() {
                             ),
                           }))
                         }
-                        className="bg-md-slate-900 border border-md-border text-md-text-muted text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                        className="bg-md-surface-inset border border-md-border text-md-text-muted text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none focus:ring-emerald-500 focus:border-emerald-500"
                       />
                       <button
                         type="button"
@@ -635,7 +639,7 @@ export function RedefinirTemasPage() {
         <section
           id="interesse"
           data-onboarding-anchor="temas-interesse"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className={SECTION_CARD_CLASS}
         >
           <h2 className="text-2xl font-bold text-md-text mb-2">
             Perfis de <span className="text-violet-400">rede sociais</span>
@@ -659,7 +663,7 @@ export function RedefinirTemasPage() {
         <section
           id="adversarios"
           data-onboarding-anchor="temas-adversarios"
-          className="bg-md-surface/40 backdrop-blur-xl border border-red-900/30 rounded-[1.75rem] p-6 md:p-8 shadow-[0_0_20px_rgba(153,27,27,0.1)] scroll-mt-24"
+          className="md-product-section border-red-900/30 mb-0 scroll-mt-24 p-6 md:p-8 shadow-[0_0_20px_rgba(153,27,27,0.08)]"
         >
           <h2 className="text-2xl font-bold text-md-text mb-2">Adversários Políticos</h2>
           <p className="text-md-text-soft text-sm mb-6 border-b border-md-border pb-4">
@@ -713,7 +717,7 @@ export function RedefinirTemasPage() {
           <button
             type="button"
             aria-label="Fechar"
-            className="absolute inset-0 bg-black/70"
+            className="absolute inset-0 bg-md-bg/75 backdrop-blur-[2px]"
             onClick={() => setShowMonitoramentoPrompt(false)}
           />
           <div
@@ -721,7 +725,7 @@ export function RedefinirTemasPage() {
             aria-modal="true"
             aria-labelledby="monitoramento-prompt-title"
             data-testid="monitoramento-prompt"
-            className="relative bg-[#0F1623] border border-md-border rounded-2xl p-8 max-w-md w-full shadow-2xl"
+            className="relative bg-md-surface border border-md-border rounded-2xl p-8 max-w-md w-full shadow-2xl"
           >
             <h3 id="monitoramento-prompt-title" className="text-lg font-bold text-md-text mb-6">
               Gostaria de ir para o Monitoramento de Pautas?
@@ -731,7 +735,7 @@ export function RedefinirTemasPage() {
                 type="button"
                 data-testid="monitoramento-prompt-nao"
                 onClick={() => setShowMonitoramentoPrompt(false)}
-                className="px-5 py-2.5 rounded-lg border border-md-border text-md-text-muted text-sm font-medium hover:bg-slate-800 transition-colors"
+                className="px-5 py-2.5 rounded-lg border border-md-border text-md-text-muted text-sm font-medium hover:bg-md-overlay-hover transition-colors"
               >
                 Não (N)
               </button>

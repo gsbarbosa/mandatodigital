@@ -148,7 +148,7 @@ export function MunicipioPicker({
         placeholder="Digite para buscar o município"
         aria-label="Buscar município"
         data-testid="municipio-search"
-        className="bg-md-slate-900 border border-md-border text-md-text-muted text-sm rounded-lg w-full px-3 py-2.5 mb-3 outline-none focus:ring-emerald-500 focus:border-emerald-500"
+        className="bg-md-surface-inset border border-md-border text-md-text-muted text-sm rounded-lg w-full px-3 py-2.5 mb-3 outline-none focus:ring-emerald-500 focus:border-emerald-500"
       />
 
       {status === "loading" ? (

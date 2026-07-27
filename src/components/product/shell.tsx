@@ -52,7 +52,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
       />
 
       <main
-        className={`flex-1 overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-slate-900 relative transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
+        className={`flex-1 min-w-0 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-bg relative transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
       >
         <OnboardingModals />
         <OnboardingCoachmark />

@@ -61,14 +61,14 @@ export function BrazilUfMap({
                 onMouseEnter={() => setHovered(shape.uf)}
                 onFocus={() => setHovered(shape.uf)}
                 onBlur={() => setHovered(null)}
-                className={`cursor-pointer outline-none transition-colors duration-150 ${
+                className={`uf-map-path ${
                   isSelected
-                    ? "fill-cyan-500/70 stroke-cyan-200"
+                    ? "uf-map-path--selected"
                     : isHovered
-                      ? "fill-cyan-500/30 stroke-cyan-300"
-                      : "fill-slate-700/40 stroke-slate-500"
+                      ? "uf-map-path--hover"
+                      : "uf-map-path--default"
                 }`}
-                style={{ strokeWidth: isSelected || isHovered ? 1.5 : 0.75 }}
+                style={{ strokeWidth: isSelected || isHovered ? 1.5 : 1.1 }}
               >
                 <title>{`${shape.nome} (${shape.uf})`}</title>
               </path>

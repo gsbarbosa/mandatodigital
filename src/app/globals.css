@@ -91,6 +91,13 @@
   --shadow: 0 28px 60px rgba(2, 6, 23, 0.35);
   --shadow-panel: 0 20px 40px rgba(0, 0, 0, 0.3);
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+
+  --map-fill: rgba(30, 41, 59, 0.45);
+  --map-stroke: #94a3b8;
+  --map-fill-hover: rgba(6, 182, 212, 0.28);
+  --map-stroke-hover: #67e8f9;
+  --map-fill-selected: rgba(6, 182, 212, 0.68);
+  --map-stroke-selected: #a5f3fc;
 }
 
 [data-theme="light"] {
@@ -101,9 +108,9 @@
   --bg-soft: rgba(241, 245, 249, 0.9);
   --app-bg: #f8fafc;
   --surface: #ffffff;
-  --surface-inset: rgba(241, 245, 249, 0.7);
+  --surface-inset: #f8fafc;
   --slate-800: #e2e8f0;
-  --slate-900: #f1f5f9;
+  --slate-900: #ffffff;
   --panel: rgba(255, 255, 255, 0.92);
   --panel-border: rgba(15, 23, 42, 0.1);
   --border: rgba(15, 23, 42, 0.12);
@@ -177,6 +184,13 @@
   --shadow: 0 20px 45px rgba(15, 23, 42, 0.1);
   --shadow-panel: 0 12px 28px rgba(15, 23, 42, 0.08);
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+
+  --map-fill: #eef2f7;
+  --map-stroke: #cbd5e1;
+  --map-fill-hover: rgba(6, 182, 212, 0.18);
+  --map-stroke-hover: #0891b2;
+  --map-fill-selected: rgba(6, 182, 212, 0.42);
+  --map-stroke-selected: #0e7490;
 }
 
 
@@ -306,6 +320,35 @@ select:focus {
   box-shadow: var(--shadow-panel);
   position: relative;
   overflow: hidden;
+}
+
+/* Cards de produto — branco no claro, slate no escuro (nunca Tailwind slate-* fixo). */
+.md-product-section {
+  border: 1px solid var(--panel-border);
+  border-radius: 1.75rem;
+  background: var(--surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.uf-map-path {
+  cursor: pointer;
+  outline: none;
+  transition: fill 150ms ease, stroke 150ms ease;
+}
+
+.uf-map-path--default {
+  fill: var(--map-fill);
+  stroke: var(--map-stroke);
+}
+
+.uf-map-path--hover {
+  fill: var(--map-fill-hover);
+  stroke: var(--map-stroke-hover);
+}
+
+.uf-map-path--selected {
+  fill: var(--map-fill-selected);
+  stroke: var(--map-stroke-selected);
 }
 
 .persona-card::before {
