@@ -12,7 +12,7 @@ import {
 
 const NO_SIGNALS: OnboardingSignals = {
   hasFederalThemes: false,
-  hasEstadualThemes: false,
+  hasCoverageUf: false,
   hasMunicipalSignal: false,
   hasInterestSignal: false,
   hasOppositionSignal: false,
@@ -66,38 +66,52 @@ describe("deriveAppDone", () => {
     expect(deriveAppDone({ ...NO_SIGNALS, hasVoiceAudio: true })["avatar-audio"]).toBe(true);
   });
 
-  it("marca esferas de temas separadamente", () => {
+  it("marca território e temas separadamente", () => {
     const done = deriveAppDone({
       ...NO_SIGNALS,
       hasFederalThemes: true,
-      hasEstadualThemes: true,
+      hasCoverageUf: true,
     });
+    expect(done["temas-territorio"]).toBe(true);
     expect(done["temas-federal"]).toBe(true);
-    expect(done["temas-estadual"]).toBe(true);
     expect(done["temas-municipal"]).toBe(false);
     expect(done["temas-interesse"]).toBe(false);
     expect(done["temas-adversarios"]).toBe(false);
   });
+
+  it("salvar radar e overview do radar não têm sinal de app", () => {
+    const done = deriveAppDone({
+      ...NO_SIGNALS,
+      hasFederalThemes: true,
+      hasCoverageUf: true,
+      hasMunicipalSignal: true,
+      hasInterestSignal: true,
+      hasOppositionSignal: true,
+    });
+    expect(done["temas-salvar"]).toBe(false);
+    expect(done["pautas-radar"]).toBe(false);
+  });
 });
 
 describe("computeOnboarding", () => {
-  it("usuário novo começa no nível nacional", () => {
+  it("usuário novo começa pelo estado e municípios", () => {
     const result = computeOnboarding({ signals: NO_SIGNALS, persisted: {} });
     expect(result.isActive).toBe(true);
-    expect(result.currentStepId).toBe("temas-federal");
+    expect(result.currentStepId).toBe("temas-territorio");
     expect(result.currentPhaseId).toBe("temas");
     expect(result.currentPhaseStep).toBe(1);
+    expect(result.phaseStepCount).toBe(6);
     expect(result.temasPhaseReady).toBe(false);
-    expect(stepById(result, "temas-federal").current).toBe(true);
+    expect(stepById(result, "temas-territorio").current).toBe(true);
   });
 
-  it("após temas federais avança para estadual", () => {
+  it("após a UF avança para os temas de interesse", () => {
     const result = computeOnboarding({
-      signals: { ...NO_SIGNALS, hasFederalThemes: true, selectedThemeCount: 1 },
+      signals: { ...NO_SIGNALS, hasCoverageUf: true },
       persisted: {},
     });
-    expect(stepById(result, "temas-federal").done).toBe(true);
-    expect(result.currentStepId).toBe("temas-estadual");
+    expect(stepById(result, "temas-territorio").done).toBe(true);
+    expect(result.currentStepId).toBe("temas-federal");
     expect(result.currentPhaseStep).toBe(2);
   });
 
@@ -106,7 +120,7 @@ describe("computeOnboarding", () => {
       signals: {
         ...NO_SIGNALS,
         hasFederalThemes: true,
-        hasEstadualThemes: true,
+        hasCoverageUf: true,
         hasMunicipalSignal: true,
         hasOppositionSignal: true,
         selectedThemeCount: 4,
@@ -116,21 +130,39 @@ describe("computeOnboarding", () => {
     });
     expect(result.temasPhaseReady).toBe(false);
     expect(result.currentPhaseId).toBe("temas");
-    expect(result.currentStepId).toBe("temas-adversarios");
+    expect(result.currentStepId).toBe("temas-salvar");
   });
 
-  it("5 temas sem rede social libera a fase de avatar", () => {
+  it("5 temas sem rede social param no salvar radar, último passo da fase", () => {
     const result = computeOnboarding({
       signals: {
         ...NO_SIGNALS,
         hasFederalThemes: true,
-        hasEstadualThemes: true,
+        hasCoverageUf: true,
         hasMunicipalSignal: true,
         hasOppositionSignal: true,
         selectedThemeCount: 5,
         hasSocialProfile: false,
       },
       persisted: {},
+    });
+    expect(result.temasPhaseReady).toBe(true);
+    expect(result.currentPhaseId).toBe("temas");
+    expect(result.currentStepId).toBe("temas-salvar");
+  });
+
+  it("salvar radar concluído libera a fase de avatar", () => {
+    const result = computeOnboarding({
+      signals: {
+        ...NO_SIGNALS,
+        hasFederalThemes: true,
+        hasCoverageUf: true,
+        hasMunicipalSignal: true,
+        hasOppositionSignal: true,
+        selectedThemeCount: 5,
+        hasSocialProfile: false,
+      },
+      persisted: { localDone: ["temas-salvar"] },
     });
     expect(result.temasPhaseReady).toBe(true);
     expect(result.currentPhaseId).toBe("avatar");
@@ -147,28 +179,28 @@ describe("computeOnboarding", () => {
         selectedThemeCount: 1,
         hasSocialProfile: true,
       },
-      persisted: {},
+      persisted: { localDone: ["temas-salvar"] },
     });
     expect(result.temasPhaseReady).toBe(true);
     expect(result.currentPhaseId).toBe("avatar");
     expect(result.currentStepId).toBe("avatar-foto");
   });
 
-  it("fase de avatar começa na foto após temas completos com gate", () => {
+  it("foto enviada preenche a fase de temas por monotonicidade", () => {
     const result = computeOnboarding({
       signals: {
         ...NO_SIGNALS,
         hasFederalThemes: true,
-        hasEstadualThemes: true,
-        hasMunicipalSignal: true,
-        hasOppositionSignal: true,
+        hasCoverageUf: true,
+        hasAvatarImage: true,
         selectedThemeCount: 5,
         hasSocialProfile: false,
       },
       persisted: {},
     });
+    expect(stepById(result, "temas-salvar").done).toBe(true);
     expect(result.currentPhaseId).toBe("avatar");
-    expect(result.currentStepId).toBe("avatar-foto");
+    expect(result.currentStepId).toBe("avatar-audio");
   });
 
   it("preenchimento monotônico sem radar mínimo não pula o gate", () => {
@@ -180,7 +212,7 @@ describe("computeOnboarding", () => {
     expect(stepById(result, "avatar-glossario").done).toBe(true);
     expect(result.temasPhaseReady).toBe(false);
     expect(result.currentPhaseId).toBe("temas");
-    expect(result.currentStepId).toBe("temas-adversarios");
+    expect(result.currentStepId).toBe("temas-salvar");
     expect(result.isComplete).toBe(false);
   });
 
@@ -215,8 +247,8 @@ describe("computeOnboarding", () => {
     expect(result.temasPhaseReady).toBe(true);
     expect(result.isComplete).toBe(false);
     expect(result.currentPhaseId).toBe("pautas");
-    expect(result.currentStepId).toBe("pautas-pautar");
-    expect(result.phaseStepCount).toBe(1);
+    expect(result.currentStepId).toBe("pautas-radar");
+    expect(result.phaseStepCount).toBe(2);
   });
 
   it("após pautar avança para criar roteiro", () => {
@@ -227,7 +259,7 @@ describe("computeOnboarding", () => {
         hasVoiceAudio: true,
         selectedThemeCount: 5,
       },
-      persisted: { localDone: ["pautas-pautar"] },
+      persisted: { localDone: ["pautas-radar", "pautas-pautar"] },
     });
     expect(result.isComplete).toBe(false);
     expect(result.currentPhaseId).toBe("roteiro");
@@ -345,7 +377,7 @@ describe("computeOnboarding", () => {
       signals: {
         ...NO_SIGNALS,
         hasFederalThemes: true,
-        hasEstadualThemes: true,
+        hasCoverageUf: true,
         hasMunicipalSignal: true,
         hasOppositionSignal: true,
         hasAvatarImage: true,
@@ -358,18 +390,18 @@ describe("computeOnboarding", () => {
     });
     expect(result.isActive).toBe(true);
     expect(result.isComplete).toBe(false);
-    expect(result.currentStepId).toBe("temas-federal");
-    expect(stepById(result, "temas-federal").done).toBe(false);
+    expect(result.currentStepId).toBe("temas-territorio");
+    expect(stepById(result, "temas-territorio").done).toBe(false);
     expect(stepById(result, "avatar-glossario").done).toBe(false);
   });
 
   it("tour do zero só avança com localDone", () => {
     const result = computeOnboarding({
-      signals: { ...NO_SIGNALS, hasFederalThemes: true, selectedThemeCount: 5 },
-      persisted: { tourFromScratch: true, localDone: ["temas-federal"] },
+      signals: { ...NO_SIGNALS, hasCoverageUf: true, selectedThemeCount: 5 },
+      persisted: { tourFromScratch: true, localDone: ["temas-territorio"] },
     });
-    expect(stepById(result, "temas-federal").done).toBe(true);
-    expect(result.currentStepId).toBe("temas-estadual");
+    expect(stepById(result, "temas-territorio").done).toBe(true);
+    expect(result.currentStepId).toBe("temas-federal");
   });
 
   it("tour do zero com todos localDone ainda respeita o gate de radar", () => {
@@ -378,39 +410,45 @@ describe("computeOnboarding", () => {
       persisted: {
         tourFromScratch: true,
         localDone: [
+          "temas-territorio",
           "temas-federal",
-          "temas-estadual",
           "temas-municipal",
           "temas-interesse",
           "temas-adversarios",
+          "temas-salvar",
           "avatar-foto",
         ],
       },
     });
     expect(result.temasPhaseReady).toBe(false);
     expect(result.currentPhaseId).toBe("temas");
-    expect(result.currentStepId).toBe("temas-adversarios");
+    expect(result.currentStepId).toBe("temas-salvar");
   });
 
   it("marcador local conclui etapa", () => {
     const result = computeOnboarding({
       signals: NO_SIGNALS,
-      persisted: { localDone: ["temas-federal"] },
+      persisted: { localDone: ["temas-territorio"] },
     });
-    expect(stepById(result, "temas-federal").done).toBe(true);
-    expect(result.currentStepId).toBe("temas-estadual");
+    expect(stepById(result, "temas-territorio").done).toBe(true);
+    expect(result.currentStepId).toBe("temas-federal");
   });
 });
 
 describe("resolveSidebarTarget", () => {
   it("mapeia etapa atual para o item do menu", () => {
-    expect(resolveSidebarTarget("temas-federal", "/monitoramento/temas")).toBe("temas-config");
+    expect(resolveSidebarTarget("temas-territorio", "/monitoramento/temas")).toBe("temas-config");
+    expect(resolveSidebarTarget("temas-salvar", "/monitoramento/temas")).toBe("temas-config");
     expect(resolveSidebarTarget("avatar-foto", "/avatares/foto-real/treinar")).toBe("avatar-config");
-    expect(resolveSidebarTarget("avatar-persona", "/curador")).toBe("avatar-config");
     expect(resolveSidebarTarget("pautas-pautar", "/monitoramento")).toBe("monitoramento");
     expect(resolveSidebarTarget("criativo-arquetipo", "/criativo/novo")).toBe("criativo");
     expect(resolveSidebarTarget("criativo-gerar", "/criativo/novo")).toBe("criativo");
     expect(resolveSidebarTarget(null, "/monitoramento")).toBeNull();
+  });
+
+  it("persona e glossário ficam sem destaque (não têm item no menu)", () => {
+    expect(resolveSidebarTarget("avatar-persona", "/curador")).toBeNull();
+    expect(resolveSidebarTarget("avatar-glossario", "/curador")).toBeNull();
   });
 });
 

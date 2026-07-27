@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AvatarImageCropModal } from "@/components/product/avatar-image-crop-modal";
+import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
 import type { AvatarTipo } from "@/lib/avatar-tipos";
 import type { TrainingAssetRole } from "@/lib/types";
@@ -36,6 +37,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
     isUploadingAvatarImageAsset,
     isUploadingVoiceAudioAsset,
   } = useProductApp();
+  const { guideOpen, guideStepId, markStepDone } = useOnboarding();
 
   const profileId = profile?.id ?? profileForm.id ?? null;
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -90,6 +92,10 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
     if (uploaded.length) {
       setUploadMessage(`${label} enviado com sucesso.`);
       window.setTimeout(() => setUploadMessage(null), 4200);
+      // Áudio enviado: o passo do onboarding se fecha sozinho e o tip segue adiante.
+      if (role === "voice_audio" && guideOpen && guideStepId === "avatar-audio") {
+        markStepDone("avatar-audio");
+      }
     }
   }
 

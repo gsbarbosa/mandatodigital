@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { BrazilUfMap } from "@/components/product/brazil-uf-map";
 import { MunicipioPicker } from "@/components/product/municipio-picker";
+import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
 import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
 import { ThemeTagPill } from "@/components/product/theme-tag";
@@ -286,6 +287,7 @@ export function RedefinirTemasPage() {
   const { profileForm, setProfileForm, saveProfile, isSavingProfile, sessionUser } =
     useProductApp();
   const { isPremium } = useDevAccountMode(sessionUser?.email);
+  const { markRadarSaved, isActive: onboardingActive } = useOnboarding();
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [showMonitoramentoPrompt, setShowMonitoramentoPrompt] = useState(false);
@@ -383,17 +385,34 @@ export function RedefinirTemasPage() {
         throwOnError: true,
         sentinelRefreshPolicy: "themes",
       });
+      // Libera o Próximo do passo "Salvar radar" no onboarding guiado.
+      markRadarSaved();
       if (result?.sentinelRefreshSkipped && result.sentinelRefreshMessage) {
         setSaveMessage(result.sentinelRefreshMessage);
         setShowMonitoramentoPrompt(false);
       } else {
-        setSaveMessage("Radar salvo com sucesso. O monitoramento usa a nova configuração.");
-        setShowMonitoramentoPrompt(true);
+        // Durante o onboarding guiado, o próprio tip leva para o próximo passo
+        // (bridge "Temas configurados!") — este prompt manual só faz sentido fora dele.
+        setShowMonitoramentoPrompt(!onboardingActive);
       }
     } catch {
       // Erro exibido pelo provider (banner global).
     }
   }
+
+  const planNote = limitMessage ? (
+    <span className="text-amber-400">{limitMessage}</span>
+  ) : saveMessage ? (
+    <span className="text-[var(--sentinela-text)]" role="status">
+      {saveMessage}
+    </span>
+  ) : !isPremium ? (
+    <span>
+      Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} municípios,{" "}
+      {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de rede sociais e{" "}
+      {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
+    </span>
+  ) : null;
 
   return (
     <div className="min-h-full relative pb-28" data-testid="temas-page">
@@ -529,7 +548,7 @@ export function RedefinirTemasPage() {
           <div
             id="municipal"
             data-onboarding-anchor="temas-municipal"
-            className="rounded-2xl border border-emerald-900/40 bg-[var(--sentinela-soft)] shadow-[0_0_20px_rgba(16,185,129,0.1)] p-6"
+            className="rounded-2xl border border-emerald-900/40 bg-md-surface/40 p-6"
           >
             <h3 className="text-lg font-bold text-md-text mb-2">
               Nível <span className="text-[var(--sentinela-text)]">Municipal</span>
@@ -662,32 +681,24 @@ export function RedefinirTemasPage() {
         </section>
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-md-border bg-[#0B0F19]/90 backdrop-blur-md z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs text-md-text-soft">
-            {limitMessage ? (
-              <span className="text-amber-400">{limitMessage}</span>
-            ) : saveMessage ? (
-              <span className="text-[var(--sentinela-text)]" role="status">
-                {saveMessage}
-              </span>
-            ) : isPremium ? (
-              <span>
-                Modo premium — temas, municípios e portais regionais seguem o teto padrão ({MAX_INTEREST_THEMES}{" "}
-                temas, {MAX_MUNICIPAL_CITIES} municípios, {MAX_MUNICIPAL_PORTALS} portais). Perfis
-                de rede sociais e adversários não têm limite adicional nesta tela.
-              </span>
-            ) : (
-              <span>
-                Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} municípios,{" "}
-                {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de rede sociais e{" "}
-                {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
-              </span>
-            )}
-          </div>
+      {planNote ? (
+        <div
+          role="note"
+          aria-label="Limites do plano"
+          data-onboarding-avoid=""
+          className="fixed right-6 top-1/2 z-30 hidden w-[min(240px,calc(100vw-2rem))] -translate-y-1/2 rounded-xl border border-md-border bg-md-surface/95 p-3 text-[11px] leading-relaxed text-md-text-soft shadow-[0_16px_36px_rgba(15,23,42,0.28)] backdrop-blur-sm lg:block"
+        >
+          {planNote}
+        </div>
+      ) : null}
+
+      <div className="sticky bottom-0 left-0 right-0 mt-10 bg-md-surface/80 backdrop-blur-md z-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-center">
           <button
             type="button"
+            id="salvar"
             data-testid="salvar-radar-button"
+            data-onboarding-anchor="temas-salvar"
             onClick={() => void handleSave()}
             disabled={isSavingProfile}
             className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"

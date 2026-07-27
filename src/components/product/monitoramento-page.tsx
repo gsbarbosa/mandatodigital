@@ -332,6 +332,11 @@ export function MonitoramentoPage() {
       ? `${credits.remaining}/${credits.limit} créditos`
       : undefined;
 
+  const refreshedDate = meta?.refreshedAt ? new Date(meta.refreshedAt) : null;
+  const refreshedIsToday = refreshedDate
+    ? refreshedDate.toDateString() === new Date().toDateString()
+    : false;
+
   return (
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20" data-testid="monitoramento-page">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
@@ -341,46 +346,14 @@ export function MonitoramentoPage() {
           <h1 className="text-2xl font-bold text-md-text tracking-tight mb-2">
             Monitoramento de Pautas
           </h1>
-          <p className="text-sm leading-snug text-md-text-muted">
+          <p className="text-sm leading-snug text-md-text-muted whitespace-nowrap">
             Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar.
           </p>
-          <p className="text-xs leading-snug text-md-text-soft">
-            <span className="font-semibold text-md-text-muted">Aviso:</span> atualização automática
-            diária após as 8h.{" "}
-            {isGuestUi ? (
-              <>
-                Na versão convidados, o botão <strong className="font-semibold text-[var(--sentinela-text)]">Atualizar pautas</strong>{" "}
-                usa créditos ({credits ? `${credits.remaining} restantes` : "até 5"}).
-              </>
-            ) : (
-              <>Assinantes podem forçar atualização a qualquer momento.</>
-            )}
-          </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0 md:pt-1">
-          {meta?.refreshedAt ? (
-            <span className="text-xs text-md-text-soft">
-              Atualizado em {new Date(meta.refreshedAt).toLocaleString("pt-BR")}
-            </span>
-          ) : null}
-          {meta?.qualityRankStats || meta?.qualityReport || meta?.themeVerificationStats ? (
-            <span className="hidden sm:inline text-[10px] text-md-text-soft max-w-[16rem] leading-snug">
-              {meta.qualityRankStats
-                ? `Rank LLM: ${meta.qualityRankStats.kept} mantidos / ${meta.qualityRankStats.dropped} fora`
-                : null}
-              {meta.qualityRankStats &&
-              (meta.themeVerificationStats || meta.qualityReport)
-                ? " · "
-                : null}
-              {meta.themeVerificationStats
-                ? `Verify ${meta.themeVerificationStats.llmCalls} LLM / ${meta.themeVerificationStats.cacheHits} cache`
-                : null}
-              {meta.themeVerificationStats && meta.qualityReport ? " · " : null}
-              {meta.qualityReport
-                ? `Heurística ${meta.qualityReport.newsPautavelPercent}% pautável`
-                : null}
-            </span>
-          ) : null}
+        <div
+          data-onboarding-anchor="pautas-radar"
+          className="flex flex-col gap-1 shrink-0 md:pt-1 w-[10.5rem]"
+        >
           <RefreshPautasButton
             variant="monitor"
             isLoading={isRefreshing}
@@ -388,6 +361,17 @@ export function MonitoramentoPage() {
             disabled={Boolean(isGuestUi && credits && credits.remaining <= 0)}
             onClick={() => void handleRefresh()}
           />
+          {refreshedDate ? (
+            <span className="text-xs text-md-text-soft text-right">
+              Atualizado {refreshedIsToday ? "hoje" : refreshedDate.toLocaleDateString("pt-BR")} às{" "}
+              {refreshedDate.toLocaleTimeString("pt-BR")}
+            </span>
+          ) : null}
+          <span className="text-xs text-md-text-soft text-right">Próx atualização às 08:00h</span>
+          <span className="text-[10px] leading-snug text-md-text-soft text-right">
+            Atualizações antecipadas consomem créditos (
+            {credits ? `${credits.remaining} restantes` : "1 de 5"}).
+          </span>
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Route } from "next";
+import type { ComponentType } from "react";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -11,6 +12,18 @@ import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
 import { useEarlyAccess } from "@/lib/early-access";
 import { useOnboarding } from "./onboarding-provider";
+import {
+  AcessoAntecipadoIcon,
+  AuditoriaIcon,
+  AvatarNavIcon,
+  ChevronDownIcon,
+  ComplianceIcon,
+  CriativoIcon,
+  GuiaIcon,
+  MonitoramentoIcon,
+  PautaIndependenteIcon,
+  SuporteIcon,
+} from "./nav-icons";
 
 type NavChild = {
   label: string;
@@ -19,6 +32,8 @@ type NavChild = {
   /** Configuração do bloco pai (ex.: temas do monitoramento). */
   variant?: "settings";
 };
+
+type NavIcon = ComponentType<{ className?: string }>;
 
 function SettingsGearIcon({ className }: { className?: string }) {
   return (
@@ -51,25 +66,28 @@ function OnbHighlightDot() {
 type NavBlock = {
   label: string;
   href: string;
+  icon: NavIcon;
   children?: NavChild[];
 };
 
 const NAV_BLOCKS: NavBlock[] = [
   {
-    label: "Monitoramento de Pautas",
+    label: "Monitoramento",
     href: "/monitoramento",
+    icon: MonitoramentoIcon,
     children: [
       { label: "Nacional", href: "/monitoramento#federal" },
       { label: "Estadual", href: "/monitoramento#estadual" },
       { label: "Municipal", href: "/monitoramento#municipal" },
       { label: "Interesse", href: "/monitoramento#interesse" },
       { label: "Adversários", href: "/monitoramento#adversarios" },
-      { label: "Selecionar temas", href: "/monitoramento/temas", variant: "settings" },
+      { label: "Configurar", href: "/monitoramento/temas", variant: "settings" },
     ],
   },
   {
     label: "Avatares",
     href: "/avatares/foto-real",
+    icon: AvatarNavIcon,
     children: [
       { label: "Gêmeo Digital", href: "/avatares/foto-real" },
       { label: "Caricato", href: "/avatares/caricato" },
@@ -79,12 +97,14 @@ const NAV_BLOCKS: NavBlock[] = [
   },
 ];
 
-const NAV_SINGLES: NavChild[] = [
-  { label: "Meus criativos", href: "/criativo" },
-  { label: "Gerar pauta independente", href: "/independente" },
-  { label: "Compliance TSE", href: "/compliance" },
-  { label: "Auditoria", href: "/auditoria" },
+const NAV_SINGLES: Array<NavChild & { icon: NavIcon }> = [
+  { label: "Meus criativos", href: "/criativo", icon: CriativoIcon },
+  { label: "Gerar pauta avulsa", href: "/independente", icon: PautaIndependenteIcon },
+  { label: "Compliance TSE", href: "/compliance", icon: ComplianceIcon },
+  { label: "Auditoria", href: "/auditoria", icon: AuditoriaIcon },
 ];
+
+const EARLY_ACCESS_LABEL = "Acesso antecipado";
 
 function navHrefPath(href: string) {
   const hashIndex = href.indexOf("#");
@@ -94,6 +114,18 @@ function navHrefPath(href: string) {
 function navHrefHash(href: string) {
   const hashIndex = href.indexOf("#");
   return hashIndex === -1 ? "" : href.slice(hashIndex);
+}
+
+function activeBlockLabel(pathname: string): string | null {
+  for (const block of NAV_BLOCKS) {
+    if (isBlockActive(pathname, block.href)) {
+      return block.label;
+    }
+  }
+  if (pathname.startsWith("/acesso-antecipado")) {
+    return EARLY_ACCESS_LABEL;
+  }
+  return null;
 }
 
 function isBlockActive(pathname: string, blockHref: string) {
@@ -138,32 +170,128 @@ function isChildActive(
   return pathname.startsWith(`${path}/`);
 }
 
-function navParentClassName(active: boolean) {
-  return active
-    ? "block py-2 text-sm text-[var(--curador-text)] font-medium transition-colors no-underline"
-    : "block py-2 text-sm text-md-text hover:text-md-text transition-colors no-underline";
+function rowClassName(active: boolean) {
+  return `group flex h-11 items-center gap-3 rounded-xl border px-3 no-underline transition-colors ${
+    active
+      ? "border-[var(--curador-border)] bg-[var(--curador-soft)]"
+      : "border-md-border bg-md-surface/40 hover:bg-md-surface hover:border-md-border-hover"
+  }`;
 }
 
-function childClassName(active: boolean) {
-  return active
-    ? "block pl-3 py-1.5 text-sm text-[var(--curador-text)] font-medium no-underline"
-    : "block pl-3 py-1.5 text-sm text-md-text-soft hover:text-md-text transition-colors no-underline";
+function rowIconClassName(active: boolean) {
+  return `h-5 w-5 shrink-0 ${active ? "text-[var(--curador-text)]" : "text-md-text-soft"}`;
+}
+
+function rowLabelClassName(active: boolean) {
+  return `truncate text-sm ${active ? "text-[var(--curador-text)]" : "text-md-text"}`;
+}
+
+type ChildRow = {
+  key: string;
+  label: string;
+  href: string;
+  active: boolean;
+  highlighted?: boolean;
+  isHashLink?: boolean;
+  onHashClick?: (event: React.MouseEvent) => void;
+  onboardingAnchor?: string;
+  icon?: NavIcon;
+  actionDot?: boolean;
+};
+
+function childCardClassName(active: boolean) {
+  return `flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] no-underline transition-colors ${
+    active
+      ? "border-[var(--curador-border)] bg-[var(--curador-soft)] text-[var(--curador-text)]"
+      : "border-md-border bg-md-surface/40 text-md-text-soft hover:bg-md-surface hover:text-md-text"
+  }`;
+}
+
+/**
+ * Submenu como "timeline" — cartão por item conectado por linha+ponto,
+ * na mesma linguagem visual dos blocos principais (não texto solto).
+ */
+function ChildTimeline({ rows }: { rows: ChildRow[] }) {
+  return (
+    <ul className="mt-2 mb-1 space-y-1.5">
+      {rows.map((row, index) => {
+        const active = row.active || Boolean(row.highlighted);
+        const isLast = index === rows.length - 1;
+        const content = (
+          <>
+            {row.highlighted ? <OnbHighlightDot /> : null}
+            {row.icon ? (
+              <row.icon
+                className={`h-3.5 w-3.5 shrink-0 ${active ? "text-[var(--curador-text)]" : "text-md-text-soft"}`}
+              />
+            ) : null}
+            <span className="truncate">{row.label}</span>
+            {row.actionDot ? (
+              <span
+                className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-pulse"
+                title="Ação Requerida"
+              />
+            ) : null}
+          </>
+        );
+
+        return (
+          <li key={row.key} className="flex items-stretch gap-2">
+            <div className="flex w-3 shrink-0 flex-col items-center">
+              <span
+                className={`mt-3.5 h-2 w-2 shrink-0 rounded-full border-2 ${
+                  active ? "border-[var(--curador-text)] bg-[var(--curador-text)]" : "border-md-border-hover bg-md-app-bg"
+                }`}
+              />
+              {!isLast ? <span className="mt-0.5 w-px flex-1 bg-md-border" /> : null}
+            </div>
+            {row.isHashLink ? (
+              <a href={row.href} onClick={row.onHashClick} className={childCardClassName(active)}>
+                {content}
+              </a>
+            ) : (
+              <Link
+                href={row.href as Route}
+                data-onboarding-anchor={row.onboardingAnchor}
+                className={childCardClassName(active)}
+              >
+                {content}
+              </Link>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 export function NavSidebar({
   sessionEmail,
   onSignOut,
   onLogoSecretClick,
+  onOpenSupport,
 }: {
   sessionEmail: string | null;
   onSignOut: () => void;
   onLogoSecretClick?: () => void;
+  onOpenSupport: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const { sidebarTarget, restartOnboarding, mounted } = useOnboarding();
   const [activeHash, setActiveHash] = useState("");
   const [pendingMonitorHash, setPendingMonitorHash] = useState<string | null>(null);
+  // No máximo um bloco expandido por vez — expandir um recolhe o outro.
+  const [expandedBlock, setExpandedBlock] = useState<string | null>(() => activeBlockLabel(pathname));
+
+  const toggleBlock = useCallback((label: string) => {
+    setExpandedBlock((current) => (current === label ? null : label));
+  }, []);
+
+  // Navegar para outra seção recolhe o que estiver aberto (e expande a nova, se aplicável).
+  useEffect(() => {
+    setExpandedBlock(activeBlockLabel(pathname));
+  }, [pathname]);
 
   const syncActiveHash = useCallback(() => {
     setActiveHash(window.location.hash);
@@ -212,6 +340,16 @@ export function NavSidebar({
     };
   }, [pathname, syncActiveHash]);
 
+  // Garante que o bloco certo esteja expandido quando o onboarding guiado
+  // precisa apontar para um item aninhado (ex.: Configurar temas).
+  useEffect(() => {
+    if (sidebarTarget === "monitoramento" || sidebarTarget === "temas-config") {
+      setExpandedBlock("Monitoramento");
+    } else if (sidebarTarget === "avatar-config") {
+      setExpandedBlock("Avatares");
+    }
+  }, [sidebarTarget]);
+
   const [earlyAccess] = useEarlyAccess();
   const [emailMenuOpen, setEmailMenuOpen] = useState(false);
   const cnpjPending = !earlyAccess.cnpj;
@@ -227,8 +365,35 @@ export function NavSidebar({
     },
   ];
 
+  const earlyAccessActive = pathname.startsWith("/acesso-antecipado");
+  const earlyAccessExpanded = expandedBlock === EARLY_ACCESS_LABEL;
+
+  function renderSingle(item: NavChild & { icon: NavIcon }) {
+    const itemActive = isChildActive(pathname, item.href, activeHash, pendingMonitorHash);
+    const singleHl =
+      sidebarTarget === "criativo" &&
+      (item.href === "/criativo" || item.href.startsWith("/criativo"));
+    const Icon = item.icon;
+    const active = itemActive || Boolean(singleHl);
+
+    return (
+      <Link
+        key={item.href}
+        href={item.href as Route}
+        className={rowClassName(active)}
+        data-onboarding-anchor={item.href === "/criativo" ? "criativo" : undefined}
+      >
+        <Icon className={rowIconClassName(active)} />
+        <span className={rowLabelClassName(active)}>
+          {singleHl ? <OnbHighlightDot /> : null}
+          {item.label}
+        </span>
+      </Link>
+    );
+  }
+
   return (
-    <aside className="w-64 bg-md-bg border-r border-md-border flex flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(15,23,42,0.12)]">
+    <aside className="no-scrollbar w-64 bg-md-app-bg border-r border-md-border flex flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(15,23,42,0.12)]">
       <div className="border-b border-md-border-soft px-4 py-5">
         <Link
           href="/monitoramento"
@@ -247,154 +412,164 @@ export function NavSidebar({
         </p>
       </div>
 
-      <nav className="flex-1 p-4 space-y-5">
+      <nav className="flex-1 p-3 space-y-1.5">
         {NAV_BLOCKS.map((block) => {
           const blockActive = isBlockActive(pathname, block.href);
           const blockHl =
             sidebarTarget === "monitoramento" && block.href.startsWith("/monitoramento");
           const temasConfigHl = sidebarTarget === "temas-config";
+          const expanded = expandedBlock === block.label;
+          const Icon = block.icon;
 
           return (
-          <div key={block.label}>
-            <Link
-              href={block.href as Route}
-              className={`${navParentClassName(blockActive)}${blockHl ? " !text-[var(--curador-text)]" : ""}`}
-              data-onboarding-anchor={
-                block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
-              }
-            >
-              {blockHl ? <OnbHighlightDot /> : null}
-              {block.label}
-            </Link>
-            <ul className="pl-4 mt-1 space-y-1 border-l-2 border-md-border ml-2">
-              {(block.children ?? []).map((child) => {
-                const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
-                const childHl =
-                  (temasConfigHl && child.href === "/monitoramento/temas") ||
-                  (sidebarTarget === "avatar-config" &&
-                    child.href === "/avatares/foto-real/treinar");
-
-                return (
-                <li
-                  key={child.href + child.label}
-                  className={child.variant === "settings" ? "mt-2 pt-2 border-t border-md-border-soft" : undefined}
+          <div key={block.label} className="rounded-xl">
+            <div className={rowClassName(blockActive || Boolean(blockHl))}>
+              <Link
+                href={block.href as Route}
+                className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+                data-onboarding-anchor={
+                  block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
+                }
+              >
+                <Icon className={rowIconClassName(blockActive || Boolean(blockHl))} />
+                <span className={rowLabelClassName(blockActive || Boolean(blockHl))}>
+                  {blockHl ? <OnbHighlightDot /> : null}
+                  {block.label}
+                </span>
+              </Link>
+              {block.children?.length ? (
+                <button
+                  type="button"
+                  onClick={() => toggleBlock(block.label)}
+                  aria-expanded={expanded}
+                  aria-label={expanded ? `Recolher ${block.label}` : `Expandir ${block.label}`}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-md-surface-inset text-md-text-soft transition hover:text-md-text"
                 >
-                  {child.href.includes("#") ? (
-                    <a
-                      href={child.href}
-                      className={`flex items-center gap-1.5 ${childClassName(childActive)}`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        navigateToMonitorSection(child.href);
-                      }}
-                    >
-                      {child.label}
-                    </a>
-                  ) : (
-                  <Link
-                    href={child.href as Route}
-                    className={`flex items-center gap-1.5 ${childClassName(childActive)}${childHl ? " !text-[var(--curador-text)]" : ""}`}
-                    data-onboarding-anchor={
-                      child.href === "/monitoramento/temas"
-                        ? "temas-config"
-                        : child.href === "/avatares/foto-real/treinar"
-                          ? "avatar-config"
-                          : undefined
-                    }
-                  >
-                    {childHl ? <OnbHighlightDot /> : null}
-                    {child.variant === "settings" ? (
-                      <SettingsGearIcon
-                        className={`w-3.5 h-3.5 shrink-0 ${
-                          childActive || childHl ? "text-[var(--curador-text)]" : "text-md-text-soft"
-                        }`}
-                      />
-                    ) : null}
-                    {child.label}
-                  </Link>
-                  )}
-                </li>
-              );
-              })}
-            </ul>
+                  <ChevronDownIcon
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+                  />
+                </button>
+              ) : null}
+            </div>
+
+            <div
+              className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
+            >
+              <div className="overflow-hidden pl-1">
+                <ChildTimeline
+                  rows={(block.children ?? []).map((child) => {
+                    const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
+                    const childHl =
+                      (temasConfigHl && child.href === "/monitoramento/temas") ||
+                      (sidebarTarget === "avatar-config" &&
+                        child.href === "/avatares/foto-real/treinar");
+                    const isHashLink = child.href.includes("#");
+
+                    return {
+                      key: child.href + child.label,
+                      label: child.label,
+                      href: child.href,
+                      active: childActive,
+                      highlighted: childHl,
+                      isHashLink,
+                      onHashClick: isHashLink
+                        ? (event: React.MouseEvent) => {
+                            event.preventDefault();
+                            navigateToMonitorSection(child.href);
+                          }
+                        : undefined,
+                      onboardingAnchor:
+                        child.href === "/monitoramento/temas"
+                          ? "temas-config"
+                          : child.href === "/avatares/foto-real/treinar"
+                            ? "avatar-config"
+                            : undefined,
+                      icon: child.variant === "settings" ? SettingsGearIcon : undefined,
+                    };
+                  })}
+                />
+              </div>
+            </div>
           </div>
         );
         })}
 
-        <div className="space-y-1 pt-2">
-          {NAV_SINGLES.map((item) => {
-            const itemActive = isChildActive(pathname, item.href, activeHash, pendingMonitorHash);
-            const singleHl =
-              sidebarTarget === "criativo" &&
-              (item.href === "/criativo" || item.href.startsWith("/criativo"));
+        <div className="space-y-1.5">
+          {NAV_SINGLES.slice(0, 2).map((item) => renderSingle(item))}
+        </div>
 
-            return (
+        <div className="my-4 border-t-[3px] border-md-border-soft" aria-hidden="true" />
+
+        <div className="space-y-1.5">
+          {NAV_SINGLES.slice(2).map((item) => renderSingle(item))}
+        </div>
+
+        <div className="rounded-xl">
+          <div className={rowClassName(earlyAccessActive)}>
             <Link
-              key={item.href}
-              href={item.href as Route}
-              className={`${navParentClassName(itemActive || Boolean(singleHl))}${singleHl ? " !text-[var(--curador-text)]" : ""}`}
-              data-onboarding-anchor={item.href === "/criativo" ? "criativo" : undefined}
+              href="/acesso-antecipado/dados"
+              className="flex min-w-0 flex-1 items-center gap-3 no-underline"
             >
-              {singleHl ? <OnbHighlightDot /> : null}
-              {item.label}
+              <AcessoAntecipadoIcon className={rowIconClassName(earlyAccessActive)} />
+              <span className={rowLabelClassName(earlyAccessActive)}>{EARLY_ACCESS_LABEL}</span>
             </Link>
-          );
-          })}
-        </div>
+            <button
+              type="button"
+              onClick={() => toggleBlock(EARLY_ACCESS_LABEL)}
+              aria-expanded={earlyAccessExpanded}
+              aria-label={earlyAccessExpanded ? "Recolher Acesso antecipado" : "Expandir Acesso antecipado"}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-md-surface-inset text-md-text-soft transition hover:text-md-text"
+            >
+              <ChevronDownIcon
+                className={`h-3.5 w-3.5 transition-transform duration-200 ${earlyAccessExpanded ? "rotate-180" : ""}`}
+              />
+            </button>
+          </div>
 
-        <div>
-          <Link
-            href="/acesso-antecipado/dados"
-            className={navParentClassName(pathname.startsWith("/acesso-antecipado"))}
+          <div
+            className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+              earlyAccessExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            }`}
           >
-            Acesso antecipado
-          </Link>
-          <ul className="pl-4 mt-1 space-y-1 border-l-2 border-md-border ml-2">
-            {earlyAccessChildren.map((child) => {
-              const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
-
-              return (
-              <li key={child.href}>
-                <Link
-                  href={child.href as Route}
-                  className={`flex items-center gap-2 ${childClassName(childActive)}`}
-                >
-                  {child.label}
-                  {child.showActionDot ? (
-                    <span
-                      className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-pulse"
-                      title="Ação Requerida"
-                    />
-                  ) : null}
-                </Link>
-              </li>
-            );
-            })}
-          </ul>
+            <div className="overflow-hidden pl-1">
+              <ChildTimeline
+                rows={earlyAccessChildren.map((child) => ({
+                  key: child.href,
+                  label: child.label,
+                  href: child.href,
+                  active: isChildActive(pathname, child.href, activeHash, pendingMonitorHash),
+                  actionDot: child.showActionDot,
+                }))}
+              />
+            </div>
+          </div>
         </div>
+
+        {mounted && !pathname.startsWith("/acesso-antecipado") ? (
+          <button
+            type="button"
+            onClick={() => restartOnboarding()}
+            className={`w-full ${rowClassName(false)}`}
+          >
+            <GuiaIcon className={rowIconClassName(false)} />
+            <span className={rowLabelClassName(false)}>Passo-a-passo guiado</span>
+          </button>
+        ) : null}
+
+        <button type="button" onClick={onOpenSupport} className={`w-full ${rowClassName(false)}`}>
+          <SuporteIcon className={rowIconClassName(false)} />
+          <span className={rowLabelClassName(false)}>Suporte</span>
+        </button>
       </nav>
 
-      <div className="px-4 pb-3 border-t border-md-border-soft pt-3 space-y-3">
+      <div className="px-4 pb-3 border-t border-md-border-soft pt-3">
         <AppearanceToggle />
-        <Link
-          href={"/" as Route}
-          className="block text-[11px] font-medium text-md-text-soft hover:text-md-text transition-colors no-underline"
-        >
-          Site institucional
-        </Link>
       </div>
 
       {sessionEmail ? (
         <div className="p-4 border-t border-md-border-soft space-y-2">
-          {mounted && !pathname.startsWith("/acesso-antecipado") ? (
-            <button
-              type="button"
-              onClick={() => restartOnboarding()}
-              className="w-full text-left text-[11px] font-medium text-[var(--curador-text)] hover:opacity-80 border border-md-border hover:border-[var(--curador-border)] rounded-lg px-2.5 py-2 transition-colors"
-            >
-              Começar onboarding do zero
-            </button>
-          ) : null}
           <div className="flex items-center justify-between gap-2">
             {canToggleAccountMode ? (
               <button

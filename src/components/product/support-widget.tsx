@@ -35,23 +35,6 @@ function CloseIcon() {
   );
 }
 
-function ChatIcon() {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-    </svg>
-  );
-}
-
 function statusHeader(status: SupportThreadStatus | null | undefined): {
   label: string;
   className: string;
@@ -104,10 +87,7 @@ function TypingDots() {
 const WELCOME_BODY =
   "Olá! Como podemos ajudar com o Mandato Digital? Pode perguntar sobre monitoramento, avatares, criativos ou compliance.";
 
-const POSITION = "fixed bottom-5 left-5 z-[35]";
-
-export function SupportWidget() {
-  const [open, setOpen] = useState(false);
+export function SupportWidget({ onClose }: { onClose: () => void }) {
   const [thread, setThread] = useState<SupportThreadWithMessages | null>(null);
   const [optimistic, setOptimistic] = useState<LocalMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -153,16 +133,10 @@ export function SupportWidget() {
   }, [applyThread]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
     void loadThread();
-  }, [open, loadThread]);
+  }, [loadThread]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
     const status = thread?.status;
     const shouldPoll =
       status === "ai" ||
@@ -188,30 +162,25 @@ export function SupportWidget() {
       })();
     }, 4500);
     return () => window.clearInterval(id);
-  }, [open, thread, thread?.status, applyThread, sending]);
+  }, [thread, thread?.status, applyThread, sending]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false);
+        onClose();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [onClose]);
 
   useLayoutEffect(() => {
-    if (open) {
-      inputRef.current?.focus();
-    }
-  }, [open]);
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread?.messages.length, optimistic.length, sending, open]);
+  }, [thread?.messages.length, optimistic.length, sending]);
 
   function resizeTextarea(el: HTMLTextAreaElement | null) {
     if (!el) {
@@ -295,23 +264,9 @@ export function SupportWidget() {
   const header = statusHeader(thread?.status);
   const showWelcome = !loading && messages.length === 0 && !sending;
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`${POSITION} flex items-center gap-2 rounded-full border border-md-border-hover/60 bg-md-surface/95 px-4 py-2.5 text-[13px] font-semibold text-md-text shadow-[0_8px_28px_rgba(0,0,0,0.45)] transition hover:border-cyan-500/40 hover:bg-md-overlay-hover`}
-        aria-label="Abrir suporte"
-      >
-        <ChatIcon />
-        Suporte
-      </button>
-    );
-  }
-
   return (
     <div
-      className={`${POSITION} flex h-[min(520px,calc(100vh-6rem))] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(0,0,0,0.55)]`}
+      className="fixed bottom-6 right-6 z-40 flex h-[min(520px,calc(100vh-6rem))] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
       role="dialog"
       aria-label="Suporte Mandato Digital"
     >
@@ -332,7 +287,7 @@ export function SupportWidget() {
         </div>
         <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={onClose}
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-md-border bg-md-surface-inset text-md-text-soft transition hover:border-md-border-hover hover:text-md-text"
           aria-label="Fechar suporte"
         >

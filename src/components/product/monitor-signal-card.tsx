@@ -396,7 +396,7 @@ export function SignalEvidenceDrawer({
         className="absolute inset-0 bg-black/60"
         onClick={onClose}
       />
-      <aside className="relative w-full max-w-md h-full overflow-y-auto bg-md-bg border-l border-md-border p-6 shadow-2xl">
+      <aside className="relative w-full max-w-md h-full overflow-y-auto bg-md-app-bg border-l border-md-border p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <p className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1">

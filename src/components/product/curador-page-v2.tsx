@@ -87,7 +87,7 @@ export function CuradorPageV2() {
         </section>
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-md-border bg-md-bg/90 backdrop-blur-md z-20">
+      <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-md-border bg-md-app-bg/90 backdrop-blur-md z-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-md-text-soft">
             {saveMessage ? (
