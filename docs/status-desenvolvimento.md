@@ -42,7 +42,7 @@ Documentos relacionados:
 
 | Item | Status | Notas |
 |------|--------|-------|
-| Firebase App Hosting (deploy SSR + API) | ✅ | `npm run deploy:firebase` |
+| Firebase App Hosting (deploy SSR + API) | ✅ | Pipe GitHub → App Hosting (sem deploy manual) |
 | Firebase Auth (login) | ✅ | |
 | Firestore (perfil, criativos, Sentinela, Auditor, jobs) | ✅ | Admin SDK |
 | Firebase Storage (treino/vídeo/compliance) | ✅ | Signed URLs |
