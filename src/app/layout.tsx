@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
+import { ThemeProvider } from "@/components/theme-provider";
+import { APPEARANCE_BOOTSTRAP_SCRIPT } from "@/lib/appearance";
+
 import "./globals.css";
 import "./tailwind.css";
 
@@ -25,8 +28,13 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={plusJakartaSans.className}>{children}</body>
+    <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP_SCRIPT }} />
+      </head>
+      <body className={plusJakartaSans.className}>
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

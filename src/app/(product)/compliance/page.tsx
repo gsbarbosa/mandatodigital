@@ -26,11 +26,11 @@ function SectionHeading({
       <p className="text-emerald-400/90 text-[11px] font-bold tracking-widest uppercase mb-3">
         {eyebrow}
       </p>
-      <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight">
+      <h2 className="text-2xl md:text-3xl font-extrabold text-md-text tracking-tight leading-tight">
         {title}
       </h2>
       {lead ? (
-        <p className="mt-3 text-slate-400 text-sm md:text-base leading-relaxed">{lead}</p>
+        <p className="mt-3 text-md-text-soft text-sm md:text-base leading-relaxed">{lead}</p>
       ) : null}
     </div>
   );
@@ -48,7 +48,7 @@ function PillarCard({
   icon: ReactNode;
 }) {
   return (
-    <div className="bg-slate-900/40 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between hover:border-emerald-500/40 transition-all duration-300 shadow-lg hover:shadow-emerald-950/25 hover:shadow-xl">
+    <div className="bg-md-surface/40 backdrop-blur-md border border-md-border rounded-2xl p-6 flex flex-col justify-between hover:border-emerald-500/40 transition-all duration-300 shadow-lg hover:shadow-emerald-950/25 hover:shadow-xl">
       <div>
         <div className="flex items-start justify-between mb-6">
           <div className="bg-emerald-500/10 text-emerald-400 w-10 h-10 rounded-xl flex items-center justify-center border border-emerald-500/20">
@@ -60,8 +60,8 @@ function PillarCard({
             </span>
           ) : null}
         </div>
-        <h3 className="text-lg font-bold text-white mb-3">{title}</h3>
-        <p className="text-slate-400 text-sm leading-relaxed">{children}</p>
+        <h3 className="text-lg font-bold text-md-text mb-3">{title}</h3>
+        <p className="text-md-text-soft text-sm leading-relaxed">{children}</p>
       </div>
     </div>
   );
@@ -84,7 +84,7 @@ function ChecklistItem({
         </svg>
       </div>
       <div>
-        <h4 className="text-white font-semibold text-sm mb-1 group-hover:text-emerald-300 transition-colors">
+        <h4 className="text-md-text font-semibold text-sm mb-1 group-hover:text-emerald-300 transition-colors">
           {title}
           {comingSoon ? (
             <span className="ml-2 text-[9px] font-bold uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-full px-2 py-0.5 align-middle">
@@ -92,7 +92,7 @@ function ChecklistItem({
             </span>
           ) : null}
         </h4>
-        <p className="text-slate-400 text-sm leading-relaxed">{children}</p>
+        <p className="text-md-text-soft text-sm leading-relaxed">{children}</p>
       </div>
     </div>
   );
@@ -107,7 +107,7 @@ function ChecklistGroup({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-1">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-md-text-soft px-1">{label}</p>
       <div className="flex flex-col gap-3">{children}</div>
     </div>
   );
@@ -128,14 +128,14 @@ export default function ComplianceRoute() {
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-tight">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-md-text tracking-tight leading-tight">
             Tecnologia a favor da sua <br />
             <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
               Segurança Jurídica
             </span>
           </h1>
 
-          <p className="text-slate-400 text-base md:text-lg font-normal max-w-3xl mx-auto leading-relaxed">
+          <p className="text-md-text-soft text-base md:text-lg font-normal max-w-3xl mx-auto leading-relaxed">
             O Mandato Digital foi construído para blindar a sua campanha. Transformamos as complexas
             regras eleitorais em processos automáticos para que você foque apenas em conquistar
             votos, sem dores de cabeça com a Justiça Eleitoral.
@@ -255,7 +255,7 @@ export default function ComplianceRoute() {
         </section>
 
         <div className="w-full max-w-5xl mx-auto">
-          <div className="bg-gradient-to-b from-slate-800/40 to-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative overflow-hidden group/card">
+          <div className="bg-gradient-to-b from-slate-800/40 to-md-slate-900/40 backdrop-blur-xl border border-md-border/50 rounded-[2.5rem] p-8 md:p-12 shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative overflow-hidden group/card">
             <div className="absolute -top-32 -right-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none group-hover/card:bg-emerald-500/15 transition-colors duration-700" />
             <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-cyan-500/10 rounded-full blur-[90px] pointer-events-none" />
 
@@ -269,14 +269,14 @@ export default function ComplianceRoute() {
                     Escudo Corporativo
                   </div>
 
-                  <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-5 tracking-tight leading-tight">
+                  <h2 className="text-3xl md:text-4xl font-extrabold text-md-text mb-5 tracking-tight leading-tight">
                     Seu Escudo Jurídico: <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
                       Dossiê de Transparência
                     </span>
                   </h2>
 
-                  <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-8">
+                  <p className="text-md-text-muted text-sm md:text-base leading-relaxed mb-8">
                     Não deixe sua campanha vulnerável a detalhes técnicos. O dossiê consolida, para a
                     sua equipe jurídica e contábil, as provas de conformidade do conteúdo produzido
                     na plataforma.
@@ -326,8 +326,8 @@ export default function ComplianceRoute() {
                 </div>
               </div>
 
-              <div className="mt-12 pt-6 border-t border-slate-700/50">
-                <p className="text-slate-500 text-xs md:text-sm text-center font-medium">
+              <div className="mt-12 pt-6 border-t border-md-border/50">
+                <p className="text-md-text-soft text-xs md:text-sm text-center font-medium">
                   * Os itens marcados como “Em breve” entram em operação junto ao lançamento
                   comercial — esta página reflete somente o que o sistema já executa hoje.
                 </p>

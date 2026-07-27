@@ -79,30 +79,30 @@ export function PautaContextCard({ suggestion }: { suggestion: MockSentinelSugge
   const isNewsCard = Boolean(article);
 
   return (
-    <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-800 bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl shadow-xl mb-8">
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-md-border bg-gradient-to-b from-md-surface/50 to-md-slate-900/20 backdrop-blur-xl shadow-xl mb-8">
       <div
         className="h-1 w-full bg-gradient-to-r from-purple-500 via-cyan-500 to-amber-500"
         aria-hidden="true"
       />
       <div className="p-6 md:p-8">
         <div className="flex flex-col md:flex-row justify-between gap-6">
-          <div className="shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-700/50 pb-4 md:pb-0 md:pr-6 md:w-52">
-            <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
+          <div className="shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-md-border/50 pb-4 md:pb-0 md:pr-6 md:w-52">
+            <span className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1">
               Tema principal
             </span>
-            <p className="text-cyan-400 text-sm font-semibold mb-1">{suggestion.themeLabel}</p>
+            <p className="text-[var(--curador-text)] text-sm font-semibold mb-1">{suggestion.themeLabel}</p>
             {matchingTerm ? (
-              <p className="text-slate-300 text-xs leading-relaxed mb-3">{matchingTerm}</p>
+              <p className="text-md-text-muted text-xs leading-relaxed mb-3">{matchingTerm}</p>
             ) : (
               <div className="mb-3" />
             )}
             {dateLabel ? (
-              <div className="flex items-center gap-2 text-slate-500 text-xs">
+              <div className="flex items-center gap-2 text-md-text-soft text-xs">
                 <ClockIcon />
                 {dateLabel}
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-slate-500 text-xs">
+              <div className="flex items-center gap-2 text-md-text-soft text-xs">
                 <ClockIcon />
                 Pauta recente
               </div>
@@ -112,34 +112,34 @@ export function PautaContextCard({ suggestion }: { suggestion: MockSentinelSugge
           <div className="flex-1 min-w-0">
             {isNewsCard && article ? (
               <>
-                <h2 className="text-lg font-bold text-slate-100 mb-2 leading-snug">{article.title}</h2>
+                <h2 className="text-lg font-bold text-md-text mb-2 leading-snug">{article.title}</h2>
                 {suggestion.briefing?.trim() ? (
-                  <p className="text-sm text-cyan-100/90 mb-2 leading-relaxed">
+                  <p className="text-sm text-md-text-muted mb-2 leading-relaxed">
                     {suggestion.briefing.trim()}
                   </p>
                 ) : (
-                  <p className="text-sm text-slate-400 mb-2 line-clamp-3">{suggestion.topic}</p>
+                  <p className="text-sm text-md-text-soft mb-2 line-clamp-3">{suggestion.topic}</p>
                 )}
                 {suggestion.creativeAngle?.trim() ? (
-                  <p className="text-xs text-amber-200/80 mb-4">
+                  <p className="text-xs text-[var(--distribuidor-text)] mb-4">
                     Ângulo: {suggestion.creativeAngle.trim()}
                   </p>
                 ) : (
                   <div className="mb-4" />
                 )}
                 <div className="flex flex-wrap items-center gap-4 text-xs">
-                  <span className="text-slate-500">
+                  <span className="text-md-text-soft">
                     Fonte:{" "}
                     <a
                       href={article.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-cyan-400 no-underline hover:underline"
+                      className="text-[var(--curador-text)] no-underline hover:underline"
                     >
                       {articleOutletLabel(article)}
                     </a>
                   </span>
-                  <span className="inline-flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20">
+                  <span className="inline-flex items-center gap-1 text-[var(--sentinela-text)] bg-[var(--sentinela-soft)] px-2 py-0.5 rounded border border-[var(--sentinela-border)]">
                     <CheckBadgeIcon />
                     Ver fontes
                   </span>
@@ -147,11 +147,11 @@ export function PautaContextCard({ suggestion }: { suggestion: MockSentinelSugge
               </>
             ) : (
               <>
-                <h2 className="text-lg font-bold text-slate-100 mb-2 leading-snug">
+                <h2 className="text-lg font-bold text-md-text mb-2 leading-snug">
                   {suggestion.topic}
                 </h2>
                 {actor ? (
-                  <p className="text-sm text-slate-400 mb-4">
+                  <p className="text-sm text-md-text-soft mb-4">
                     @{actor.handle} · {actor.network}
                   </p>
                 ) : null}

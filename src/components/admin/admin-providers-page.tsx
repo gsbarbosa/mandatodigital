@@ -272,11 +272,11 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
       : PROVIDER_ENV_KEYS[providerId].join(" / ");
 
   return (
-    <article className="rounded-2xl border border-cyan-800/40 bg-slate-900/60 px-5 py-4">
+    <article className="rounded-2xl border border-cyan-800/40 bg-md-surface/60 px-5 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-white">{meta.name}</h3>
-          <p className="mt-1 text-sm text-slate-400">{meta.description}</p>
+          <h3 className="text-base font-semibold text-md-text">{meta.name}</h3>
+          <p className="mt-1 text-sm text-md-text-soft">{meta.description}</p>
         </div>
         <span
           className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
@@ -303,42 +303,42 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
       ) : null}
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-3 text-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">Conta / key</p>
+        <div className="rounded-xl border border-md-border bg-md-bg/50 px-3 py-3 text-sm">
+          <p className="text-xs uppercase tracking-wide text-md-text-soft">Conta / key</p>
           {account ? (
-            <ul className="mt-2 space-y-1 text-slate-300">
+            <ul className="mt-2 space-y-1 text-md-text-muted">
               {formatAccountEntries(account).map((row) => (
                 <li key={row.label}>
-                  <span className="text-slate-500">{row.label}:</span> {row.value}
+                  <span className="text-md-text-soft">{row.label}:</span> {row.value}
                 </li>
               ))}
               <li>
-                <span className="text-slate-500">Key:</span> {status?.tokenHint ?? "—"} (
+                <span className="text-md-text-soft">Key:</span> {status?.tokenHint ?? "—"} (
                 {status?.tokenSource ?? "none"})
               </li>
               {typeof status?.socialEnabled === "boolean" ? (
                 <li>
-                  <span className="text-slate-500">Social flag:</span>{" "}
+                  <span className="text-md-text-soft">Social flag:</span>{" "}
                   {status.socialEnabled ? "ligada" : "desligada"}
                 </li>
               ) : null}
             </ul>
           ) : (
-            <p className="mt-2 text-slate-500">{status?.error || "Carregando…"}</p>
+            <p className="mt-2 text-md-text-soft">{status?.error || "Carregando…"}</p>
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-950/50 px-3 py-3 text-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-500">
+        <div className="rounded-xl border border-md-border bg-md-bg/50 px-3 py-3 text-sm">
+          <p className="text-xs uppercase tracking-wide text-md-text-soft">
             {usage?.label || "Uso / cota"}
           </p>
           {usage ? (
-            <div className="mt-2 space-y-2 text-slate-300">
+            <div className="mt-2 space-y-2 text-md-text-muted">
               <p>
                 {formatUsageValue(usage.used, usage.unit)} / {formatUsageValue(usage.limit, usage.unit)}
-                <span className="ml-2 text-slate-500">({usage.percentUsed.toFixed(0)}%)</span>
+                <span className="ml-2 text-md-text-soft">({usage.percentUsed.toFixed(0)}%)</span>
               </p>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+              <div className="h-2 overflow-hidden rounded-full bg-md-slate-800">
                 <div
                   className={`h-full rounded-full ${
                     usage.exhausted
@@ -350,7 +350,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
                   style={{ width: `${Math.min(100, Math.max(usage.percentUsed, usage.exhausted ? 100 : 0))}%` }}
                 />
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-md-text-soft">
                 Restante {formatUsageValue(usage.remaining, usage.unit)}
                 {usage.cycleEnd
                   ? ` · ciclo até ${new Date(usage.cycleEnd).toLocaleDateString("pt-BR")}`
@@ -358,7 +358,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
               </p>
             </div>
           ) : (
-            <p className="mt-2 text-slate-500">
+            <p className="mt-2 text-md-text-soft">
               {status?.ok
                 ? "Sem métrica de cota nesta API (key validada)."
                 : "Sem dados de uso."}
@@ -367,14 +367,14 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
         </div>
       </div>
 
-      <div className="mt-4 border-t border-slate-800 pt-4">
+      <div className="mt-4 border-t border-md-border pt-4">
         {poolEnabled ? (
           <div className="mb-4 space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-md-text-soft">
               Pool de keys ({poolKeys.length}/{maxKeys})
             </p>
             {poolKeys.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-md-text-soft">
                 Nenhuma override — usando env se existir. Adicione keys abaixo para failover.
               </p>
             ) : (
@@ -385,12 +385,12 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
                   return (
                     <li
                       key={key.id}
-                      className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-950/40 px-3 py-2 text-sm text-slate-300"
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-md-border bg-md-bg/40 px-3 py-2 text-sm text-md-text-muted"
                     >
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-md-text">
                         #{index + 1} {key.label}
                       </span>
-                      <span className="text-slate-500">{key.hint}</span>
+                      <span className="text-md-text-soft">{key.hint}</span>
                       {!key.enabled ? (
                         <span className="rounded border border-rose-500/40 px-1.5 py-0.5 text-[10px] uppercase text-rose-300">
                           off
@@ -406,7 +406,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
                           type="button"
                           disabled={busy || index === 0}
                           onClick={() => void moveKey(key.id, -1)}
-                          className="rounded border border-slate-700 px-2 py-1 text-xs hover:bg-slate-800 disabled:opacity-40"
+                          className="rounded border border-md-border px-2 py-1 text-xs hover:bg-md-overlay-hover disabled:opacity-40"
                         >
                           ↑
                         </button>
@@ -414,7 +414,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
                           type="button"
                           disabled={busy || index === poolKeys.length - 1}
                           onClick={() => void moveKey(key.id, 1)}
-                          className="rounded border border-slate-700 px-2 py-1 text-xs hover:bg-slate-800 disabled:opacity-40"
+                          className="rounded border border-md-border px-2 py-1 text-xs hover:bg-md-overlay-hover disabled:opacity-40"
                         >
                           ↓
                         </button>
@@ -422,7 +422,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
                           type="button"
                           disabled={busy}
                           onClick={() => void toggleKey(key)}
-                          className="rounded border border-slate-700 px-2 py-1 text-xs hover:bg-slate-800 disabled:opacity-40"
+                          className="rounded border border-md-border px-2 py-1 text-xs hover:bg-md-overlay-hover disabled:opacity-40"
                         >
                           {key.enabled ? "Desativar" : "Ativar"}
                         </button>
@@ -443,7 +443,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
           </div>
         ) : null}
 
-        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <label className="block text-xs font-semibold uppercase tracking-wide text-md-text-soft">
           {poolEnabled ? "Adicionar API key ao pool" : "Nova API key"}
         </label>
         <div className="mt-2 flex flex-col gap-2 sm:flex-row">
@@ -452,7 +452,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
             value={apiKey}
             onChange={(event) => setApiKey(event.target.value)}
             placeholder={meta.placeholder}
-            className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-[#131C2D] px-3 py-2 text-sm text-slate-200 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+            className="min-w-0 flex-1 rounded-lg border border-md-border bg-md-slate-900 px-3 py-2 text-sm text-md-text outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
             autoComplete="off"
           />
           <button
@@ -471,7 +471,7 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
             type="button"
             disabled={busy || poolKeys.length === 0}
             onClick={() => void clearOverride()}
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg border border-md-border px-4 py-2 text-sm font-semibold text-md-text-muted hover:bg-md-overlay-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             {poolEnabled ? "Limpar pool" : "Usar env"}
           </button>
@@ -481,12 +481,12 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
             onClick={() =>
               void load().catch((err) => setError(err instanceof Error ? err.message : "Erro."))
             }
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800 disabled:opacity-40"
+            className="rounded-lg border border-md-border px-4 py-2 text-sm font-semibold text-md-text-muted hover:bg-md-overlay-hover disabled:opacity-40"
           >
             Atualizar
           </button>
         </div>
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-md-text-soft">
           {poolEnabled
             ? `Ordem = prioridade de failover. Env (${envKeys}) entra por último. Em cota, a key fica em cooldown ~15min.`
             : `Override do admin tem prioridade sobre ${envKeys}. O valor completo nunca é exibido de volta.`}
@@ -541,8 +541,8 @@ export function AdminProvidersPage() {
   return (
     <div>
       <header className="mb-8">
-        <h2 className="text-2xl font-bold text-white">Provedores</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-2xl font-bold text-md-text">Provedores</h2>
+        <p className="mt-1 text-sm text-md-text-soft">
           Serviços externos com API key — monitore status/cota e troque a key sem redeploy. Demais
           provedores aparecem abaixo só como leitura de env.
         </p>
@@ -562,13 +562,13 @@ export function AdminProvidersPage() {
         {others.map((provider) => (
           <article
             key={provider.id}
-            className="rounded-2xl border border-slate-800/80 bg-slate-900/40 px-5 py-4"
+            className="rounded-2xl border border-md-border bg-md-surface/40 px-5 py-4"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-base font-semibold text-white">{provider.name}</h3>
-                <p className="mt-1 text-sm text-slate-400">{provider.description}</p>
-                <p className="mt-2 text-xs text-slate-500">
+                <h3 className="text-base font-semibold text-md-text">{provider.name}</h3>
+                <p className="mt-1 text-sm text-md-text-soft">{provider.description}</p>
+                <p className="mt-2 text-xs text-md-text-soft">
                   Categoria: {provider.category}
                   {provider.envKeys.length > 0
                     ? ` · env: ${provider.envKeys.join(", ")}`

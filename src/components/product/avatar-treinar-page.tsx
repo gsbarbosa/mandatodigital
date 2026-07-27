@@ -100,10 +100,10 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
 
       <main className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-12">
         <header className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold text-md-text tracking-tight">
             Treinar {tipo.label === "3D" ? "Avatar 3D" : tipo.label}
           </h1>
-          <p className="text-sm text-slate-400 mt-2">
+          <p className="text-sm text-md-text-soft mt-2">
             Envie a foto e a voz que alimentam o treinamento do seu avatar.
             {tipo.caricatureVariant
               ? " A versão caricata/3D é gerada a partir da sua foto na tela de criação de conteúdo."
@@ -111,20 +111,20 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
           </p>
         </header>
 
-        <section className="bg-slate-900/40 border border-slate-700/80 rounded-[2rem] p-6 md:p-10 shadow-2xl backdrop-blur-xl">
-          <p className="text-sm text-slate-300 mb-6">
+        <section className="bg-md-surface/40 border border-md-border rounded-[2rem] p-6 md:p-10 shadow-2xl backdrop-blur-xl">
+          <p className="text-sm text-md-text-muted mb-6">
             Quanto melhor a qualidade da foto e do áudio, mais realistas os avatares.
           </p>
 
           {/* CONSENTIMENTO — exigido antes do upload */}
-          <div className="bg-[#0F1623] border border-cyan-900/50 rounded-xl p-5 mb-8">
-            <h4 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <div className="bg-md-surface border border-cyan-900/50 rounded-xl p-5 mb-8">
+            <h4 className="text-sm font-bold text-md-text mb-3 flex items-center gap-2">
               <svg className="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
               Termos de Treinamento de IA e Propaganda Eleitoral
             </h4>
-            <div className="text-[11px] text-slate-400 space-y-2 mb-4 pr-4">
+            <div className="text-[11px] text-md-text-soft space-y-2 mb-4 pr-4">
               <p>
                 Ao prosseguir, autorizo o Mandato Digital a tratar minha imagem e voz para a
                 finalidade exclusiva de treinamento de modelos de Inteligência Artificial e criação
@@ -142,9 +142,9 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                 type="checkbox"
                 checked={consentAccepted}
                 onChange={(event) => persistConsent(event.target.checked)}
-                className="accent-cyan-500 h-5 w-5 rounded border-slate-600 bg-slate-900 cursor-pointer"
+                className="accent-cyan-500 h-5 w-5 rounded border-md-border-hover bg-md-surface cursor-pointer"
               />
-              <span className="text-sm font-semibold text-white group-hover:text-cyan-300 transition-colors">
+              <span className="text-sm font-semibold text-md-text group-hover:text-[var(--curador-text)] transition-colors">
                 Li e aceito os termos da Política de Privacidade
               </span>
             </label>
@@ -160,7 +160,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
             <div
               id="foto"
               data-onboarding-anchor="avatar-foto"
-              className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
+              className="bg-md-surface/60 border border-md-border rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
@@ -169,34 +169,34 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold text-white">A Foto Perfeita</h4>
+                <h4 className="text-lg font-bold text-md-text">A Foto Perfeita</h4>
               </div>
-              <p className="text-xs text-slate-400 mb-4">
+              <p className="text-xs text-md-text-soft mb-4">
                 Para movimentos naturais e ultra-realistas, siga estas regras rígidas:
               </p>
 
-              <ul className="space-y-3 text-xs text-slate-400 flex-grow mb-6 list-none pl-0 ml-0">
-                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Iluminação é tudo: Luz uniforme no rosto, de frente para a luz. Sem sombras.</span></li>
-                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Expressão neutra ou sorriso leve: Lábios fechados. Sem mostrar dentes para não distorcer a fala.</span></li>
-                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Olhe para a lente: O avatar precisa fazer contato visual direto.</span></li>
-                <li className="flex items-start gap-2"><span className="text-emerald-400">✓</span> <span>Enquadramento: Estilo 3x4 (peito para cima). Não corte topo da cabeça ou laterais.</span></li>
+              <ul className="space-y-3 text-xs text-md-text-soft flex-grow mb-6 list-none pl-0 ml-0">
+                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Iluminação é tudo: Luz uniforme no rosto, de frente para a luz. Sem sombras.</span></li>
+                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Expressão neutra ou sorriso leve: Lábios fechados. Sem mostrar dentes para não distorcer a fala.</span></li>
+                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Olhe para a lente: O avatar precisa fazer contato visual direto.</span></li>
+                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Enquadramento: Estilo 3x4 (peito para cima). Não corte topo da cabeça ou laterais.</span></li>
               </ul>
 
               <div className="mt-auto">
                 <label
-                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-slate-800/30 transition-colors group ${
+                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
                     consentAccepted
-                      ? "border-slate-600 hover:border-cyan-500 cursor-pointer"
-                      : "border-slate-700 opacity-50 cursor-not-allowed"
+                      ? "border-md-border-hover hover:border-cyan-500 cursor-pointer"
+                      : "border-md-border opacity-50 cursor-not-allowed"
                   }`}
                 >
-                  <svg className="h-8 w-8 text-slate-500 group-hover:text-cyan-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-8 w-8 text-md-text-soft group-hover:text-[var(--curador-text)] mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-300 group-hover:text-white">
+                  <span className="text-sm font-medium text-md-text-muted group-hover:text-md-text">
                     {isUploadingAvatarImageAsset ? "Enviando imagem..." : "Fazer Upload de Imagem"}
                   </span>
-                  <span className="text-[10px] text-slate-500 mt-1">JPG, PNG (Max. 10MB)</span>
+                  <span className="text-[10px] text-md-text-soft mt-1">JPG, PNG (Max. 10MB)</span>
                   <input
                     ref={photoInputRef}
                     type="file"
@@ -219,7 +219,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                   />
                 </label>
                 {photoName ? (
-                  <p className="text-[11px] text-emerald-400 mt-2">Foto atual: {photoName}</p>
+                  <p className="text-[11px] text-[var(--sentinela-text)] mt-2">Foto atual: {photoName}</p>
                 ) : null}
               </div>
             </div>
@@ -228,7 +228,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
             <div
               id="audio"
               data-onboarding-anchor="avatar-audio"
-              className="bg-slate-900/60 border border-slate-700 rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
+              className="bg-md-surface/60 border border-md-border rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
@@ -236,44 +236,44 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </div>
-                <h4 className="text-lg font-bold text-white">A Voz Perfeita</h4>
+                <h4 className="text-lg font-bold text-md-text">A Voz Perfeita</h4>
               </div>
-              <p className="text-xs text-slate-400 mb-3">
+              <p className="text-xs text-md-text-soft mb-3">
                 Para uma voz idêntica à do Candidato, o áudio precisa ter:
               </p>
 
-              <div className="grid grid-cols-2 gap-2 text-xs text-slate-400 mb-4">
-                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Ritmo Natural</div>
-                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Respire Normalmente</div>
-                <div className="flex items-center gap-1"><span className="text-emerald-400">✓</span> Entre 30 seg e 2 min</div>
+              <div className="grid grid-cols-2 gap-2 text-xs text-md-text-soft mb-4">
+                <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Ritmo Natural</div>
+                <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Respire Normalmente</div>
+                <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Entre 30 seg e 2 min</div>
                 <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Gaguejar</div>
                 <div className="flex items-center gap-1 col-span-2"><span className="text-red-400">✕</span> Sem Ruído de Fundo</div>
               </div>
 
-              <p className="text-xs text-slate-400 mb-3">
+              <p className="text-xs text-md-text-soft mb-3">
                 Caso não tenha um áudio com as condições acima, grave o roteiro abaixo a cerca de
                 15-20cm do microfone, levemente inclinado para o lado.
               </p>
 
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 mb-4 overflow-y-auto max-h-40 flex-grow relative">
-                <p className="text-sm text-slate-300 italic">{VOICE_SCRIPT}</p>
+              <div className="bg-md-bg p-4 rounded-xl border border-md-border mb-4 overflow-y-auto max-h-40 flex-grow relative">
+                <p className="text-sm text-md-text-muted italic">{VOICE_SCRIPT}</p>
               </div>
 
               <div className="mt-auto">
                 <label
-                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-slate-800/30 transition-colors group ${
+                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
                     consentAccepted
-                      ? "border-slate-600 hover:border-purple-500 cursor-pointer"
-                      : "border-slate-700 opacity-50 cursor-not-allowed"
+                      ? "border-md-border-hover hover:border-purple-500 cursor-pointer"
+                      : "border-md-border opacity-50 cursor-not-allowed"
                   }`}
                 >
-                  <svg className="h-8 w-8 text-slate-500 group-hover:text-purple-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-8 w-8 text-md-text-soft group-hover:text-purple-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-300 group-hover:text-white">
+                  <span className="text-sm font-medium text-md-text-muted group-hover:text-md-text">
                     {isUploadingVoiceAudioAsset ? "Enviando áudio..." : "Fazer Upload de Áudio"}
                   </span>
-                  <span className="text-[10px] text-slate-500 mt-1">MP3, WAV (Até 2 minutos)</span>
+                  <span className="text-[10px] text-md-text-soft mt-1">MP3, WAV (Até 2 minutos)</span>
                   <input
                     ref={audioInputRef}
                     type="file"
@@ -287,7 +287,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                   />
                 </label>
                 {audioName ? (
-                  <p className="text-[11px] text-emerald-400 mt-2">Áudio atual: {audioName}</p>
+                  <p className="text-[11px] text-[var(--sentinela-text)] mt-2">Áudio atual: {audioName}</p>
                 ) : null}
               </div>
             </div>
@@ -296,7 +296,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
           {uploadMessage ? (
             <p
               className={`text-sm mb-6 ${
-                uploadMessage.startsWith("Aceite") ? "text-amber-300/90" : "text-emerald-400"
+                uploadMessage.startsWith("Aceite") ? "text-amber-300/90" : "text-[var(--sentinela-text)]"
               }`}
               role="status"
             >
@@ -311,8 +311,8 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
               onClick={() => router.push(hubHref)}
               className={
                 consentAccepted
-                  ? "w-full block text-center bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold py-4 px-4 rounded-xl btn-transition shadow-[0_4px_20px_rgba(168,85,247,0.25)] hover:shadow-[0_6px_25px_rgba(168,85,247,0.35)] focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg"
-                  : "w-full block text-center bg-slate-700 text-slate-400 font-bold py-4 px-4 rounded-xl transition-all cursor-not-allowed"
+                  ? "w-full block text-center bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-md-text font-bold py-4 px-4 rounded-xl btn-transition shadow-[0_4px_20px_rgba(168,85,247,0.25)] hover:shadow-[0_6px_25px_rgba(168,85,247,0.35)] focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg"
+                  : "w-full block text-center bg-slate-700 text-md-text-soft font-bold py-4 px-4 rounded-xl transition-all cursor-not-allowed"
               }
             >
               Concluir envio e voltar ao avatar

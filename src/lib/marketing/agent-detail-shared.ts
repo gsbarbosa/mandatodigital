@@ -11,6 +11,7 @@ export const AGENT_DETAIL_CLOSING = {
   title: MARKETING_CLOSING.title,
   titleAccent: "adversário trave",
   body: MARKETING_CLOSING.body,
+  bodyBreakBefore: "as vagas são",
   bodyAccent: "limitadas por ordem de chegada e UF",
   ctaLabel: MARKETING_CTA_LABEL,
   ctaHref: MARKETING_CTA_HREF,

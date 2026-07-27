@@ -1,6 +1,7 @@
 import Image from "next/image";
+import type { ComponentType, SVGProps } from "react";
 
-import { IconCheck } from "@/components/marketing/icons";
+import { IconCheck, IconScale, IconUserCog, IconVolume } from "@/components/marketing/icons";
 import {
   AgentDetailBackLink,
   AgentDetailClosing,
@@ -10,9 +11,17 @@ import {
 import { curadorDetail } from "@/lib/marketing/curador-detail-content";
 import { AGENT_ACCENT_CLASS } from "@/lib/marketing/shared";
 
+type IconProps = SVGProps<SVGSVGElement> & { size?: number };
+
+const CONTROL_ICONS: Record<"scale" | "volume" | "userCog", ComponentType<IconProps>> = {
+  scale: IconScale,
+  volume: IconVolume,
+  userCog: IconUserCog,
+};
+
 export function MarketingCuradorPage() {
   const accent = AGENT_ACCENT_CLASS.curador;
-  const { persona } = curadorDetail;
+  const { controls } = curadorDetail;
 
   return (
     <>
@@ -30,7 +39,7 @@ export function MarketingCuradorPage() {
             </span>
           </div>
 
-          <h1 className="mt-5 max-w-4xl text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+          <h1 className="mt-5 max-w-4xl text-2xl font-bold tracking-tight text-md-text sm:text-3xl lg:text-4xl">
             {curadorDetail.titleLead}{" "}
             <span className={`whitespace-nowrap ${accent.text}`}>{curadorDetail.titleAccent}</span>
           </h1>
@@ -50,20 +59,20 @@ export function MarketingCuradorPage() {
                 sizes="(max-width: 1024px) 100vw, 420px"
                 priority
               />
-              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/50 via-transparent to-transparent" />
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-md-bg/50 via-transparent to-transparent" />
             </div>
 
             <div>
-              <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
+              <p className="text-sm leading-relaxed text-md-text-muted sm:text-base">
                 {curadorDetail.identityBody}
               </p>
-              <div className="mt-6 rounded-2xl border border-slate-800/80 bg-slate-900/50 p-5 sm:p-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+              <div className="mt-6 rounded-2xl border border-md-border bg-md-surface/50 p-5 sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-md-text-soft">
                   {curadorDetail.personality.title}
                 </p>
                 <ul className="mt-4 space-y-3">
                   {curadorDetail.personality.items.map((item) => (
-                    <li key={item} className="flex gap-3 text-sm text-slate-300">
+                    <li key={item} className="flex gap-3 text-sm text-md-text-muted">
                       <IconCheck size={16} className={`mt-0.5 shrink-0 ${accent.text}`} />
                       <span>{item}</span>
                     </li>
@@ -88,58 +97,31 @@ export function MarketingCuradorPage() {
       </AgentDetailSection>
 
       <AgentDetailSection
-        title={persona.title}
-        titleAccent={persona.titleAccent}
+        title={controls.title}
+        titleAccent={controls.titleAccent}
+        lead={controls.lead}
         accent="curador"
       >
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-slate-800/80 bg-slate-900/50 p-6">
-            <p className="text-sm font-semibold text-white">Perfil e Vocabulário</p>
-            <div className="mt-6 flex flex-col items-center">
+        <div className="grid gap-5 md:grid-cols-3">
+          {controls.items.map((item) => {
+            const Icon = CONTROL_ICONS[item.icon];
+            return (
               <div
-                className={`flex h-36 w-36 items-center justify-center rounded-full border-4 ${accent.border} ${accent.soft}`}
+                key={item.title}
+                className="rounded-3xl border border-md-border bg-md-surface/50 p-6"
               >
-                <div className="text-center">
-                  <p className={`text-3xl font-bold ${accent.text}`}>{persona.coherence}</p>
-                  <p className="mt-1 max-w-[7rem] text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    {persona.coherenceLabel}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-              {persona.vocabularyTitle}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {persona.vocabulary.map((term) => (
-                <span
-                  key={term}
-                  className="rounded-lg border border-slate-700 bg-slate-950/70 px-3 py-1.5 text-xs font-medium text-slate-300"
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl border ${accent.border} ${accent.soft}`}
                 >
-                  {term}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-800/80 bg-slate-900/50 p-6">
-            <p className="text-sm font-semibold text-white">{persona.toneTitle}</p>
-            <div className="mt-5 space-y-4">
-              <div className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-rose-400">
-                  {persona.genericLabel}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{persona.genericQuote}</p>
+                  <Icon size={20} className={accent.text} />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-md-text">{item.title}</p>
+                <p className="mt-2 text-sm leading-relaxed text-md-text-soft">{item.body}</p>
               </div>
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-                  {persona.curatedLabel}
-                </p>
-                <p className="mt-2 text-sm leading-relaxed text-slate-300">{persona.curatedQuote}</p>
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
+        <p className="mt-6 text-sm text-md-text-soft">{controls.footnote}</p>
       </AgentDetailSection>
 
       <AgentDetailClosing />

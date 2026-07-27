@@ -67,8 +67,8 @@ function SemanticExpansionNote() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="mt-6 pt-6 border-t border-slate-800">
-      <p className="text-sm text-cyan-200/60 italic">
+    <div className="mt-6 pt-6 border-t border-md-border">
+      <p className="text-sm text-md-text-soft italic">
         Todos os temas passam por expansão semântica, garantindo por ex. que assuntos relacionados a
         &quot;ambulância&quot;, sejam contemplados em &quot;Saúde Pública&quot;.{" "}
         <button type="button" onClick={() => setOpen((current) => !current)} className={TEXT_LINK_BUTTON_CLASS}>
@@ -76,12 +76,12 @@ function SemanticExpansionNote() {
         </button>
       </p>
       {open ? (
-        <div className="mt-3 text-xs text-slate-500">
+        <div className="mt-3 text-xs text-md-text-soft">
           <p className="mb-1">Exemplos de expansão semântica na prática:</p>
           <ul className="space-y-1">
             {STATIC_EXPANSION_EXAMPLES.map((example) => (
               <li key={example.theme}>
-                <strong className="text-slate-400">{example.theme}:</strong> {example.terms}
+                <strong className="text-md-text-soft">{example.theme}:</strong> {example.terms}
               </li>
             ))}
           </ul>
@@ -92,10 +92,10 @@ function SemanticExpansionNote() {
 }
 
 const REMOVE_ROW_BUTTON_CLASS =
-  "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700/60 bg-transparent text-slate-500 hover:border-slate-600 hover:bg-slate-800/50 hover:text-slate-200 transition-colors shrink-0";
+  "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-md-border/60 bg-transparent text-md-text-soft hover:border-slate-600 hover:bg-slate-800/50 hover:text-slate-200 transition-colors shrink-0";
 
 const TEXT_LINK_BUTTON_CLASS =
-  "inline bg-transparent p-0 text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2";
+  "inline bg-transparent p-0 text-xs text-[var(--curador-text)] hover:text-[var(--curador-text)] underline underline-offset-2";
 
 function formatSelectionCount(count: number, limit: number | null) {
   if (limit === null) {
@@ -112,7 +112,7 @@ function InfoList({ items, dotClassName }: { items: readonly string[]; dotClassN
   return (
     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
       {items.map((item) => (
-        <li key={item} className="flex items-center gap-2 text-sm text-slate-300">
+        <li key={item} className="flex items-center gap-2 text-sm text-md-text-muted">
           <span aria-hidden="true" className={`h-1 w-1 rounded-full shrink-0 ${dotClassName}`} />
           {item}
         </li>
@@ -136,16 +136,16 @@ function SourcesDisclosure({
   children: React.ReactNode;
 }) {
   return (
-    <details className="group rounded-xl border border-slate-800 bg-slate-900/30">
+    <details className="group rounded-xl border border-md-border bg-md-surface/30">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 [&::-webkit-details-marker]:hidden">
-        <span className="text-lg font-bold text-white">
+        <span className="text-lg font-bold text-md-text">
           Fontes <span className={accentClassName}>{title}</span>
         </span>
         <svg
           aria-hidden="true"
           viewBox="0 0 20 20"
           fill="none"
-          className="h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:rotate-180"
+          className="h-4 w-4 shrink-0 text-md-text-soft transition-transform group-open:rotate-180"
         >
           <path
             d="M5 7.5L10 12.5L15 7.5"
@@ -178,7 +178,7 @@ function InterestThemeSections({
     <div className="space-y-8" data-testid="temas-interest">
       {groups.map((group) => (
         <div key={group.title}>
-          <h3 className="text-sm font-semibold text-white mb-3 uppercase tracking-wider">
+          <h3 className="text-sm font-semibold text-md-text mb-3 uppercase tracking-wider">
             {group.title}
           </h3>
           <div className="flex flex-wrap gap-1">
@@ -225,7 +225,7 @@ function SocialHandleRows({
       : "focus:ring-red-500 focus:border-red-500";
   const addClasses =
     accent === "emerald"
-      ? "border-emerald-500/30 bg-emerald-950/10 text-emerald-400 hover:bg-emerald-900/30"
+      ? "border-[var(--sentinela-border)] bg-[var(--sentinela-soft)] text-[var(--sentinela-text)] hover:bg-[var(--sentinela-soft)]"
       : "border-red-500/30 bg-red-950/10 text-red-400 hover:bg-red-900/30";
 
   function updateRow(index: number, patch: Partial<SocialHandle>) {
@@ -243,7 +243,7 @@ function SocialHandleRows({
             <select
               value={row.network}
               onChange={(event) => updateRow(index, { network: event.target.value })}
-              className={`bg-[#131C2D] border border-slate-700 text-slate-300 text-xs rounded-lg w-full min-w-0 px-2 py-2.5 outline-none ${focusRing}`}
+              className={`bg-md-slate-900 border border-md-border text-md-text-muted text-xs rounded-lg w-full min-w-0 px-2 py-2.5 outline-none ${focusRing}`}
             >
               {SOCIAL_NETWORKS.map((network) => (
                 <option key={network} value={network}>
@@ -256,7 +256,7 @@ function SocialHandleRows({
               value={row.handle}
               placeholder="@perfil"
               onChange={(event) => updateRow(index, { handle: event.target.value })}
-              className={`bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none ${focusRing}`}
+              className={`bg-md-slate-900 border border-md-border text-md-text-muted text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none ${focusRing}`}
             />
             <button
               type="button"
@@ -402,10 +402,10 @@ export function RedefinirTemasPage() {
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
         <header className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-4">
-            Monitoramento de Pautas <span className="text-cyan-400">&quot;da sua bandeira&quot;</span>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-md-text tracking-tight mb-4">
+            Monitoramento de Pautas <span className="text-[var(--curador-text)]">&quot;da sua bandeira&quot;</span>
           </h1>
-          <p className="text-slate-400 text-sm md:text-base font-normal max-w-2xl mx-auto mb-6">
+          <p className="text-md-text-soft text-sm md:text-base font-normal max-w-2xl mx-auto mb-6">
             Monitore todos os assuntos de interesse da sua campanha em um só lugar, incluindo
             adversários e temas de interesse. Vamos começar.
           </p>
@@ -414,14 +414,14 @@ export function RedefinirTemasPage() {
         <section
           id="territorio"
           data-onboarding-anchor="temas-territorio"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
         >
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:divide-x md:divide-slate-800">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:divide-x md:divide-md-border">
             <div className="md:pr-8">
-              <h2 className="text-2xl font-bold text-white">
-                Selecione seu <span className="text-cyan-400">Estado</span>
+              <h2 className="text-2xl font-bold text-md-text">
+                Selecione seu <span className="text-[var(--curador-text)]">Estado</span>
               </h2>
-              <p className="mt-2 mb-6 text-sm text-slate-400">
+              <p className="mt-2 mb-6 text-sm text-md-text-soft">
                 Selecione o Estado onde faremos o monitoramento das notícias para sua campanha
                 (interesse Estadual).
               </p>
@@ -429,10 +429,10 @@ export function RedefinirTemasPage() {
             </div>
 
             <div className="md:pl-8">
-              <h2 className="text-2xl font-bold text-white">
-                Selecione seu <span className="text-emerald-400">Município</span>
+              <h2 className="text-2xl font-bold text-md-text">
+                Selecione seu <span className="text-[var(--sentinela-text)]">Município</span>
               </h2>
-              <p className="mt-2 mb-6 text-sm text-slate-400">
+              <p className="mt-2 mb-6 text-sm text-md-text-soft">
                 Agora selecione até {municipalCitiesLimit} municípios (capital e/ou interior) onde
                 faremos o monitoramento das notícias, preferencialmente, mais próximo da sua base
                 eleitoral.
@@ -452,21 +452,21 @@ export function RedefinirTemasPage() {
         <section
           id="temas"
           data-onboarding-anchor="temas-federal"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
         >
-          <div className="border-b border-slate-800 pb-4 mb-8">
+          <div className="border-b border-md-border pb-4 mb-8">
             <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-2xl font-bold text-white">
-                Temas de <span className="text-cyan-400">interesse</span>
+              <h2 className="text-2xl font-bold text-md-text">
+                Temas de <span className="text-[var(--curador-text)]">interesse</span>
               </h2>
               <span
                 data-testid="temas-selection-count"
-                className="inline-flex items-baseline gap-1 rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-lg font-bold tabular-nums text-cyan-300 shadow-[0_0_18px_rgba(6,182,212,0.15)]"
+                className="inline-flex items-baseline gap-1 rounded-xl border border-[var(--curador-border)] bg-[var(--curador-soft)] px-3 py-1 text-lg font-bold tabular-nums text-[var(--curador-text)] shadow-[0_0_18px_rgba(6,182,212,0.15)]"
               >
                 {formatSelectionCount(selectedThemes.length, selectionLimit)}
               </span>
             </div>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-md-text-soft">
               Selecione os temas do seu interesse. O monitoramento se concentrará nas notícias
               desses temas em todas as esferas — nacional, estadual e municipal.
             </p>
@@ -485,17 +485,17 @@ export function RedefinirTemasPage() {
         <section
           id="monitoramento-esferas"
           data-onboarding-anchor="temas-monitoramento-esferas"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
         >
-          <h2 className="text-2xl font-bold text-white mb-1">Detalhes do monitoramento</h2>
-          <p className="text-slate-400 text-sm mb-8 border-b border-slate-800 pb-4">
+          <h2 className="text-2xl font-bold text-md-text mb-1">Detalhes do monitoramento</h2>
+          <p className="text-md-text-soft text-sm mb-8 border-b border-md-border pb-4">
             Conheça as fontes das nossas buscas no nível Nacional, Estadual e incremente as fontes
             do nível Municipal.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            <SourcesDisclosure title="Nacionais" accentClassName="text-cyan-400">
-              <p className="text-sm text-slate-400 mb-4">
+            <SourcesDisclosure title="Nacionais" accentClassName="text-[var(--curador-text)]">
+              <p className="text-sm text-md-text-soft mb-4">
                 Para a esfera nacional, monitoramos os portais:
               </p>
               <InfoList
@@ -505,7 +505,7 @@ export function RedefinirTemasPage() {
             </SourcesDisclosure>
 
             <SourcesDisclosure title="Estaduais" accentClassName="text-purple-400">
-              <p className="text-sm text-slate-400 mb-4">
+              <p className="text-sm text-md-text-soft mb-4">
                 Para a esfera estadual, monitoramos os principais veículos locais do seu estado,
                 além de agregadores de notícias:
               </p>
@@ -518,7 +518,7 @@ export function RedefinirTemasPage() {
                   dotClassName="bg-purple-400"
                 />
               ) : (
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-md-text-soft">
                   Selecione o Estado no primeiro card desta página para ver os portais estaduais
                   monitorados.
                 </p>
@@ -529,23 +529,23 @@ export function RedefinirTemasPage() {
           <div
             id="municipal"
             data-onboarding-anchor="temas-municipal"
-            className="rounded-2xl border border-emerald-900/40 bg-slate-900/40 p-6"
+            className="rounded-2xl border border-emerald-900/40 bg-md-surface/40 p-6"
           >
-            <h3 className="text-lg font-bold text-white mb-2">
-              Nível <span className="text-emerald-400">Municipal</span>
+            <h3 className="text-lg font-bold text-md-text mb-2">
+              Nível <span className="text-[var(--sentinela-text)]">Municipal</span>
             </h3>
-            <p className="text-sm text-slate-400 mb-4">
+            <p className="text-sm text-md-text-soft mb-4">
               Para a esfera municipal, monitoramos os agregadores de notícias:
             </p>
             <InfoList items={SEARCH_ENGINE_SOURCE_ITEMS} dotClassName="bg-emerald-400" />
-            <p className="text-sm text-slate-400 mt-4 mb-8">
+            <p className="text-sm text-md-text-soft mt-4 mb-8">
               Inclua portais regionais do seu interesse para monitorarmos. Isso aumenta a chance de
               encontrarmos notícias dos temas selecionados, dentro do seu(s) município(s).
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h4 className="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">
+                <h4 className="text-xs font-bold text-md-text-soft tracking-widest uppercase mb-4">
                   Portais regionais
                 </h4>
                 <div className="space-y-3 mb-4">
@@ -563,7 +563,7 @@ export function RedefinirTemasPage() {
                             ),
                           }))
                         }
-                        className="bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none focus:ring-emerald-500 focus:border-emerald-500"
+                        className="bg-md-slate-900 border border-md-border text-md-text-muted text-sm rounded-lg w-full min-w-0 px-3 py-2.5 outline-none focus:ring-emerald-500 focus:border-emerald-500"
                       />
                       <button
                         type="button"
@@ -590,20 +590,20 @@ export function RedefinirTemasPage() {
                       interestSites: [...current.interestSites, ""],
                     }))
                   }
-                  className="w-full py-2.5 rounded-xl border border-emerald-500/30 border-dashed bg-emerald-950/10 text-emerald-400 text-sm font-semibold hover:bg-emerald-900/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 rounded-xl border border-[var(--sentinela-border)] border-dashed bg-[var(--sentinela-soft)] text-[var(--sentinela-text)] text-sm font-semibold hover:bg-[var(--sentinela-soft)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {municipalAddPortalLabel}
                 </button>
               </div>
 
               <div>
-                <h4 className="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">
+                <h4 className="text-xs font-bold text-md-text-soft tracking-widest uppercase mb-4">
                   Cidades monitoradas
                 </h4>
                 {selectedCities.length > 0 ? (
                   <InfoList items={selectedCities} dotClassName="bg-emerald-400" />
                 ) : (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-md-text-soft">
                     Nenhuma cidade escolhida ainda. Selecione o Estado e os municípios no primeiro
                     card desta página.
                   </p>
@@ -616,12 +616,12 @@ export function RedefinirTemasPage() {
         <section
           id="interesse"
           data-onboarding-anchor="temas-interesse"
-          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
+          className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
         >
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-2xl font-bold text-md-text mb-2">
             Perfis de <span className="text-violet-400">rede sociais</span>
           </h2>
-          <p className="text-slate-400 text-sm mb-8 border-b border-slate-800 pb-4">
+          <p className="text-md-text-soft text-sm mb-8 border-b border-md-border pb-4">
             Monitore perfis de interesse. O monitoramento mostra os últimos posts ordenados por
             engajamento social.
           </p>
@@ -640,14 +640,14 @@ export function RedefinirTemasPage() {
         <section
           id="adversarios"
           data-onboarding-anchor="temas-adversarios"
-          className="bg-slate-900/40 backdrop-blur-xl border border-red-900/30 rounded-[1.75rem] p-6 md:p-8 shadow-[0_0_20px_rgba(153,27,27,0.1)] scroll-mt-24"
+          className="bg-md-surface/40 backdrop-blur-xl border border-red-900/30 rounded-[1.75rem] p-6 md:p-8 shadow-[0_0_20px_rgba(153,27,27,0.1)] scroll-mt-24"
         >
-          <h2 className="text-2xl font-bold text-white mb-2">Adversários Políticos</h2>
-          <p className="text-slate-400 text-sm mb-6 border-b border-slate-800 pb-4">
+          <h2 className="text-2xl font-bold text-md-text mb-2">Adversários Políticos</h2>
+          <p className="text-md-text-soft text-sm mb-6 border-b border-md-border pb-4">
             Acompanhe os últimos posts deles no monitoramento, ordenados por engajamento
           </p>
 
-          <h3 className="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">
+          <h3 className="text-xs font-bold text-md-text-soft tracking-widest uppercase mb-4">
             Perfis (@)
           </h3>
           <SocialHandleRows
@@ -662,13 +662,13 @@ export function RedefinirTemasPage() {
         </section>
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-slate-800 bg-[#0B0F19]/90 backdrop-blur-md z-20">
+      <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-md-border bg-[#0B0F19]/90 backdrop-blur-md z-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-md-text-soft">
             {limitMessage ? (
               <span className="text-amber-400">{limitMessage}</span>
             ) : saveMessage ? (
-              <span className="text-emerald-400" role="status">
+              <span className="text-[var(--sentinela-text)]" role="status">
                 {saveMessage}
               </span>
             ) : isPremium ? (
@@ -690,7 +690,7 @@ export function RedefinirTemasPage() {
             data-testid="salvar-radar-button"
             onClick={() => void handleSave()}
             disabled={isSavingProfile}
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"
           >
             {isSavingProfile ? "Salvando radar..." : "Salvar radar"}
           </button>
@@ -710,9 +710,9 @@ export function RedefinirTemasPage() {
             aria-modal="true"
             aria-labelledby="monitoramento-prompt-title"
             data-testid="monitoramento-prompt"
-            className="relative bg-[#0F1623] border border-slate-700 rounded-2xl p-8 max-w-md w-full shadow-2xl"
+            className="relative bg-[#0F1623] border border-md-border rounded-2xl p-8 max-w-md w-full shadow-2xl"
           >
-            <h3 id="monitoramento-prompt-title" className="text-lg font-bold text-white mb-6">
+            <h3 id="monitoramento-prompt-title" className="text-lg font-bold text-md-text mb-6">
               Gostaria de ir para o Monitoramento de Pautas?
             </h3>
             <div className="flex justify-end gap-3">
@@ -720,7 +720,7 @@ export function RedefinirTemasPage() {
                 type="button"
                 data-testid="monitoramento-prompt-nao"
                 onClick={() => setShowMonitoramentoPrompt(false)}
-                className="px-5 py-2.5 rounded-lg border border-slate-700 text-slate-300 text-sm font-medium hover:bg-slate-800 transition-colors"
+                className="px-5 py-2.5 rounded-lg border border-md-border text-md-text-muted text-sm font-medium hover:bg-slate-800 transition-colors"
               >
                 Não (N)
               </button>
@@ -728,7 +728,7 @@ export function RedefinirTemasPage() {
                 type="button"
                 data-testid="monitoramento-prompt-sim"
                 onClick={() => router.push("/monitoramento")}
-                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-sm font-semibold transition-all"
+                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text text-sm font-semibold transition-all"
               >
                 Sim (S)
               </button>

@@ -9,11 +9,11 @@ export const criativoDetail = {
   stories: [
     {
       title: "O Desafio do Mandato",
-      body: "Vereador de primeiro mandato na capital, com equipe de comunicação de apenas 4 pessoas, compete com gabinetes estabelecidos de 20 profissionais. No máximo, consegue 6 vídeos por semana — e perde as redes desguarnecidas nos fins de semana.",
+      body: "Vereador de primeiro mandato na capital, contando com uma equipe de comunicação de apenas 4 pessoas. Concorria diretamente com gabinetes estabelecidos de até dezenas de profissionais. Conseguia publicar, no máximo, 6 vídeos por semana, deixando as redes desguarnecidas aos finais de semana (maior janela de consumo).",
     },
     {
       title: "A Ativação da IA",
-      body: "O Agente Criativo combina as pautas do Sentinela e as diretrizes do Curador. Um Avatar Digital (Digital Twin) do candidato é treinado, acelerando a geração de vídeos de alta retenção — sem necessidade de estúdio diário.",
+      body: "O Agente Criativo foi conectado aos insights do Sentinela e às diretrizes do Curador. Um Avatar Digital (Digital Twin) do candidato foi treinado, permitindo a geração de vídeos de alta retenção (com conteúdo direcionado para viralização) sem necessidade de gravação diária.",
     },
   ],
   entregas: {
@@ -22,19 +22,19 @@ export const criativoDetail = {
     cards: [
       {
         title: "Roteiros e Captions",
-        body: "Scripts de fala estruturados com gancho, desenvolvimento e CTA — prontos para gravação ou publicação.",
+        body: "Scripts que obedecem metodologia de roteiros virais, incluindo gancho, concordância, desenvolvimento e CTA.",
         footer: "Qualidade narrativa",
         tone: "purple" as const,
       },
       {
-        title: "Avatares Digitais",
-        body: "Gêmeos online do candidato gerados com IA, preservando voz, ritmo e presença visual do mandato.",
+        title: "Gêmeo Digital",
+        body: "Gêmeos digital do candidato gerados com IA, preservando voz, imagem e aspectos pessoais de comunicação.",
         footer: "Persona coerente",
         tone: "emerald" as const,
       },
       {
-        title: "Vídeos Faceless",
-        body: "Peças dinâmicas de alta retenção focadas em legendas, ritmo e gancho — sem exigir o candidato em cena.",
+        title: "Avatares Caricatos e 3D",
+        body: "Peças animadas a partir da foto do candidato, de alta retenção, focada em uma comunicação mais descontraída.",
         footer: "Alta retenção",
         tone: "rose" as const,
       },

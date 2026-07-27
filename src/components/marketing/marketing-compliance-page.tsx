@@ -90,12 +90,12 @@ function ComplianceIconCard({
   const a = ACCENT[accent];
   return (
     <article
-      className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/45 p-6 pt-5 shadow-lg ${a.glow}`}
+      className={`relative flex h-full flex-col overflow-hidden rounded-2xl border border-md-border bg-md-surface/45 p-6 pt-5 shadow-lg ${a.glow}`}
     >
       <div className={`absolute inset-x-0 top-0 h-0.5 ${a.top}`} aria-hidden />
       <h3 className={`min-h-14 text-lg font-bold ${a.text}`}>{title}</h3>
       <div className="mt-3 mb-5 h-px w-full bg-slate-700/70" aria-hidden />
-      <div className="flex-1 text-sm leading-relaxed text-slate-300">{children}</div>
+      <div className="flex-1 text-sm leading-relaxed text-md-text-muted">{children}</div>
       <div className={`mt-8 flex justify-center ${a.text}`} aria-hidden>
         <div
           className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${a.border} ${a.soft}`}
@@ -172,7 +172,7 @@ export function MarketingCompliancePage() {
   return (
     <>
       {/* Hero — texto + visual de cadeado/escudo (site antigo) */}
-      <section className="relative overflow-hidden border-b border-slate-800/40">
+      <section className="relative overflow-hidden border-b border-md-border/40">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_40%,rgba(34,211,238,0.12),transparent_55%),radial-gradient(ellipse_at_20%_80%,rgba(52,211,153,0.08),transparent_50%)]"
           aria-hidden
@@ -182,11 +182,11 @@ export function MarketingCompliancePage() {
             <p className="mb-4 inline-flex rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-400">
               {complianceHero.eyebrow}
             </p>
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl lg:leading-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-md-text sm:text-4xl lg:text-5xl lg:leading-tight">
               Dominância Narrativa com{" "}
               <span className="text-emerald-400">Segurança Jurídica</span>.
             </h1>
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:text-lg">
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-md-text-muted sm:text-lg">
               {complianceHero.body}
             </p>
           </div>
@@ -221,11 +221,11 @@ export function MarketingCompliancePage() {
         lead={complianceAccounting.body}
       >
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.2fr)]">
-          <div className="rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/15 via-slate-900/50 to-slate-950 p-8 text-center sm:p-10">
+          <div className="rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/15 via-md-surface/50 to-md-bg p-8 text-center sm:p-10">
             <p className="text-6xl font-extrabold tracking-tight text-emerald-400 sm:text-7xl">
               100%
             </p>
-            <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-white">
+            <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-md-text">
               {complianceAccounting.highlight.replace("100% ", "")}
             </p>
             <p className={`mt-4 text-sm font-semibold ${ACCENT.emerald.text}`}>
@@ -238,7 +238,7 @@ export function MarketingCompliancePage() {
               return (
                 <li
                   key={item}
-                  className="rounded-2xl border border-slate-800/80 bg-slate-900/40 px-4 py-4"
+                  className="rounded-2xl border border-md-border bg-md-surface/40 px-4 py-4"
                 >
                   <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3">
                     {/*
@@ -250,7 +250,7 @@ export function MarketingCompliancePage() {
                       className="mt-[1.5px] block text-emerald-400"
                       aria-hidden
                     />
-                    <p className="m-0 text-sm leading-[1.5] text-slate-300">{item}</p>
+                    <p className="m-0 text-sm leading-[1.5] text-md-text-muted">{item}</p>
                   </div>
                 </li>
               );
@@ -285,7 +285,7 @@ export function MarketingCompliancePage() {
       <MarketingSection>
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
           <div className="min-w-0">
-            <h2 className="text-3xl font-bold leading-[1.15] tracking-tight text-white sm:text-4xl">
+            <h2 className="text-3xl font-bold leading-[1.15] tracking-tight text-md-text sm:text-4xl">
               <span className="text-emerald-400">Proteção</span> contra acusações
             </h2>
             <ul className="mt-8 m-0 list-none space-y-5 p-0 sm:mt-10">
@@ -300,10 +300,10 @@ export function MarketingCompliancePage() {
                     aria-hidden
                   />
                   <div className="min-w-0">
-                    <p className="m-0 text-sm font-semibold leading-[1.5] text-white">
+                    <p className="m-0 text-sm font-semibold leading-[1.5] text-md-text">
                       {item.title}
                     </p>
-                    <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
+                    <p className="mt-1.5 m-0 text-sm leading-[1.5] text-md-text-soft">
                       {item.body}
                     </p>
                   </div>
@@ -316,12 +316,12 @@ export function MarketingCompliancePage() {
             items-start alinha as caixas; mt fino compensa o half-leading do h2
             para o topo do quadro bater com o topo óptico do título.
           */}
-          <div className="relative mt-[0.35rem] overflow-hidden rounded-3xl border border-slate-700/70 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 p-6 shadow-xl sm:mt-[0.45rem]">
+          <div className="relative mt-[0.35rem] overflow-hidden rounded-3xl border border-md-border/70 bg-gradient-to-br from-md-surface via-md-bg to-cyan-950/40 p-6 shadow-xl sm:mt-[0.45rem]">
             <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" aria-hidden />
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-400/90">
               Materialidade
             </p>
-            <p className="mt-2 text-lg font-bold text-white">Provas sob controle</p>
+            <p className="mt-2 text-lg font-bold text-md-text">Provas sob controle</p>
             <div className="mt-6 grid grid-cols-2 gap-3">
               {[
                 { label: "Logs", icon: IconFingerprint },
@@ -331,10 +331,10 @@ export function MarketingCompliancePage() {
               ].map(({ label, icon: Icon }) => (
                 <div
                   key={label}
-                  className="rounded-2xl border border-slate-700/80 bg-slate-950/60 p-4 text-center"
+                  className="rounded-2xl border border-md-border bg-md-bg/60 p-4 text-center"
                 >
                   <Icon size={22} className="mx-auto text-cyan-400" />
-                  <p className="mt-2 text-xs font-medium text-slate-400">{label}</p>
+                  <p className="mt-2 text-xs font-medium text-md-text-soft">{label}</p>
                 </div>
               ))}
             </div>
@@ -359,7 +359,7 @@ export function MarketingCompliancePage() {
             return (
               <li
                 key={item.title}
-                className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3 border-b border-slate-800/80 pb-5"
+                className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3 border-b border-md-border pb-5"
               >
                 <Icon
                   size={18}
@@ -367,10 +367,10 @@ export function MarketingCompliancePage() {
                   aria-hidden
                 />
                 <div className="min-w-0">
-                  <h3 className="m-0 text-sm font-bold leading-[1.5] text-white">
+                  <h3 className="m-0 text-sm font-bold leading-[1.5] text-md-text">
                     {item.title}
                   </h3>
-                  <p className="mt-1.5 m-0 text-sm leading-[1.5] text-slate-400">
+                  <p className="mt-1.5 m-0 text-sm leading-[1.5] text-md-text-soft">
                     {item.body}
                   </p>
                 </div>

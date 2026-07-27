@@ -85,15 +85,15 @@ import type { ProfileTrainingAsset } from "@/lib/types";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 
 const CRIATIVO_PANEL_CLASS =
-  "rounded-[1.75rem] border border-slate-800 bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl p-6 md:p-8 shadow-xl mb-8";
-const CRIATIVO_LABEL_CLASS = "block text-sm font-semibold text-white mb-2";
-const CRIATIVO_HELPER_CLASS = "text-sm text-slate-400 leading-relaxed";
+  "rounded-[1.75rem] border border-md-border bg-gradient-to-b from-md-surface/50 to-md-slate-900/20 backdrop-blur-xl p-6 md:p-8 shadow-xl mb-8";
+const CRIATIVO_LABEL_CLASS = "block text-sm font-semibold text-md-text mb-2";
+const CRIATIVO_HELPER_CLASS = "text-sm text-md-text-soft leading-relaxed";
 const CRIATIVO_PRIMARY_BTN_CLASS =
-  "inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-md-text transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:from-cyan-400 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed";
 const CRIATIVO_SECONDARY_BTN_CLASS =
-  "inline-flex items-center justify-center rounded-lg border border-slate-700 bg-slate-900/50 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center rounded-lg border border-md-border bg-md-surface/50 px-4 py-2.5 text-sm font-medium text-md-text-muted transition-colors hover:bg-md-overlay-hover hover:text-md-text disabled:opacity-50 disabled:cursor-not-allowed";
 const CRIATIVO_INPUT_CLASS =
-  "w-full bg-[#0E1321] border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-3 outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 resize-y min-h-[120px]";
+  "w-full bg-md-surface-inset border border-md-border text-md-text text-sm rounded-xl px-3 py-3 outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 resize-y min-h-[120px]";
 
 type TrainingBannerState =
   | "hidden"
@@ -2231,11 +2231,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       <header className={`relative z-10 ${mode === "independente" ? "mb-5" : "mb-8"}`}>
         {mode === "independente" ? (
           <>
-            <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
+            <h1 className="text-2xl font-bold text-md-text tracking-tight mb-2">
               Criar conteúdo independente
             </h1>
-            <p className="text-slate-400 text-sm md:text-base max-w-3xl leading-snug">
-              <strong className="text-slate-300 font-medium">
+            <p className="text-md-text-soft text-sm md:text-base max-w-3xl leading-snug">
+              <strong className="text-md-text-muted font-medium">
                 Use seu avatar para falar o que você quiser publicar.
               </strong>{" "}
               Sem estúdio, sem gravações demoradas, sem ensaios e sem despesas. E o melhor, é você
@@ -2244,8 +2244,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Nova pauta</h1>
-            <p className="text-slate-400 text-sm md:text-base max-w-2xl">
+            <h1 className="text-2xl font-bold text-md-text tracking-tight mb-2">Nova pauta</h1>
+            <p className="text-md-text-soft text-sm md:text-base max-w-2xl">
               Defina o enquadramento desta pauta, aprove o roteiro e gere o vídeo.
             </p>
           </>
@@ -2341,7 +2341,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               <div className="persona-script-block">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <label className={CRIATIVO_LABEL_CLASS}>Digite o que deseja falar</label>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-md-text-soft">
                     Limite de 1 minuto (até {MAX_SCRIPT_WORDS} palavras)
                   </span>
                 </div>
@@ -2363,8 +2363,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     {freePromptWordCount}/{MAX_SCRIPT_WORDS} palavras
                   </p>
                 </div>
-                <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg py-2.5 px-3.5 flex items-center gap-2 text-[11px] text-cyan-400 mt-2">
-                  <svg className="h-4 w-4 shrink-0 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <div className="bg-[var(--curador-soft)] border border-[var(--curador-border)] rounded-lg py-2.5 px-3.5 flex items-center gap-2 text-[11px] text-[var(--curador-text)] mt-2">
+                  <svg className="h-4 w-4 shrink-0 text-[var(--curador-text)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>
@@ -2418,8 +2418,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   Veja o roteiro do vídeo que será produzido. Altere-o conforme necessário. Máximo
                   de {MAX_SCRIPT_WORDS} palavras (ou ~1 minuto).
                 </p>
-                <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg py-2.5 px-3.5 flex items-start gap-2 text-[11px] text-cyan-400 mt-2">
-                  <svg className="h-4 w-4 shrink-0 text-cyan-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <div className="bg-[var(--curador-soft)] border border-[var(--curador-border)] rounded-lg py-2.5 px-3.5 flex items-start gap-2 text-[11px] text-[var(--curador-text)] mt-2">
+                  <svg className="h-4 w-4 shrink-0 text-[var(--curador-text)] mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>
@@ -2476,7 +2476,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   </p>
                 ) : null}
                 {manualReviewConsentRequired ? (
-                  <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-slate-800/60">
+                  <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-md-border-soft">
                     <p className={`${CRIATIVO_HELPER_CLASS} mb-3 w-full`}>
                       O validador automático não pôde concluir a checagem factual neste momento.
                       Revise o roteiro com base nas fontes da pauta antes de produzir o vídeo.
@@ -2491,7 +2491,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                       />
                       <span className="text-xs leading-relaxed">
                         {SCRIPT_MANUAL_REVIEW_CONSENT_TEXT}{" "}
-                        <Link href="/compliance" className="text-cyan-400 no-underline hover:underline">
+                        <Link href="/compliance" className="text-[var(--curador-text)] no-underline hover:underline">
                           Ver Compliance TSE
                         </Link>
                       </span>
@@ -2508,7 +2508,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     />
                     <label htmlFor="script-edit-consent">
                       {SCRIPT_EDIT_CONSENT_TEXT}{" "}
-                      <Link href="/compliance" className="text-cyan-400 hover:underline">
+                      <Link href="/compliance" className="text-[var(--curador-text)] hover:underline">
                         Ver Compliance TSE
                       </Link>
                     </label>
@@ -2525,8 +2525,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           )}
 
           <div className={`${CRIATIVO_PANEL_CLASS} relative z-10 scroll-mt-24`} id="avatar" data-onboarding-anchor="criativo-avatar">
-            <div className="border-b border-slate-800 pb-4 mb-6">
-              <h2 className="text-xl font-bold text-white">Produzir vídeo</h2>
+            <div className="border-b border-md-border pb-4 mb-6">
+              <h2 className="text-xl font-bold text-md-text">Produzir vídeo</h2>
             </div>
 
           {renderProductionTemplateSelector()}
@@ -2569,7 +2569,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                       {" "}
                       <Link
                         href={generateDisabledReason.href}
-                        className="text-cyan-400 no-underline hover:underline"
+                        className="text-[var(--curador-text)] no-underline hover:underline"
                       >
                         Ir para configuração
                       </Link>
@@ -2616,7 +2616,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   ·{" "}
                   <button
                     type="button"
-                    className="inline bg-transparent p-0 text-cyan-400 hover:underline"
+                    className="inline bg-transparent p-0 text-[var(--curador-text)] hover:underline"
                     onClick={() =>
                       void navigator.clipboard.writeText(withTseCaptionTag(captionUrl))
                     }

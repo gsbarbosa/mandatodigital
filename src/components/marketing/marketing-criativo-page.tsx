@@ -40,16 +40,12 @@ export function MarketingCriativoPage() {
         titleAccent={criativoDetail.titleAccent}
         metrics={criativoDetail.metrics}
         stories={criativoDetail.stories}
-        visual={{
-          src: "/marketing/criativo/content-cards.jpg",
-          alt: "Painel de Content Creation Cards do Agente Criativo",
-          aspect: "portrait",
-        }}
       />
 
       <AgentDetailSection
         title={criativoDetail.entregas.title}
         lead={criativoDetail.entregas.lead}
+        wideLead
         accent="criativo"
       >
         <div className="grid gap-5 md:grid-cols-3">
@@ -59,7 +55,7 @@ export function MarketingCriativoPage() {
             return (
               <article
                 key={card.title}
-                className="overflow-hidden rounded-3xl border border-slate-800/80 bg-slate-900/50"
+                className="overflow-hidden rounded-3xl border border-md-border bg-md-surface/50"
               >
                 <div className={`h-1 w-full ${tone.bar}`} />
                 <div className="flex h-full flex-col p-6">
@@ -68,8 +64,8 @@ export function MarketingCriativoPage() {
                   >
                     <Icon size={22} />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">{card.title}</h3>
-                  <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-400">
+                  <h3 className="text-lg font-semibold text-md-text">{card.title}</h3>
+                  <p className="mt-3 flex-1 text-sm leading-relaxed text-md-text-soft">
                     {card.body}
                   </p>
                   <span

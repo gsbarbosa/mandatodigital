@@ -13,7 +13,7 @@ export const auditorDetail = {
     },
     {
       title: "A Ativação da IA",
-      body: "O Agente Auditor cruza o conteúdo com agências de checagem e portais de referência. Em 14 segundos, bloqueia preventivamente o que divergir — antes da publicação.",
+      body: "O Agente Auditor cruza o conteúdo com agências de checagem e portais de referência. Em segundos, bloqueia preventivamente o que divergir — e informa a equipe do Candidato.",
     },
   ],
   report: {
@@ -61,30 +61,28 @@ export const auditorDetail = {
       },
     ],
   },
-  approval: {
-    title: "Aprovação de Conteúdo",
-    cards: [
+  verification: {
+    title: "Como o Roteiro é",
+    titleAccent: "Certificado Antes de Ir ao Ar",
+    lead: "O Agente Auditor não opina. Ele cruza cada roteiro com fontes fidedignas e registra a comprovação, pronta para qualquer questionamento.",
+    steps: [
       {
-        title: "Reforma Tributária",
-        body: "Peça checada e pronta para publicação nas redes prioritárias do mandato.",
-        tag: "#reforma",
-        image: "/marketing/auditor/auditor-reforma.jpg",
-        imageAlt: "Thumbnail temática de Reforma Tributária",
+        icon: "globe",
+        title: "Fontes Fidedignas",
+        body: "Portais oficiais (gov.br, TSE, câmaras) e agências de checagem, como Agência Lupa e PolitiFact.",
       },
       {
-        title: "Segurança no Centro",
-        body: "Roteiro validado com fontes oficiais e selo de conformidade emitido.",
-        tag: "#seguranca",
-        image: "/marketing/auditor/auditor-seguranca.jpg",
-        imageAlt: "Thumbnail temática de Segurança Pública",
+        icon: "sparkles",
+        title: "Leitura via IA",
+        body: "O roteiro é lido e cruzado contra essas fontes antes de qualquer gravação.",
       },
       {
-        title: "Saúde nos Postos",
-        body: "Avatar e caption aprovados após cruzamento com dados da secretaria.",
-        tag: "#saude",
-        image: "/marketing/auditor/auditor-saude.jpg",
-        imageAlt: "Thumbnail temática de Saúde",
+        icon: "fileCheck",
+        title: "Certificação Registrada",
+        body: "Fonte aprovadora, data e horário ficam documentados — prova concreta em caso de questionamento.",
       },
     ],
+    footnote:
+      "Se uma informação diverge da fonte, o roteiro é bloqueado antes da produção — nunca depois da publicação.",
   },
 } as const;

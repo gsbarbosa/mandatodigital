@@ -79,11 +79,11 @@ export function BrazilUfMap({
 
       <p className="mt-3 text-center text-sm min-h-[1.5rem]" aria-live="polite">
         {highlightedName ? (
-          <span className={value && highlighted === value ? "text-cyan-300 font-semibold" : "text-slate-300"}>
-            {highlightedName} <span className="text-slate-500">({highlighted})</span>
+          <span className={value && highlighted === value ? "text-[var(--curador-text)] font-semibold" : "text-md-text-muted"}>
+            {highlightedName} <span className="text-md-text-soft">({highlighted})</span>
           </span>
         ) : (
-          <span className="text-slate-500">Clique em um estado no mapa</span>
+          <span className="text-md-text-soft">Clique em um estado no mapa</span>
         )}
       </p>
     </div>

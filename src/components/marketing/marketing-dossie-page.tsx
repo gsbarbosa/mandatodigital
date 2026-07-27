@@ -11,10 +11,10 @@ function DossieBulletItem({ bullet }: { bullet: DossieBullet }) {
   return (
     <li className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3">
       <span className="mt-[9px] block h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-      <p className="m-0 text-justify text-sm leading-[1.6] text-slate-300 sm:text-base">
+      <p className="m-0 text-justify text-sm leading-[1.6] text-md-text-muted sm:text-base">
         {bullet.lead ? (
           <>
-            <strong className="font-semibold text-white">{bullet.lead}</strong> {bullet.body}
+            <strong className="font-semibold text-md-text">{bullet.lead}</strong> {bullet.body}
           </>
         ) : (
           bullet.body
@@ -27,7 +27,7 @@ function DossieBulletItem({ bullet }: { bullet: DossieBullet }) {
 export function MarketingDossiePage() {
   return (
     <>
-      <section className="relative overflow-hidden border-b border-slate-800/40">
+      <section className="relative overflow-hidden border-b border-md-border/40">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_20%,rgba(52,211,153,0.10),transparent_55%)]"
           aria-hidden
@@ -36,18 +36,18 @@ export function MarketingDossiePage() {
           <p className="mb-4 inline-flex rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-400">
             {dossieHeader.eyebrow}
           </p>
-          <h1 className="whitespace-nowrap text-[clamp(0.55rem,2.6vw,1.7rem)] font-bold tracking-tight text-white">
+          <h1 className="whitespace-nowrap text-[clamp(0.55rem,2.6vw,1.7rem)] font-bold tracking-tight text-md-text">
             {dossieHeader.title}
           </h1>
 
-          <div className="mt-8 max-w-3xl rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 text-left">
+          <div className="mt-8 max-w-3xl rounded-2xl border border-md-border bg-md-surface/40 p-6 text-left">
             <dl className="grid gap-4 sm:grid-cols-2">
               {dossieHeader.meta.map((item) => (
                 <div key={item.label}>
-                  <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <dt className="text-[11px] font-bold uppercase tracking-wider text-md-text-soft">
                     {item.label}
                   </dt>
-                  <dd className="mt-1 text-justify text-sm leading-relaxed text-slate-300">
+                  <dd className="mt-1 text-justify text-sm leading-relaxed text-md-text-muted">
                     {item.value}
                   </dd>
                 </div>
@@ -76,11 +76,11 @@ export function MarketingDossiePage() {
       ))}
 
       <MarketingSection>
-        <div className="mx-auto max-w-4xl rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-slate-900/60 to-slate-950 p-8 sm:p-10">
+        <div className="mx-auto max-w-4xl rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 via-md-surface/60 to-md-bg p-8 sm:p-10">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-emerald-400">
             {dossieNotice.title}
           </p>
-          <p className="mt-3 text-justify text-sm leading-relaxed text-slate-300 sm:text-base">
+          <p className="mt-3 text-justify text-sm leading-relaxed text-md-text-muted sm:text-base">
             {dossieNotice.body}
           </p>
         </div>

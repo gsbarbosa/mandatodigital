@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { AppearanceToggle } from "@/components/appearance-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { useProductApp } from "@/components/product/provider";
 
@@ -10,19 +11,20 @@ export function RegistrationShell({ children }: { children: ReactNode }) {
   const { sessionUser, signOut } = useProductApp();
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-300">
-      <header className="border-b border-slate-800/80 bg-[#020617]/90">
+    <div className="min-h-screen bg-md-bg text-md-text-soft">
+      <header className="border-b border-md-border bg-md-bg/90">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <BrandLogo width={132} priority />
           <div className="flex items-center gap-3">
+            <AppearanceToggle className="hidden sm:flex min-w-[168px]" />
             {sessionUser?.email ? (
-              <span className="hidden max-w-[180px] truncate text-xs text-slate-500 sm:inline">
+              <span className="hidden max-w-[180px] truncate text-xs text-md-text-soft sm:inline">
                 {sessionUser.email}
               </span>
             ) : null}
             <button
               type="button"
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-200 transition hover:bg-slate-800/60 hover:text-white"
+              className="rounded-lg border border-md-border px-3 py-1.5 text-sm text-md-text transition hover:bg-md-overlay-hover"
               onClick={() => void signOut()}
             >
               Sair

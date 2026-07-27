@@ -103,8 +103,8 @@ export function MunicipioPicker({
 
   if (!uf) {
     return (
-      <div className="flex h-full min-h-[18rem] items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-6">
-        <p className="text-sm text-slate-500 text-center max-w-xs">
+      <div className="flex h-full min-h-[18rem] items-center justify-center rounded-xl border border-dashed border-md-border bg-md-surface-inset p-6">
+        <p className="text-sm text-md-text-soft text-center max-w-xs">
           Escolha um estado no mapa ao lado para carregar a lista de municípios.
         </p>
       </div>
@@ -114,10 +114,10 @@ export function MunicipioPicker({
   return (
     <div data-testid="municipio-picker">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+        <span className="text-xs font-bold uppercase tracking-widest text-md-text-soft">
           {BRAZIL_UF_NAME_BY_SIGLA[uf] ?? uf}
         </span>
-        <span className="text-xs font-semibold text-emerald-400">
+        <span className="text-xs font-semibold text-[var(--sentinela-text)]">
           {value.length}/{maxItems} selecionados
         </span>
       </div>
@@ -130,10 +130,10 @@ export function MunicipioPicker({
               type="button"
               onClick={() => toggleCity(city)}
               aria-label={`Remover ${city}`}
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-950/30 px-3 py-1 text-sm text-emerald-200 hover:bg-emerald-900/40 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--sentinela-border)] bg-[var(--sentinela-soft)] px-3 py-1 text-sm text-[var(--sentinela-text)] hover:bg-[var(--sentinela-soft)] transition-colors"
             >
               {city}
-              <span aria-hidden="true" className="text-emerald-400">
+              <span aria-hidden="true" className="text-[var(--sentinela-text)]">
                 ×
               </span>
             </button>
@@ -148,20 +148,20 @@ export function MunicipioPicker({
         placeholder="Digite para buscar o município"
         aria-label="Buscar município"
         data-testid="municipio-search"
-        className="bg-[#131C2D] border border-slate-700 text-slate-300 text-sm rounded-lg w-full px-3 py-2.5 mb-3 outline-none focus:ring-emerald-500 focus:border-emerald-500"
+        className="bg-md-slate-900 border border-md-border text-md-text-muted text-sm rounded-lg w-full px-3 py-2.5 mb-3 outline-none focus:ring-emerald-500 focus:border-emerald-500"
       />
 
       {status === "loading" ? (
-        <p className="text-sm text-slate-500 py-4">Carregando municípios…</p>
+        <p className="text-sm text-md-text-soft py-4">Carregando municípios…</p>
       ) : status === "error" ? (
         <p className="text-sm text-amber-400 py-4">
           Não foi possível carregar os municípios de {uf}. Recarregue a página e tente de novo.
         </p>
       ) : (
         <>
-          <ul className="max-h-64 overflow-y-auto rounded-xl border border-slate-800 divide-y divide-slate-800/70">
+          <ul className="max-h-64 overflow-y-auto rounded-xl border border-md-border divide-y divide-md-border">
             {matches.length === 0 ? (
-              <li className="px-3 py-4 text-sm text-slate-500">Nenhum município encontrado.</li>
+              <li className="px-3 py-4 text-sm text-md-text-soft">Nenhum município encontrado.</li>
             ) : (
               matches.slice(0, VISIBLE_LIMIT).map((city) => {
                 const isSelected = value.includes(city);
@@ -176,8 +176,8 @@ export function MunicipioPicker({
                       onClick={() => toggleCity(city)}
                       className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                         isSelected
-                          ? "bg-emerald-950/40 text-emerald-200"
-                          : "text-slate-300 hover:bg-slate-800/60"
+                          ? "bg-[var(--sentinela-soft)] text-[var(--sentinela-text)]"
+                          : "text-md-text-muted hover:bg-md-overlay-hover"
                       }`}
                     >
                       {city}
@@ -190,7 +190,7 @@ export function MunicipioPicker({
           </ul>
 
           {matches.length > VISIBLE_LIMIT ? (
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-md-text-soft">
               Mostrando {VISIBLE_LIMIT} de {matches.length} municípios. Refine a busca para ver os
               demais.
             </p>

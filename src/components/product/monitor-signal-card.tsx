@@ -134,7 +134,7 @@ const NETWORK_ICONS: Record<SentinelSocialNetwork, typeof InstagramIcon> = {
 function SocialNetworkBadge({ network }: { network: SentinelSocialNetwork }) {
   const NetworkIcon = NETWORK_ICONS[network];
   return (
-    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 mb-3">
+    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-md-text-soft mb-3">
       <NetworkIcon />
     </div>
   );
@@ -209,55 +209,55 @@ export function MonitorSignalCard({
 
   return (
     <div
-      className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 hover:border-slate-600 transition-colors"
+      className="bg-md-surface border border-md-border rounded-xl p-5 shadow-sm hover:border-md-border-hover transition-colors"
       data-testid="monitor-signal-card"
     >
       <div className="flex flex-col md:flex-row justify-between gap-6">
-        <div className="shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-slate-700/50 pb-4 md:pb-0 md:pr-6 md:w-48">
+        <div className="shrink-0 flex flex-col justify-center border-b md:border-b-0 md:border-r border-md-border/50 pb-4 md:pb-0 md:pr-6 md:w-48">
           {actor ? <SocialNetworkBadge network={actor.network} /> : null}
           {oppositionCard ? (
-            <p className="text-slate-400 text-sm font-medium mb-3">
+            <p className="text-md-text-soft text-sm font-medium mb-3">
               {actor ? `@${actor.handle}` : "Post da oposição"}
             </p>
           ) : (
             <>
-              <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1">
+              <span className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1">
                 Tema Principal
               </span>
-              <p className="text-cyan-400 text-sm font-medium mb-3">{suggestion.themeLabel}</p>
+              <p className="text-[var(--sentinela-text)] text-sm font-medium mb-3">{suggestion.themeLabel}</p>
             </>
           )}
           {oppositionCard ? (
             dateParts ? (
               <div className="mt-2 space-y-3">
                 <div>
-                  <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                  <span className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase">
                     Data
                   </span>
-                  <p className="text-slate-300 text-xs mt-0.5">{dateParts.date}</p>
+                  <p className="text-md-text-muted text-xs mt-0.5">{dateParts.date}</p>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                  <span className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase">
                     Hora
                   </span>
-                  <p className="text-slate-300 text-xs mt-0.5">{dateParts.time}</p>
+                  <p className="text-md-text-muted text-xs mt-0.5">{dateParts.time}</p>
                 </div>
               </div>
             ) : (
               <div className="mt-2">
-                <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                <span className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase">
                   Data
                 </span>
-                <p className="text-slate-300 text-xs mt-0.5">Pauta recente</p>
+                <p className="text-md-text-muted text-xs mt-0.5">Pauta recente</p>
               </div>
             )
           ) : dateLabel ? (
-            <div className="flex items-center gap-2 text-slate-500 text-xs">
+            <div className="flex items-center gap-2 text-md-text-soft text-xs">
               <ClockIcon />
               {dateLabel}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-slate-500 text-xs">
+            <div className="flex items-center gap-2 text-md-text-soft text-xs">
               <ClockIcon />
               Pauta recente
             </div>
@@ -267,29 +267,29 @@ export function MonitorSignalCard({
         <div className="flex-1">
           {isNewsCard && article ? (
             <>
-              <h3 className="text-lg font-bold text-slate-100 mb-1">{article.title}</h3>
+              <h3 className="text-lg font-bold text-md-text mb-1">{article.title}</h3>
               {suggestion.briefing?.trim() ? (
-                <p className="text-sm text-cyan-100/90 mb-2 leading-relaxed">
+                <p className="text-sm text-md-text-muted mb-2 leading-relaxed">
                   {suggestion.briefing.trim()}
                 </p>
               ) : null}
               {suggestion.creativeAngle?.trim() ? (
-                <p className="text-xs text-amber-200/80 mb-3">
+                <p className="text-xs text-[var(--distribuidor-text)] mb-3">
                   Ângulo: {suggestion.creativeAngle.trim()}
                 </p>
               ) : !suggestion.briefing?.trim() ? (
-                <p className="text-sm text-slate-400 mb-3 line-clamp-2">{suggestion.topic}</p>
+                <p className="text-sm text-md-text-soft mb-3 line-clamp-2">{suggestion.topic}</p>
               ) : (
                 <div className="mb-3" />
               )}
               <div className="flex flex-wrap items-center gap-4 text-xs">
-                <span className="text-slate-500">
+                <span className="text-md-text-soft">
                   Fonte:{" "}
                   <a
                     href={article.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-400 no-underline hover:underline"
+                    className="text-[var(--curador-text)] no-underline hover:underline"
                   >
                     {articleOutletLabel(article)}
                   </a>
@@ -297,7 +297,7 @@ export function MonitorSignalCard({
                 <button
                   type="button"
                   onClick={() => onOpenEvidence?.(suggestion)}
-                  className="flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20 cursor-pointer hover:bg-emerald-400/20 transition-colors"
+                  className="flex items-center gap-1 text-[var(--sentinela-text)] bg-[var(--sentinela-soft)] px-2 py-0.5 rounded border border-[var(--sentinela-border)] cursor-pointer hover:opacity-90 transition-colors"
                 >
                   <CheckBadgeIcon />
                   Ver fontes
@@ -306,21 +306,21 @@ export function MonitorSignalCard({
             </>
           ) : (
             <>
-              <h3 className="text-lg font-bold text-slate-100 mb-1">{socialHeadline}</h3>
+              <h3 className="text-lg font-bold text-md-text mb-1">{socialHeadline}</h3>
               {!actor ? (
-                <p className="text-sm text-slate-400 mb-3">{suggestion.themeLabel}</p>
+                <p className="text-sm text-md-text-soft mb-3">{suggestion.themeLabel}</p>
               ) : null}
 
               <div className="flex flex-wrap items-center gap-4 text-xs mb-3 mt-2">
-                <span className="text-slate-500">
-                  Engajamento*: <strong className="text-white">{formatCount(engagementScore)}</strong>
+                <span className="text-md-text-soft">
+                  Engajamento*: <strong className="text-md-text">{formatCount(engagementScore)}</strong>
                 </span>
                 {actor ? (
                   <a
                     href={actor.postUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-blue-400 no-underline hover:underline flex items-center gap-1"
+                    className="text-[var(--curador-text)] no-underline hover:underline flex items-center gap-1"
                   >
                     <LinkIcon />
                     Link do post
@@ -329,14 +329,14 @@ export function MonitorSignalCard({
                 <button
                   type="button"
                   onClick={() => onOpenEvidence?.(suggestion)}
-                  className="flex items-center gap-1 text-slate-400 bg-slate-700/30 px-2 py-0.5 rounded border border-slate-600/50 cursor-pointer hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-md-text-soft bg-md-overlay-subtle px-2 py-0.5 rounded border border-md-border cursor-pointer hover:text-md-text transition-colors"
                 >
                   <SearchIcon />
                   Verificar notícia
                 </button>
               </div>
 
-              <div className="flex items-center gap-5 mt-2 pt-3 border-t border-slate-700/50 text-xs text-slate-400">
+              <div className="flex items-center gap-5 mt-2 pt-3 border-t border-md-border/50 text-xs text-md-text-soft">
                 <div className="flex items-center gap-1.5" title="Curtidas">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -396,45 +396,45 @@ export function SignalEvidenceDrawer({
         className="absolute inset-0 bg-black/60"
         onClick={onClose}
       />
-      <aside className="relative w-full max-w-md h-full overflow-y-auto bg-[#0B0F19] border-l border-slate-800 p-6 shadow-2xl">
+      <aside className="relative w-full max-w-md h-full overflow-y-auto bg-md-bg border-l border-md-border p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1">
+            <p className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1">
               Evidências da pauta
             </p>
-            <h3 className="text-lg font-bold text-white">{suggestion.themeLabel}</h3>
+            <h3 className="text-lg font-bold text-md-text">{suggestion.themeLabel}</h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-white text-sm border border-slate-700 rounded-lg px-3 py-1.5 transition-colors"
+            className="text-md-text-soft hover:text-md-text text-sm border border-md-border rounded-lg px-3 py-1.5 transition-colors"
           >
             Fechar
           </button>
         </div>
 
-        <p className="text-xs text-slate-500 mb-6">
+        <p className="text-xs text-md-text-soft mb-6">
           A verificação lista as fontes reais capturadas pelo monitoramento. O fact-check por IA do
           conteúdo acontece na aprovação do roteiro, antes da produção do vídeo.
         </p>
 
         {articles.length ? (
           <div className="mb-6">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+            <h4 className="text-xs font-bold text-md-text-soft uppercase tracking-widest mb-3">
               Matérias detectadas ({articles.length})
             </h4>
             <ul className="space-y-3">
               {articles.map((item) => (
-                <li key={item.url} className="bg-slate-800/40 border border-slate-700/50 rounded-lg p-3">
+                <li key={item.url} className="bg-md-overlay-subtle border border-md-border/50 rounded-lg p-3">
                   <a
                     href={item.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-sm text-slate-200 hover:text-cyan-300 font-medium"
+                    className="text-sm text-md-text hover:text-[var(--curador-text)] font-medium"
                   >
                     {item.title}
                   </a>
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-md-text-soft mt-1">
                     {articleOutletLabel(item)}
                     {formatSignalDate(item.publishedAt) ? ` · ${formatSignalDate(item.publishedAt)}` : ""}
                   </p>
@@ -446,15 +446,15 @@ export function SignalEvidenceDrawer({
 
         {actors.length ? (
           <div className="mb-6">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+            <h4 className="text-xs font-bold text-md-text-soft uppercase tracking-widest mb-3">
               Posts verificáveis ({actors.length})
             </h4>
             <ul className="space-y-2">
               {actors.map((item) => (
-                <li key={`${item.handle}-${item.postUrl}`} className="flex items-center justify-between gap-3 bg-slate-800/40 border border-slate-700/50 rounded-lg p-3">
-                  <span className="text-sm text-slate-300">
+                <li key={`${item.handle}-${item.postUrl}`} className="flex items-center justify-between gap-3 bg-md-overlay-subtle border border-md-border/50 rounded-lg p-3">
+                  <span className="text-sm text-md-text-muted">
                     @{item.handle}
-                    <span className="text-slate-500 text-xs"> · {NETWORK_LABELS[item.network]}</span>
+                    <span className="text-md-text-soft text-xs"> · {NETWORK_LABELS[item.network]}</span>
                   </span>
                   <a
                     href={item.postUrl}
@@ -470,7 +470,7 @@ export function SignalEvidenceDrawer({
           </div>
         ) : null}
 
-        <div className="border-t border-slate-800 pt-4 space-y-2 text-xs text-slate-500">
+        <div className="border-t border-md-border pt-4 space-y-2 text-xs text-md-text-soft">
           <p>Posts analisados: {suggestion.evidence.postsAnalyzed}</p>
           {typeof suggestion.evidence.outletCount === "number" ? (
             <p>Portais distintos: {suggestion.evidence.outletCount}</p>

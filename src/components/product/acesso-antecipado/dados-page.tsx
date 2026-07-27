@@ -51,14 +51,14 @@ const CARGOS_2026 = [
 const BETA_CARGOS = new Set(["Senador", "Governador", "Presidente"]);
 
 const inputClasses =
-  "bg-[#0E1321] border border-slate-700 text-slate-200 text-sm rounded-lg p-2.5 w-full outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed";
+  "bg-md-surface-inset border border-md-border text-md-text text-sm rounded-lg p-2.5 w-full outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed";
 
 const cargoSelectClasses =
-  "bg-[#0E1321] border border-slate-700 text-slate-200 text-base rounded-lg px-3 py-3 min-h-[3rem] w-full outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed";
+  "bg-md-surface-inset border border-md-border text-md-text text-base rounded-lg px-3 py-3 min-h-[3rem] w-full outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-60 disabled:cursor-not-allowed";
 
 function BetaVersionBadge() {
   return (
-    <span className="inline-flex shrink-0 items-center rounded-full border border-cyan-500/35 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300">
+    <span className="inline-flex shrink-0 items-center rounded-full border border-cyan-500/35 bg-cyan-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--curador-text)]">
       Versão beta
     </span>
   );
@@ -107,12 +107,12 @@ function CargoSelect({
       >
         <span className="flex min-w-0 items-center gap-2">
           {value && BETA_CARGOS.has(value) ? <BetaVersionBadge /> : null}
-          <span className={value ? "truncate text-slate-200" : "text-slate-500"}>
+          <span className={value ? "truncate text-md-text" : "text-md-text-soft"}>
             {value || "Selecione"}
           </span>
         </span>
         <svg
-          className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-md-text-soft transition-transform ${open ? "rotate-180" : ""}`}
           viewBox="0 0 20 20"
           fill="currentColor"
           aria-hidden="true"
@@ -127,7 +127,7 @@ function CargoSelect({
 
       {open ? (
         <ul
-          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-slate-700 bg-[#0E1321] py-1 shadow-xl"
+          className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-lg border border-md-border bg-md-surface-inset py-1 shadow-xl"
           role="listbox"
         >
           {CARGOS_2026.map((cargo) => {
@@ -141,8 +141,8 @@ function CargoSelect({
                   aria-selected={selected}
                   className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-base transition-colors ${
                     selected
-                      ? "bg-cyan-950/40 text-cyan-300"
-                      : "text-slate-200 hover:bg-slate-800/80"
+                      ? "bg-[var(--curador-soft)] text-[var(--curador-text)]"
+                      : "text-md-text hover:bg-md-overlay-hover/80"
                   }`}
                   onClick={() => {
                     onChange(cargo);
@@ -163,8 +163,8 @@ function CargoSelect({
 
 function FieldLabel({ children, required }: { children: string; required?: boolean }) {
   return (
-    <label className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5">
-      {children} {required ? <span className="text-cyan-400">*</span> : null}
+    <label className="block text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1.5">
+      {children} {required ? <span className="text-[var(--curador-text)]">*</span> : null}
     </label>
   );
 }
@@ -638,9 +638,9 @@ export function AcessoDadosPage() {
       <div className="pointer-events-none absolute right-[-10%] top-[30%] h-[40%] w-[40%] rounded-full bg-cyan-600/10 blur-[120px]" />
 
       <div className="relative z-10 mx-auto max-w-2xl">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 shadow-2xl backdrop-blur-xl sm:p-7 md:p-8">
+        <div className="rounded-2xl border border-md-border bg-md-surface/40 p-5 shadow-2xl backdrop-blur-xl sm:p-7 md:p-8">
           <div className="mb-1 flex items-start justify-between gap-3">
-            <h1 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+            <h1 className="text-xl font-semibold tracking-tight text-md-text sm:text-2xl">
               {isReserved ? "Dados Pessoais" : "Complete seu cadastro"}
             </h1>
             {isReserved ? (
@@ -649,7 +649,7 @@ export function AcessoDadosPage() {
                   Lista de reserva
                 </span>
               ) : (
-                <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[var(--sentinela-border)] bg-emerald-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--sentinela-text)]">
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -658,7 +658,7 @@ export function AcessoDadosPage() {
               )
             ) : null}
           </div>
-          <p className="mb-6 text-sm leading-relaxed text-slate-400">
+          <p className="mb-6 text-sm leading-relaxed text-md-text-soft">
             {isReserved
               ? isOnReserveQueue
                 ? "Você está na lista de reserva deste partido/UF. Se uma vaga antecipada liberar, avisaremos por e-mail. Somente o contato da equipe pode ser alterado."
@@ -666,12 +666,12 @@ export function AcessoDadosPage() {
               : (
                 <>
                   Preencha os dados para liberar o acesso ao Mandato Digital.{" "}
-                  <span className="text-cyan-400">Campos com * são obrigatórios.</span>
+                  <span className="text-[var(--curador-text)]">Campos com * são obrigatórios.</span>
                 </>
               )}
           </p>
           {seatMessage && isReserved ? (
-            <p className="mb-5 rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-3 text-sm text-slate-300">
+            <p className="mb-5 rounded-xl border border-md-border bg-md-bg/50 px-4 py-3 text-sm text-md-text-muted">
               {seatMessage}
             </p>
           ) : null}
@@ -680,7 +680,7 @@ export function AcessoDadosPage() {
             <div className="mb-6 rounded-xl border border-cyan-500/25 bg-cyan-500/5 px-4 py-3.5 sm:px-5 sm:py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-400/80">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--curador-text)]">
                     Plano selecionado
                   </p>
                   {(() => {
@@ -691,10 +691,10 @@ export function AcessoDadosPage() {
                     return (
                       <div className="mt-1">
                         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                          <p className="text-base font-semibold text-white">{plan.name}</p>
-                          <p className="text-sm text-slate-400">
+                          <p className="text-base font-semibold text-md-text">{plan.name}</p>
+                          <p className="text-sm text-md-text-soft">
                             {plan.priceLabel}{" "}
-                            <span className="text-slate-600 line-through">
+                            <span className="text-md-text-soft line-through">
                               {plan.originalPriceLabel}
                             </span>
                           </p>
@@ -704,9 +704,9 @@ export function AcessoDadosPage() {
                             {plan.features.map((feature) => (
                               <li
                                 key={feature}
-                                className="flex items-start gap-2 text-xs leading-relaxed text-slate-300"
+                                className="flex items-start gap-2 text-xs leading-relaxed text-md-text-muted"
                               >
-                                <span className="mt-0.5 shrink-0 text-emerald-400">✓</span>
+                                <span className="mt-0.5 shrink-0 text-[var(--sentinela-text)]">✓</span>
                                 <span>{feature}</span>
                               </li>
                             ))}
@@ -718,7 +718,7 @@ export function AcessoDadosPage() {
                 </div>
                 <button
                   type="button"
-                  className="shrink-0 rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-cyan-500/50 hover:bg-slate-800/80"
+                  className="shrink-0 rounded-lg border border-md-border-hover px-3 py-1.5 text-xs font-medium text-md-text transition hover:border-cyan-500/50 hover:bg-md-overlay-hover/80"
                   onClick={() => setChangingPlan((current) => !current)}
                 >
                   {changingPlan ? "Fechar" : "Trocar plano"}
@@ -744,14 +744,14 @@ export function AcessoDadosPage() {
                         className={`rounded-xl border px-3 py-2.5 text-left transition ${
                           active
                             ? "border-cyan-500/60 bg-cyan-500/10"
-                            : "border-slate-700 bg-slate-950/40 hover:border-slate-500"
+                            : "border-md-border bg-md-bg/40 hover:border-slate-500"
                         }`}
                       >
-                        <p className="text-sm font-semibold text-white">{plan.name}</p>
-                        <p className="mt-0.5 text-xs text-slate-400">{plan.priceLabel}</p>
+                        <p className="text-sm font-semibold text-md-text">{plan.name}</p>
+                        <p className="mt-0.5 text-xs text-md-text-soft">{plan.priceLabel}</p>
                         <ul className="mt-2 space-y-1">
                           {plan.features.slice(0, 2).map((feature) => (
-                            <li key={feature} className="text-[11px] leading-snug text-slate-400">
+                            <li key={feature} className="text-[11px] leading-snug text-md-text-soft">
                               {feature}
                             </li>
                           ))}
@@ -761,11 +761,11 @@ export function AcessoDadosPage() {
                   })}
                 </div>
               ) : (
-                <p className="mt-3 text-[11px] text-slate-500">
+                <p className="mt-3 text-[11px] text-md-text-soft">
                   Quer ver o comparativo completo?{" "}
                   <button
                     type="button"
-                    className="text-cyan-400 underline-offset-2 hover:underline"
+                    className="text-[var(--curador-text)] underline-offset-2 hover:underline"
                     onClick={() => router.push(PLAN_SELECTION_PATH as Route)}
                   >
                     Abrir planos e preços
@@ -774,14 +774,14 @@ export function AcessoDadosPage() {
               )}
             </div>
           ) : !isReserved ? (
-            <div className="mb-6 rounded-xl border border-slate-700/80 bg-slate-950/40 px-4 py-3.5 text-sm text-slate-400">
+            <div className="mb-6 rounded-xl border border-md-border bg-md-bg/40 px-4 py-3.5 text-sm text-md-text-soft">
               Depois de salvar seus dados, você escolhe o plano com o comparativo completo do que
               está incluso.
             </div>
           ) : reservation?.planId ? (
-            <div className="mb-5 rounded-xl border border-slate-700 bg-slate-950/40 px-4 py-3 text-sm text-slate-300">
+            <div className="mb-5 rounded-xl border border-md-border bg-md-bg/40 px-4 py-3 text-sm text-md-text-muted">
               Plano:{" "}
-              <span className="font-semibold text-white">
+              <span className="font-semibold text-md-text">
                 {earlyAccessPlans.find((p) => p.id === reservation.planId)?.name ??
                   reservation.planId}
               </span>
@@ -816,7 +816,7 @@ export function AcessoDadosPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-slate-500 mt-1">
+              <p className="text-[10px] text-md-text-soft mt-1">
                 * Informação de uso interno. A vaga não sofre alteração caso mude de partido.
               </p>
             </div>
@@ -840,9 +840,9 @@ export function AcessoDadosPage() {
                 <p
                   className={`mt-1 text-[11px] ${
                     cpfStatus === "ok"
-                      ? "text-emerald-400"
+                      ? "text-[var(--sentinela-text)]"
                       : cpfStatus === "checking"
-                        ? "text-slate-400"
+                        ? "text-md-text-soft"
                         : "text-red-400"
                   }`}
                   role="status"
@@ -926,19 +926,19 @@ export function AcessoDadosPage() {
                   {emailStatusMessage}
                 </p>
               ) : authEmail && form.email === authEmail ? (
-                <p className="mt-1 text-[10px] text-slate-500">
+                <p className="mt-1 text-[10px] text-md-text-soft">
                   Preenchido com o e-mail da sua conta de login — você pode alterar.
                 </p>
               ) : emailStatus === "ok" ? (
-                <p className="mt-1 text-[11px] text-emerald-400" role="status">
+                <p className="mt-1 text-[11px] text-[var(--sentinela-text)]" role="status">
                   E-mail com formato válido.
                 </p>
               ) : null}
             </div>
           </div>
 
-          <div className="mt-6 border border-dashed border-slate-700 rounded-xl p-5">
-            <p className="text-sm text-slate-300 font-medium mb-4">Contato da Equipe (Opcional)</p>
+          <div className="mt-6 border border-dashed border-md-border rounded-xl p-5">
+            <p className="text-sm text-md-text-muted font-medium mb-4">Contato da Equipe (Opcional)</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
               <div>
                 <FieldLabel>E-mail Assessor/Gabinete</FieldLabel>
@@ -967,12 +967,12 @@ export function AcessoDadosPage() {
                   type="button"
                   onClick={() => void handleSaveTeamContact()}
                   disabled={isSaving}
-                  className="px-5 py-2 bg-slate-800/80 text-slate-200 border border-slate-700 rounded-lg text-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-60"
+                  className="px-5 py-2 bg-md-surface-inset text-md-text border border-md-border rounded-lg text-sm font-medium hover:bg-md-overlay-hover transition-colors disabled:opacity-60"
                 >
                   {isSaving ? "Salvando..." : "Salvar contato da equipe"}
                 </button>
                 {teamSavedMessage ? (
-                  <span className="text-xs text-emerald-400" role="status">
+                  <span className="text-xs text-[var(--sentinela-text)]" role="status">
                     {teamSavedMessage}
                   </span>
                 ) : null}
@@ -982,11 +982,11 @@ export function AcessoDadosPage() {
 
           {!isReserved ? (
             <>
-              <div className="mt-6 bg-amber-950/20 border border-amber-800/40 rounded-xl p-5">
+              <div className="mt-6 bg-[var(--distribuidor-soft)] border border-[var(--distribuidor-border)] rounded-xl p-5">
                 <p className="text-[11px] font-bold tracking-wider text-amber-500 uppercase mb-2 flex items-center gap-2">
                   ⚠ Regra de Caducidade Eleitoral
                 </p>
-                <p className="text-xs text-amber-200/80 leading-relaxed">
+                <p className="text-xs text-[var(--distribuidor-text)] leading-relaxed">
                   A adesão no botão abaixo protege a sua vaga estritamente até às{" "}
                   <strong>12h00 do dia 16 de Agosto</strong>. Caso o CNPJ de campanha não seja
                   informado no painel até este horário limite, o acautelamento do seu Gêmeo Digital{" "}
@@ -1011,7 +1011,7 @@ export function AcessoDadosPage() {
                   cpfStatus === "checking" ||
                   emailStatus === "invalid"
                 }
-                className="mt-6 w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.25)] hover:shadow-[0_6px_25px_rgba(6,182,212,0.35)] disabled:opacity-60"
+                className="mt-6 w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-bold py-4 px-6 rounded-xl transition-all shadow-[0_4px_20px_rgba(6,182,212,0.25)] hover:shadow-[0_6px_25px_rgba(6,182,212,0.35)] disabled:opacity-60"
               >
                 {isSaving
                   ? "Salvando..."
@@ -1022,7 +1022,7 @@ export function AcessoDadosPage() {
             </>
           ) : null}
 
-          <p className="mt-6 text-[10px] text-slate-600 text-center">
+          <p className="mt-6 text-[10px] text-md-text-soft text-center">
             Seus dados ficam gravados na conta (cadastro) e vinculados ao perfil do mandato.
             A linguagem de “acesso antecipado” é só a oferta desta fase.
           </p>
@@ -1032,7 +1032,7 @@ export function AcessoDadosPage() {
       {showPopup ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" />
-          <div className="relative bg-[#0F1623] border border-slate-700 rounded-2xl p-8 max-w-sm w-full shadow-2xl text-center">
+          <div className="relative bg-md-surface border border-md-border rounded-2xl p-8 max-w-sm w-full shadow-2xl text-center">
             {popupKind === "reserve" ? (
               <>
                 <div className="mx-auto w-12 h-12 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mb-4">
@@ -1040,24 +1040,24 @@ export function AcessoDadosPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-3">Lista de reserva</h3>
-                <p className="text-sm text-slate-400 mb-6">
-                  O CPF <span className="text-cyan-400">{redactCpf(form.cpf)}</span> foi incluído na
+                <h3 className="text-lg font-bold text-md-text mb-3">Lista de reserva</h3>
+                <p className="text-sm text-md-text-soft mb-6">
+                  O CPF <span className="text-[var(--curador-text)]">{redactCpf(form.cpf)}</span> foi incluído na
                   lista de espera deste partido/UF — as 03 vagas antecipadas já estão preenchidas.
                   Se alguém desistir, avisaremos por e-mail.
                 </p>
               </>
             ) : (
               <>
-                <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/15 border border-[var(--sentinela-border)] flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-[var(--sentinela-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-white mb-3">Reserva Confirmada!</h3>
-                <p className="text-sm text-slate-400 mb-6">
-                  O CPF <span className="text-cyan-400">{redactCpf(form.cpf)}</span> acaba de travar
-                  oficialmente <strong className="text-white">1 das 3 vagas</strong> do seu estado. Seu
+                <h3 className="text-lg font-bold text-md-text mb-3">Reserva Confirmada!</h3>
+                <p className="text-sm text-md-text-soft mb-6">
+                  O CPF <span className="text-[var(--curador-text)]">{redactCpf(form.cpf)}</span> acaba de travar
+                  oficialmente <strong className="text-md-text">1 das 3 vagas</strong> do seu estado. Seu
                   desconto de 50% foi ancorado com sucesso.
                 </p>
               </>
@@ -1065,7 +1065,7 @@ export function AcessoDadosPage() {
             <button
               type="button"
               onClick={dismissPopup}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-semibold py-2.5 px-6 rounded-lg transition-all"
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold py-2.5 px-6 rounded-lg transition-all"
             >
               Continuar
             </button>
