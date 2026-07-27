@@ -92,9 +92,11 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
     if (uploaded.length) {
       setUploadMessage(`${label} enviado com sucesso.`);
       window.setTimeout(() => setUploadMessage(null), 4200);
-      // Áudio enviado: o passo do onboarding se fecha sozinho e o tip segue adiante.
+      // Áudio enviado: fecha o passo e leva o tip para Persona (/curador),
+      // senão o provider só avança o guideStepId sem mudar a rota.
       if (role === "voice_audio" && guideOpen && guideStepId === "avatar-audio") {
         markStepDone("avatar-audio");
+        router.push("/curador#persona" as Route);
       }
     }
   }
