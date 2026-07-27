@@ -163,9 +163,11 @@ export async function configureSentinelThemes(
 
   await gotoTemas(page);
 
-  const uf = page.getByTestId("temas-uf-select");
-  await uf.selectOption(state);
-  await expect(uf).toHaveValue(state);
+  // A UF agora é escolhida no mapa. dispatchEvent evita depender do centro do
+  // bounding box, que em estados côncavos cai fora do contorno clicável.
+  const uf = page.getByTestId(`uf-map-${state}`);
+  await uf.dispatchEvent("click");
+  await expect(uf).toHaveAttribute("aria-checked", "true");
 
   await clearInterestThemes(page);
   await selectInterestThemes(page, selected);

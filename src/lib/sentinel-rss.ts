@@ -2,6 +2,7 @@ import type { PoliticianProfile } from "@/lib/types";
 import {
   getNationalPortalHosts,
   getStatePortalHosts,
+  getUfName,
 } from "@/lib/sentinel-portal-catalog";
 import {
   hasAdversaryRadar,
@@ -43,6 +44,13 @@ const RSS_RETRY_BASE_DELAY_MS = 600;
 const GOOGLE_CIRCUIT_FAILURE_THRESHOLD = 3;
 /** Teto de bytes lidos da home ao procurar <link rel="alternate"> — evita baixar a pagina inteira. */
 const HTML_DISCOVERY_MAX_BYTES = 150_000;
+/**
+ * Orçamento total por host na descoberta de feed. A escada tem até 9 tentativas
+ * (home + robots + 7 caminhos); um host que dá timeout em todas consumia ~95s
+ * sozinho, ameaçando o maxDuration=300 da rota. Estourado o orçamento, o host
+ * vai direto para o fallback `site:` do Google News, que é barato.
+ */
+const PORTAL_DISCOVERY_BUDGET_MS = 20_000;
 const PORTAL_RSS_PATHS = [
   "/rss/g1/",
   "/feed",
@@ -380,15 +388,37 @@ export function normalizePortalHost(site: string) {
   }
 }
 
+/**
+ * Recorte geográfico por esfera, usado tanto nas queries de tema quanto no fallback
+ * `site:` dos portais:
+ *   federal   → sem recorte (agenda nacional)
+ *   estadual  → só o estado, nunca o município
+ *   municipal → município + estado (desambigua homônimos entre UFs)
+ */
+export function buildSphereGeoScope(profile: PoliticianProfile) {
+  const stateName = getUfName(profile.state);
+  const cities = profile.municipalCities.map((city) => city.trim()).filter(Boolean);
+  const primaryCity = profile.city.trim() || cities[0] || "";
+
+  return {
+    stateName,
+    cities,
+    federal: "",
+    estadual: stateName,
+    municipal: (city: string) => [city, stateName].filter(Boolean).join(" "),
+    /** Recorte municipal do perfil, para o fallback dos portais de interesse. */
+    primaryMunicipal: [primaryCity, stateName].filter(Boolean).join(" "),
+  };
+}
+
 export function buildSentinelRssQueries(profile: PoliticianProfile) {
   const { municipalCustom } = splitProfileThemesBySphere(profile);
   const interest = resolveInterestThemes(profile);
   const queries: string[] = [];
-  const state = profile.state.trim().toUpperCase();
-  const cities = profile.municipalCities.map((city) => city.trim()).filter(Boolean);
+  const scope = buildSphereGeoScope(profile);
 
-  for (const city of cities) {
-    const geo = [city, state].filter(Boolean).join(" ");
+  for (const city of scope.cities) {
+    const geo = scope.municipal(city);
     if (geo) {
       queries.push(geo);
     }
@@ -396,21 +426,21 @@ export function buildSentinelRssQueries(profile: PoliticianProfile) {
 
   for (const theme of interest.slice(0, MAX_THEME_QUERIES)) {
     queries.push(`${theme} Brasil`);
-    if (state) {
-      queries.push(`${theme} ${state}`);
+    if (scope.estadual) {
+      queries.push(`${theme} ${scope.estadual}`);
     }
-    for (const city of cities) {
-      queries.push(`${theme} ${city}`);
+    for (const city of scope.cities) {
+      queries.push(`${theme} ${scope.municipal(city)}`);
     }
   }
 
   for (const theme of municipalCustom.slice(0, MAX_THEME_QUERIES)) {
-    if (cities.length === 0) {
+    if (scope.cities.length === 0) {
       queries.push(theme);
       continue;
     }
-    for (const city of cities) {
-      const geo = [city, state].filter(Boolean).join(" ");
+    for (const city of scope.cities) {
+      const geo = scope.municipal(city);
       queries.push(geo ? `${theme} ${geo}` : theme);
     }
   }
@@ -692,12 +722,28 @@ export async function fetchGoogleNewsQuery(query: string) {
   return fetchBingNewsQuery(query);
 }
 
-async function fetchGoogleNewsForSite(host: string, profile: PoliticianProfile) {
+/**
+ * Fallback quando o portal não expõe RSS: pergunta ao Google News só aquele host.
+ * O recorte geográfico segue a esfera da lista — antes usava sempre município+UF,
+ * o que era restritivo demais para portais nacionais e estaduais (matéria do
+ * governo do estado publicada fora da cidade do candidato não casava).
+ */
+async function fetchGoogleNewsForSite(
+  host: string,
+  profile: PoliticianProfile,
+  siteList: SentinelSiteList,
+) {
   if (googleNewsCircuitOpen) {
     return [];
   }
 
-  const geo = [profile.city.trim(), profile.state.trim()].filter(Boolean).join(" ");
+  const scope = buildSphereGeoScope(profile);
+  const geo =
+    siteList === "federal"
+      ? scope.federal
+      : siteList === "estadual"
+        ? scope.estadual
+        : scope.primaryMunicipal;
   const query = geo ? `site:${host} ${geo}` : `site:${host}`;
   return fetchRssUrl(buildGoogleNewsRssUrl(query), {
     origin: "google-news-site",
@@ -828,54 +874,54 @@ async function discoverPortalFeed(host: string, siteList: SentinelSiteList) {
     return [];
   }
 
+  const deadline = Date.now() + PORTAL_DISCOVERY_BUDGET_MS;
+  const outOfBudget = () => Date.now() >= deadline;
+  const metadata = {
+    origin: "portal-rss" as const,
+    siteList,
+    siteHost: host,
+    sourceName: host,
+  };
+
   const knownUrls =
     KNOWN_PORTAL_FEED_URLS[host] ?? KNOWN_RESTRICTED_PORTAL_FEED_URLS[host] ?? [];
   for (const url of knownUrls) {
-    const items = await fetchRssUrl(url, {
-      origin: "portal-rss",
-      siteList,
-      siteHost: host,
-      sourceName: host,
-    });
+    const items = await fetchRssUrl(url, metadata);
     if (items.length > 0) {
       return items;
     }
   }
 
-  const discoveredUrl = await discoverFeedUrlFromHomepage(host);
-  if (discoveredUrl) {
-    const items = await fetchRssUrl(discoveredUrl, {
-      origin: "portal-rss",
-      siteList,
-      siteHost: host,
-      sourceName: host,
-    });
-    if (items.length > 0) {
-      return items;
+  if (!outOfBudget()) {
+    const discoveredUrl = await discoverFeedUrlFromHomepage(host);
+    if (discoveredUrl) {
+      const items = await fetchRssUrl(discoveredUrl, metadata);
+      if (items.length > 0) {
+        return items;
+      }
     }
   }
 
-  const sitemapUrls = await discoverNewsSitemapUrls(host);
-  for (const url of sitemapUrls) {
-    const items = await fetchRssUrl(url, {
-      origin: "portal-rss",
-      siteList,
-      siteHost: host,
-      sourceName: host,
-    });
-    if (items.length > 0) {
-      return items;
+  if (!outOfBudget()) {
+    const sitemapUrls = await discoverNewsSitemapUrls(host);
+    for (const url of sitemapUrls) {
+      const items = await fetchRssUrl(url, metadata);
+      if (items.length > 0) {
+        return items;
+      }
+      if (outOfBudget()) {
+        break;
+      }
     }
   }
 
   const base = `https://${host}`;
   for (const path of PORTAL_RSS_PATHS) {
-    const items = await fetchRssUrl(`${base}${path}`, {
-      origin: "portal-rss",
-      siteList,
-      siteHost: host,
-      sourceName: host,
-    });
+    if (outOfBudget()) {
+      console.warn("[sentinel-rss] orcamento de descoberta estourado, indo pro fallback:", host);
+      break;
+    }
+    const items = await fetchRssUrl(`${base}${path}`, metadata);
     if (items.length > 0) {
       return items;
     }
@@ -901,7 +947,7 @@ async function fetchPortalSites(
       return direct;
     }
 
-    return fetchGoogleNewsForSite(host, profile).then((items) =>
+    return fetchGoogleNewsForSite(host, profile, siteList).then((items) =>
       items.map((item) => ({ ...item, siteList, siteHost: host })),
     );
   });
@@ -1004,11 +1050,16 @@ export function scoreSentinelArticle(
     }
   }
 
-  if (profile.state.trim()) {
-    const state = normalizeSentinelText(profile.state);
-    if (state.length >= 2 && normalizedTitle.includes(state)) {
-      score += 10;
-    }
+  // A sigla como substring gerava falso positivo em qualquer palavra que a contivesse
+  // ("eSPorte" para SP, "recuRSos" para RS). Casa o nome por extenso, ou a sigla
+  // isolada entre limites de palavra.
+  const stateName = normalizeSentinelText(getUfName(profile.state));
+  const stateAbbr = normalizeSentinelText(profile.state);
+  if (
+    (stateName && normalizedTitle.includes(stateName)) ||
+    (stateAbbr.length === 2 && new RegExp(`\\b${stateAbbr}\\b`).test(normalizedTitle))
+  ) {
+    score += 10;
   }
 
   if (article.publishedAt) {

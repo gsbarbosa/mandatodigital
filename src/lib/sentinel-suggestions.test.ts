@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildSentinelRssQueries,
+  buildSphereGeoScope,
   buildStoryClusterKey,
   clusterScoredArticles,
   countUniqueOutlets,
@@ -158,9 +159,10 @@ describe("sentinel-rss", () => {
   it("monta queries por esfera sem temas de oposicao", () => {
     const queries = buildSentinelRssQueries(sampleProfile);
     expect(queries.some((query) => query.includes("Campinas"))).toBe(true);
-    expect(queries.some((query) => query.includes("Segurança Pública") && query.includes("SP"))).toBe(
-      true,
-    );
+    // Recorte estadual usa o nome por extenso, não a sigla — "SP" quase não aparece
+    // no corpo das matérias e derrubava a recall da busca.
+    expect(queries).toContain("Segurança Pública São Paulo");
+    expect(queries.some((query) => /\bSP\b/.test(query))).toBe(false);
     expect(queries.some((query) => query.includes("Vacinação") && query.includes("Brasil"))).toBe(
       true,
     );
@@ -170,6 +172,56 @@ describe("sentinel-rss", () => {
     expect(queries.some((query) => query.includes("fila do SUS"))).toBe(true);
     expect(queries.some((query) => query.includes("Endurecimento de Penas"))).toBe(false);
     expect(queries.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("não pontua UF por substring dentro de outra palavra", () => {
+    const profile = { ...sampleProfile, city: "", state: "SP" };
+    const article = { title: "Esporte movimenta o fim de semana", link: "x", pubDate: null, publishedAt: null };
+    // matchedInterest tira a nota do piso (Math.max(10, …)), senão os dois empatam em 10.
+    const matched = ["Vacinação"];
+    const falsePositive = scoreSentinelArticle(article, profile, matched, []);
+    const real = scoreSentinelArticle(
+      { ...article, title: "São Paulo anuncia novo pacote" },
+      profile,
+      matched,
+      [],
+    );
+    expect(real - falsePositive).toBe(10);
+  });
+
+  it("isola o recorte geográfico por esfera", () => {
+    const scope = buildSphereGeoScope({
+      ...sampleProfile,
+      city: "Campinas",
+      state: "SP",
+      municipalCities: ["Campinas", "Sorocaba"],
+    });
+
+    // Federal não tem recorte: agenda nacional não pode ser filtrada por município.
+    expect(scope.federal).toBe("");
+    // Estadual nunca carrega o município.
+    expect(scope.estadual).toBe("São Paulo");
+    expect(scope.estadual).not.toContain("Campinas");
+    // Municipal amarra o município ao estado (desambigua homônimos entre UFs).
+    expect(scope.municipal("Sorocaba")).toBe("Sorocaba São Paulo");
+    expect(scope.primaryMunicipal).toBe("Campinas São Paulo");
+  });
+
+  it("cai para o município da lista quando o perfil não tem cidade", () => {
+    const scope = buildSphereGeoScope({
+      ...sampleProfile,
+      city: "",
+      state: "MG",
+      municipalCities: ["Uberlândia"],
+    });
+    expect(scope.estadual).toBe("Minas Gerais");
+    expect(scope.primaryMunicipal).toBe("Uberlândia Minas Gerais");
+  });
+
+  it("não inventa recorte quando a UF é inválida", () => {
+    const scope = buildSphereGeoScope({ ...sampleProfile, state: "XX", city: "Campinas" });
+    expect(scope.estadual).toBe("");
+    expect(scope.primaryMunicipal).toBe("Campinas");
   });
 
   it("inclui ate o teto de temas de interesse nas queries", () => {
