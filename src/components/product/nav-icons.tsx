@@ -92,6 +92,16 @@ export function SuporteIcon({ className }: IconProps) {
   );
 }
 
+export function GuiaIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M6 3v18" />
+      <path d="M6 4.5h10l-2.4 3 2.4 3H6" />
+      <path d="M4 21h5" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({ className }: IconProps) {
   return (
     <svg className={className} {...BASE_PROPS} strokeWidth={2}>
