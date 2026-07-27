@@ -1,0 +1,91 @@
+"use client";
+
+import { useState } from "react";
+
+import {
+  BRAZIL_MAP_TRANSFORM,
+  BRAZIL_MAP_VIEW_BOX,
+  BRAZIL_UF_SHAPES,
+} from "@/lib/geo/brazil-uf-map";
+
+/**
+ * Mapa do Brasil com as 27 UFs (26 estados + Distrito Federal) clicáveis.
+ * Funciona como um radiogroup: uma UF selecionada por vez.
+ */
+export function BrazilUfMap({
+  value,
+  onSelect,
+}: {
+  /** Sigla da UF selecionada, ou string vazia. */
+  value: string;
+  onSelect: (uf: string) => void;
+}) {
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  const highlighted = hovered ?? (value || null);
+  const highlightedName = highlighted
+    ? BRAZIL_UF_SHAPES.find((shape) => shape.uf === highlighted)?.nome
+    : null;
+
+  return (
+    <div>
+      <svg
+        viewBox={BRAZIL_MAP_VIEW_BOX}
+        role="radiogroup"
+        aria-label="Selecione seu Estado no mapa"
+        className="w-full h-auto max-h-[22rem] mx-auto block"
+        onMouseLeave={() => setHovered(null)}
+      >
+        <g transform={BRAZIL_MAP_TRANSFORM}>
+          {BRAZIL_UF_SHAPES.map((shape) => {
+            const isSelected = shape.uf === value;
+            const isHovered = shape.uf === hovered;
+
+            return (
+              <path
+                key={shape.uf}
+                d={shape.d}
+                role="radio"
+                tabIndex={0}
+                aria-checked={isSelected}
+                aria-label={`${shape.nome} (${shape.uf})`}
+                data-testid={`uf-map-${shape.uf}`}
+                vectorEffect="non-scaling-stroke"
+                onClick={() => onSelect(shape.uf)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelect(shape.uf);
+                  }
+                }}
+                onMouseEnter={() => setHovered(shape.uf)}
+                onFocus={() => setHovered(shape.uf)}
+                onBlur={() => setHovered(null)}
+                className={`cursor-pointer outline-none transition-colors duration-150 ${
+                  isSelected
+                    ? "fill-cyan-500/70 stroke-cyan-200"
+                    : isHovered
+                      ? "fill-cyan-500/30 stroke-cyan-300"
+                      : "fill-slate-700/40 stroke-slate-500"
+                }`}
+                style={{ strokeWidth: isSelected || isHovered ? 1.5 : 0.75 }}
+              >
+                <title>{`${shape.nome} (${shape.uf})`}</title>
+              </path>
+            );
+          })}
+        </g>
+      </svg>
+
+      <p className="mt-3 text-center text-sm min-h-[1.5rem]" aria-live="polite">
+        {highlightedName ? (
+          <span className={value && highlighted === value ? "text-cyan-300 font-semibold" : "text-slate-300"}>
+            {highlightedName} <span className="text-slate-500">({highlighted})</span>
+          </span>
+        ) : (
+          <span className="text-slate-500">Clique em um estado no mapa</span>
+        )}
+      </p>
+    </div>
+  );
+}

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BRAZILIAN_UFS,
   getNationalPortalHosts,
   getStatePortalHosts,
   isNationalPortalHost,
   isStatePortalHost,
   NATIONAL_PORTAL_HOSTS,
+  NEWS_SEARCH_ENGINES,
 } from "./sentinel-portal-catalog";
 import {
   listOverlappingSentinelThemes,
@@ -57,9 +59,9 @@ const baseProfile: PoliticianProfile = {
 };
 
 describe("sentinel-portal-catalog", () => {
-  it("expõe cinco portais nacionais fixos", () => {
+  it("expõe dez portais nacionais fixos", () => {
     expect(getNationalPortalHosts()).toEqual([...NATIONAL_PORTAL_HOSTS]);
-    expect(NATIONAL_PORTAL_HOSTS).toHaveLength(5);
+    expect(NATIONAL_PORTAL_HOSTS).toHaveLength(10);
   });
 
   it("retorna cinco portais por UF", () => {
@@ -71,6 +73,40 @@ describe("sentinel-portal-catalog", () => {
   it("detecta host nacional e estadual", () => {
     expect(isNationalPortalHost("www.estadao.com.br")).toBe(true);
     expect(isStatePortalHost("otempo.com.br", "MG")).toBe(true);
+  });
+
+  it("mapeia cinco veículos locais distintos em todas as UFs", () => {
+    for (const uf of BRAZILIAN_UFS) {
+      const hosts = getStatePortalHosts(uf);
+      expect(hosts, uf).toHaveLength(5);
+      expect(new Set(hosts).size, uf).toBe(5);
+    }
+  });
+
+  it("não repete portais nacionais genéricos nas listas estaduais", () => {
+    // g1/uol/r7/terra cobrem o país inteiro — em UF eles gastavam vaga sem trazer pauta local.
+    const generic = ["g1.globo.com", "uol.com.br", "r7.com", "terra.com.br"];
+    for (const uf of BRAZILIAN_UFS) {
+      for (const host of getStatePortalHosts(uf)) {
+        expect(generic, `${uf}/${host}`).not.toContain(host);
+      }
+    }
+  });
+
+  it("veículo estadual em subdomínio de portal nacional não vira federal", () => {
+    expect(getStatePortalHosts("PE")).toContain("jc.uol.com.br");
+    expect(isNationalPortalHost("jc.uol.com.br")).toBe(false);
+    expect(isStatePortalHost("jc.uol.com.br", "PE")).toBe(true);
+    // O host nacional em si continua nacional, mesmo estando também numa UF.
+    expect(isNationalPortalHost("folha.uol.com.br")).toBe(true);
+    expect(isNationalPortalHost("metropoles.com")).toBe(true);
+  });
+
+  it("expõe Google News e Bing News como buscadores das três esferas", () => {
+    expect(NEWS_SEARCH_ENGINES.map((engine) => engine.label)).toEqual([
+      "Google News",
+      "Bing News",
+    ]);
   });
 });
 
