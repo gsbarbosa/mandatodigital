@@ -87,7 +87,7 @@ export function OnboardingChecklist() {
       <button
         type="button"
         onClick={() => setMinimized(false)}
-        className="fixed bottom-24 right-5 z-40 rounded-xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500 to-blue-600 px-3.5 py-2 text-[13px] font-semibold text-md-text shadow-[0_8px_28px_rgba(6,182,212,0.35)] transition hover:from-cyan-400 hover:to-blue-500"
+        className="rounded-xl border border-cyan-500/35 bg-gradient-to-r from-cyan-500 to-blue-600 px-3.5 py-2 text-[13px] font-semibold text-md-text shadow-[0_8px_28px_rgba(6,182,212,0.35)] transition hover:from-cyan-400 hover:to-blue-500"
         aria-label={`Reabrir onboarding ${phasesDone} de ${phasesTotal}`}
       >
         Onboarding {phasesDone}/{phasesTotal}
@@ -128,7 +128,7 @@ export function OnboardingChecklist() {
 
   return (
     <div
-      className="fixed bottom-24 right-5 z-40 w-[min(300px,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(15,23,42,0.12)]"
+      className="w-[min(300px,calc(100vw-2.5rem))] overflow-hidden rounded-xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(15,23,42,0.12)]"
       role="complementary"
       aria-label="Checklist de onboarding"
     >

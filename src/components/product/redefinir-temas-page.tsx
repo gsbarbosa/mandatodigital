@@ -695,7 +695,7 @@ export function RedefinirTemasPage() {
             data-testid="salvar-radar-button"
             onClick={() => void handleSave()}
             disabled={isSavingProfile}
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"
+            className="mr-36 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"
           >
             {isSavingProfile ? "Salvando radar..." : "Salvar radar"}
           </button>

@@ -13,7 +13,6 @@ import {
 import {
   applyResolvedAppearance,
   readStoredAppearance,
-  resolveAppearance,
   writeStoredAppearance,
   type AppearancePreference,
   type ResolvedAppearance,
@@ -28,46 +27,23 @@ type AppearanceContextValue = {
 const AppearanceContext = createContext<AppearanceContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreferenceState] = useState<AppearancePreference>("system");
-  const [resolved, setResolved] = useState<ResolvedAppearance>("dark");
-
-  const syncResolved = useCallback((nextPreference: AppearancePreference) => {
-    const nextResolved = resolveAppearance(nextPreference);
-    setResolved(nextResolved);
-    applyResolvedAppearance(nextResolved);
-  }, []);
+  const [preference, setPreferenceState] = useState<AppearancePreference>("dark");
 
   useEffect(() => {
     const stored = readStoredAppearance();
     setPreferenceState(stored);
-    syncResolved(stored);
+    applyResolvedAppearance(stored);
+  }, []);
 
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const onMediaChange = () => {
-      setPreferenceState((current) => {
-        if (current === "system") {
-          syncResolved("system");
-        }
-        return current;
-      });
-    };
-
-    media.addEventListener("change", onMediaChange);
-    return () => media.removeEventListener("change", onMediaChange);
-  }, [syncResolved]);
-
-  const setPreference = useCallback(
-    (next: AppearancePreference) => {
-      setPreferenceState(next);
-      writeStoredAppearance(next);
-      syncResolved(next);
-    },
-    [syncResolved],
-  );
+  const setPreference = useCallback((next: AppearancePreference) => {
+    setPreferenceState(next);
+    writeStoredAppearance(next);
+    applyResolvedAppearance(next);
+  }, []);
 
   const value = useMemo(
-    () => ({ preference, resolved, setPreference }),
-    [preference, resolved, setPreference],
+    () => ({ preference, resolved: preference, setPreference }),
+    [preference, setPreference],
   );
 
   return <AppearanceContext.Provider value={value}>{children}</AppearanceContext.Provider>;

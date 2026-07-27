@@ -31,8 +31,10 @@ export function ProductShell({ children }: { children: ReactNode }) {
       <main className="flex-1 overflow-y-auto bg-gradient-to-b from-md-bg to-md-slate-900 relative">
         <OnboardingModals />
         <OnboardingCoachmark />
-        <OnboardingChecklist />
-        <SupportWidget />
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-6">
+          <OnboardingChecklist />
+          <SupportWidget />
+        </div>
 
         <HeygenDevKeyPanel
           open={heygenDevOpen}

@@ -12,11 +12,7 @@ type AppearanceToggleProps = {
 export function AppearanceToggle({ className = "", size = "sm" }: AppearanceToggleProps) {
   const { preference, setPreference } = useAppearance();
 
-  const shortLabel = (value: AppearancePreference) => {
-    if (value === "light") return "Claro";
-    if (value === "dark") return "Escuro";
-    return "Sistema";
-  };
+  const shortLabel = (value: AppearancePreference) => (value === "light" ? "Claro" : "Escuro");
 
   return (
     <div

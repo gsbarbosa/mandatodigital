@@ -38,7 +38,7 @@ function CloseIcon() {
 function ChatIcon() {
   return (
     <svg
-      className="h-5 w-5"
+      className="h-4 w-4"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -103,8 +103,6 @@ function TypingDots() {
 
 const WELCOME_BODY =
   "Olá! Como podemos ajudar com o Mandato Digital? Pode perguntar sobre monitoramento, avatares, criativos ou compliance.";
-
-const POSITION = "fixed bottom-5 right-5 z-[35]";
 
 export function SupportWidget() {
   const [open, setOpen] = useState(false);
@@ -300,7 +298,7 @@ export function SupportWidget() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`${POSITION} flex items-center gap-2 rounded-full border border-md-border-hover/60 bg-md-surface/95 px-4 py-2.5 text-[13px] font-semibold text-md-text shadow-[0_8px_28px_rgba(0,0,0,0.45)] transition hover:border-cyan-500/40 hover:bg-md-overlay-hover`}
+        className="flex items-center gap-2 rounded-full border border-md-border-hover/60 bg-md-surface/95 px-3.5 py-2 text-[13px] font-semibold text-md-text shadow-[0_8px_28px_rgba(0,0,0,0.45)] transition hover:border-cyan-500/40 hover:bg-md-overlay-hover"
         aria-label="Abrir suporte"
       >
         <ChatIcon />
@@ -311,7 +309,7 @@ export function SupportWidget() {
 
   return (
     <div
-      className={`${POSITION} flex h-[min(520px,calc(100vh-6rem))] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(0,0,0,0.55)]`}
+      className="flex h-[min(520px,calc(100vh-6rem))] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
       role="dialog"
       aria-label="Suporte Mandato Digital"
     >
