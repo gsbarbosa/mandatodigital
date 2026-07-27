@@ -16,6 +16,7 @@
   --color-md-bg: var(--bg);
   --color-md-bg-deep: var(--bg-deep);
   --color-md-bg-soft: var(--bg-soft);
+  --color-md-app-bg: var(--app-bg);
   --color-md-surface: var(--surface);
   --color-md-surface-inset: var(--surface-inset);
   --color-md-panel: var(--panel);

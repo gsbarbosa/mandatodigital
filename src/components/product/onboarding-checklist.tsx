@@ -177,7 +177,7 @@ export function OnboardingChecklist() {
                     ? "border-emerald-500 bg-emerald-500 text-[#06251b]"
                     : isCurrent
                       ? "border-cyan-400 bg-cyan-400/10"
-                      : "border-md-border-hover bg-md-bg",
+                      : "border-md-border-hover bg-md-app-bg",
                 ].join(" ")}
                 aria-hidden="true"
               >
@@ -220,7 +220,7 @@ export function OnboardingChecklist() {
       </ul>
 
       <div
-        className={`${PANEL_ROW} border-t border-md-border bg-md-bg/60 py-1.5`}
+        className={`${PANEL_ROW} border-t border-md-border bg-md-app-bg/60 py-1.5`}
       >
         <button
           type="button"

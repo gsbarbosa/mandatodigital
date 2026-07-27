@@ -21,14 +21,14 @@ export function ProductShell({ children }: { children: ReactNode }) {
   } = useHeygenDevPanelReveal();
 
   return (
-    <div className="h-screen flex overflow-hidden bg-md-bg text-md-text-soft">
+    <div className="h-screen flex overflow-hidden bg-md-app-bg text-md-text-soft">
       <NavSidebar
         sessionEmail={sessionUser?.email ?? null}
         onSignOut={() => void signOut()}
         onLogoSecretClick={handleHeygenLogoSecretClick}
       />
 
-      <main className="flex-1 overflow-y-auto bg-gradient-to-b from-md-bg to-md-slate-900 relative">
+      <main className="flex-1 overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-slate-900 relative">
         <OnboardingModals />
         <OnboardingCoachmark />
         <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-6">

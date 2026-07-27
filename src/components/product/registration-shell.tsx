@@ -11,7 +11,7 @@ export function RegistrationShell({ children }: { children: ReactNode }) {
   const { sessionUser, signOut } = useProductApp();
 
   return (
-    <div className="min-h-screen bg-md-bg text-md-text-soft">
+    <div className="min-h-screen bg-md-app-bg text-md-text-soft">
       <header className="border-b border-md-border bg-md-bg/90">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <BrandLogo width={132} priority />
