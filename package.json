@@ -25,7 +25,6 @@
     "sync:logo": "node scripts/sync-brand-logo.mjs",
     "predev": "node scripts/sync-brand-logo.mjs",
     "prebuild": "node scripts/sync-brand-logo.mjs",
-    "deploy:firebase": "firebase deploy --only apphosting",
     "firebase:secrets:guide": "node scripts/firebase-secrets-guide.mjs",
     "firebase:secrets:apply": "node scripts/firebase-secrets-guide.mjs --apply",
     "env:pull": "node scripts/pull-remote-env.mjs"

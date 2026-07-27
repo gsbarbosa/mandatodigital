@@ -46,15 +46,16 @@ const SECTIONS: Array<{
 ];
 
 function ThemeChips({ themes }: { themes: string[] }) {
-  if (!themes.length) {
+  const uniqueThemes = Array.from(new Set(themes.map((theme) => theme.trim()).filter(Boolean)));
+  if (!uniqueThemes.length) {
     return null;
   }
   return (
     <div className="flex flex-wrap gap-2 mb-6 items-center">
-      {themes.map((theme) => (
+      {uniqueThemes.map((theme) => (
         <span
           key={theme}
-          className="px-3 py-1.5 bg-cyan-950/30 border border-cyan-800/50 text-cyan-300 rounded-full text-xs font-medium"
+          className="px-3 py-1.5 bg-[var(--sentinela-soft)] border border-[var(--sentinela-border)] text-[var(--sentinela-text)] rounded-full text-xs font-medium"
         >
           {theme}
         </span>
@@ -275,20 +276,24 @@ export function MonitoramentoPage() {
       federal: themesFromCards(grouped.federal),
       estadual: themesFromCards(grouped.estadual),
       municipal: themesFromCards(grouped.municipal),
-      interesse: [
-        ...themesFromCards(grouped.interesse),
-        ...profileForm.interestProfiles
-          .map((row) => row.handle.trim())
-          .filter(Boolean)
-          .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
-      ],
-      adversarios: [
-        ...themesFromCards(grouped.adversarios),
-        ...profileForm.oppositionProfiles
-          .map((row) => row.handle.trim())
-          .filter(Boolean)
-          .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
-      ],
+      interesse: Array.from(
+        new Set([
+          ...themesFromCards(grouped.interesse),
+          ...profileForm.interestProfiles
+            .map((row) => row.handle.trim())
+            .filter(Boolean)
+            .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
+        ]),
+      ).slice(0, 8),
+      adversarios: Array.from(
+        new Set([
+          ...themesFromCards(grouped.adversarios),
+          ...profileForm.oppositionProfiles
+            .map((row) => row.handle.trim())
+            .filter(Boolean)
+            .map((handle) => (handle.startsWith("@") ? handle : `@${handle}`)),
+        ]),
+      ).slice(0, 8),
     };
   }, [grouped, profileForm.interestProfiles, profileForm.oppositionProfiles]);
 
@@ -327,10 +332,10 @@ export function MonitoramentoPage() {
     return null;
   }, [grouped]);
 
-  const creditsLabel =
-    isGuestUi && credits
-      ? `${credits.remaining}/${credits.limit} créditos`
-      : undefined;
+  const refreshedDate = meta?.refreshedAt ? new Date(meta.refreshedAt) : null;
+  const refreshedIsToday = refreshedDate
+    ? refreshedDate.toDateString() === new Date().toDateString()
+    : false;
 
   return (
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20" data-testid="monitoramento-page">
@@ -338,62 +343,40 @@ export function MonitoramentoPage() {
 
       <header className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 relative z-10">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
+          <h1 className="text-2xl font-bold text-md-text tracking-tight mb-2">
             Monitoramento de Pautas
           </h1>
-          <p className="text-sm leading-snug text-slate-300">
+          <p className="text-sm leading-snug text-md-text-muted whitespace-nowrap">
             Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar.
           </p>
-          <p className="text-xs leading-snug text-slate-400">
-            <span className="font-semibold text-slate-300">Aviso:</span> atualização automática
-            diária após as 8h.{" "}
-            {isGuestUi ? (
-              <>
-                Na versão convidados, o botão <strong className="font-semibold text-cyan-300/90">Atualizar pautas</strong>{" "}
-                usa créditos ({credits ? `${credits.remaining} restantes` : "até 5"}).
-              </>
-            ) : (
-              <>Assinantes podem forçar atualização a qualquer momento.</>
-            )}
-          </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0 md:pt-1">
-          {meta?.refreshedAt ? (
-            <span className="text-xs text-slate-500">
-              Atualizado em {new Date(meta.refreshedAt).toLocaleString("pt-BR")}
-            </span>
-          ) : null}
-          {meta?.qualityRankStats || meta?.qualityReport || meta?.themeVerificationStats ? (
-            <span className="hidden sm:inline text-[10px] text-slate-500 max-w-[16rem] leading-snug">
-              {meta.qualityRankStats
-                ? `Rank LLM: ${meta.qualityRankStats.kept} mantidos / ${meta.qualityRankStats.dropped} fora`
-                : null}
-              {meta.qualityRankStats &&
-              (meta.themeVerificationStats || meta.qualityReport)
-                ? " · "
-                : null}
-              {meta.themeVerificationStats
-                ? `Verify ${meta.themeVerificationStats.llmCalls} LLM / ${meta.themeVerificationStats.cacheHits} cache`
-                : null}
-              {meta.themeVerificationStats && meta.qualityReport ? " · " : null}
-              {meta.qualityReport
-                ? `Heurística ${meta.qualityReport.newsPautavelPercent}% pautável`
-                : null}
-            </span>
-          ) : null}
+        <div
+          data-onboarding-anchor="pautas-radar"
+          className="flex flex-col gap-1 shrink-0 md:pt-1 w-[10.5rem]"
+        >
           <RefreshPautasButton
             variant="monitor"
             isLoading={isRefreshing}
-            creditsLabel={creditsLabel}
             disabled={Boolean(isGuestUi && credits && credits.remaining <= 0)}
             onClick={() => void handleRefresh()}
           />
+          {refreshedDate ? (
+            <span className="text-xs text-md-text-soft text-right">
+              Atualizado {refreshedIsToday ? "hoje" : refreshedDate.toLocaleDateString("pt-BR")} às{" "}
+              {refreshedDate.toLocaleTimeString("pt-BR")}
+            </span>
+          ) : null}
+          <span className="text-xs text-md-text-soft text-right">Próx atualização às 08:00h</span>
+          <span className="text-[10px] leading-snug text-md-text-soft text-right">
+            Atualizações antecipadas consomem créditos (
+            {credits ? `${credits.remaining} restantes` : "1 de 5"}).
+          </span>
         </div>
       </header>
 
       <div className="mb-10 space-y-4 relative z-10">
         {refreshMessage && !isRefreshing ? (
-          <p className="text-sm text-cyan-300 px-1" role="status">
+          <p className="text-sm text-[var(--sentinela-text)] px-1" role="status">
             {refreshMessage}
           </p>
         ) : null}
@@ -402,14 +385,14 @@ export function MonitoramentoPage() {
 
         {isLoading && !isRefreshing ? (
           <div
-            className="flex flex-col items-center justify-center gap-4 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-5 py-8 text-center"
+            className="flex flex-col items-center justify-center gap-4 rounded-xl border border-md-border bg-md-surface px-5 py-8 text-center shadow-sm"
             role="status"
           >
             <span
-              className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-400"
+              className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-md-border border-t-[var(--sentinela)]"
               aria-hidden="true"
             />
-            <p className="text-sm leading-relaxed text-slate-300">
+            <p className="text-sm leading-relaxed text-md-text-muted">
               Carregando pautas do monitoramento…
               <br />
               A primeira busca pode levar até 2 minutos enquanto consultamos portais e redes.
@@ -418,10 +401,13 @@ export function MonitoramentoPage() {
         ) : null}
 
         {!isLoading && !suggestions.length ? (
-          <div className="rounded-xl border border-blue-500/25 bg-blue-900/20 px-5 py-4">
-            <p className="text-sm leading-relaxed text-blue-200">
+          <div className="rounded-xl border border-[var(--curador-border)] bg-[var(--curador-soft)] px-5 py-4">
+            <p className="text-sm leading-relaxed text-md-text">
               {loadMessage || "Nenhuma pauta capturada ainda."}{" "}
-              <Link href="/monitoramento/temas" className="text-cyan-300 underline hover:text-cyan-200">
+              <Link
+                href="/monitoramento/temas"
+                className="font-semibold text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80"
+              >
                 Selecionar temas
               </Link>
             </p>
@@ -430,12 +416,12 @@ export function MonitoramentoPage() {
 
         {meta?.oppositionUnavailableReason ? (
           <div
-            className="rounded-xl border border-amber-500/30 bg-amber-950/30 px-5 py-3"
+            className="rounded-xl border border-[var(--distribuidor-border)] bg-[var(--distribuidor-soft)] px-5 py-3"
             role="status"
             data-testid="opposition-unavailable-banner"
           >
-            <p className="text-sm leading-relaxed text-amber-100/90">
-              <span className="font-semibold text-amber-200">Adversários: </span>
+            <p className="text-sm leading-relaxed text-md-text">
+              <span className="font-semibold text-[var(--distribuidor-text)]">Adversários: </span>
               {meta.oppositionUnavailableReason}
             </p>
           </div>
@@ -449,7 +435,7 @@ export function MonitoramentoPage() {
           const shown = items.slice(0, visible);
           return (
             <section key={sphere} id={sphere}>
-              <h2 className="text-lg font-semibold text-white border-b border-slate-800 pb-3 mb-5 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-md-text border-b border-md-border pb-3 mb-5 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${dotClass}`} />
                 {title}
               </h2>
@@ -484,7 +470,7 @@ export function MonitoramentoPage() {
               {!isLoading && items.length > visible ? (
                 <button
                   type="button"
-                  className="mt-4 text-sm text-cyan-400 hover:text-cyan-300"
+                  className="mt-4 text-sm font-medium text-[var(--curador-text)] hover:underline underline-offset-2"
                   onClick={() =>
                     setVisibleBySphere((current) => ({
                       ...current,
@@ -497,7 +483,17 @@ export function MonitoramentoPage() {
               ) : null}
 
               {!isLoading && !items.length ? (
-                <p className="text-sm text-slate-500">{emptyMessageForSphere(sphere)}</p>
+                <div className="rounded-xl border border-md-border bg-md-surface px-5 py-6 shadow-sm">
+                  <p className="text-sm text-md-text-muted m-0">{emptyMessageForSphere(sphere)}</p>
+                  {sphere !== "adversarios" ? (
+                    <Link
+                      href="/monitoramento/temas"
+                      className="mt-3 inline-block text-sm font-medium text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80"
+                    >
+                      Configurar temas
+                    </Link>
+                  ) : null}
+                </div>
               ) : null}
             </section>
           );
@@ -505,7 +501,7 @@ export function MonitoramentoPage() {
       </div>
 
       {municipalCitiesLabel || interestSitesLabel ? (
-        <p className="mt-10 text-xs text-slate-500 relative z-10">
+        <p className="mt-10 text-xs text-md-text-soft relative z-10">
           {[
             municipalCitiesLabel ? `Cidades: ${municipalCitiesLabel}` : null,
             interestSitesLabel ? `Portais municipais: ${interestSitesLabel}` : null,

@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { useOnboarding } from "./onboarding-provider";
 import {
@@ -11,13 +11,14 @@ import {
   ONBOARDING_PHASES,
   ONBOARDING_STEPS,
   type OnboardingStepId,
+  type OnboardingTipPlacement,
 } from "@/lib/onboarding";
+import { placeOnboardingTip, type TipBox } from "@/lib/onboarding-tip-position";
 
 type AnchorRect = { top: number; left: number; width: number; height: number };
 
 const TIP_WIDTH = 320;
 const TIP_HEIGHT_EST = 220;
-const GAP = 12;
 
 function readAnchorRect(anchorId: string | null): AnchorRect | null {
   if (!anchorId || typeof document === "undefined") {
@@ -37,90 +38,40 @@ function readAnchorRect(anchorId: string | null): AnchorRect | null {
 }
 
 /**
- * Posiciona o tip fora do retângulo do alvo (abaixo → acima → direita → esquerda),
- * com fallback no canto inferior esquerdo da área de conteúdo.
+ * Painéis fixos que o tip não deve cobrir (ex.: nota de limites do plano).
+ * Marcados na página com `data-onboarding-avoid`.
  */
-function placeTipAwayFromTarget(rect: AnchorRect | null): {
-  top: number;
-  left: number;
-} {
+function readObstacles(): TipBox[] {
+  if (typeof document === "undefined") {
+    return [];
+  }
+  return Array.from(document.querySelectorAll<HTMLElement>("[data-onboarding-avoid]"))
+    .map((el) => el.getBoundingClientRect())
+    .filter((rect) => rect.width > 0 && rect.height > 0)
+    .map((rect) => ({
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+    }));
+}
+
+function placeTip(
+  rect: AnchorRect | null,
+  placement: OnboardingTipPlacement,
+  tipHeight: number,
+): { top: number; left: number } {
   if (typeof window === "undefined") {
     return { top: 96, left: 280 };
   }
-
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const contentLeft = 16 * 16; // ~sidebar w-64
-  const safeLeft = Math.max(16, contentLeft + 16);
-  const safeRight = vw - 16;
-  const safeBottom = vh - 16;
-  // Reserva o checklist (canto inferior direito)
-  const checklistReserve = 380;
-
-  const dockFallback = {
-    top: Math.max(16, vh - TIP_HEIGHT_EST - 24),
-    left: Math.min(safeLeft, safeRight - TIP_WIDTH),
-  };
-
-  if (!rect) {
-    return dockFallback;
-  }
-
-  const candidates: Array<{ top: number; left: number; score: number }> = [];
-
-  // Abaixo do alvo
-  candidates.push({
-    top: rect.top + rect.height + GAP,
-    left: Math.min(Math.max(rect.left, safeLeft), safeRight - TIP_WIDTH),
-    score: 4,
+  return placeOnboardingTip({
+    rect,
+    placement,
+    tipWidth: TIP_WIDTH,
+    tipHeight,
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    obstacles: readObstacles(),
   });
-  // Acima do alvo
-  candidates.push({
-    top: rect.top - TIP_HEIGHT_EST - GAP,
-    left: Math.min(Math.max(rect.left, safeLeft), safeRight - TIP_WIDTH),
-    score: 3,
-  });
-  // À direita
-  candidates.push({
-    top: Math.min(Math.max(rect.top, 16), vh - TIP_HEIGHT_EST - 16),
-    left: rect.left + rect.width + GAP,
-    score: 2,
-  });
-  // À esquerda
-  candidates.push({
-    top: Math.min(Math.max(rect.top, 16), vh - TIP_HEIGHT_EST - 16),
-    left: rect.left - TIP_WIDTH - GAP,
-    score: 1,
-  });
-
-  const fits = candidates
-    .map((c) => ({
-      ...c,
-      top: Math.min(Math.max(c.top, 16), safeBottom - TIP_HEIGHT_EST),
-      left: Math.min(Math.max(c.left, safeLeft), safeRight - TIP_WIDTH),
-    }))
-    .filter((c) => {
-      const tipRight = c.left + TIP_WIDTH;
-      const tipBottom = c.top + TIP_HEIGHT_EST;
-      // Cabe na viewport
-      if (c.top < 8 || tipBottom > vh - 8 || c.left < 8 || tipRight > vw - 8) {
-        return false;
-      }
-      // Não sobrepõe o centro do alvo
-      const overlapX = !(tipRight < rect.left || c.left > rect.left + rect.width);
-      const overlapY = !(tipBottom < rect.top || c.top > rect.top + rect.height);
-      if (overlapX && overlapY) {
-        return false;
-      }
-      // Evita esmagar o checklist no canto direito
-      if (c.left > vw - checklistReserve && c.top > vh - 280) {
-        return false;
-      }
-      return true;
-    })
-    .sort((a, b) => b.score - a.score);
-
-  return fits[0] ?? dockFallback;
 }
 
 export function OnboardingCoachmark() {
@@ -135,6 +86,7 @@ export function OnboardingCoachmark() {
     temasPhaseReady,
     selectedThemeCount,
     hasVoiceAudio,
+    radarSaved,
     closeGuide,
     dismiss,
     startGuide,
@@ -142,7 +94,9 @@ export function OnboardingCoachmark() {
   } = useOnboarding();
 
   const [rect, setRect] = useState<AnchorRect | null>(null);
-  const [gateHint, setGateHint] = useState<"temas" | "audio" | null>(null);
+  const [gateHint, setGateHint] = useState<"temas" | "audio" | "salvar" | null>(null);
+  const [tipHeight, setTipHeight] = useState(TIP_HEIGHT_EST);
+  const tipRef = useRef<HTMLDivElement | null>(null);
 
   const stepId = guideStepId;
   const stepMeta = useMemo(() => getStepDef(stepId), [stepId]);
@@ -152,9 +106,18 @@ export function OnboardingCoachmark() {
     : null;
   const stepNumber = stepMeta?.phaseOrder ?? 0;
   const anchorId = stepMeta?.anchor ?? null;
+  const placement = stepMeta?.placement ?? "auto";
   const isLastTemasStep = stepMeta?.phase === "temas" && stepNumber >= phaseStepCount;
   const isAudioStep = stepId === "avatar-audio";
+  const isSaveStep = stepId === "temas-salvar";
   const isFinalStep = !steps.some((step) => step.id !== stepId && !step.done);
+
+  const measureTip = useCallback(() => {
+    const height = tipRef.current?.offsetHeight;
+    if (height && Math.abs(height - tipHeight) > 1) {
+      setTipHeight(height);
+    }
+  }, [tipHeight]);
 
   useLayoutEffect(() => {
     if (!mounted || !isActive || !guideOpen || !anchorId) {
@@ -170,7 +133,10 @@ export function OnboardingCoachmark() {
     if (!guideOpen || !anchorId) {
       return;
     }
-    const update = () => setRect(readAnchorRect(anchorId));
+    const update = () => {
+      setRect(readAnchorRect(anchorId));
+      measureTip();
+    };
     update();
     const t1 = window.setTimeout(update, 120);
     const t2 = window.setTimeout(update, 450);
@@ -184,7 +150,7 @@ export function OnboardingCoachmark() {
       window.removeEventListener("scroll", update, true);
       window.clearInterval(timer);
     };
-  }, [guideOpen, anchorId]);
+  }, [guideOpen, anchorId, measureTip]);
 
   useEffect(() => {
     if (temasPhaseReady && gateHint === "temas") {
@@ -193,7 +159,10 @@ export function OnboardingCoachmark() {
     if (hasVoiceAudio && gateHint === "audio") {
       setGateHint(null);
     }
-  }, [temasPhaseReady, hasVoiceAudio, gateHint]);
+    if (radarSaved && gateHint === "salvar") {
+      setGateHint(null);
+    }
+  }, [temasPhaseReady, hasVoiceAudio, radarSaved, gateHint]);
 
   if (!mounted || !isActive || !guideOpen || !stepId || !copy || !stepMeta) {
     return null;
@@ -214,6 +183,12 @@ export function OnboardingCoachmark() {
           "",
           `${currentPath}${window.location.search}${hash}`,
         );
+        // Link âncora de verdade: leva a tela até a seção do próximo passo.
+        if (hash) {
+          document
+            .getElementById(hash.slice(1))
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
         return;
       }
     }
@@ -224,6 +199,10 @@ export function OnboardingCoachmark() {
   function goNext() {
     if (isLastTemasStep && !temasPhaseReady) {
       setGateHint("temas");
+      return;
+    }
+    if (isSaveStep && !radarSaved) {
+      setGateHint("salvar");
       return;
     }
     if (isAudioStep && !hasVoiceAudio) {
@@ -245,7 +224,9 @@ export function OnboardingCoachmark() {
     navigateToStepRoute(next.route);
   }
 
-  const tipPos = placeTipAwayFromTarget(rect);
+  const tipPos = placeTip(rect, placement, tipHeight);
+  const nextBlocked = isSaveStep && !radarSaved;
+  const highlightNext = isSaveStep && radarSaved;
 
   return (
     <>
@@ -264,18 +245,19 @@ export function OnboardingCoachmark() {
       ) : null}
 
       <div
-        className="fixed z-[50] w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-slate-700 bg-[#0F1623] p-4 text-slate-200 shadow-[0_24px_60px_rgba(0,0,0,0.55)]"
+        ref={tipRef}
+        className="fixed z-[50] w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-md-onboarding-border bg-md-onboarding-surface p-4 text-md-text shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
         style={{ top: tipPos.top, left: tipPos.left }}
         role="dialog"
         aria-modal="false"
         aria-labelledby="onboarding-coach-title"
       >
         {phaseLabel ? (
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-md-text-soft">
             {phaseLabel}
           </p>
         ) : null}
-        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-cyan-400">
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--curador-text)]">
           Passo {stepNumber} de {phaseStepCount}
         </p>
         <div className="mt-2 mb-3 flex gap-1.5" aria-hidden="true">
@@ -289,22 +271,28 @@ export function OnboardingCoachmark() {
             />
           ))}
         </div>
-        <h3 id="onboarding-coach-title" className="text-[15px] font-bold leading-snug text-white">
+        <h3 id="onboarding-coach-title" className="text-[15px] font-bold leading-snug text-md-text">
           {copy.title}
         </h3>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-slate-400">{copy.body}</p>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-md-text-soft">{copy.body}</p>
 
         {gateHint === "temas" && isLastTemasStep && !temasPhaseReady ? (
-          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-amber-200/90" role="alert">
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-[var(--distribuidor-text)]" role="alert">
             Selecione pelo menos 5 temas ou 1 rede social para continuar.{" "}
-            <span className="tabular-nums text-amber-100/80">
+            <span className="tabular-nums text-md-text-muted">
               ({selectedThemeCount}/5 temas)
             </span>
           </p>
         ) : null}
 
+        {gateHint === "salvar" && nextBlocked ? (
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-[var(--distribuidor-text)]" role="alert">
+            Clique em Salvar radar para gravar a configuração antes de continuar.
+          </p>
+        ) : null}
+
         {gateHint === "audio" && isAudioStep && !hasVoiceAudio ? (
-          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-amber-200/90" role="alert">
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[12px] leading-snug text-[var(--distribuidor-text)]" role="alert">
             Envie o áudio de voz antes de continuar. Sem áudio não dá para produzir o vídeo.
           </p>
         ) : null}
@@ -313,17 +301,31 @@ export function OnboardingCoachmark() {
           <button
             type="button"
             onClick={dismiss}
-            className="text-[13px] font-medium text-slate-500 transition hover:text-slate-300"
+            className="text-[13px] font-medium text-md-text-soft transition hover:text-md-text-muted"
           >
             Pular
           </button>
-          <button
-            type="button"
-            onClick={goNext}
-            className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-[13px] font-bold text-white shadow-[0_0_18px_rgba(6,182,212,0.25)] transition hover:from-cyan-400 hover:to-blue-500"
-          >
-            {isFinalStep ? "Concluir" : "Próximo →"}
-          </button>
+          <span className="relative inline-flex">
+            {highlightNext ? (
+              <span
+                aria-hidden="true"
+                className="absolute inset-0 rounded-lg bg-cyan-400 opacity-75 animate-ping motion-reduce:hidden"
+              />
+            ) : null}
+            <button
+              type="button"
+              onClick={goNext}
+              aria-disabled={nextBlocked}
+              title={nextBlocked ? "Clique em Salvar radar antes de continuar." : undefined}
+              className={`relative rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-[13px] font-bold text-md-text shadow-[0_0_18px_rgba(6,182,212,0.25)] transition ${
+                nextBlocked
+                  ? "cursor-not-allowed opacity-50"
+                  : "hover:from-cyan-400 hover:to-blue-500"
+              } ${highlightNext ? "ring-2 ring-cyan-300" : ""}`}
+            >
+              {isFinalStep ? "Concluir" : "Próximo →"}
+            </button>
+          </span>
         </div>
       </div>
     </>

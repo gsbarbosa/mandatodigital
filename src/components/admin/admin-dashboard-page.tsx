@@ -22,10 +22,10 @@ function Card({
   href?: Route;
 }) {
   const inner = (
-    <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 px-5 py-5 transition hover:border-slate-700">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-bold tabular-nums text-white">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
+    <div className="rounded-2xl border border-md-border bg-md-surface/40 px-5 py-5 transition hover:border-md-border">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-md-text-soft">{label}</p>
+      <p className="mt-2 text-3xl font-bold tabular-nums text-md-text">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-md-text-soft">{hint}</p> : null}
     </div>
   );
   return href ? <Link href={href}>{inner}</Link> : inner;
@@ -61,8 +61,8 @@ export function AdminDashboardPage() {
   return (
     <div>
       <header className="mb-8">
-        <h2 className="text-2xl font-bold text-white">Dashboard</h2>
-        <p className="mt-1 text-sm text-slate-400">
+        <h2 className="text-2xl font-bold text-md-text">Dashboard</h2>
+        <p className="mt-1 text-sm text-md-text-soft">
           Visão rápida da operação. Use o Roadmap para acompanhar entregas com o Thiago.
         </p>
       </header>
@@ -74,7 +74,7 @@ export function AdminDashboardPage() {
       ) : null}
 
       {!stats && !error ? (
-        <p className="text-sm text-slate-500">Carregando…</p>
+        <p className="text-sm text-md-text-soft">Carregando…</p>
       ) : null}
 
       {stats ? (

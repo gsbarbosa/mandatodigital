@@ -43,9 +43,9 @@ O projeto Firebase e `madatodigital`.
 
 1. Upgrade do projeto para plano **Blaze** (pay-as-you-go):
    https://console.firebase.google.com/project/madatodigital/usage/details
-2. Firebase CLI logado: `firebase login`
+2. Firebase CLI logado: `firebase login` (so para secrets/rules/indexes locais)
 
-### Primeiro deploy
+### Bootstrap do backend (uma vez)
 
 ```bash
 # 1. Criar backend (regiao proxima ao Brasil)
@@ -65,28 +65,25 @@ npm run firebase:secrets:apply
 firebase apphosting:secrets:grantaccess \
   --backend mandatodigital \
   --project madatodigital
-
-# 4. Deploy
-npm run deploy:firebase
 ```
 
 A URL inicial fica no formato `mandatodigital--madatodigital.us-central1.hosted.app`.
 Depois conecte o dominio `madatodigital.web.app` no console (Hosting & Serverless → App Hosting → Domains).
 
-### Deploy automatico via GitHub
+### Deploy (somente via pipe)
 
-O backend `mandatodigital` ja existe. Para CI/CD nativo do App Hosting:
+Deploy do App Hosting e **apenas** pela integracao GitHub do Firebase App Hosting
+(ou CI equivalente). Fluxo normal: `commit` → `push` na branch conectada.
 
-1. Abra [App Hosting](https://console.firebase.google.com/project/madatodigital/apphosting) → backend **mandatodigital** → **Deployment** (ou Settings).
-2. Conecte o repositorio GitHub `gsbarbosa/mandatodigital` (instale o Firebase GitHub App se pedido).
-3. Configure:
-   - **Root directory:** `/` (raiz do repo)
-   - **Live branch:** `main`
-   - **Automatic rollouts:** ligado
-4. Push em `main` dispara build + rollout. Push em `staging` (ou qualquer outra branch) **nao** faz deploy.
+**Nunca** rode `firebase deploy --only apphosting` nem `npm run deploy:firebase`
+(o script foi removido). Deploy manual por source upload esta desabilitado
+(`alwaysDeployFromSource` removido do `firebase.json`).
 
-Deploy local de emergencia continua disponivel com `npm run deploy:firebase`
-(o `firebase.json` tem `alwaysDeployFromSource: true`).
+Scripts que **continuam** validos (nao sao App Hosting):
+
+- `npm run firebase:rules:deploy` — Firestore/Storage rules
+- `npm run firebase:indexes:deploy` — indexes Firestore
+- `npm run firebase:secrets:guide` / `--apply` — secrets do backend
 
 ### Firebase Auth — dominios autorizados
 

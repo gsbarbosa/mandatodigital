@@ -7,6 +7,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 
+import { AppearanceToggle } from "@/components/appearance-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import {
@@ -44,7 +45,7 @@ function LoginLoading({ message }: { message: string }) {
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/app";
+  const nextPath = searchParams.get("next") || "/monitoramento";
   const initialMode = searchParams.get("mode") === "signup" ? "signup" : "login";
 
   useEffect(() => {
@@ -194,6 +195,10 @@ export function LoginForm() {
 
       <div className="login-brand">
         <BrandLogo width={260} priority className="login-brand-logo" />
+      </div>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <AppearanceToggle />
       </div>
 
       <div className="login-social-group">

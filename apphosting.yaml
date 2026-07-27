@@ -5,7 +5,7 @@
 # 1. Upgrade do projeto madatodigital para plano Blaze (pay-as-you-go)
 # 2. Criar backend: firebase apphosting:backends:create --project madatodigital --primary-region us-central1
 # 3. Cadastrar secrets: npm run firebase:secrets:guide
-# 4. Deploy: npm run deploy:firebase
+# 4. Deploy: push na branch conectada ao App Hosting (pipe GitHub) — nunca firebase deploy --only apphosting
 
 runConfig:
   cpu: 2

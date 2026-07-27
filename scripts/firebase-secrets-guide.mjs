@@ -145,7 +145,8 @@ function main() {
   }
 
   console.log("\nProximo passo:");
-  console.log("  npm run deploy:firebase");
+  console.log("  Push na branch conectada ao App Hosting (pipe GitHub).");
+  console.log("  Nao rode firebase deploy --only apphosting localmente.");
 }
 
 main();

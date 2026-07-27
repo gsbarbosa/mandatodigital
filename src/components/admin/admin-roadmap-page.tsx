@@ -16,7 +16,7 @@ import {
 } from "@/lib/admin/roadmap-types";
 
 const STATUS_COLUMN_STYLE: Record<RoadmapStatus, string> = {
-  todo: "border-slate-700",
+  todo: "border-md-border",
   inprogress: "border-amber-500/40",
   done: "border-emerald-500/40",
 };
@@ -151,8 +151,8 @@ export function AdminRoadmapPage() {
     <div>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white">Roadmap</h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <h2 className="text-2xl font-bold text-md-text">Roadmap</h2>
+          <p className="mt-1 text-sm text-md-text-soft">
             Board compartilhado (Guga + Thiago). Edite status, validação e observações inline.
           </p>
         </div>
@@ -171,21 +171,21 @@ export function AdminRoadmapPage() {
           className="mb-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4"
         >
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500 md:col-span-2">
+            <label className="text-xs font-semibold uppercase tracking-wide text-md-text-soft md:col-span-2">
               Título
               <input
                 required
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/60"
+                className="mt-1.5 w-full rounded-xl border border-md-border bg-md-bg/60 px-3 py-2 text-sm text-md-text outline-none focus:border-cyan-500/60"
               />
             </label>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-wide text-md-text-soft">
               Seção
               <select
                 value={newSection}
                 onChange={(e) => setNewSection(e.target.value as RoadmapSection)}
-                className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none"
+                className="mt-1.5 w-full rounded-xl border border-md-border bg-md-bg/60 px-3 py-2 text-sm text-md-text outline-none"
               >
                 {ROADMAP_SECTIONS.map((section) => (
                   <option key={section} value={section}>
@@ -194,12 +194,12 @@ export function AdminRoadmapPage() {
                 ))}
               </select>
             </label>
-            <label className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-wide text-md-text-soft">
               Observação
               <input
                 value={newObservation}
                 onChange={(e) => setNewObservation(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/60"
+                className="mt-1.5 w-full rounded-xl border border-md-border bg-md-bg/60 px-3 py-2 text-sm text-md-text outline-none focus:border-cyan-500/60"
               />
             </label>
           </div>
@@ -239,24 +239,24 @@ export function AdminRoadmapPage() {
         {ROADMAP_STATUSES.map((status) => (
           <section
             key={status}
-            className={`rounded-2xl border bg-slate-950/40 ${STATUS_COLUMN_STYLE[status]}`}
+            className={`rounded-2xl border bg-md-bg/40 ${STATUS_COLUMN_STYLE[status]}`}
           >
-            <header className="flex items-center justify-between border-b border-slate-800/80 px-4 py-3">
-              <h3 className="text-sm font-semibold text-white">
+            <header className="flex items-center justify-between border-b border-md-border px-4 py-3">
+              <h3 className="text-sm font-semibold text-md-text">
                 {ROADMAP_STATUS_LABELS[status]}
               </h3>
-              <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs tabular-nums text-slate-300">
+              <span className="rounded-full bg-md-slate-800 px-2 py-0.5 text-xs tabular-nums text-md-text-muted">
                 {byStatus[status].length}
               </span>
             </header>
             <div className="flex flex-col gap-3 p-3">
               {byStatus[status].length === 0 ? (
-                <p className="px-1 py-6 text-center text-xs text-slate-600">Vazio</p>
+                <p className="px-1 py-6 text-center text-xs text-md-text-soft">Vazio</p>
               ) : null}
               {byStatus[status].map((task) => (
                 <article
                   key={task.id}
-                  className={`rounded-xl border border-slate-800 bg-[#0B1220] p-3 ${
+                  className={`rounded-xl border border-md-border bg-md-surface p-3 ${
                     savingId === task.id ? "opacity-60" : ""
                   }`}
                 >
@@ -269,7 +269,7 @@ export function AdminRoadmapPage() {
                       )
                     }
                     onBlur={(e) => void patchTask(task.id, { title: e.target.value })}
-                    className="w-full resize-none bg-transparent text-sm font-medium text-white outline-none"
+                    className="w-full resize-none bg-transparent text-sm font-medium text-md-text outline-none"
                   />
 
                   <div className="mt-2 grid gap-2">
@@ -278,7 +278,7 @@ export function AdminRoadmapPage() {
                       onChange={(e) =>
                         void patchTask(task.id, { status: e.target.value as RoadmapStatus })
                       }
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-200"
+                      className="w-full rounded-lg border border-md-border bg-md-bg/80 px-2 py-1.5 text-xs text-md-text"
                     >
                       {ROADMAP_STATUSES.map((value) => (
                         <option key={value} value={value}>
@@ -294,7 +294,7 @@ export function AdminRoadmapPage() {
                           validatedByThiago: e.target.value as RoadmapValidated,
                         })
                       }
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-200"
+                      className="w-full rounded-lg border border-md-border bg-md-bg/80 px-2 py-1.5 text-xs text-md-text"
                     >
                       {ROADMAP_VALIDATED.map((value) => (
                         <option key={value} value={value}>
@@ -308,7 +308,7 @@ export function AdminRoadmapPage() {
                       onChange={(e) =>
                         void patchTask(task.id, { section: e.target.value as RoadmapSection })
                       }
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-200"
+                      className="w-full rounded-lg border border-md-border bg-md-bg/80 px-2 py-1.5 text-xs text-md-text"
                     >
                       {ROADMAP_SECTIONS.map((value) => (
                         <option key={value} value={value}>
@@ -329,7 +329,7 @@ export function AdminRoadmapPage() {
                         )
                       }
                       onBlur={(e) => void patchTask(task.id, { observation: e.target.value })}
-                      className="w-full resize-none rounded-lg border border-slate-800 bg-slate-950/50 px-2 py-1.5 text-xs text-slate-300 outline-none focus:border-slate-600"
+                      className="w-full resize-none rounded-lg border border-md-border bg-md-bg/50 px-2 py-1.5 text-xs text-md-text-muted outline-none focus:border-md-border-hover"
                     />
                   </div>
 
@@ -366,7 +366,7 @@ function FilterChip({
       className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
         active
           ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-200"
-          : "border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200"
+          : "border-md-border text-md-text-soft hover:border-slate-500 hover:text-md-text"
       }`}
     >
       {label}

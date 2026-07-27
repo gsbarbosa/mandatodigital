@@ -24,12 +24,12 @@ function projectStatusBadge(status: CreativeProject["status"]) {
     case "ready":
       return {
         label: "Pronto",
-        className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+        className: "border-[var(--sentinela-border)] bg-emerald-500/10 text-[var(--sentinela-text)]",
       };
     case "generating":
       return {
         label: "Gerando",
-        className: "border-cyan-500/30 bg-cyan-500/10 text-cyan-300",
+        className: "border-cyan-500/30 bg-cyan-500/10 text-[var(--curador-text)]",
       };
     case "failed":
       return {
@@ -39,7 +39,7 @@ function projectStatusBadge(status: CreativeProject["status"]) {
     default:
       return {
         label: status,
-        className: "border-slate-600/40 bg-slate-800/60 text-slate-300",
+        className: "border-md-border bg-md-surface-inset text-md-text-muted",
       };
   }
 }
@@ -90,23 +90,23 @@ export function CriativoListPage() {
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
         <header className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl md:text-3xl font-bold text-md-text tracking-tight">
             Meus criativos
           </h1>
         </header>
 
-        <div className="mb-10 rounded-xl border border-slate-800 bg-slate-900/40 px-5 py-4">
-          <p className="text-sm leading-relaxed text-slate-300">
+        <div className="mb-10 rounded-xl border border-md-border bg-md-surface/40 px-5 py-4">
+          <p className="text-sm leading-relaxed text-md-text-muted">
             Histórico de vídeos produzidos com seus avatares. Para visualizá-los, clique em{" "}
-            <strong className="font-semibold text-slate-200">ver vídeo</strong>.
+            <strong className="font-semibold text-md-text">ver vídeo</strong>.
           </p>
         </div>
 
-        <section className="bg-gradient-to-b from-slate-900/50 to-slate-900/20 backdrop-blur-xl border border-slate-800 rounded-[1.75rem] p-6 md:p-8 shadow-xl">
-          <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-6">
-            <h2 className="text-lg font-semibold text-white">Criativos gerados</h2>
+        <section className="bg-gradient-to-b from-md-surface/50 to-md-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl">
+          <div className="flex items-center justify-between gap-4 border-b border-md-border pb-4 mb-6">
+            <h2 className="text-lg font-semibold text-md-text">Criativos gerados</h2>
             {!isLoading ? (
-              <span className="text-xs font-medium text-slate-500">
+              <span className="text-xs font-medium text-md-text-soft">
                 {projects.length} {projects.length === 1 ? "item" : "itens"}
               </span>
             ) : null}
@@ -120,19 +120,19 @@ export function CriativoListPage() {
 
           {isLoading ? (
             <div
-              className="flex items-start gap-3 rounded-xl border border-cyan-500/20 bg-cyan-950/20 px-5 py-4"
+              className="flex items-start gap-3 rounded-xl border border-cyan-500/20 bg-[var(--curador-soft)] px-5 py-4"
               role="status"
             >
               <span
-                className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-400"
+                className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-md-border border-t-[var(--curador)]"
                 aria-hidden="true"
               />
-              <p className="text-sm text-slate-300">Carregando criativos…</p>
+              <p className="text-sm text-md-text-muted">Carregando criativos…</p>
             </div>
           ) : null}
 
           {!isLoading && !loadError && projects.length === 0 ? (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-md-text-soft">
               Nenhum vídeo no histórico ainda. Os criativos produzidos com seus avatares aparecerão
               aqui.
             </p>
@@ -146,13 +146,13 @@ export function CriativoListPage() {
                 return (
                   <li
                     key={project.id}
-                    className="rounded-xl border border-slate-800 bg-[#0E1321]/80 p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                    className="rounded-xl border border-md-border bg-md-surface-inset/80 p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-base font-semibold text-white truncate">
+                      <p className="text-base font-semibold text-md-text truncate">
                         {formatCreativeProjectTitle(project)}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-md-text-soft">
                         <span>{formatProjectDate(project.createdAt)}</span>
                         <span
                           className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${status.className}`}
@@ -161,7 +161,7 @@ export function CriativoListPage() {
                         </span>
                       </div>
                       {project.personaArchetypes.length > 0 ? (
-                        <p className="mt-2 text-xs text-slate-500">
+                        <p className="mt-2 text-xs text-md-text-soft">
                           {project.personaArchetypes.join(", ")}
                           {project.voiceTones.length > 0
                             ? ` · ${project.voiceTones.join(", ")}`
@@ -181,14 +181,14 @@ export function CriativoListPage() {
                               projectId: project.id,
                             })
                           }
-                          className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all hover:from-cyan-400 hover:to-blue-500"
+                          className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-md-text no-underline shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all hover:from-cyan-400 hover:to-blue-500"
                         >
                           Ver vídeo
                         </button>
                         {project.captionUrl ? (
                           <button
                             type="button"
-                            className="inline bg-transparent p-0 text-xs text-cyan-400 hover:text-cyan-300 hover:underline"
+                            className="inline bg-transparent p-0 text-xs text-[var(--curador-text)] hover:text-[var(--curador-text)] hover:underline"
                             onClick={() =>
                               void navigator.clipboard.writeText(
                                 withTseCaptionTag(project.captionUrl!),

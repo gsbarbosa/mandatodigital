@@ -30,13 +30,13 @@ const ACCENT: Record<
   }
 > = {
   slate: {
-    name: "text-white",
-    currency: "text-slate-400",
-    total: "text-white",
+    name: "text-md-text",
+    currency: "text-md-text-soft",
+    total: "text-md-text",
     check: "text-cyan-500",
     hoverBorder: "hover:!border-slate-300",
     hoverGlow: "hover:!shadow-[0_0_40px_rgba(255,255,255,0.18)]",
-    colSoft: "bg-slate-900/20",
+    colSoft: "bg-md-surface/20",
   },
   cyan: {
     name: "text-cyan-400",
@@ -76,10 +76,10 @@ function PlanFeature({
       <span className={`mt-[1.5px] block text-base font-bold leading-[1.5] ${checkClass}`} aria-hidden>
         ✓
       </span>
-      <p className="m-0 text-sm leading-[1.5] text-slate-300">
+      <p className="m-0 text-sm leading-[1.5] text-md-text-muted">
         {feature.strongPrefix ? (
           <>
-            <strong className="font-semibold text-white">{feature.strongPrefix}</strong>{" "}
+            <strong className="font-semibold text-md-text">{feature.strongPrefix}</strong>{" "}
             {feature.text}
           </>
         ) : (
@@ -95,7 +95,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
 
   return (
     <article
-      className={`relative flex h-full flex-col justify-between rounded-[1.75rem] border border-slate-800 bg-slate-900/30 p-8 shadow-xl backdrop-blur-xl transition-all duration-300 group-hover:scale-[0.98] group-hover:opacity-70 hover:!z-30 hover:!scale-105 hover:!opacity-100 md:p-10 ${a.hoverBorder} ${a.hoverGlow}`}
+      className={`relative flex h-full flex-col justify-between rounded-[1.75rem] border border-md-border bg-md-surface/30 p-8 shadow-xl backdrop-blur-xl transition-all duration-300 group-hover:scale-[0.98] group-hover:opacity-70 hover:!z-30 hover:!scale-105 hover:!opacity-100 md:p-10 ${a.hoverBorder} ${a.hoverGlow}`}
     >
       {plan.badge ? (
         <div className="absolute -top-4 left-0 right-0 flex justify-center">
@@ -109,18 +109,18 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
         <h3 className={`mb-8 text-2xl font-bold tracking-tight ${a.name}`}>{plan.name}</h3>
 
         <div className="mb-8">
-          <div className="mb-1 flex items-center gap-2 text-sm font-medium text-slate-500">
+          <div className="mb-1 flex items-center gap-2 text-sm font-medium text-md-text-soft">
             <span className="line-through">{plan.originalPriceLabel}</span>
             <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs font-bold tracking-wider text-emerald-400">
               50% OFF
             </span>
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="mr-1 text-xl font-bold tracking-wide text-slate-200">
+            <span className="mr-1 text-xl font-bold tracking-wide text-md-text">
               {plan.installmentPrefix}
             </span>
             <span className={`text-xl font-medium ${a.currency}`}>R$</span>
-            <span className="text-5xl font-extrabold tracking-tight text-white">
+            <span className="text-5xl font-extrabold tracking-tight text-md-text">
               {plan.installmentValue}
             </span>
           </div>
@@ -129,7 +129,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
           </p>
         </div>
 
-        <ul className="space-y-4 border-t border-slate-800/60 pt-6">
+        <ul className="space-y-4 border-t border-md-border-soft pt-6">
           {plan.features.map((feature) => (
             <PlanFeature
               key={`${plan.id}-${feature.strongPrefix ?? ""}${feature.text}`}
@@ -144,8 +144,8 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
         <div
           className={`mb-4 flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 ${
             plan.restrictionTone === "safe"
-              ? "border-slate-700/60 bg-[#131C2D]"
-              : "border-red-900/40 bg-[#2A151C]"
+              ? "border-md-border/60 bg-md-slate-900"
+              : "border-red-900/40 bg-red-950/40"
           }`}
         >
           {plan.restrictionTone === "safe" ? (
@@ -171,7 +171,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
           )}
           <span
             className={`text-[11px] font-medium sm:text-xs ${
-              plan.restrictionTone === "safe" ? "text-slate-300" : "text-red-400"
+              plan.restrictionTone === "safe" ? "text-md-text-muted" : "text-red-400"
             }`}
           >
             {plan.restriction}
@@ -180,7 +180,7 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
 
         <MarketingReserveButton
           planId={plan.id}
-          className={`w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-4 text-center text-sm font-semibold text-white shadow-md transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-600 ${
+          className={`w-full rounded-xl border border-md-border bg-md-slate-800 px-4 py-4 text-center text-sm font-semibold text-md-text shadow-md transition hover:bg-md-overlay-hover focus:outline-none focus:ring-2 focus:ring-slate-600 ${
             plan.accent === "cyan"
               ? "hover:border-cyan-500/40 hover:bg-cyan-900/60 focus:ring-cyan-500"
               : plan.accent === "purple"
@@ -207,7 +207,7 @@ function ComparisonCell({ value, accent }: { value: string; accent: PricingAccen
       ) : isCheck ? (
         <span className="text-xs font-semibold text-emerald-400">{value}</span>
       ) : isCross ? (
-        <span className="text-xs font-normal text-slate-400">{value}</span>
+        <span className="text-xs font-normal text-md-text-soft">{value}</span>
       ) : (
         <span
           className={`text-xs ${
@@ -215,7 +215,7 @@ function ComparisonCell({ value, accent }: { value: string; accent: PricingAccen
               ? "font-semibold text-cyan-400"
               : accent === "purple"
                 ? "font-semibold text-purple-400"
-                : "font-normal text-slate-300"
+                : "font-normal text-md-text-muted"
           }`}
         >
           {value}
@@ -245,10 +245,10 @@ function TitleAccent({
 export function MarketingPricingPage() {
   return (
     <>
-      <div className="relative z-50 border-b border-cyan-500/30 bg-gradient-to-r from-blue-900/50 via-cyan-900/50 to-blue-900/50 px-4 py-2 text-center backdrop-blur-sm">
-        <p className="m-0 text-xs font-medium text-slate-200 md:text-sm">
-          Planos com <span className="font-bold text-white">vagas limitadas</span> por Lote e preço
-          promocional com <span className="font-bold text-cyan-400">50% off</span>.
+      <div className="relative z-50 border-b border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-sky-500/10 to-cyan-500/10 px-4 py-2 text-center backdrop-blur-sm">
+        <p className="m-0 text-xs font-medium text-md-text md:text-sm">
+          Planos com <span className="font-bold text-md-text">vagas limitadas</span> por Lote e preço
+          promocional com <span className="font-bold text-[var(--sentinela-text)]">50% off</span>.
         </p>
         <span className="sr-only">{pricingUrgencyBanner}</span>
       </div>
@@ -271,7 +271,7 @@ export function MarketingPricingPage() {
       <div className="mx-auto max-w-xl px-4 pb-8 sm:px-6">
         <Link
           href={pricingComplianceCta.href}
-          className="group flex w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-emerald-500 bg-gradient-to-b from-[#05131A] to-[#040D14] px-6 py-4 text-center no-underline shadow-[0_0_30px_rgba(16,185,129,0.15)] transition hover:border-emerald-400 hover:from-[#071B26] hover:to-[#05121D]"
+          className="group flex w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-emerald-500 bg-gradient-to-b from-md-bg to-md-bg px-6 py-4 text-center no-underline shadow-[0_0_30px_rgba(16,185,129,0.15)] transition hover:border-emerald-400 hover:from-md-surface hover:to-md-bg"
         >
           <span className="flex items-center justify-center gap-2 text-base font-extrabold uppercase tracking-wider text-emerald-500 sm:text-lg">
             <IconShieldCheck size={20} />
@@ -284,7 +284,7 @@ export function MarketingPricingPage() {
       </div>
 
       <MarketingSection className="!border-t-0">
-        <div className="rounded-[2rem] border border-slate-800/80 bg-[#0B101A] p-8 shadow-2xl md:p-12">
+        <div className="rounded-[2rem] border border-md-border bg-md-surface p-8 shadow-2xl md:p-12">
           <div className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-500">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -304,14 +304,14 @@ export function MarketingPricingPage() {
             {pricingRestriction.eyebrow}
           </div>
 
-          <h2 className="mb-4 text-2xl font-bold leading-tight tracking-tight text-white md:text-3xl">
+          <h2 className="mb-4 text-2xl font-bold leading-tight tracking-tight text-md-text md:text-3xl">
             <TitleAccent
               lead={pricingRestriction.titleLead}
               accent={pricingRestriction.titleAccent}
               tail={pricingRestriction.titleTail}
             />
           </h2>
-          <p className="mb-8 max-w-4xl text-sm leading-relaxed text-slate-400 md:text-base">
+          <p className="mb-8 max-w-4xl text-sm leading-relaxed text-md-text-soft md:text-base">
             {pricingRestriction.body}
           </p>
 
@@ -321,8 +321,8 @@ export function MarketingPricingPage() {
                 key={lot.number}
                 className={`relative flex flex-col justify-between overflow-hidden rounded-2xl border p-6 ${
                   lot.tone === "active"
-                    ? "border-cyan-500/60 bg-gradient-to-br from-[#131C2D] to-[#0A1628]"
-                    : "border-slate-800/80 bg-[#0F1623]"
+                    ? "border-cyan-500/60 bg-gradient-to-br from-md-slate-900 to-md-bg"
+                    : "border-md-border bg-md-surface"
                 }`}
               >
                 <div
@@ -340,20 +340,20 @@ export function MarketingPricingPage() {
                       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                         lot.tone === "active"
                           ? "bg-cyan-500/20 text-cyan-400"
-                          : "bg-slate-800 text-slate-400"
+                          : "bg-md-slate-800 text-md-text-soft"
                       }`}
                     >
                       {lot.number}
                     </div>
-                    <h3 className="text-base font-bold text-white">{lot.title}</h3>
+                    <h3 className="text-base font-bold text-md-text">{lot.title}</h3>
                   </div>
-                  <p className="mb-4 text-sm leading-relaxed text-slate-300">{lot.body}</p>
+                  <p className="mb-4 text-sm leading-relaxed text-md-text-muted">{lot.body}</p>
                 </div>
                 <p
                   className={`mt-2 border-t pt-2.5 text-xs font-medium leading-tight ${
                     lot.tone === "active"
                       ? "border-cyan-500/20 text-cyan-500/90"
-                      : "border-slate-800 text-slate-500"
+                      : "border-md-border text-md-text-soft"
                   }`}
                 >
                   {lot.footnote}
@@ -362,11 +362,11 @@ export function MarketingPricingPage() {
             ))}
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-8 border-t border-slate-800/60 pt-8 md:grid-cols-3">
+          <div className="mt-8 grid grid-cols-1 gap-8 border-t border-md-border-soft pt-8 md:grid-cols-3">
             {pricingRestriction.footnotes.map((note) => (
               <div key={note.title}>
-                <h4 className="mb-2 text-xs font-bold text-white">{note.title}</h4>
-                <p className="text-xs leading-relaxed text-slate-500">{note.body}</p>
+                <h4 className="mb-2 text-xs font-bold text-md-text">{note.title}</h4>
+                <p className="text-xs leading-relaxed text-md-text-soft">{note.body}</p>
               </div>
             ))}
           </div>
@@ -379,13 +379,13 @@ export function MarketingPricingPage() {
         align="center"
         className="!border-t-0 !pt-8"
       >
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/20 shadow-2xl backdrop-blur-sm">
+        <div className="overflow-hidden rounded-2xl border border-md-border bg-md-surface/20 shadow-2xl backdrop-blur-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-left">
               <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/80 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                <tr className="border-b border-md-border bg-md-bg/80 text-[11px] font-bold uppercase tracking-widest text-md-text-soft">
                   <th className="w-2/5 px-6 py-5">Serviço / Funcionalidade</th>
-                  <th className="w-1/5 bg-slate-900/30 px-4 py-5 text-center text-white">
+                  <th className="w-1/5 bg-md-surface/30 px-4 py-5 text-center text-md-text">
                     Essencial
                   </th>
                   <th className="w-1/5 bg-cyan-950/10 px-4 py-5 text-center text-cyan-400">
@@ -396,26 +396,26 @@ export function MarketingPricingPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/40 text-xs text-slate-300 md:text-sm">
+              <tbody className="divide-y divide-md-border/40 text-xs text-md-text-muted md:text-sm">
                 {pricingComparison.rows.map((row) => (
                   <Fragment key={row.label}>
                     {row.section ? (
-                      <tr className="bg-slate-950/50 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      <tr className="bg-md-bg/50 text-[10px] font-bold uppercase tracking-widest text-md-text-soft">
                         <td colSpan={4} className="px-6 py-3 text-cyan-500">
                           {row.section}
                         </td>
                       </tr>
                     ) : null}
-                    <tr className="transition-colors hover:bg-slate-800/20">
-                      <td className="px-6 py-3.5 font-medium text-slate-200">{row.label}</td>
+                    <tr className="transition-colors hover:bg-md-overlay-hover/20">
+                      <td className="px-6 py-3.5 font-medium text-md-text">{row.label}</td>
                       <ComparisonCell value={row.values[0]} accent="slate" />
                       <ComparisonCell value={row.values[1]} accent="cyan" />
                       <ComparisonCell value={row.values[2]} accent="purple" />
                     </tr>
                   </Fragment>
                 ))}
-                <tr className="border-t-2 border-slate-800 bg-slate-950/90">
-                  <td className="px-6 py-6 text-xs font-bold text-white md:text-sm">
+                <tr className="border-t-2 border-md-border bg-md-bg/90">
+                  <td className="px-6 py-6 text-xs font-bold text-md-text md:text-sm">
                     Concluir reserva VIP no respectivo plano:
                   </td>
                   {pricingPlans.map((plan) => (
@@ -425,12 +425,12 @@ export function MarketingPricingPage() {
                     >
                       <MarketingReserveButton
                         planId={plan.id}
-                        className={`block w-full rounded-xl border px-2 py-3.5 text-xs font-semibold text-white shadow transition ${
+                        className={`block w-full rounded-xl border px-2 py-3.5 text-xs font-semibold text-md-text shadow transition ${
                           plan.id === "avancado"
                             ? "border-transparent bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:from-cyan-400 hover:to-blue-500"
                             : plan.id === "elite"
-                              ? "border-purple-500/30 bg-slate-800 hover:bg-purple-900/60"
-                              : "border-slate-700 bg-slate-800 hover:bg-slate-700"
+                              ? "border-purple-500/30 bg-md-slate-800 hover:bg-purple-900/60"
+                              : "border-md-border bg-md-slate-800 hover:bg-md-overlay-hover"
                         }`}
                       >
                         Reservar {plan.name}
@@ -443,7 +443,7 @@ export function MarketingPricingPage() {
           </div>
         </div>
 
-        <p className="mt-10 text-center text-sm font-semibold tracking-wide text-slate-500">
+        <p className="mt-10 text-center text-sm font-semibold tracking-wide text-md-text-soft">
           {pricingFooterNote}
         </p>
       </MarketingSection>

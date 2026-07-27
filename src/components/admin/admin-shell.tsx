@@ -5,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import type { Route } from "next";
 import type { ReactNode } from "react";
 
+import { AppearanceToggle } from "@/components/appearance-toggle";
+
 const NAV: Array<{ href: Route; label: string; exact?: boolean }> = [
   { href: "/admin" as Route, label: "Dashboard", exact: true },
   { href: "/admin/roadmap" as Route, label: "Roadmap" },
@@ -30,14 +32,14 @@ export function AdminShell({
   }
 
   return (
-    <div className="min-h-screen bg-[#070B14] text-slate-100">
+    <div className="min-h-screen bg-md-bg text-md-text">
       <div className="flex min-h-screen">
-        <aside className="flex w-60 shrink-0 flex-col border-r border-slate-800/80 bg-[#0B1220] px-4 py-6">
+        <aside className="flex w-60 shrink-0 flex-col border-r border-md-border bg-md-surface px-4 py-6">
           <div className="mb-8 px-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-400/80">
               Mandato Digital
             </p>
-            <h1 className="mt-1 text-lg font-bold text-white">Painel de gestão</h1>
+            <h1 className="mt-1 text-lg font-bold text-md-text">Painel de gestão</h1>
           </div>
 
           <nav className="flex flex-1 flex-col gap-1">
@@ -51,8 +53,8 @@ export function AdminShell({
                   href={item.href}
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                     active
-                      ? "bg-cyan-500/15 text-cyan-200"
-                      : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                      ? "bg-cyan-500/15 text-cyan-400"
+                      : "text-md-text-soft hover:bg-md-overlay-hover hover:text-md-text"
                   }`}
                 >
                   {item.label}
@@ -61,12 +63,13 @@ export function AdminShell({
             })}
           </nav>
 
-          <div className="mt-6 border-t border-slate-800/80 pt-4 px-2">
-            <p className="truncate text-xs text-slate-500">{email}</p>
+          <div className="mt-6 border-t border-md-border pt-4 px-2 space-y-3">
+            <AppearanceToggle />
+            <p className="truncate text-xs text-md-text-soft">{email}</p>
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="mt-2 text-left text-sm text-slate-400 underline-offset-2 hover:text-white hover:underline"
+              className="mt-2 text-left text-sm text-md-text-soft underline-offset-2 hover:text-md-text hover:underline"
             >
               Sair
             </button>

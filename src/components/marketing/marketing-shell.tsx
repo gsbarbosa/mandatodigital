@@ -9,7 +9,7 @@ export async function MarketingShell({ children }: { children: ReactNode }) {
   const sessionUser = isFirebaseAuthConfigured() ? await getSessionUser() : null;
 
   return (
-    <div className="marketing-shell min-h-screen overflow-x-hidden bg-[#020617] text-slate-100">
+    <div className="marketing-shell min-h-screen overflow-x-hidden bg-md-bg text-md-text">
       <MarketingHeader isAuthenticated={Boolean(sessionUser)} />
       <main>{children}</main>
       <MarketingFooter />

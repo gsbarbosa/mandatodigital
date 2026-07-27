@@ -8,9 +8,15 @@ export function MarketingEcosystemPage() {
     <>
       <MarketingSection
         eyebrow={ecosystemIntro.eyebrow}
-        title={ecosystemIntro.title}
+        title={
+          <>
+            Cinco agentes. Uma <span className="text-emerald-400">linha de montagem eleitoral</span>.
+          </>
+        }
         titleAs="h1"
         lead={ecosystemIntro.body}
+        wideTitle
+        wideLead
         className="!border-t-0"
       />
 

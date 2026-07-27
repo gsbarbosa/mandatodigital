@@ -8,8 +8,6 @@ type RefreshPautasButtonProps = {
   disabled?: boolean;
   variant?: "persona" | "monitor";
   className?: string;
-  /** Ex.: "3/5 créditos" na versão convidado. */
-  creditsLabel?: string;
 };
 
 export function RefreshPautasButton({
@@ -18,7 +16,6 @@ export function RefreshPautasButton({
   disabled = false,
   variant = "persona",
   className = "",
-  creditsLabel,
 }: RefreshPautasButtonProps) {
   const [pending, setPending] = useState(false);
   const busy = isLoading || pending;
@@ -52,7 +49,7 @@ export function RefreshPautasButton({
       disabled={busy || disabled}
       aria-busy={busy}
       aria-live="polite"
-      title={creditsLabel ? `Atualizar pautas (${creditsLabel})` : "Atualizar pautas"}
+      title="Atualizar pautas"
     >
       <span className="refresh-pautas-btn__content">
         {busy ? (
@@ -61,12 +58,7 @@ export function RefreshPautasButton({
             Atualizando pautas...
           </span>
         ) : (
-          <>
-            Atualizar pautas
-            {creditsLabel ? (
-              <span className="ml-1.5 text-[11px] font-medium opacity-80">({creditsLabel})</span>
-            ) : null}
-          </>
+          "Atualizar pautas"
         )}
       </span>
       {busy ? <span className="refresh-pautas-btn__progress" aria-hidden="true" /> : null}

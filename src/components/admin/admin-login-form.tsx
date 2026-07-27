@@ -4,6 +4,8 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+import { AppearanceToggle } from "@/components/appearance-toggle";
+
 export function AdminLoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("admin@mandatodigital.com.br");
@@ -35,20 +37,23 @@ export function AdminLoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#070B14] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-md-bg px-4">
       <form
         onSubmit={(e) => void onSubmit(e)}
-        className="w-full max-w-md rounded-2xl border border-slate-800 bg-[#0B1220] p-8 shadow-2xl"
+        className="w-full max-w-md rounded-2xl border border-md-border bg-md-surface p-8 shadow-2xl"
       >
+        <div className="mb-4">
+          <AppearanceToggle />
+        </div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-400/80">
           Mandato Digital
         </p>
-        <h1 className="mt-2 text-2xl font-bold text-white">Painel de gestão</h1>
-        <p className="mt-2 text-sm text-slate-400">
+        <h1 className="mt-2 text-2xl font-bold text-md-text">Painel de gestão</h1>
+        <p className="mt-2 text-sm text-md-text-soft">
           Acesso compartilhado (Guga / Thiago). Conta administrativa estática.
         </p>
 
-        <label className="mt-6 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <label className="mt-6 block text-xs font-semibold uppercase tracking-wide text-md-text-soft">
           E-mail
           <input
             type="email"
@@ -56,11 +61,11 @@ export function AdminLoginForm() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500/60"
+            className="mt-2 w-full rounded-xl border border-md-border bg-md-surface-inset px-3 py-2.5 text-sm text-md-text outline-none focus:border-cyan-500/60"
           />
         </label>
 
-        <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+        <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-md-text-soft">
           Senha
           <input
             type="password"
@@ -68,7 +73,7 @@ export function AdminLoginForm() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500/60"
+            className="mt-2 w-full rounded-xl border border-md-border bg-md-surface-inset px-3 py-2.5 text-sm text-md-text outline-none focus:border-cyan-500/60"
           />
         </label>
 

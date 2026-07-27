@@ -36,12 +36,12 @@ function MetricCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 px-4 py-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+    <div className="rounded-2xl border border-md-border bg-md-surface/40 px-4 py-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-md-text-soft">
         {label}
       </p>
-      <p className="mt-2 text-2xl font-bold text-white tabular-nums">{value}</p>
-      {hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
+      <p className="mt-2 text-2xl font-bold text-md-text tabular-nums">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-md-text-soft">{hint}</p> : null}
     </div>
   );
 }
@@ -56,23 +56,23 @@ function DayBars({
   const max = Math.max(1, ...items.map((item) => item.count));
 
   if (items.length === 0) {
-    return <p className="text-sm text-slate-500">{emptyLabel}</p>;
+    return <p className="text-sm text-md-text-soft">{emptyLabel}</p>;
   }
 
   return (
     <div className="space-y-2">
       {items.slice(-14).map((item) => (
         <div key={item.day} className="flex items-center gap-3">
-          <span className="w-24 shrink-0 text-xs tabular-nums text-slate-400">
+          <span className="w-24 shrink-0 text-xs tabular-nums text-md-text-soft">
             {item.day}
           </span>
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-800">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-md-slate-800">
             <div
               className="h-full rounded-full bg-cyan-500/80"
               style={{ width: `${Math.max(8, (item.count / max) * 100)}%` }}
             />
           </div>
-          <span className="w-8 text-right text-xs tabular-nums text-slate-300">
+          <span className="w-8 text-right text-xs tabular-nums text-md-text-muted">
             {item.count}
           </span>
         </div>
@@ -180,20 +180,20 @@ export function AuditoriaPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-[51px] md:px-6 md:pt-[77px] lg:px-8">
       <header className="mb-8 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400/90">
+        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--curador-text)]">
           Conta
         </p>
-        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-md-text md:text-3xl">
           Auditoria
         </h1>
-        <p className="max-w-2xl text-sm text-slate-400">
+        <p className="max-w-2xl text-sm text-md-text-soft">
           Relatorios da sua conta: acessos, volumes de conteudo, operacao dos agentes e
           trilha de acoes com User ID, IP e horario em America/Sao_Paulo.
         </p>
-        <p className="text-xs text-slate-500">{periodHint}</p>
+        <p className="text-xs text-md-text-soft">{periodHint}</p>
       </header>
 
-      <div className="mb-6 flex flex-wrap gap-2 border-b border-slate-800 pb-3">
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-md-border pb-3">
         {TABS.map((item) => {
           const active = tab === item.id;
           return (
@@ -203,8 +203,8 @@ export function AuditoriaPage() {
               onClick={() => setTab(item.id)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
                 active
-                  ? "bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/40"
-                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                  ? "bg-cyan-500/15 text-[var(--curador-text)] ring-1 ring-cyan-500/40"
+                  : "text-md-text-soft hover:bg-md-overlay-hover hover:text-md-text"
               }`}
             >
               {item.label}
@@ -222,7 +222,7 @@ export function AuditoriaPage() {
       {tab === "acessos" ? (
         <section className="space-y-6">
           {isLoadingSummary ? (
-            <p className="text-sm text-slate-500">Carregando acessos…</p>
+            <p className="text-sm text-md-text-soft">Carregando acessos…</p>
           ) : (
             <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -249,8 +249,8 @@ export function AuditoriaPage() {
                 />
               </div>
               <div className="grid gap-6 lg:grid-cols-2">
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-4">
-                  <h2 className="mb-3 text-sm font-semibold text-white">
+                <div className="rounded-2xl border border-md-border bg-md-surface/30 p-4">
+                  <h2 className="mb-3 text-sm font-semibold text-md-text">
                     Logins por dia
                   </h2>
                   <DayBars
@@ -258,8 +258,8 @@ export function AuditoriaPage() {
                     emptyLabel="Nenhum login registrado no periodo."
                   />
                 </div>
-                <div className="rounded-2xl border border-slate-800/80 bg-slate-900/30 p-4">
-                  <h2 className="mb-3 text-sm font-semibold text-white">
+                <div className="rounded-2xl border border-md-border bg-md-surface/30 p-4">
+                  <h2 className="mb-3 text-sm font-semibold text-md-text">
                     Acoes por dia
                   </h2>
                   <DayBars
@@ -276,7 +276,7 @@ export function AuditoriaPage() {
       {tab === "volumes" ? (
         <section className="space-y-4">
           {isLoadingSummary ? (
-            <p className="text-sm text-slate-500">Carregando volumes…</p>
+            <p className="text-sm text-md-text-soft">Carregando volumes…</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <MetricCard
@@ -311,7 +311,7 @@ export function AuditoriaPage() {
       {tab === "agentes" ? (
         <section className="space-y-6">
           {isLoadingSummary ? (
-            <p className="text-sm text-slate-500">Carregando metricas…</p>
+            <p className="text-sm text-md-text-soft">Carregando metricas…</p>
           ) : (
             <>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -334,9 +334,9 @@ export function AuditoriaPage() {
                   }
                 />
               </div>
-              <div className="overflow-x-auto rounded-2xl border border-slate-800/80">
+              <div className="overflow-x-auto rounded-2xl border border-md-border">
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wider text-slate-500">
+                  <thead className="bg-md-surface/80 text-xs uppercase tracking-wider text-md-text-soft">
                     <tr>
                       <th className="px-4 py-3 font-semibold">Tipo</th>
                       <th className="px-4 py-3 font-semibold">Status</th>
@@ -344,17 +344,17 @@ export function AuditoriaPage() {
                       <th className="px-4 py-3 font-semibold">Latencia media</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/80">
+                  <tbody className="divide-y divide-md-border/80">
                     {(summary?.agents.jobsByTypeStatus ?? []).length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="px-4 py-6 text-slate-500">
+                        <td colSpan={4} className="px-4 py-6 text-md-text-soft">
                           Nenhum job no periodo.
                         </td>
                       </tr>
                     ) : (
                       summary?.agents.jobsByTypeStatus.map((row) => (
-                        <tr key={`${row.type}-${row.status}`} className="text-slate-300">
-                          <td className="px-4 py-3 font-medium text-white">{row.type}</td>
+                        <tr key={`${row.type}-${row.status}`} className="text-md-text-muted">
+                          <td className="px-4 py-3 font-medium text-md-text">{row.type}</td>
                           <td className="px-4 py-3">{row.status}</td>
                           <td className="px-4 py-3 tabular-nums">{row.count}</td>
                           <td className="px-4 py-3 tabular-nums">
@@ -376,10 +376,10 @@ export function AuditoriaPage() {
       {tab === "logs" ? (
         <section className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
-            <label className="text-sm text-slate-400">
+            <label className="text-sm text-md-text-soft">
               Acao
               <select
-                className="ml-2 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-200"
+                className="ml-2 rounded-lg border border-md-border bg-md-surface px-2 py-1.5 text-sm text-md-text"
                 value={actionFilter}
                 onChange={(event) => setActionFilter(event.target.value)}
               >
@@ -394,15 +394,15 @@ export function AuditoriaPage() {
             <button
               type="button"
               onClick={() => void loadLogs()}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-cyan-500/40 hover:text-cyan-300"
+              className="rounded-lg border border-md-border px-3 py-1.5 text-sm text-md-text-muted hover:border-cyan-500/40 hover:text-[var(--curador-text)]"
             >
               Atualizar
             </button>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-800/80">
+          <div className="overflow-x-auto rounded-2xl border border-md-border">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-900/80 text-xs uppercase tracking-wider text-slate-500">
+              <thead className="bg-md-surface/80 text-xs uppercase tracking-wider text-md-text-soft">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Data / hora</th>
                   <th className="px-4 py-3 font-semibold">Acao</th>
@@ -411,20 +411,20 @@ export function AuditoriaPage() {
                   <th className="px-4 py-3 font-semibold">Detalhe</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-md-border/80">
                 {logs.length === 0 && !isLoadingLogs ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-6 text-slate-500">
+                    <td colSpan={5} className="px-4 py-6 text-md-text-soft">
                       Nenhum log encontrado.
                     </td>
                   </tr>
                 ) : (
                   logs.map((row) => (
-                    <tr key={row.id} className="align-top text-slate-300">
-                      <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-400">
+                    <tr key={row.id} className="align-top text-md-text-muted">
+                      <td className="px-4 py-3 whitespace-nowrap text-xs text-md-text-soft">
                         {row.timestampLocal}
                       </td>
-                      <td className="px-4 py-3 font-medium text-white">
+                      <td className="px-4 py-3 font-medium text-md-text">
                         {auditActionLabel(row.action || row.eventType)}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs">{row.ip}</td>
@@ -434,7 +434,7 @@ export function AuditoriaPage() {
                       >
                         {truncateId(row.ownerUserId)}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-400">
+                      <td className="px-4 py-3 text-xs text-md-text-soft">
                         <pre className="max-w-xs overflow-x-auto whitespace-pre-wrap break-all">
                           {JSON.stringify(row.payload)}
                         </pre>
@@ -451,7 +451,7 @@ export function AuditoriaPage() {
               type="button"
               disabled={isLoadingLogs}
               onClick={() => void loadLogs({ append: true, cursor: nextCursor })}
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:border-cyan-500/40 disabled:opacity-50"
+              className="rounded-lg border border-md-border px-4 py-2 text-sm text-md-text-muted hover:border-cyan-500/40 disabled:opacity-50"
             >
               {isLoadingLogs ? "Carregando…" : "Carregar mais"}
             </button>

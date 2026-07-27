@@ -35,37 +35,20 @@ function CloseIcon() {
   );
 }
 
-function ChatIcon() {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-    </svg>
-  );
-}
-
 function statusHeader(status: SupportThreadStatus | null | undefined): {
   label: string;
   className: string;
 } {
   if (status === "waiting_human") {
-    return { label: "Aguardando atendimento", className: "text-amber-300" };
+    return { label: "Aguardando atendimento", className: "text-[var(--distribuidor-text)]" };
   }
   if (status === "human") {
     return { label: "Em atendimento", className: "text-emerald-300" };
   }
   if (status === "closed") {
-    return { label: "Encerrado", className: "text-slate-500" };
+    return { label: "Encerrado", className: "text-md-text-soft" };
   }
-  return { label: "Online", className: "text-cyan-400" };
+  return { label: "Online", className: "text-[var(--curador-text)]" };
 }
 
 function statusBanner(status: SupportThreadStatus): string | null {
@@ -86,9 +69,9 @@ function bubbleClass(role: SupportMessage["role"]) {
     return "ml-8 bg-cyan-600/25 text-cyan-50 border border-cyan-500/30 rounded-2xl rounded-br-md";
   }
   if (role === "system") {
-    return "mx-2 bg-slate-800/80 text-slate-400 border border-slate-700 text-center text-[12px] rounded-xl";
+    return "mx-2 bg-md-surface-inset text-md-text-soft border border-md-border text-center text-[12px] rounded-xl";
   }
-  return "mr-8 bg-slate-800/90 text-slate-200 border border-slate-700 rounded-2xl rounded-bl-md";
+  return "mr-8 bg-md-surface-inset text-md-text border border-md-border rounded-2xl rounded-bl-md";
 }
 
 function TypingDots() {
@@ -104,10 +87,7 @@ function TypingDots() {
 const WELCOME_BODY =
   "Olá! Como podemos ajudar com o Mandato Digital? Pode perguntar sobre monitoramento, avatares, criativos ou compliance.";
 
-const POSITION = "fixed bottom-5 left-5 z-[35]";
-
-export function SupportWidget() {
-  const [open, setOpen] = useState(false);
+export function SupportWidget({ onClose }: { onClose: () => void }) {
   const [thread, setThread] = useState<SupportThreadWithMessages | null>(null);
   const [optimistic, setOptimistic] = useState<LocalMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -153,16 +133,10 @@ export function SupportWidget() {
   }, [applyThread]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
     void loadThread();
-  }, [open, loadThread]);
+  }, [loadThread]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
     const status = thread?.status;
     const shouldPoll =
       status === "ai" ||
@@ -188,30 +162,25 @@ export function SupportWidget() {
       })();
     }, 4500);
     return () => window.clearInterval(id);
-  }, [open, thread, thread?.status, applyThread, sending]);
+  }, [thread, thread?.status, applyThread, sending]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false);
+        onClose();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
+  }, [onClose]);
 
   useLayoutEffect(() => {
-    if (open) {
-      inputRef.current?.focus();
-    }
-  }, [open]);
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [thread?.messages.length, optimistic.length, sending, open]);
+  }, [thread?.messages.length, optimistic.length, sending]);
 
   function resizeTextarea(el: HTMLTextAreaElement | null) {
     if (!el) {
@@ -295,29 +264,15 @@ export function SupportWidget() {
   const header = statusHeader(thread?.status);
   const showWelcome = !loading && messages.length === 0 && !sending;
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`${POSITION} flex items-center gap-2 rounded-full border border-slate-600/60 bg-slate-900/95 px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_28px_rgba(0,0,0,0.45)] transition hover:border-cyan-500/40 hover:bg-slate-800`}
-        aria-label="Abrir suporte"
-      >
-        <ChatIcon />
-        Suporte
-      </button>
-    );
-  }
-
   return (
     <div
-      className={`${POSITION} flex h-[min(520px,calc(100vh-6rem))] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-[#0F1623] text-slate-200 shadow-[0_16px_40px_rgba(0,0,0,0.55)]`}
+      className="fixed bottom-6 right-6 z-40 flex h-[min(520px,calc(100vh-6rem))] w-[min(360px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-md-border bg-md-surface text-md-text shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
       role="dialog"
       aria-label="Suporte Mandato Digital"
     >
-      <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/80 px-3 py-2.5">
+      <div className="flex items-center justify-between border-b border-md-border bg-md-surface/80 px-3 py-2.5">
         <div className="min-w-0">
-          <p className="text-[13px] font-bold leading-none text-white">
+          <p className="text-[13px] font-bold leading-none text-md-text">
             Suporte
           </p>
           <p className={`mt-1.5 text-[11px] font-medium ${header.className}`}>
@@ -332,8 +287,8 @@ export function SupportWidget() {
         </div>
         <button
           type="button"
-          onClick={() => setOpen(false)}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-800/60 text-slate-400 transition hover:border-slate-600 hover:text-white"
+          onClick={onClose}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-md-border bg-md-surface-inset text-md-text-soft transition hover:border-md-border-hover hover:text-md-text"
           aria-label="Fechar suporte"
         >
           <CloseIcon />
@@ -341,19 +296,19 @@ export function SupportWidget() {
       </div>
 
       {banner ? (
-        <div className="border-b border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100">
+        <div className="border-b border-[var(--distribuidor-border)] bg-[var(--distribuidor-soft)] px-3 py-2 text-[12px] text-[var(--distribuidor-text)]">
           {banner}
         </div>
       ) : null}
 
       <div className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3">
         {loading && !thread && messages.length === 0 ? (
-          <p className="text-center text-[12px] text-slate-500">Carregando…</p>
+          <p className="text-center text-[12px] text-md-text-soft">Carregando…</p>
         ) : null}
 
         {showWelcome ? (
           <div className={`${bubbleClass("assistant")} px-3 py-2 text-[13px] leading-relaxed`}>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-md-text-soft">
               Suporte
             </p>
             <p className="whitespace-pre-wrap">{WELCOME_BODY}</p>
@@ -368,7 +323,7 @@ export function SupportWidget() {
             }`}
           >
             {message.role !== "system" && message.role !== "user" ? (
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-md-text-soft">
                 Suporte
               </p>
             ) : null}
@@ -378,7 +333,7 @@ export function SupportWidget() {
 
         {sending ? (
           <div className={`${bubbleClass("assistant")} px-3 py-2.5 text-[13px]`}>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-md-text-soft">
               Suporte
             </p>
             <TypingDots />
@@ -389,18 +344,18 @@ export function SupportWidget() {
       </div>
 
       {error ? (
-        <p className="border-t border-rose-500/20 bg-rose-500/10 px-3 py-2 text-[12px] text-rose-200">
+        <p className="border-t border-[var(--auditor-border)] bg-[var(--auditor-soft)] px-3 py-2 text-[12px] text-[var(--auditor-text)]">
           {error}
         </p>
       ) : null}
 
       {!closed && hasAssistant && !escalated ? (
-        <div className="border-t border-slate-800/80 px-3 py-1.5">
+        <div className="border-t border-md-border px-3 py-1.5">
           <button
             type="button"
             onClick={() => void handleEscalate()}
             disabled={escalating || sending}
-            className="text-[11px] text-slate-500 underline-offset-2 transition hover:text-amber-200 hover:underline disabled:opacity-50"
+            className="text-[11px] text-md-text-soft underline-offset-2 transition hover:text-[var(--distribuidor-text)] hover:underline disabled:opacity-50"
           >
             {escalating
               ? "Encaminhando…"
@@ -412,7 +367,7 @@ export function SupportWidget() {
       {!closed ? (
         <form
           onSubmit={(event) => void handleSend(event)}
-          className="border-t border-slate-800 p-2.5"
+          className="border-t border-md-border p-2.5"
         >
           <div className="flex items-end gap-2">
             <textarea
@@ -431,7 +386,7 @@ export function SupportWidget() {
               }}
               placeholder="Digite sua dúvida…"
               disabled={sending}
-              className="max-h-[120px] min-h-[40px] min-w-0 flex-1 resize-none rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2.5 text-[13px] text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/50"
+              className="max-h-[120px] min-h-[40px] min-w-0 flex-1 resize-none rounded-xl border border-md-border bg-md-bg/80 px-3 py-2.5 text-[13px] text-md-text outline-none placeholder:text-md-text-soft focus:border-cyan-500/50"
               maxLength={4000}
               aria-label="Mensagem de suporte"
             />
@@ -443,12 +398,12 @@ export function SupportWidget() {
               {sending ? "…" : "Enviar"}
             </button>
           </div>
-          <p className="mt-1.5 px-0.5 text-[10px] text-slate-600">
+          <p className="mt-1.5 px-0.5 text-[10px] text-md-text-soft">
             Enter envia · Shift+Enter nova linha
           </p>
         </form>
       ) : (
-        <div className="border-t border-slate-800 p-3">
+        <div className="border-t border-md-border p-3">
           <button
             type="button"
             onClick={() => {

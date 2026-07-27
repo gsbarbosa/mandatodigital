@@ -1,0 +1,12 @@
+---
+description: Proibe deploy manual do Firebase App Hosting — use so a pipe GitHub
+alwaysApply: true
+---
+
+# Deploy App Hosting — somente pipe
+
+- **Nunca** rode `npm run deploy:firebase`, `firebase deploy --only apphosting`, nem qualquer upload de source para App Hosting.
+- O script `deploy:firebase` foi removido de proposito. Deploy do app e via **pipe GitHub → Firebase App Hosting**.
+- Fluxo correto ao "subir": commit + push na branch conectada (`staging` / `main` conforme o ambiente). A pipe faz o rollout.
+- Permitido localmente (nao e App Hosting): `firebase:rules:deploy`, `firebase:indexes:deploy`, `firebase:secrets:*`, `env:pull`.
+- Se o usuario pedir "deploy", interprete como push/acompanhar a pipe — nao invoque Firebase CLI de App Hosting.

@@ -67,7 +67,7 @@ function ScaleVisual() {
         alt="Painel mostrando dezenas de peças de conteúdo geradas simultaneamente pela plataforma"
         width={757}
         height={1000}
-        className="relative z-10 h-auto w-full rounded-3xl border border-slate-800 shadow-[0_20px_60px_rgba(16,185,129,0.15)]"
+        className="relative z-10 h-auto w-full rounded-3xl border border-md-border shadow-[0_20px_60px_rgba(16,185,129,0.15)]"
         decoding="async"
         loading="lazy"
       />
@@ -114,7 +114,7 @@ function EcosystemVisual() {
         className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-emerald-500/10 blur-3xl"
         aria-hidden
       />
-      <figure className="relative m-0 overflow-hidden rounded-3xl border border-slate-700/70 bg-slate-950/40 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-emerald-500/20 lg:h-full">
+      <figure className="relative m-0 overflow-hidden rounded-3xl border border-md-border/70 bg-md-bg/40 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-emerald-500/20 lg:h-full">
         <div
           role="img"
           aria-label="Sala de operação com os agentes de IA em sinergia: monitoramento 24/7, produção de conteúdo, treinamento de voz e painel de compliance"
@@ -129,7 +129,7 @@ function EcosystemVisual() {
 export function MarketingHomePage() {
   return (
     <>
-      <section className="relative overflow-hidden border-b border-slate-800/40">
+      <section className="relative overflow-hidden border-b border-md-border/40">
         <div
           className="pointer-events-none absolute inset-0 opacity-35"
           style={{
@@ -140,17 +140,17 @@ export function MarketingHomePage() {
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#020617] via-[#020617]/95 to-[#020617]/70"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-md-bg via-md-bg/95 to-md-bg/70"
           aria-hidden
         />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-12">
           <div className="min-w-0">
-            <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:leading-tight">
+            <h1 className="text-4xl font-bold tracking-tight text-md-text sm:text-5xl lg:leading-tight">
               A{" "}
               <span className="text-emerald-400">Tropa de Inteligência Artificial</span> para
               sua (re)eleição.
             </h1>
-            <p className="mt-5 text-base leading-relaxed text-slate-300 sm:text-lg">
+            <p className="mt-5 text-base leading-relaxed text-md-text-muted sm:text-lg">
               Um ecossistema completo para{" "}
               <span className="underline decoration-slate-500 underline-offset-4">monitorar</span>,{" "}
               <span className="underline decoration-slate-500 underline-offset-4">produzir</span>,{" "}
@@ -173,7 +173,7 @@ export function MarketingHomePage() {
 
           <div className="relative mx-auto w-full min-w-0 max-w-xl lg:max-w-none">
             <div className="absolute -inset-3 rounded-[2rem] bg-emerald-500/10 blur-2xl" aria-hidden />
-            <div className="relative overflow-hidden rounded-3xl border border-slate-700/70 bg-slate-950/40 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-emerald-500/20">
+            <div className="relative overflow-hidden rounded-3xl border border-md-border/70 bg-md-bg/40 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-emerald-500/20">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/marketing/hero-tropa.webp"
@@ -330,7 +330,7 @@ export function MarketingHomePage() {
                 return (
                   <li
                     key={agent}
-                    className="rounded-xl border border-slate-800 bg-slate-900/40 px-4 py-3"
+                    className="rounded-xl border border-md-border bg-md-surface/40 px-4 py-3"
                   >
                     <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-x-3">
                       {/*
@@ -342,8 +342,8 @@ export function MarketingHomePage() {
                         className={`mt-[1.5px] block ${accent.text}`}
                         aria-hidden
                       />
-                      <p className="m-0 text-sm leading-[1.5] text-slate-300">
-                        <span className="font-semibold text-white">{index + 1}.</span> {agent}
+                      <p className="m-0 text-sm leading-[1.5] text-md-text-muted">
+                        <span className="font-semibold text-md-text">{index + 1}.</span> {agent}
                       </p>
                     </div>
                   </li>

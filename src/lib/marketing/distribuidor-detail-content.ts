@@ -9,13 +9,28 @@ export const distribuidorDetail = {
   stories: [
     {
       title: "O Desafio do Mandato",
-      body: "Campanhas exigem respostas rápidas e presença simultânea em várias plataformas. O processo manual de publicação rede por rede gera atraso de horas e faz perder a janela entre o fato e a saturação do tema.",
+      body: "Campanhas exigem respostas rápidas e presença simultânea em várias redes sociais. O processo manual de publicação tem complexidades que potencializam a chance de perder a janela entre o fato e a saturação do tema.",
     },
     {
       title: "A Ativação da IA",
-      body: "O Distribuidor usa APIs especializadas para disparo coordenado de conteúdos formatados nativamente para cada rede — Instagram, LinkedIn, Facebook, Threads, TikTok, YouTube e X — com presença sem falhas.",
+      body: "Cada rede exige um formato, corte e tom próprios — vertical no Instagram, thread no X, tom institucional no LinkedIn. Disparos coordenados de conteúdos formatados nativamente para cada rede (Instagram, LinkedIn, FB, Threads, TikTok, YouTube, X) é a solução definitiva para o timing certo de publicação.",
     },
   ],
+  propagation: {
+    title: "Um Conteúdo,",
+    titleAccent: "Sete Adaptações Nativas",
+    lead: "O mesmo roteiro aprovado se propaga pelas redes já ajustado ao formato, ao corte e ao tom que cada uma exige.",
+    source: "Roteiro Aprovado: Reforma Tributária — STF",
+    networks: [
+      { network: "Instagram", format: "Reels vertical, legenda curta" },
+      { network: "TikTok", format: "Corte dinâmico, gancho nos 2s" },
+      { network: "YouTube", format: "Shorts" },
+      { network: "X", format: "Thread de texto, direto ao ponto" },
+      { network: "LinkedIn", format: "Post institucional, tom formal" },
+      { network: "Facebook", format: "Vídeo nativo, legenda longa" },
+      { network: "Threads", format: "Post conversacional, tom leve" },
+    ] as const,
+  },
   painel: {
     title: "Painel de Distribuição:",
     titleAccent: "Disparo Coordenado",

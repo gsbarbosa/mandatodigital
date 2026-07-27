@@ -46,7 +46,10 @@ type OnboardingContextValue = OnboardingComputed & {
   showWelcome: boolean;
   guideOpen: boolean;
   guideStepId: OnboardingStepId | null;
+  /** "Salvar radar" já foi clicado — libera o Próximo do passo Salvar radar. */
+  radarSaved: boolean;
   markStepDone: (step: OnboardingStepId) => void;
+  markRadarSaved: () => void;
   markWelcomeSeen: () => void;
   startGuide: (step?: OnboardingStepId) => void;
   closeGuide: () => void;
@@ -77,14 +80,15 @@ function buildSignals(
   const hasOppositionSocial = (profileForm.oppositionProfiles ?? []).some((row) =>
     row.handle?.trim(),
   );
+  // Municípios saíram deste passo (viraram o passo do mapa) — aqui só conta o que o
+  // bloco "Nível Municipal" edita: portais regionais.
   const hasMunicipalSignal =
-    (profileForm.municipalCities ?? []).some((city) => city.trim()) ||
-    (profileForm.customRadarThemes ?? []).some((theme) => theme.trim()) ||
-    (profileForm.interestSites ?? []).some((site) => site.trim());
+    (profileForm.interestSites ?? []).some((site) => site.trim()) ||
+    (profileForm.customRadarThemes ?? []).some((theme) => theme.trim());
 
   return {
     hasFederalThemes: interestCount > 0,
-    hasEstadualThemes: hasCoverageUf,
+    hasCoverageUf,
     hasMunicipalSignal,
     hasInterestSignal: hasInterestSocial,
     hasOppositionSignal: hasOppositionSocial,
@@ -152,6 +156,17 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     [userKey],
   );
 
+  const markRadarSaved = useCallback(() => {
+    setPersisted((current) => {
+      if (current.radarSaved) {
+        return current;
+      }
+      const next = { ...current, radarSaved: true };
+      writeOnboardingState(userKey, next);
+      return next;
+    });
+  }, [userKey]);
+
   const markWelcomeSeen = useCallback(() => {
     setPersisted((current) => {
       if (current.welcomeSeen) {
@@ -203,11 +218,12 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       welcomeSeen: false,
       replayRequested: true,
       tourFromScratch: true,
+      radarSaved: false,
       localDone: [],
     };
     persist(next);
     setBridge(null);
-    setGuideStepId("temas-federal");
+    setGuideStepId("temas-territorio");
     setGuideOpen(false);
   }, [persist]);
 
@@ -309,8 +325,19 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, [guideOpen, guideStepId, computed.steps, computed.currentStepId]);
 
   // Se o progresso foi rebobinado (ex.: falta áudio), traz o tip de volta e leva à rota certa.
+  // No tour do zero, currentStepId só anda via localDone (Próximo passo a passo) — então
+  // pular fases pelo checklist/bridge sempre deixa o guide "à frente" por design; não é
+  // regressão. As trilhas obrigatórias (radar mínimo, áudio) já são reforçadas dentro de
+  // computeOnboarding, então seguem bloqueando mesmo sem este rebobinamento genérico.
   useEffect(() => {
-    if (!mounted || !isActive || !guideOpen || !guideStepId || !computed.currentStepId) {
+    if (
+      !mounted ||
+      !isActive ||
+      !guideOpen ||
+      !guideStepId ||
+      !computed.currentStepId ||
+      persisted.tourFromScratch
+    ) {
       return;
     }
     const order = ONBOARDING_STEPS.map((step) => step.id);
@@ -336,6 +363,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     guideOpen,
     guideStepId,
     computed.currentStepId,
+    persisted.tourFromScratch,
     pathname,
     router,
   ]);
@@ -351,7 +379,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     showWelcome,
     guideOpen: isActive && !showWelcome && guideOpen,
     guideStepId,
+    radarSaved: Boolean(persisted.radarSaved),
     markStepDone,
+    markRadarSaved,
     markWelcomeSeen,
     startGuide,
     closeGuide,

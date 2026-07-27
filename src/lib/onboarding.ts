@@ -1,26 +1,38 @@
 /**
  * Onboarding guiado (não fictício): progresso derivado do estado real do app
- * (temas por esfera, assets de avatar, persona/glossário) + marcadores locais.
+ * (UF/municípios, temas, assets de avatar, persona/glossário) + marcadores locais.
  *
- * Fase 1 — Selecionar Temas (5 passos): Temas → UF → Municipal → Interesse → Adversário
+ * A ordem dos passos da fase 1 segue a ordem visual da tela "Selecionar temas":
+ * mapa de UF + municípios → temas de interesse → fontes/portais regionais →
+ * perfis de rede sociais → adversários → Salvar radar.
+ *
+ * Fase 1 — Selecionar Temas (6 passos): Território → Temas → Fontes → Interesse → Adversário → Salvar
  * Fase 2 — Treinar Avatar (4 passos): Foto → Áudio → Persona → Glossário
- * Fase 3 — Monitoramento de Pautas (1 passo): overview Sentinela → Pautar
+ * Fase 3 — Monitoramento de Pautas (2 passos): como o radar atualiza → Pautar
  * Fase 4 — Criar Roteiro (4 passos): Arquétipo → Tom → Tema → Aprovar roteiro
  * Fase 5 — Produzir Vídeo (2 passos): Escolher avatar → Gerar vídeo
  */
 
+import {
+  MAX_INTEREST_THEMES,
+  MAX_MUNICIPAL_CITIES,
+  MAX_MUNICIPAL_PORTALS,
+} from "@/lib/sphere-theme-catalog";
+
 export type OnboardingPhaseId = "temas" | "avatar" | "pautas" | "roteiro" | "video";
 
 export type OnboardingStepId =
+  | "temas-territorio"
   | "temas-federal"
-  | "temas-estadual"
   | "temas-municipal"
   | "temas-interesse"
   | "temas-adversarios"
+  | "temas-salvar"
   | "avatar-foto"
   | "avatar-audio"
   | "avatar-persona"
   | "avatar-glossario"
+  | "pautas-radar"
   | "pautas-pautar"
   | "criativo-arquetipo"
   | "criativo-tom"
@@ -36,6 +48,12 @@ export type OnboardingSidebarTarget =
   | "avatar-config"
   | "criativo"
   | null;
+
+/**
+ * Lado da tela onde o tip deve ficar ancorado.
+ * "auto" deixa o posicionador escolher (abaixo → acima → direita → esquerda).
+ */
+export type OnboardingTipPlacement = "auto" | "left" | "right";
 
 export type OnboardingPhaseDef = {
   id: OnboardingPhaseId;
@@ -53,7 +71,13 @@ export type OnboardingStepDef = {
   route: string;
   /** data-onboarding-anchor na página. */
   anchor: string;
-  sidebar: Exclude<OnboardingSidebarTarget, null>;
+  /**
+   * Item do menu lateral que fica com aparência de "clicado" durante o passo.
+   * `null` nos passos fora do menu (Calibragem de Persona e Glossário, em /curador).
+   */
+  sidebar: OnboardingSidebarTarget;
+  /** Lado fixo do tip na tela (padrão: "auto"). */
+  placement?: OnboardingTipPlacement;
 };
 
 export const ONBOARDING_PHASES: readonly OnboardingPhaseDef[] = [
@@ -66,19 +90,19 @@ export const ONBOARDING_PHASES: readonly OnboardingPhaseDef[] = [
 
 export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
   {
-    id: "temas-federal",
+    id: "temas-territorio",
     phase: "temas",
     phaseOrder: 1,
-    label: "Temas de interesse",
-    route: "/monitoramento/temas#temas",
-    anchor: "temas-federal",
+    label: "Estado e municípios",
+    route: "/monitoramento/temas#territorio",
+    anchor: "temas-territorio",
     sidebar: "temas-config",
   },
   {
-    id: "temas-estadual",
+    id: "temas-federal",
     phase: "temas",
     phaseOrder: 2,
-    label: "UF de cobertura",
+    label: "Temas de interesse",
     route: "/monitoramento/temas#temas",
     anchor: "temas-federal",
     sidebar: "temas-config",
@@ -87,28 +111,41 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     id: "temas-municipal",
     phase: "temas",
     phaseOrder: 3,
-    label: "Cidades e portais",
+    label: "Fontes do monitoramento",
     route: "/monitoramento/temas#municipal",
     anchor: "temas-municipal",
     sidebar: "temas-config",
+    placement: "right",
   },
   {
     id: "temas-interesse",
     phase: "temas",
     phaseOrder: 4,
-    label: "Perfis de interesse",
+    label: "Perfis de rede sociais",
     route: "/monitoramento/temas#interesse",
     anchor: "temas-interesse",
     sidebar: "temas-config",
+    placement: "right",
   },
   {
     id: "temas-adversarios",
     phase: "temas",
     phaseOrder: 5,
-    label: "Adversário político",
+    label: "Adversários políticos",
     route: "/monitoramento/temas#adversarios",
     anchor: "temas-adversarios",
     sidebar: "temas-config",
+    placement: "right",
+  },
+  {
+    id: "temas-salvar",
+    phase: "temas",
+    phaseOrder: 6,
+    label: "Salvar radar",
+    route: "/monitoramento/temas#salvar",
+    anchor: "temas-salvar",
+    sidebar: "temas-config",
+    placement: "right",
   },
   {
     id: "avatar-foto",
@@ -118,6 +155,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     route: "/avatares/foto-real/treinar#foto",
     anchor: "avatar-foto",
     sidebar: "avatar-config",
+    placement: "right",
   },
   {
     id: "avatar-audio",
@@ -135,7 +173,9 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     label: "Calibragem de Persona",
     route: "/curador#persona",
     anchor: "avatar-persona",
-    sidebar: "avatar-config",
+    // /curador não tem item próprio no menu — sem destaque lateral aqui.
+    sidebar: null,
+    placement: "right",
   },
   {
     id: "avatar-glossario",
@@ -144,16 +184,28 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     label: "Glossário de expressões",
     route: "/curador#glossario",
     anchor: "avatar-glossario",
-    sidebar: "avatar-config",
+    sidebar: null,
+    placement: "right",
+  },
+  {
+    id: "pautas-radar",
+    phase: "pautas",
+    phaseOrder: 1,
+    label: "Como o radar atualiza",
+    route: "/monitoramento",
+    anchor: "pautas-radar",
+    sidebar: "monitoramento",
+    placement: "right",
   },
   {
     id: "pautas-pautar",
     phase: "pautas",
-    phaseOrder: 1,
+    phaseOrder: 2,
     label: "Pautar primeira pauta",
     route: "/monitoramento",
     anchor: "pautas-pautar",
     sidebar: "monitoramento",
+    placement: "right",
   },
   {
     id: "criativo-arquetipo",
@@ -163,6 +215,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     route: "/criativo/novo#arquetipo",
     anchor: "criativo-arquetipo",
     sidebar: "criativo",
+    placement: "right",
   },
   {
     id: "criativo-tom",
@@ -172,6 +225,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     route: "/criativo/novo#tom",
     anchor: "criativo-tom",
     sidebar: "criativo",
+    placement: "right",
   },
   {
     id: "criativo-tema",
@@ -181,6 +235,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     route: "/criativo/novo#tema",
     anchor: "criativo-tema",
     sidebar: "criativo",
+    placement: "right",
   },
   {
     id: "criativo-roteiro",
@@ -190,6 +245,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     route: "/criativo/novo#roteiro",
     anchor: "criativo-roteiro",
     sidebar: "criativo",
+    placement: "right",
   },
   {
     id: "criativo-avatar",
@@ -208,6 +264,7 @@ export const ONBOARDING_STEPS: readonly OnboardingStepDef[] = [
     route: "/criativo/novo#gerar",
     anchor: "criativo-gerar",
     sidebar: "criativo",
+    placement: "right",
   },
 ] as const;
 
@@ -215,45 +272,53 @@ export const ONBOARDING_GUIDE_COPY: Record<
   OnboardingStepId,
   { title: string; body: string }
 > = {
+  "temas-territorio": {
+    title: "Estado e municípios",
+    body: `Clique no mapa para escolher a UF do mandato e selecione até ${MAX_MUNICIPAL_CITIES} municípios da sua base. Trocar de estado limpa os municípios já escolhidos.`,
+  },
   "temas-federal": {
     title: "Temas de interesse",
-    body: "Selecione os temas do seu radar. Nacional e estadual são organizados depois, no monitoramento.",
-  },
-  "temas-estadual": {
-    title: "UF de cobertura",
-    body: "Informe a UF do mandato. O Sentinela usa isso para priorizar pautas do seu estado.",
+    body: `Selecione até ${String(MAX_INTEREST_THEMES).padStart(2, "0")} temas da sua bandeira e campanha. Vamos monitorar o cenário político em escala nacional, estadual e municipal para você.`,
   },
   "temas-municipal": {
-    title: "Cidades e portais",
-    body: "Informe até 2 cidades e até 2 portais regionais. O Sentinela cruza seus temas com cada cidade.",
+    title: "Fontes do monitoramento",
+    body: `As fontes nacionais e as do seu estado já estão definidas — para conferir basta clicar sobre Fontes Nacionais ou Estaduais. Acrescente até ${MAX_MUNICIPAL_PORTALS} portais regionais do(s) seu(s) município(s).`,
   },
   "temas-interesse": {
-    title: "Perfis de interesse",
-    body: "Cadastre contas @ para acompanhar. O radar mostra os últimos posts por engajamento, sem cruzar com seus temas.",
+    title: "Perfis de rede sociais",
+    body: "Cadastre contas @ do Instagram, TikTok ou Twitter/X para acompanhar. O radar mostra os últimos posts com foco em engajamento.",
   },
   "temas-adversarios": {
-    title: "Adversário político",
-    body: "Cadastre os perfis dos adversários. O radar lista os últimos posts deles por engajamento.",
+    title: "Adversários políticos",
+    body: "Cadastre os perfis @ dos adversários. O radar lista os últimos posts deles por engajamento, em seção separada.",
+  },
+  "temas-salvar": {
+    title: "Salvar radar",
+    body: "Salve suas configurações para o monitoramento das pautas da sua campanha.",
   },
   "avatar-foto": {
     title: "Enviar foto",
-    body: "Envie uma foto nítida, de frente e bem iluminada. Ela é a base visual do seu avatar.",
+    body: "Aceite a Política de Privacidade e envie uma foto nítida, seguindo rigorosamente as instruções do card “A Foto Perfeita”. Atenção: a foto é a base visual do avatar.",
   },
   "avatar-audio": {
     title: "Enviar áudio",
-    body: "Grave ou envie um áudio limpo da sua voz (30s–2min) para clonar o timbre nos vídeos.",
+    body: "Grave ou envie um áudio limpo da sua voz conforme as instruções do card “A Voz Perfeita”. Sem esse áudio não é possível produzir o vídeo. A qualidade do áudio influencia a expressividade do avatar, além da própria voz.",
   },
   "avatar-persona": {
     title: "Calibragem de Persona",
-    body: "Ajuste o espectro ideológico. Isso orienta o tom dos roteiros gerados pelo Mandato Digital.",
+    body: "Arraste a linha para calibrar seu posicionamento ideológico entre esquerda e direita. Os roteiros gerados seguirão essa orientação política.",
   },
   "avatar-glossario": {
     title: "Glossário de expressões",
-    body: "Inclua palavras e frases típicas da sua comunicação para os textos soarem com a sua voz.",
+    body: "Inclua expressões típicas da sua fala (né, tipo, olha, sabe). Elas são incorporadas aos roteiros para o texto soar com a sua voz.",
+  },
+  "pautas-radar": {
+    title: "Como o radar atualiza",
+    body: "As pautas chegam separadas em Nacional, Estadual, Municipal, Interesse e Adversários, com atualização automática às 08:00. Antecipar a atualização consome créditos.",
   },
   "pautas-pautar": {
-    title: "Pautar no Criativo",
-    body: "Este é o botão Pautar da primeira pauta do radar. Toque nele para gerar conteúdo com o seu avatar.",
+    title: "Pautar notícia",
+    body: "Este é o botão Pautar da primeira pauta do radar. Toque nele ou escolha outra pauta para gerar conteúdo com o seu avatar.",
   },
   "criativo-arquetipo": {
     title: "Escolher Arquétipo",
@@ -269,15 +334,15 @@ export const ONBOARDING_GUIDE_COPY: Record<
   },
   "criativo-roteiro": {
     title: "Aprovação do roteiro",
-    body: "Revise o texto, edite se precisar e aprove o roteiro. O validador confere as afirmações antes da produção.",
+    body: "Revise o texto, edite se precisar e clique em Aprovar roteiro. Esse será o texto utilizado para produção do vídeo.",
   },
   "criativo-avatar": {
     title: "Escolher avatar",
-    body: "Selecione o modelo de avatar para este vídeo: Foto real, Caricato ou Mascote 3D.",
+    body: "Escolha o modelo deste vídeo: Gêmeo Digital (sua foto com voz clonada), Caricato ou Mascote 3D. Caricato e Mascote precisam ser gerados antes em Avatares > Caricato > Regenerar Caricato.",
   },
   "criativo-gerar": {
     title: "Gerar o vídeo",
-    body: "Com roteiro aprovado e avatar escolhido, gere o conteúdo a partir do avatar selecionado.",
+    body: "Com roteiro aprovado e avatar escolhido, clique em Gerar Conteúdo. O selo TSE é aplicado automaticamente ao final.",
   },
 };
 
@@ -295,7 +360,9 @@ export const TEMAS_PHASE_MIN_THEMES = 5;
 
 export type OnboardingSignals = {
   hasFederalThemes: boolean;
-  hasEstadualThemes: boolean;
+  /** UF do mandato escolhida no mapa (seção Estado/Município). */
+  hasCoverageUf: boolean;
+  /** Portal regional informado no bloco Nível Municipal. */
   hasMunicipalSignal: boolean;
   hasInterestSignal: boolean;
   hasOppositionSignal: boolean;
@@ -320,6 +387,8 @@ export type OnboardingPersistedState = {
   welcomeSeen?: boolean;
   localDone?: OnboardingStepId[];
   replayRequested?: boolean;
+  /** "Salvar radar" já foi clicado nesta trilha — libera o Próximo do passo 6. */
+  radarSaved?: boolean;
   /**
    * Tour do zero na mesma conta: ignora sinais do app (temas/foto já salvos)
    * e só conta o que o usuário avançar de novo no checklist/tip.
@@ -352,17 +421,21 @@ export type OnboardingComputed = {
 
 export function deriveAppDone(signals: OnboardingSignals): Record<OnboardingStepId, boolean> {
   return {
+    "temas-territorio": signals.hasCoverageUf,
     "temas-federal": signals.hasFederalThemes,
-    "temas-estadual": signals.hasEstadualThemes,
     "temas-municipal": signals.hasMunicipalSignal,
     "temas-interesse": signals.hasInterestSignal,
     "temas-adversarios": signals.hasOppositionSignal,
+    // Salvar radar só fecha via Próximo/localDone — o perfil salvo não distingue
+    // "salvei agora" de "já existia".
+    "temas-salvar": false,
     "avatar-foto": signals.hasAvatarImage,
     "avatar-audio": signals.hasVoiceAudio,
     // Spectrum costuma vir com default — persona só fecha via Próximo/localDone.
     "avatar-persona": false,
     "avatar-glossario": signals.hasGlossary,
-    // Fecha via Próximo/Pautar (localDone) — não há sinal de app.
+    // Fecham via Próximo/Pautar (localDone) — não há sinal de app.
+    "pautas-radar": false,
     "pautas-pautar": false,
     "criativo-arquetipo": false,
     "criativo-tom": false,
@@ -418,7 +491,7 @@ export function computeOnboarding(input: {
       currentStepId === null ||
       ONBOARDING_STEPS.find((step) => step.id === currentStepId)?.phase !== "temas";
     if (wouldLeaveTemas) {
-      currentStepId = "temas-adversarios";
+      currentStepId = "temas-salvar";
     }
   }
 
@@ -510,6 +583,7 @@ export function readOnboardingState(userKey: string | null | undefined): Onboard
       welcomeSeen: Boolean(parsed.welcomeSeen),
       replayRequested: Boolean(parsed.replayRequested),
       tourFromScratch: Boolean(parsed.tourFromScratch),
+      radarSaved: Boolean(parsed.radarSaved),
       localDone: Array.isArray(parsed.localDone)
         ? parsed.localDone.filter((id): id is OnboardingStepId =>
             STEP_ORDER.includes(id as OnboardingStepId),
