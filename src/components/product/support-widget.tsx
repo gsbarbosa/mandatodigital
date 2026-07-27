@@ -104,7 +104,7 @@ function TypingDots() {
 const WELCOME_BODY =
   "Olá! Como podemos ajudar com o Mandato Digital? Pode perguntar sobre monitoramento, avatares, criativos ou compliance.";
 
-const POSITION = "fixed bottom-5 left-5 z-[35]";
+const POSITION = "fixed bottom-5 right-5 z-[35]";
 
 export function SupportWidget() {
   const [open, setOpen] = useState(false);

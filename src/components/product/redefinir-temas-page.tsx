@@ -662,29 +662,34 @@ export function RedefinirTemasPage() {
         </section>
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-md-border bg-[#0B0F19]/90 backdrop-blur-md z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs text-md-text-soft">
-            {limitMessage ? (
-              <span className="text-amber-400">{limitMessage}</span>
-            ) : saveMessage ? (
-              <span className="text-[var(--sentinela-text)]" role="status">
-                {saveMessage}
-              </span>
-            ) : isPremium ? (
-              <span>
-                Modo premium — temas, municípios e portais regionais seguem o teto padrão ({MAX_INTEREST_THEMES}{" "}
-                temas, {MAX_MUNICIPAL_CITIES} municípios, {MAX_MUNICIPAL_PORTALS} portais). Perfis
-                de rede sociais e adversários não têm limite adicional nesta tela.
-              </span>
-            ) : (
-              <span>
-                Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} municípios,{" "}
-                {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de rede sociais e{" "}
-                {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
-              </span>
-            )}
-          </div>
+      <div
+        role="note"
+        aria-label="Limites do plano"
+        className="fixed right-3 top-1/2 z-30 hidden w-[min(240px,calc(100vw-2rem))] -translate-y-1/2 rounded-xl border border-md-border bg-md-surface/95 p-3 text-[11px] leading-relaxed text-md-text-soft shadow-[0_16px_36px_rgba(15,23,42,0.28)] backdrop-blur-sm lg:block"
+      >
+        {limitMessage ? (
+          <span className="text-amber-400">{limitMessage}</span>
+        ) : saveMessage ? (
+          <span className="text-[var(--sentinela-text)]" role="status">
+            {saveMessage}
+          </span>
+        ) : isPremium ? (
+          <span>
+            Modo premium — temas, municípios e portais regionais seguem o teto padrão ({MAX_INTEREST_THEMES}{" "}
+            temas, {MAX_MUNICIPAL_CITIES} municípios, {MAX_MUNICIPAL_PORTALS} portais). Perfis
+            de rede sociais e adversários não têm limite adicional nesta tela.
+          </span>
+        ) : (
+          <span>
+            Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} municípios,{" "}
+            {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de rede sociais e{" "}
+            {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
+          </span>
+        )}
+      </div>
+
+      <div className="sticky bottom-0 left-0 right-0 mt-10 border-t border-md-border/50 z-20">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-end">
           <button
             type="button"
             data-testid="salvar-radar-button"
