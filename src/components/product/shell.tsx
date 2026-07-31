@@ -45,7 +45,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
     guidedPlacement === "left" || guidedPlacement === "right" ? guidedPlacement : null;
 
   return (
-    <div className="h-screen flex overflow-hidden bg-md-app-bg text-md-text-soft">
+    <div className="flex h-screen flex-col overflow-hidden bg-md-app-bg text-md-text-soft lg:flex-row">
       <NavSidebar
         sessionEmail={sessionUser?.email ?? null}
         onSignOut={() => void signOut()}
@@ -54,13 +54,13 @@ export function ProductShell({ children }: { children: ReactNode }) {
       />
 
       <main
-        className={`flex-1 min-w-0 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-bg relative transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
+        className={`relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-bg transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
       >
         <DemoAccountBadge />
         <DemoDegustacaoBanner />
         <OnboardingModals />
         <OnboardingCoachmark />
-        <OnboardingChecklist />
+        <OnboardingChecklist hidden={supportOpen} />
         {supportOpen ? <SupportWidget onClose={() => setSupportOpen(false)} /> : null}
 
         <HeygenDevKeyPanel

@@ -2371,7 +2371,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   return (
     <>
-    <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
+    <div className="relative z-10 mx-auto max-w-5xl px-4 py-6 pb-20 sm:px-6 sm:py-8 lg:px-8">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
       <ProductPageHeader

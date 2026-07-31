@@ -364,7 +364,7 @@ export function MonitoramentoPage() {
     : false;
 
   return (
-    <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20" data-testid="monitoramento-page">
+    <div className="relative z-10 mx-auto max-w-5xl px-4 py-6 pb-20 sm:px-6 sm:py-8 lg:px-8" data-testid="monitoramento-page">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
       <ProductPageHeader
@@ -373,7 +373,7 @@ export function MonitoramentoPage() {
         actions={
           <div
             data-onboarding-anchor="pautas-radar"
-            className="flex w-[10.5rem] shrink-0 flex-col gap-1 md:pt-1"
+            className="flex w-full shrink-0 flex-col gap-1 sm:w-[10.5rem] md:pt-1"
           >
             <RefreshPautasButton
               variant="monitor"

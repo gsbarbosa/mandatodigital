@@ -46,7 +46,7 @@ function CloseIcon() {
 }
 
 /** Flutuante só com as fases (ex.: Selecionar Temas 0/4). Subpassos ficam no tip. */
-export function OnboardingChecklist() {
+export function OnboardingChecklist({ hidden = false }: { hidden?: boolean }) {
   const router = useRouter();
   const {
     mounted,
@@ -62,7 +62,7 @@ export function OnboardingChecklist() {
   } = useOnboarding();
   const [minimized, setMinimized] = useState(true);
 
-  if (!mounted || !isActive || showWelcome) {
+  if (!mounted || !isActive || showWelcome || hidden) {
     return null;
   }
 
