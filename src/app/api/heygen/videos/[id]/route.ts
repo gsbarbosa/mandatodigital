@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { formatHeyGenError, heygenGetVideo } from "@/lib/heygen";
+import { appLog, appLogError } from "@/lib/observability/log";
 
 export async function GET(
   request: Request,
@@ -19,10 +20,25 @@ export async function GET(
 
       const remote = await heygenGetVideo(videoId);
       const data = remote.data ?? {};
+      const status = data.status ?? "pending";
+
+      if (status === "completed" || status === "failed") {
+        appLog(
+          "heygen",
+          "video_status_changed",
+          {
+            videoId,
+            status,
+            hasVideoUrl: Boolean(data.video_url),
+            errorMessage: data.failure_message ? String(data.failure_message).slice(0, 200) : null,
+          },
+          status === "failed" ? "warn" : "info",
+        );
+      }
 
       return NextResponse.json({
         videoId,
-        status: data.status ?? "pending",
+        status,
         videoUrl: data.video_url ?? "",
         captionUrl: data.caption_url ?? "",
         errorMessage: data.failure_message ?? "",
@@ -30,7 +46,7 @@ export async function GET(
       });
     });
   } catch (error) {
+    appLogError("heygen", "video_status_failed", error);
     return handleRouteError(new Error(formatHeyGenError(error)));
   }
 }
-

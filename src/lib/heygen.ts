@@ -63,6 +63,12 @@ export function formatHeyGenError(error: unknown) {
 async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const config = getHeyGenConfig();
   const alsOverride = heygenApiKeyOverrideStore.getStore()?.trim();
+  const { appLog, appLogError, safeApiPath, startTimer } = await import(
+    "@/lib/observability/log"
+  );
+  const elapsed = startTimer();
+  const method = String(init?.method ?? "GET").toUpperCase();
+  const apiPath = safeApiPath(path);
 
   const execute = async (apiKey: string) => {
     if (!apiKey) {
@@ -94,12 +100,27 @@ async function heygenFetch<T>(path: string, init?: RequestInit): Promise<T> {
         payload.error?.message ||
         payload.message ||
         `A plataforma retornou um erro (${response.status}).`;
+      appLogError("heygen", "api_request_failed", message, {
+        method,
+        path: apiPath,
+        httpStatus: response.status,
+        durationMs: elapsed(),
+      });
       const { ProviderHttpError } = await import("@/lib/admin/provider-key-pool");
       throw new ProviderHttpError({
         providerId: "heygen",
         status: response.status,
         message,
         body: text.slice(0, 400),
+      });
+    }
+
+    if (method !== "GET") {
+      appLog("heygen", "api_request_ok", {
+        method,
+        path: apiPath,
+        httpStatus: response.status,
+        durationMs: elapsed(),
       });
     }
 

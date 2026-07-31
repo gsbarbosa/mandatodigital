@@ -33,22 +33,26 @@ import type { HeyGenAvatarLookListItem } from "@/lib/heygen";
 import { resolveHeyGenDigitalTwinVideoInput } from "@/lib/heygen-training-video";
 import {
   getTrainingAssetPublicUrl,
-  pickAvatarImageAndVoiceAudioAssets,
+  requireOwnedTrainingAsset,
   resolveAppBaseUrl,
-  resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
+import type { ProfileTrainingAsset } from "@/lib/types";
+import { appLog, appLogError, startTimer } from "@/lib/observability/log";
 
 type HeyGenTrainMode = "photo" | "digital_twin" | "caricature" | "photo_real";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
+  const routeElapsed = startTimer();
   try {
     return heygenApiRoute(request, async (repository) => {
       const body = (await request.json().catch(() => ({}))) as {
         avatarName?: string;
         mode?: HeyGenTrainMode;
         caricatureAssetId?: string;
+        avatarImageAssetId?: string;
+        voiceAudioAssetId?: string;
         action?: "create" | "sync";
         avatarGroupId?: string;
         avatarLookId?: string;
@@ -63,12 +67,91 @@ export async function POST(request: Request) {
       }
 
       const assets = await repository.listTrainingAssetsForReference(profileId);
-      const { avatarImageAsset, voiceAudioAsset } =
-        pickAvatarImageAndVoiceAudioAssets(assets);
-      const caricatureAsset = resolveCaricatureAsset(
-        assets,
-        body.caricatureAssetId,
-      );
+      const mode: HeyGenTrainMode = body.mode ?? "photo";
+      const trainAction = body.action === "sync" ? "sync" : "create";
+
+      appLog("heygen", "train_started", {
+        profileId,
+        mode,
+        action: trainAction,
+        voiceAudioAssetId: String(body.voiceAudioAssetId ?? "").trim() || null,
+        avatarImageAssetId: String(body.avatarImageAssetId ?? "").trim() || null,
+        caricatureAssetId: String(body.caricatureAssetId ?? "").trim() || null,
+      });
+
+      const voiceResult = requireOwnedTrainingAsset(assets, {
+        id: body.voiceAudioAssetId,
+        role: "voice_audio",
+        label: "áudio de voz",
+      });
+      if (!voiceResult.ok) {
+        appLog(
+          "heygen",
+          "train_rejected",
+          { profileId, mode, reason: "voice_audio_asset", message: voiceResult.message },
+          "warn",
+        );
+        return NextResponse.json(
+          {
+            message: voiceResult.message.includes("Selecione")
+              ? "Envie um audio de voz (MP3/WAV) para clonar a voz."
+              : voiceResult.message,
+          },
+          { status: voiceResult.status },
+        );
+      }
+      const voiceAudioAsset = voiceResult.asset;
+
+      let avatarImageAsset: ProfileTrainingAsset | null = null;
+      let caricatureAsset: ProfileTrainingAsset | null = null;
+
+      if (mode === "caricature") {
+        const caricResult = requireOwnedTrainingAsset(assets, {
+          id: body.caricatureAssetId,
+          role: "avatar_caricature",
+          label: "caricatura",
+        });
+        if (!caricResult.ok) {
+          return NextResponse.json(
+            {
+              message: caricResult.message.includes("Selecione")
+                ? "Gere a caricatura a partir da foto antes de preparar a voz para o video caricato."
+                : caricResult.message,
+            },
+            { status: caricResult.status },
+          );
+        }
+        caricatureAsset = caricResult.asset;
+      } else if (mode === "photo_real" || mode === "photo") {
+        const imageResult = requireOwnedTrainingAsset(assets, {
+          id: body.avatarImageAssetId,
+          role: "avatar_image",
+          label: "foto do avatar",
+        });
+        if (!imageResult.ok) {
+          return NextResponse.json(
+            {
+              message: imageResult.message.includes("Selecione")
+                ? mode === "photo_real"
+                  ? "Envie uma foto do rosto (PNG/JPEG) para usar a foto real."
+                  : "Envie uma foto do rosto (PNG/JPEG) para criar o avatar."
+                : imageResult.message,
+            },
+            { status: imageResult.status },
+          );
+        }
+        avatarImageAsset = imageResult.asset;
+      } else if (String(body.avatarImageAssetId ?? "").trim()) {
+        const imageResult = requireOwnedTrainingAsset(assets, {
+          id: body.avatarImageAssetId,
+          role: "avatar_image",
+          label: "foto do avatar",
+        });
+        if (imageResult.ok) {
+          avatarImageAsset = imageResult.asset;
+        }
+      }
+
       const latestVideoAsset =
         [...assets]
           .filter(
@@ -78,14 +161,6 @@ export async function POST(request: Request) {
           )
           .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
 
-      if (!voiceAudioAsset) {
-        return NextResponse.json(
-          { message: "Envie um audio de voz (MP3/WAV) para clonar a voz." },
-          { status: 400 },
-        );
-      }
-
-      const mode: HeyGenTrainMode = body.mode ?? "photo";
       const appBaseUrl = resolveAppBaseUrl(request);
       const assetBaseUrl = resolveAppBaseUrl(request);
       const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, assetBaseUrl);
@@ -107,8 +182,6 @@ export async function POST(request: Request) {
       let voiceId = String(body.voiceId ?? "").trim();
       let elevenLabsVoiceId = String(body.elevenLabsVoiceId ?? "").trim();
       let digitalTwinLookForPhase: HeyGenAvatarLookListItem | null = null;
-
-      const trainAction = body.action === "sync" ? "sync" : "create";
 
       if (mode === "digital_twin" && trainAction === "sync") {
         const groupId = String(body.avatarGroupId ?? "").trim();
@@ -210,28 +283,6 @@ export async function POST(request: Request) {
           consentUrl = null;
           needsConsent = false;
         }
-      } else if (mode === "caricature") {
-        if (!caricatureAsset) {
-          return NextResponse.json(
-            {
-              message:
-                "Gere a caricatura a partir da foto antes de preparar a voz para o video caricato.",
-            },
-            { status: 400 },
-          );
-        }
-      } else if (mode === "photo_real") {
-        if (!avatarImageAsset) {
-          return NextResponse.json(
-            { message: "Envie uma foto do rosto (PNG/JPEG) para usar a foto real." },
-            { status: 400 },
-          );
-        }
-      } else if (!avatarImageAsset) {
-        return NextResponse.json(
-          { message: "Envie uma foto do rosto (PNG/JPEG) para criar o avatar." },
-          { status: 400 },
-        );
       }
 
       if (mode === "photo" && avatarImageAsset) {
@@ -300,6 +351,21 @@ export async function POST(request: Request) {
           "Voz clonada para foto real. Agora gere o video com a foto enviada em Configurar avatar.",
       };
 
+      appLog("heygen", "train_completed", {
+        profileId,
+        mode,
+        action: trainAction,
+        trainingPhase,
+        hasAvatarId: Boolean(avatarId),
+        voiceAudioAssetId: voiceAudioAsset.id,
+        caricatureAssetId: caricatureAsset?.id ?? null,
+        avatarImageAssetId: avatarImageAsset?.id ?? null,
+        voiceProvider: isElevenLabsAudioVoiceProvider()
+          ? "elevenlabs_audio"
+          : "heygen_clone",
+        durationMs: routeElapsed(),
+      });
+
       return NextResponse.json(
         {
           avatarId: avatarId || null,
@@ -314,6 +380,8 @@ export async function POST(request: Request) {
           mode,
           action: trainAction,
           caricatureAssetId: caricatureAsset?.id ?? null,
+          avatarImageAssetId: avatarImageAsset?.id ?? null,
+          voiceAudioAssetId: voiceAudioAsset.id,
           voiceProvider: isElevenLabsAudioVoiceProvider()
             ? "elevenlabs_audio"
             : "heygen_clone",
@@ -323,6 +391,7 @@ export async function POST(request: Request) {
       );
     });
   } catch (error) {
+    appLogError("heygen", "train_failed", error, { durationMs: routeElapsed() });
     return handleRouteError(new Error(formatHeyGenError(error)));
   }
 }

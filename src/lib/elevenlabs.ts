@@ -82,6 +82,15 @@ function messageFromElevenLabsBody(json: unknown, status: number) {
 
 async function elevenLabsFetch(path: string, init?: RequestInit) {
   const config = getElevenLabsConfig();
+  const { appLog, appLogError, safeApiPath, startTimer } = await import(
+    "@/lib/observability/log"
+  );
+  const elapsed = startTimer();
+  const method = String(init?.method ?? "GET").toUpperCase();
+  const apiPath = safeApiPath(path).replace(
+    /\/text-to-speech\/[^/?]+/,
+    "/text-to-speech/{voiceId}",
+  );
 
   const execute = async (apiKey: string) => {
     if (!apiKey) {
@@ -110,12 +119,27 @@ async function elevenLabsFetch(path: string, init?: RequestInit) {
         })(),
         response.status,
       );
+      appLogError("elevenlabs", "api_request_failed", message, {
+        method,
+        path: apiPath,
+        httpStatus: response.status,
+        durationMs: elapsed(),
+      });
       const { ProviderHttpError } = await import("@/lib/admin/provider-key-pool");
       throw new ProviderHttpError({
         providerId: "elevenlabs",
         status: response.status,
         message,
         body: body.slice(0, 400),
+      });
+    }
+
+    if (method !== "GET") {
+      appLog("elevenlabs", "api_request_ok", {
+        method,
+        path: apiPath,
+        httpStatus: response.status,
+        durationMs: elapsed(),
       });
     }
 

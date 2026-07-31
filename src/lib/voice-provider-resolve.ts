@@ -15,6 +15,7 @@ import {
   resolveHeyGenClonedVoiceIdWithRetry,
 } from "@/lib/heygen-voice-resolve";
 import type { HeyGenAssetInput } from "@/lib/heygen";
+import { appLog, appLogError, startTimer } from "@/lib/observability/log";
 
 export function buildElevenLabsCloneVoiceName(
   avatarName: string,
@@ -56,6 +57,7 @@ export async function resolveElevenLabsVoiceId(input: {
   audioUrl: string;
   forceReclone?: boolean;
 }) {
+  const elapsed = startTimer();
   let voiceId = input.forceReclone
     ? ""
     : String(input.requestedVoiceId ?? "").trim();
@@ -63,6 +65,10 @@ export async function resolveElevenLabsVoiceId(input: {
   if (voiceId) {
     const exists = await elevenLabsVoiceExists(voiceId);
     if (exists) {
+      appLog("voice", "elevenlabs_voice_reused", {
+        source: "requested",
+        durationMs: elapsed(),
+      });
       return voiceId;
     }
     voiceId = "";
@@ -75,16 +81,24 @@ export async function resolveElevenLabsVoiceId(input: {
       const voices = await elevenLabsListVoices();
       const reusable = pickReusableElevenLabsVoice(voices, input.voiceName);
       if (reusable) {
+        appLog("voice", "elevenlabs_voice_reused", {
+          source: "list_by_name",
+          durationMs: elapsed(),
+        });
         return reusable;
       }
-    } catch {
-      // listagem falhou -> segue para clonar
+    } catch (error) {
+      appLogError("voice", "elevenlabs_list_voices_failed", error);
     }
   }
 
+  appLog("voice", "elevenlabs_clone_started");
   const cloned = await elevenLabsCloneVoice({
     voiceName: input.voiceName,
     audioUrl: input.audioUrl,
+  });
+  appLog("voice", "elevenlabs_clone_completed", {
+    durationMs: elapsed(),
   });
   return cloned.voiceId;
 }
@@ -141,6 +155,13 @@ export async function resolveVideoSpeechForGeneration(input: {
   mediaId: string;
 }): Promise<ResolvedVideoSpeech> {
   const provider = getHeyGenVoiceProvider();
+  const elapsed = startTimer();
+  appLog("voice", "speech_resolve_started", {
+    provider,
+    voiceAudioAssetId: input.voiceAudioAssetId,
+    transcriptChars: input.transcript.length,
+    mediaId: input.mediaId,
+  });
 
   if (provider === "elevenlabs_audio") {
     try {
@@ -161,6 +182,13 @@ export async function resolveVideoSpeechForGeneration(input: {
         mediaId: input.mediaId,
         buffer: mp3,
       });
+      appLog("voice", "speech_resolve_completed", {
+        provider: "elevenlabs_audio",
+        voiceAudioAssetId: input.voiceAudioAssetId,
+        mediaId: input.mediaId,
+        mp3Bytes: mp3.byteLength,
+        durationMs: elapsed(),
+      });
       return {
         provider: "elevenlabs_audio",
         elevenLabsVoiceId,
@@ -168,11 +196,27 @@ export async function resolveVideoSpeechForGeneration(input: {
       };
     } catch (error) {
       if (!isElevenLabsIvcSubscriptionError(error)) {
+        appLogError("voice", "speech_resolve_failed", error, {
+          provider: "elevenlabs_audio",
+          voiceAudioAssetId: input.voiceAudioAssetId,
+          durationMs: elapsed(),
+        });
         throw error;
       }
       console.warn(
         "[voice] ElevenLabs sem IVC no plano — fallback para heygen_clone:",
         formatElevenLabsError(error),
+      );
+      appLog(
+        "voice",
+        "provider_fallback",
+        {
+          from: "elevenlabs_audio",
+          to: "heygen_clone",
+          reason: "ivc_subscription",
+          voiceAudioAssetId: input.voiceAudioAssetId,
+        },
+        "warn",
       );
       return resolveHeyGenSpeech({
         avatarName: input.avatarName,
@@ -184,12 +228,18 @@ export async function resolveVideoSpeechForGeneration(input: {
     }
   }
 
-  return resolveHeyGenSpeech({
+  const heygen = await resolveHeyGenSpeech({
     avatarName: input.avatarName,
     voiceAudioAssetId: input.voiceAudioAssetId,
     voiceAudioUrl: input.voiceAudioUrl,
     requestedHeygenVoiceId: input.requestedHeygenVoiceId,
   });
+  appLog("voice", "speech_resolve_completed", {
+    provider: "heygen_clone",
+    voiceAudioAssetId: input.voiceAudioAssetId,
+    durationMs: elapsed(),
+  });
+  return heygen;
 }
 
 export async function resolveHeyGenVoiceWithRetryForImageVideo<T>(input: {

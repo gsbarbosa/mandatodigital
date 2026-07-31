@@ -89,6 +89,8 @@ export async function processSealJob(jobId: string) {
 }
 
 export async function processVoiceJob(jobId: string) {
+  const { appLog, appLogError, startTimer } = await import("@/lib/observability/log");
+  const elapsed = startTimer();
   const claimed = await claimAsyncJob(jobId);
   if (!claimed) {
     const existing = await getAsyncJob(jobId);
@@ -103,6 +105,14 @@ export async function processVoiceJob(jobId: string) {
   }
 
   const payload = claimed.payload as unknown as VoiceTtsPayload;
+  appLog("async-jobs", "voice_job_started", {
+    jobId,
+    voiceAudioAssetId: String(payload.voiceAudioAssetId ?? ""),
+    hasCreateVideo: Boolean(payload.createVideo?.imageUrl),
+    generateMode: payload.createVideo?.generateMode ?? null,
+    transcriptChars: String(payload.transcript ?? "").length,
+  });
+
   try {
     const speech = await resolveVideoSpeechForGeneration({
       transcript: String(payload.transcript ?? ""),
@@ -156,14 +166,37 @@ export async function processVoiceJob(jobId: string) {
 
       result.heygenVideoId = created.videoId;
       result.generateMode = payload.createVideo.generateMode;
+      appLog("async-jobs", "voice_job_video_created", {
+        jobId,
+        videoId: created.videoId,
+        voiceProvider: speech.provider,
+        generateMode: payload.createVideo.generateMode,
+      });
     }
 
-    return await completeAsyncJob(jobId, result);
+    const completed = await completeAsyncJob(jobId, result);
+    appLog("async-jobs", "voice_job_succeeded", {
+      jobId,
+      voiceProvider: speech.provider,
+      videoId: typeof result.heygenVideoId === "string" ? result.heygenVideoId : null,
+      durationMs: elapsed(),
+    });
+    return completed;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha no TTS/voz.";
+    appLogError("async-jobs", "voice_job_failed", error, {
+      jobId,
+      durationMs: elapsed(),
+    });
     const failed = await failAsyncJob(jobId, message);
     if (failed.status === "failed" && failed.attempts < failed.maxAttempts) {
       await requeueAsyncJob(jobId);
+      appLog(
+        "async-jobs",
+        "voice_job_requeued",
+        { jobId, attempt: failed.attempts, maxAttempts: failed.maxAttempts },
+        "warn",
+      );
     }
     throw error;
   }
