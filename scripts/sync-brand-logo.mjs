@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const source = path.join(root, "mandato_digital_logo.png");
-const output = path.join(root, "public", "brand-logo.png");
+const outputDark = path.join(root, "public", "brand-logo-on-dark.png");
+const outputLegacy = path.join(root, "public", "brand-logo.png");
 
 function main() {
   if (!fs.existsSync(source)) {
@@ -13,14 +14,16 @@ function main() {
     process.exit(1);
   }
 
-  fs.copyFileSync(source, output);
+  fs.copyFileSync(source, outputDark);
+  fs.copyFileSync(source, outputLegacy);
 
   console.log(
     JSON.stringify(
       {
         source: path.basename(source),
-        output: path.basename(output),
-        sizeBytes: fs.statSync(output).size,
+        outputs: [path.basename(outputDark), path.basename(outputLegacy)],
+        note: "Regenere brand-logo-on-light.png com o script de contraste se alterar a arte.",
+        sizeBytes: fs.statSync(outputDark).size,
       },
       null,
       2,
