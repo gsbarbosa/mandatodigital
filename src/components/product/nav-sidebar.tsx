@@ -399,19 +399,19 @@ export function NavSidebar({
       <div className="border-b border-md-border-soft px-4 py-5">
         <Link
           href="/monitoramento"
-          className="flex w-full items-center no-underline"
+          className="flex w-full flex-col items-center gap-1.5 no-underline"
           aria-label="Mandato Digital — monitoramento"
           title="Ir ao monitoramento"
           onClick={() => onLogoSecretClick?.()}
         >
-          <BrandLogo fluid priority />
+          <BrandLogo markSize={20} fontSize={18} priority />
+          <span
+            className="text-[10px] font-normal tracking-wide text-md-text-soft select-none leading-none"
+            aria-label={`Versão ${APP_VERSION}`}
+          >
+            v{APP_VERSION}
+          </span>
         </Link>
-        <p
-          className="mt-2 text-center text-[10px] font-normal tracking-wide text-md-text-soft select-none"
-          aria-label={`Versão ${APP_VERSION}`}
-        >
-          v{APP_VERSION}
-        </p>
       </div>
 
       <nav className="flex-1 p-3 space-y-1.5">

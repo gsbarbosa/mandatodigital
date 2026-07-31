@@ -81,7 +81,7 @@ export function AcessoDemonstracaoPage() {
         data-testid="demo-access-page"
       >
         <div className="mb-6 flex justify-center">
-          <BrandLogo width={180} priority />
+          <BrandLogo markSize={24} fontSize={22} priority />
         </div>
 
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--curador-border)] bg-[var(--curador-soft)] px-3 py-1 text-xs font-semibold text-[var(--curador-text)]">

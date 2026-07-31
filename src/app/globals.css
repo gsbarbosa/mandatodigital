@@ -227,27 +227,22 @@ body {
   color: var(--text);
 }
 
-/* Logo: variante clara some no tema escuro e vice-versa.
-   display fica só aqui — não usar Tailwind `block`/`hidden` nas imgs
-   (especificidade do utilitário sobrescrevia o hide e duplicava a logo). */
-.brand-logo-wrap {
-  line-height: 0;
+/* Marca Proposta 2 (SVG): barras/wordmark adaptam ao tema. */
+.brand-logo-mark {
+  color: #f1f5f9;
 }
 
-.brand-logo-on-dark {
-  display: block;
+.brand-logo-word-mandato {
+  color: #f1f5f9;
 }
 
-.brand-logo-on-light {
-  display: none;
+.brand-logo-word-digital {
+  color: #00b86b;
 }
 
-html[data-theme="light"] .brand-logo-on-dark {
-  display: none;
-}
-
-html[data-theme="light"] .brand-logo-on-light {
-  display: block;
+html[data-theme="light"] .brand-logo-mark,
+html[data-theme="light"] .brand-logo-word-mandato {
+  color: #0a2540;
 }
 
 /* Tech background grid (Form04) */
@@ -2302,8 +2297,7 @@ textarea.persona-input-control {
 }
 
 .login-brand-logo {
-  height: auto;
-  max-width: 100%;
+  justify-content: center;
 }
 
 .login-social-group {

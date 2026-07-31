@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Mandato Digital">
+  <rect width="512" height="512" rx="112" fill="#0A2540"/>
+  <g transform="translate(64, 128) scale(6)">
+    <path fill="#F1F5F9" d="M0 48V5L10 11V48H0z"/>
+    <path fill="#F1F5F9" d="M13 48V17L23 10.5V48H13z"/>
+    <path fill="#F1F5F9" d="M26 48V7.5L37 0V48H26z"/>
+    <path fill="#00B86B" d="M38.5 10H46A17 19 0 0 1 46 48H38.5V40.5H43.5A10 11 0 0 0 43.5 17.5H38.5V10Z"/>
+  </g>
+</svg>

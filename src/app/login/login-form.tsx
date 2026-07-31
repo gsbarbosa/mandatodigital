@@ -271,7 +271,7 @@ export function LoginForm() {
       )}
 
       <div className="login-brand">
-        <BrandLogo width={260} priority className="login-brand-logo" />
+        <BrandLogo markSize={28} fontSize={26} priority className="login-brand-logo" />
       </div>
 
       <div style={{ marginBottom: "1rem" }}>
