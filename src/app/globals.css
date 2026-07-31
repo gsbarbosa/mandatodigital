@@ -227,6 +227,24 @@ body {
   color: var(--text);
 }
 
+/* Marca Proposta 2 (SVG): barras/wordmark adaptam ao tema. */
+.brand-logo-mark {
+  color: #f1f5f9;
+}
+
+.brand-logo-word-mandato {
+  color: #f1f5f9;
+}
+
+.brand-logo-word-digital {
+  color: #00b86b;
+}
+
+html[data-theme="light"] .brand-logo-mark,
+html[data-theme="light"] .brand-logo-word-mandato {
+  color: #0a2540;
+}
+
 /* Tech background grid (Form04) */
 body::before {
   content: "";
@@ -418,19 +436,25 @@ select:focus {
 
 .persona-input-control {
   width: 100%;
-  background-color: rgba(2, 6, 23, 0.5);
-  border: 1px solid var(--slate-800);
+  background-color: var(--surface-inset);
+  border: 1px solid var(--border);
   color: var(--text-main);
   padding: 0.875rem 1rem;
   border-radius: 8px;
   font-size: 0.95rem;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.persona-input-control::placeholder {
+  color: var(--text-soft);
+  opacity: 0.85;
 }
 
 .persona-input-control:focus {
   outline: none;
-  border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  border-color: var(--accent-border, var(--blue));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, var(--blue)) 28%, transparent);
+  background-color: var(--surface);
 }
 
 textarea.persona-input-control {
@@ -1828,9 +1852,12 @@ textarea.persona-input-control {
   border-color: var(--cta-hover);
 }
 
-.refresh-pautas-btn--monitor:disabled {
+.refresh-pautas-btn--monitor:disabled,
+.refresh-pautas-btn--monitor.is-locked {
   opacity: 0.55;
   box-shadow: none;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .refresh-pautas-btn--monitor .persona-spinner {
@@ -2270,8 +2297,7 @@ textarea.persona-input-control {
 }
 
 .login-brand-logo {
-  height: auto;
-  max-width: 100%;
+  justify-content: center;
 }
 
 .login-social-group {
@@ -2289,18 +2315,18 @@ textarea.persona-input-control {
   min-height: 2.75rem;
   padding: 0.65rem 1rem;
   border-radius: 10px;
-  border: 1px solid var(--panel-border);
-  background: var(--surface-inset);
-  color: #e2e8f0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
   font-size: 0.92rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .login-social-btn:hover:not(:disabled) {
-  border-color: rgba(148, 163, 184, 0.55);
-  background: rgba(30, 41, 59, 0.75);
+  border-color: var(--border-hover);
+  background: var(--overlay-hover);
 }
 
 .login-social-btn:disabled {
@@ -2319,7 +2345,7 @@ textarea.persona-input-control {
   align-items: center;
   gap: 0.75rem;
   margin: 0 0 1rem;
-  color: #94a3b8;
+  color: var(--text-soft);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -2336,6 +2362,64 @@ textarea.persona-input-control {
 .login-form {
   display: grid;
   gap: 0.75rem;
+}
+
+.login-password-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.login-password-label-row .persona-label {
+  margin: 0;
+}
+
+.login-forgot-link,
+.login-back-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--accent-text, var(--curador-text));
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.login-forgot-link:disabled,
+.login-back-link:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.login-back-link {
+  justify-self: center;
+  margin-top: 0.25rem;
+}
+
+.login-field-error {
+  margin: -0.35rem 0 0;
+  color: var(--auditor-text, #b91c1c);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.persona-input-invalid {
+  border-color: color-mix(in srgb, var(--auditor, #ef4444) 70%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--auditor, #ef4444) 18%, transparent);
+}
+
+.login-reset-intro {
+  margin-bottom: 1rem;
+}
+
+.login-reset-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .login-loading {

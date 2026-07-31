@@ -199,9 +199,63 @@ env:
     availability:
       - RUNTIME
 
+  # Distribuidor — fail-closed ate smoke + secrets Ayrshare
+  - variable: DISTRIBUTION_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_DISTRIBUTION_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: DISTRIBUTION_PUBLISH_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_DISTRIBUTION_PUBLISH_ENABLED
+    value: "false"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Modo DEMO / degustação — ligar para apresentações; desligar depois.
+  - variable: DEMO_MODE
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_DEMO_MODE
+    value: "true"
+    availability:
+      - BUILD
+      - RUNTIME
+
   # Cadastre: npm run firebase:secrets:guide / --apply
   # - variable: JOBS_WORKER_SHARED_SECRET
   #   secret: jobs-worker-shared-secret
+  #   availability:
+  #     - RUNTIME
+  # - variable: AYRSHARE_API_KEY
+  #   secret: ayrshare-api-key
+  #   availability:
+  #     - RUNTIME
+  # - variable: AYRSHARE_PRIVATE_KEY
+  #   secret: ayrshare-private-key
+  #   availability:
+  #     - RUNTIME
+  # - variable: AYRSHARE_WEBHOOK_SECRET
+  #   secret: ayrshare-webhook-secret
+  #   availability:
+  #     - RUNTIME
+  # - variable: AYRSHARE_DOMAIN
+  #   value: "mandatodigital"
   #   availability:
   #     - RUNTIME
 

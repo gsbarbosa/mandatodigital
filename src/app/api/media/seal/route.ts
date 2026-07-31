@@ -5,6 +5,7 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
+import { isDemoMode } from "@/lib/feature-flags";
 import { sealRemoteVideo } from "@/lib/media-tse-seal";
 
 export const maxDuration = 300;
@@ -12,6 +13,8 @@ export const maxDuration = 300;
 const bodySchema = z.object({
   videoUrl: z.string().min(1),
   mediaId: z.string().min(1),
+  /** Roteiro livre / demo: tarja de campanha pós-16/Ago. */
+  campaignTarja: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -24,6 +27,7 @@ export async function POST(request: Request) {
         videoUrl: body.videoUrl,
         mediaId: body.mediaId,
         guestTestWatermark: !premium,
+        campaignTarja: Boolean(body.campaignTarja) || isDemoMode(),
       });
       return NextResponse.json(sealed);
     });

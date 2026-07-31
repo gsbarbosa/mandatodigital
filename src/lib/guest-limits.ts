@@ -102,7 +102,7 @@ export function needsDailySentinelRefresh(
   lastRefreshedAt: string | null | undefined,
   now: Date | number = Date.now(),
 ): boolean {
-  if (!lastRefreshedAt) {
+  if (!lastRefreshedAt?.trim()) {
     return true;
   }
   const lastMs = Date.parse(lastRefreshedAt);
@@ -123,6 +123,10 @@ export function guestSentinelNextDailyRefreshLabel(now: Date | number = Date.now
 export function guestSentinelCreditsExhaustedMessage(now: Date | number = Date.now()): string {
   return `Você usou seus ${GUEST_SENTINEL_FORCE_CREDITS} créditos. A próxima atualização das pautas é ${guestSentinelNextDailyRefreshLabel(now)}.`;
 }
+
+/** Mensagem de UI quando créditos zeram — ações (Sentinela / avatares / vídeo) bloqueadas. */
+export const GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE =
+  "Seus créditos acabaram. Escolha um plano para continuar.";
 
 export function buildGuestSentinelCredits(used: number): GuestSentinelCredits {
   const safeUsed = Math.max(0, Math.floor(used));

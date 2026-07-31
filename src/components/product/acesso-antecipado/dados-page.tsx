@@ -15,6 +15,11 @@ import {
   isValidPhoneBr,
 } from "@/lib/br-input";
 import {
+  PLAN_SELECTION_PATH,
+  REGISTRATION_REQUIRED_PATH,
+  resolveIncompleteRegistrationPath,
+} from "@/lib/registration-gate";
+import {
   earlyAccessPlans,
   readPlanIntent,
   useEarlyAccess,
@@ -22,10 +27,7 @@ import {
   type EarlyAccessPlanId,
   type EarlyAccessReservation,
 } from "@/lib/early-access";
-import {
-  PLAN_SELECTION_PATH,
-  REGISTRATION_REQUIRED_PATH,
-} from "@/lib/registration-gate";
+import { isDemoMode } from "@/lib/demo-mode";
 
 const UF_LIST = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -262,7 +264,12 @@ export function AcessoDadosPage() {
         }
 
         if (payload.needsPlanSelection && !searchParams.get("plan")) {
-          router.replace(PLAN_SELECTION_PATH as Route);
+          router.replace(
+            resolveIncompleteRegistrationPath({
+              needsPlanSelection: true,
+              demoMode: isDemoMode(),
+            }) as Route,
+          );
           return;
         }
 
@@ -554,9 +561,14 @@ export function AcessoDadosPage() {
         }));
       }
 
-      // Sem plano (Entrar) → tela de escolha com comparativo.
+      // Sem plano (Entrar) → demonstração (DEMO) ou escolha de plano.
       if (payload?.needsPlanSelection || !payload?.reservation) {
-        router.replace(PLAN_SELECTION_PATH as Route);
+        router.replace(
+          resolveIncompleteRegistrationPath({
+            needsPlanSelection: true,
+            demoMode: isDemoMode(),
+          }) as Route,
+        );
         router.refresh();
         return;
       }

@@ -1,19 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEMO_ACCESS_PATH,
   isRegistrationAllowedPath,
   PLAN_SELECTION_PATH,
   REGISTRATION_REQUIRED_PATH,
+  resolveIncompleteRegistrationPath,
   resolvePostLoginPath,
 } from "@/lib/registration-gate";
 
 describe("registration-gate", () => {
   describe("isRegistrationAllowedPath", () => {
-    it("permite dados pessoais e escolha de plano", () => {
+    it("permite dados pessoais, planos e demonstracao", () => {
       expect(isRegistrationAllowedPath("/acesso-antecipado/dados")).toBe(true);
       expect(isRegistrationAllowedPath("/acesso-antecipado/dados/")).toBe(true);
       expect(isRegistrationAllowedPath("/acesso-antecipado/planos")).toBe(true);
       expect(isRegistrationAllowedPath("/acesso-antecipado/planos/")).toBe(true);
+      expect(isRegistrationAllowedPath("/acesso-antecipado/demonstracao")).toBe(true);
     });
 
     it("bloqueia cnpj e o restante do produto", () => {
@@ -21,6 +24,24 @@ describe("registration-gate", () => {
       expect(isRegistrationAllowedPath("/monitoramento")).toBe(false);
       expect(isRegistrationAllowedPath("/app")).toBe(false);
       expect(isRegistrationAllowedPath("/criativo")).toBe(false);
+    });
+  });
+
+  describe("resolveIncompleteRegistrationPath", () => {
+    it("em demo manda para demonstracao em vez de planos", () => {
+      expect(
+        resolveIncompleteRegistrationPath({
+          needsPlanSelection: true,
+          demoMode: true,
+        }),
+      ).toBe(DEMO_ACCESS_PATH);
+
+      expect(
+        resolveIncompleteRegistrationPath({
+          needsPlanSelection: true,
+          demoMode: false,
+        }),
+      ).toBe(PLAN_SELECTION_PATH);
     });
   });
 
@@ -41,7 +62,7 @@ describe("registration-gate", () => {
       ).toBe(REGISTRATION_REQUIRED_PATH);
     });
 
-    it("manda para planos quando só falta escolher o plano", () => {
+    it("manda para planos quando so falta escolher o plano", () => {
       expect(
         resolvePostLoginPath({
           registrationComplete: false,
@@ -49,6 +70,17 @@ describe("registration-gate", () => {
           nextPath: "/monitoramento",
         }),
       ).toBe(PLAN_SELECTION_PATH);
+    });
+
+    it("em DEMO_MODE manda para informativo de demonstracao", () => {
+      expect(
+        resolvePostLoginPath({
+          registrationComplete: false,
+          needsPlanSelection: true,
+          demoMode: true,
+          nextPath: "/monitoramento",
+        }),
+      ).toBe(DEMO_ACCESS_PATH);
     });
 
     it("preserva o plano escolhido no redirect de cadastro incompleto", () => {
@@ -60,7 +92,7 @@ describe("registration-gate", () => {
       ).toBe("/acesso-antecipado/dados?plan=elite");
     });
 
-    it("respeita next seguro quando o cadastro está completo", () => {
+    it("respeita next seguro quando o cadastro esta completo", () => {
       expect(
         resolvePostLoginPath({
           registrationComplete: true,
@@ -76,7 +108,7 @@ describe("registration-gate", () => {
       ).toBe("/app");
     });
 
-    it("rejeita next inválido e cai em /app", () => {
+    it("rejeita next invalido e cai em /app", () => {
       expect(
         resolvePostLoginPath({
           registrationComplete: true,

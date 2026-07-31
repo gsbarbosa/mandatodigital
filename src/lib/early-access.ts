@@ -156,7 +156,7 @@ export const earlyAccessPlans: Array<{
     accent: "slate",
     features: [
       "Monitoramento ilimitado de redes sociais, portais, sites e blogs",
-      "Produção de 5 avatares/mês (2 digitais e 3 caricaturas/3D)",
+      "Produção de 5 avatares/mês (2 digitais e 3 caricaturas/3D), vídeos de até 1 minuto",
       "Checagem de fatos básica.",
     ],
     restriction: "Sem restrição de vagas por Partido",
@@ -169,7 +169,7 @@ export const earlyAccessPlans: Array<{
     accent: "cyan",
     features: [
       "Todos os benefícios do plano Essencial.",
-      "Produção de 22 avatares/mês (livre escolha) com renderização avançada de Gêmeo Digital.",
+      "Produção de 22 avatares/mês (livre escolha) com renderização avançada de Gêmeo Digital, vídeos de até 90 segundos.",
       "Compliance Legal Pack Institucional: provas geradas e protocoladas para o seu corpo jurídico.",
     ],
     restriction: "Máximo 03 vagas por partido/UF",
@@ -182,7 +182,7 @@ export const earlyAccessPlans: Array<{
     accent: "purple",
     features: [
       "Todos os benefícios do plano Avançado.",
-      "Produção de 60 avatares/mês (livre escolha) com renderização avançada de Gêmeo Digital.",
+      "Produção de 60 avatares/mês (livre escolha) com renderização avançada de Gêmeo Digital, vídeos de até 3 minutos.",
       "Publicação simultânea e adaptada em 07 redes: Instagram, TikTok, Twitter/X, YouTube, Threads e LinkedIn.",
     ],
     restriction: "Máximo 03 vagas por partido/UF",

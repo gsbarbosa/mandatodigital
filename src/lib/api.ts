@@ -5,6 +5,7 @@ import {
   formatProviderLimitHint,
   sanitizeProviderFacingMessage,
 } from "@/lib/curador-heygen-prefs";
+import { appLog, appLogError } from "@/lib/observability/log";
 
 export function formatApiErrorMessage(error: unknown) {
   const raw =
@@ -31,6 +32,12 @@ export function formatApiErrorMessage(error: unknown) {
 
 export function handleRouteError(error: unknown) {
   if (error instanceof ZodError) {
+    appLog(
+      "api",
+      "route_validation_failed",
+      { issueCount: error.issues.length },
+      "warn",
+    );
     return NextResponse.json(
       {
         message: "Falha de validacao.",
@@ -40,5 +47,6 @@ export function handleRouteError(error: unknown) {
     );
   }
 
+  appLogError("api", "route_unhandled_error", error, { status: 500 });
   return NextResponse.json({ message: formatApiErrorMessage(error) }, { status: 500 });
 }

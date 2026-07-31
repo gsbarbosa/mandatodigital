@@ -138,6 +138,8 @@ export function buildCuradorContextPayload(profileForm: {
   personaArchetypes?: string[];
   voiceTones?: string[];
   avatarType: string;
+  /** Evidencias do Sentinela (materias, briefing) para ancorar o roteiro. */
+  sentinelBriefing?: string;
 }) {
   return {
     spectrum: profileForm.spectrum,
@@ -145,6 +147,9 @@ export function buildCuradorContextPayload(profileForm: {
     personaArchetypes: profileForm.personaArchetypes ?? [],
     voiceTones: profileForm.voiceTones ?? [],
     avatarType: profileForm.avatarType,
+    ...(profileForm.sentinelBriefing?.trim()
+      ? { sentinelBriefing: profileForm.sentinelBriefing.trim() }
+      : null),
   };
 }
 

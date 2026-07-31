@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none" role="img" aria-label="Mandato Digital">
+  <g transform="translate(96, 36) scale(2)">
+    <path fill="#0A2540" d="M0 48V5L10 11V48H0z"/>
+    <path fill="#0A2540" d="M13 48V17L23 10.5V48H13z"/>
+    <path fill="#0A2540" d="M26 48V7.5L37 0V48H26z"/>
+    <path fill="#00B86B" d="M38.5 10H46A17 19 0 0 1 46 48H38.5V40.5H43.5A10 11 0 0 0 43.5 17.5H38.5V10Z"/>
+  </g>
+  <text text-anchor="middle" x="160" y="220" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="-0.8" fill="#0A2540">Mandato</text>
+  <text text-anchor="middle" x="160" y="264" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="36" font-weight="700" letter-spacing="-0.8" fill="#00B86B">Digital</text>
+</svg>

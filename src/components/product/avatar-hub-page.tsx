@@ -7,7 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useProductApp } from "@/components/product/provider";
 import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
+import { ProductPageHeader } from "@/components/product/product-page-header";
 import { trainingAssetFileUrl } from "@/components/product/persona-shared";
+import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 import {
   guestCaricatureQuota,
   pickLatestCaricatureForVariant,
@@ -18,6 +20,7 @@ import {
   readCuradorHeygenPrefs,
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
+import { GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE } from "@/lib/guest-limits";
 
 function ArrowIcon({ className }: { className?: string }) {
   return (
@@ -44,6 +47,8 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
     regenerateCaricatureVariant,
   } = useProductApp();
   const { isPremium } = useDevAccountMode(sessionUser?.email);
+  const { exhausted: creditsExhausted } = useGuestCreditsGate();
+  const creditsBlocked = creditsExhausted && !isPremium;
   const [previewFailed, setPreviewFailed] = useState(false);
   const [confirmRetrain, setConfirmRetrain] = useState(false);
 
@@ -112,7 +117,7 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
 
   function handleRegenerateCaricature() {
     const variant = tipo.caricatureVariant;
-    if (!variant) {
+    if (!variant || creditsBlocked) {
       return;
     }
     void regenerateCaricatureVariant({ variant, label: tipo.label });
@@ -125,14 +130,27 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
       <div className="absolute bottom-[-10%] left-[20%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-[51px] md:pt-[77px]">
-        <header className="mb-12 border-b border-md-border-soft pb-6">
-          <h1 className="text-3xl md:text-4xl font-bold text-md-text tracking-tight flex items-center gap-3">
-            <svg className="h-8 w-8 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-            </svg>
-            {tipo.label}
-          </h1>
-        </header>
+        <ProductPageHeader
+          title={
+            <span className="inline-flex items-center gap-3">
+              <svg
+                className="h-7 w-7 text-cyan-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+                />
+              </svg>
+              {tipo.label}
+            </span>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center mb-16">
           {/* Avatar */}
@@ -168,7 +186,12 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
                   type="button"
                   onClick={() => void handleRegenerateCaricature()}
                   disabled={
-                    isRegenerating || !sourcePhoto || guestQuotaReached
+                    isRegenerating || !sourcePhoto || guestQuotaReached || creditsBlocked
+                  }
+                  title={
+                    creditsBlocked
+                      ? GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE
+                      : undefined
                   }
                   className="w-full group/edit inline-flex items-center justify-center gap-2 rounded-xl border border-md-border/70 bg-md-bg/50 px-4 py-2.5 text-sm font-medium text-md-text shadow-sm transition-all hover:border-cyan-500/45 hover:bg-[var(--curador-soft)] hover:text-md-text focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -189,15 +212,21 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
                   <span className="text-center leading-snug">
                     {isRegenerating
                       ? `Regenerando ${tipo.label}…`
-                      : guestQuotaReached
-                        ? `Limite de ${tipo.label} atingido`
-                        : previewAsset
-                          ? `Regenerar ${tipo.label}`
-                          : `Gerar ${tipo.label}`}
+                      : creditsBlocked
+                        ? "Créditos esgotados"
+                        : guestQuotaReached
+                          ? `Limite de ${tipo.label} atingido`
+                          : previewAsset
+                            ? `Regenerar ${tipo.label}`
+                            : `Gerar ${tipo.label}`}
                   </span>
                 </button>
                 <p className="text-center text-xs text-md-text-soft leading-relaxed">
-                  {caricatureQuota && !isPremium ? (
+                  {creditsBlocked ? (
+                    <span className="text-[var(--distribuidor-text)]">
+                      {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}
+                    </span>
+                  ) : caricatureQuota && !isPremium ? (
                     guestQuotaReached ? (
                       <>
                         Versão para convidados: {caricatureQuota.used}/{caricatureQuota.limit}{" "}

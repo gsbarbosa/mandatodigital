@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
-import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
+import { buildAvatarVideoTranscript, countTranscriptWords } from "@/lib/avatar-video-script";
+import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/demo-mode";
+import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 import {
   formatHeyGenError,
   heygenCreateVideo,
@@ -18,9 +20,8 @@ import {
 } from "@/lib/heygen-credit-preflight";
 import {
   getTrainingAssetPublicUrl,
-  pickAvatarImageAndVoiceAudioAssets,
+  requireOwnedTrainingAsset,
   resolveAppBaseUrl,
-  resolveCaricatureAsset,
 } from "@/lib/training-asset-urls";
 import {
   resolveHeyGenVoiceWithRetryForImageVideo,
@@ -33,6 +34,8 @@ import {
   AsyncJobQuotaError,
   enqueueVoiceCreateVideoJob,
 } from "@/lib/async-jobs-enqueue";
+import type { ProfileTrainingAsset } from "@/lib/types";
+import { appLog, appLogError, startTimer } from "@/lib/observability/log";
 
 export const maxDuration = 300;
 
@@ -50,7 +53,24 @@ function auditVideoEvent(
   });
 }
 
+function assetIdsAudit(input: {
+  voiceAudioAssetId?: string | null;
+  avatarImageAssetId?: string | null;
+  caricatureAssetId?: string | null;
+}) {
+  return {
+    voiceAudioAssetId: input.voiceAudioAssetId?.trim() || null,
+    avatarImageAssetId: input.avatarImageAssetId?.trim() || null,
+    caricatureAssetId: input.caricatureAssetId?.trim() || null,
+  };
+}
+
+function failAsset(result: { ok: false; message: string; status: 400 }) {
+  return NextResponse.json({ message: result.message }, { status: result.status });
+}
+
 export async function POST(request: Request) {
+  const routeElapsed = startTimer();
   try {
     return heygenApiRoute(request, async (repository) => {
       const body = (await request.json()) as {
@@ -63,6 +83,8 @@ export async function POST(request: Request) {
         freePrompt?: string;
         generateMode?: "avatar" | "caricature" | "photo_real";
         caricatureAssetId?: string;
+        avatarImageAssetId?: string;
+        voiceAudioAssetId?: string;
       };
 
       const generateMode =
@@ -80,47 +102,121 @@ export async function POST(request: Request) {
       const explicitTranscript = String(body.transcript ?? "").trim();
       const freePrompt = String(body.freePrompt ?? "").trim();
       const name = String(body.name ?? "").trim() || undefined;
+      const requestedVoiceAudioAssetId = String(body.voiceAudioAssetId ?? "").trim();
+      const requestedAvatarImageAssetId = String(body.avatarImageAssetId ?? "").trim();
+      const requestedCaricatureAssetId = String(body.caricatureAssetId ?? "").trim();
+
+      const dashboard = await repository.getDashboard();
+      const profileId = dashboard.profile?.id ?? null;
+
+      appLog("heygen", "video_generate_started", {
+        profileId,
+        generateMode,
+        voiceAudioAssetId: requestedVoiceAudioAssetId || null,
+        avatarImageAssetId: requestedAvatarImageAssetId || null,
+        caricatureAssetId: requestedCaricatureAssetId || null,
+        hasAvatarId: Boolean(avatarId),
+        transcriptWords: explicitTranscript
+          ? countTranscriptWords(explicitTranscript)
+          : 0,
+        freePromptChars: freePrompt.length,
+        asyncVoice: isAsyncVoiceEnabled(),
+        elevenLabsProvider: isElevenLabsAudioVoiceProvider(),
+      });
 
       if (!topic && !explicitTranscript) {
+        appLog(
+          "heygen",
+          "video_generate_rejected",
+          { profileId, reason: "missing_topic_or_transcript" },
+          "warn",
+        );
         return NextResponse.json(
           { message: "Informe o tema do video ou um roteiro completo (prompt livre)." },
           { status: 400 },
         );
       }
 
-      const dashboard = await repository.getDashboard();
+      const registration = await getUserRegistrationForOwner().catch((error) => {
+        appLogError("heygen", "registration_lookup_failed", error, { profileId });
+        return null;
+      });
+      const planId = registration?.planId || null;
+      const maxScriptWords = maxScriptWordsForPlan(planId);
+      const durationLabel = maxVideoSecondsLabelForPlan(planId).replace(/^até\s+/i, "");
+
+      if (explicitTranscript && countTranscriptWords(explicitTranscript) > maxScriptWords) {
+        appLog(
+          "heygen",
+          "video_generate_rejected",
+          {
+            profileId,
+            reason: "script_too_long",
+            transcriptWords: countTranscriptWords(explicitTranscript),
+            maxScriptWords,
+          },
+          "warn",
+        );
+        return NextResponse.json(
+          {
+            message: `O roteiro excede o limite de ${maxScriptWords} palavras (${durationLabel}) do seu plano.`,
+          },
+          { status: 400 },
+        );
+      }
 
       if (generateMode === "caricature" || generateMode === "photo_real") {
         const assets = await repository.listTrainingAssetsForReference(
           dashboard.profile?.id ?? "",
         );
-        const { voiceAudioAsset, avatarImageAsset } =
-          pickAvatarImageAndVoiceAudioAssets(assets);
-        if (!voiceAudioAsset) {
-          return NextResponse.json(
-            {
-              message:
-                "Modo por foto exige áudio de voz. Envie um MP3/WAV em Configurar avatar antes de gerar o vídeo.",
-            },
-            { status: 400 },
-          );
+
+        const voiceResult = requireOwnedTrainingAsset(assets, {
+          id: requestedVoiceAudioAssetId,
+          role: "voice_audio",
+          label: "áudio de voz",
+        });
+        if (!voiceResult.ok) {
+          return failAsset({
+            ...voiceResult,
+            message:
+              voiceResult.message.includes("Selecione")
+                ? "Modo por foto exige áudio de voz. Envie um MP3/WAV em Configurar avatar e selecione o áudio antes de gerar o vídeo."
+                : voiceResult.message,
+          });
         }
+        const voiceAudioAsset = voiceResult.asset;
 
-        const imageAsset =
-          generateMode === "photo_real"
-            ? avatarImageAsset
-            : resolveCaricatureAsset(assets, body.caricatureAssetId);
-
-        if (!imageAsset) {
-          return NextResponse.json(
-            {
-              message:
-                generateMode === "photo_real"
-                  ? "Envie a foto do rosto em Configurar avatar antes de produzir o vídeo."
-                  : "Gere e aprove a caricatura no hub de Avatares antes de produzir o video.",
-            },
-            { status: 400 },
-          );
+        let imageAsset: ProfileTrainingAsset;
+        if (generateMode === "photo_real") {
+          const imageResult = requireOwnedTrainingAsset(assets, {
+            id: requestedAvatarImageAssetId,
+            role: "avatar_image",
+            label: "foto do avatar",
+          });
+          if (!imageResult.ok) {
+            return failAsset({
+              ...imageResult,
+              message: imageResult.message.includes("Selecione")
+                ? "Envie a foto do rosto em Configurar avatar antes de produzir o vídeo."
+                : imageResult.message,
+            });
+          }
+          imageAsset = imageResult.asset;
+        } else {
+          const caricResult = requireOwnedTrainingAsset(assets, {
+            id: requestedCaricatureAssetId,
+            role: "avatar_caricature",
+            label: "caricatura",
+          });
+          if (!caricResult.ok) {
+            return failAsset({
+              ...caricResult,
+              message: caricResult.message.includes("Selecione")
+                ? "Gere e aprove a caricatura no hub de Avatares antes de produzir o video."
+                : caricResult.message,
+            });
+          }
+          imageAsset = caricResult.asset;
         }
 
         const baseTranscript = explicitTranscript
@@ -128,6 +224,8 @@ export async function POST(request: Request) {
           : await buildAvatarVideoTranscript({
               topic,
               profile: dashboard.profile,
+              maxWords: maxScriptWords,
+              durationLabel,
             });
 
         const transcript = explicitTranscript
@@ -169,6 +267,14 @@ export async function POST(request: Request) {
               ? "Curador v2 (foto real)"
               : "Curador v2 (caricato)");
 
+        const resolvedAssetIds = assetIdsAudit({
+          voiceAudioAssetId: voiceAudioAsset.id,
+          avatarImageAssetId:
+            generateMode === "photo_real" ? imageAsset.id : requestedAvatarImageAssetId,
+          caricatureAssetId:
+            generateMode === "caricature" ? imageAsset.id : requestedCaricatureAssetId,
+        });
+
         if (isAsyncVoiceEnabled() && isElevenLabsAudioVoiceProvider()) {
           const sessionUser = await getSessionUser();
           if (!sessionUser?.id) {
@@ -188,7 +294,8 @@ export async function POST(request: Request) {
                   generateMode,
                   imageUrl,
                   title: videoTitle,
-                  caricatureAssetId: body.caricatureAssetId?.trim() || undefined,
+                  caricatureAssetId:
+                    generateMode === "caricature" ? imageAsset.id : undefined,
                 },
               },
             });
@@ -199,9 +306,17 @@ export async function POST(request: Request) {
                 jobId: enqueued.jobId,
                 generateMode,
                 async: true,
+                ...resolvedAssetIds,
               },
               "voice_job",
             );
+            appLog("heygen", "video_generate_enqueued", {
+              profileId,
+              jobId: enqueued.jobId,
+              generateMode,
+              durationMs: routeElapsed(),
+              ...resolvedAssetIds,
+            });
             return NextResponse.json(
               {
                 jobId: enqueued.jobId,
@@ -246,6 +361,15 @@ export async function POST(request: Request) {
             videoId: result.videoId,
             generateMode,
             voiceProvider: "elevenlabs_audio",
+            ...resolvedAssetIds,
+          });
+          appLog("heygen", "video_generate_completed", {
+            profileId,
+            videoId: result.videoId,
+            generateMode,
+            voiceProvider: "elevenlabs_audio",
+            durationMs: routeElapsed(),
+            ...resolvedAssetIds,
           });
           return NextResponse.json(
             {
@@ -286,6 +410,15 @@ export async function POST(request: Request) {
           videoId: value.videoId,
           generateMode,
           voiceProvider: "heygen_clone",
+          ...resolvedAssetIds,
+        });
+        appLog("heygen", "video_generate_completed", {
+          profileId,
+          videoId: value.videoId,
+          generateMode,
+          voiceProvider: "heygen_clone",
+          durationMs: routeElapsed(),
+          ...resolvedAssetIds,
         });
         return NextResponse.json(
           {
@@ -316,6 +449,8 @@ export async function POST(request: Request) {
         : await buildAvatarVideoTranscript({
             topic,
             profile: dashboard.profile,
+            maxWords: maxScriptWords,
+            durationLabel,
           });
 
       const transcript = explicitTranscript
@@ -339,6 +474,12 @@ export async function POST(request: Request) {
           engine = "avatar_v";
         }
       } catch {
+        appLog(
+          "heygen",
+          "avatar_look_lookup_failed",
+          { avatarId, fallbackEngine: "avatar_iv" },
+          "warn",
+        );
         // ignore (fallback to avatar_iv)
       }
 
@@ -354,19 +495,34 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: walletCheck.message }, { status: 402 });
       }
 
-      // Gêmeo digital: se ElevenLabs estiver ativo e houver amostra, usa audio_url;
-      // senão mantém script+voiceId (voz padrão do look ou clone HeyGen enviado).
       const twinAssets = await repository.listTrainingAssetsForReference(
         dashboard.profile?.id ?? "",
       );
-      const { voiceAudioAsset: twinVoiceAsset } =
-        pickAvatarImageAndVoiceAudioAssets(twinAssets);
 
       try {
         const supportsMotionPrompt = engine === "avatar_iv" && avatarType === "photo_avatar";
         const videoTitle = name ?? (topic ? `Curador v2 - ${topic}` : "Curador v2 - prompt livre");
 
-        if (twinVoiceAsset && isElevenLabsAudioVoiceProvider()) {
+        if (isElevenLabsAudioVoiceProvider()) {
+          const twinVoiceResult = requireOwnedTrainingAsset(twinAssets, {
+            id: requestedVoiceAudioAssetId,
+            role: "voice_audio",
+            label: "áudio de voz",
+          });
+          if (!twinVoiceResult.ok) {
+            return failAsset({
+              ...twinVoiceResult,
+              message: twinVoiceResult.message.includes("Selecione")
+                ? "Gêmeo digital com ElevenLabs exige o áudio de voz selecionado. Envie o áudio em Configurar avatar."
+                : twinVoiceResult.message,
+            });
+          }
+          const twinVoiceAsset = twinVoiceResult.asset;
+          const twinAssetIds = assetIdsAudit({
+            voiceAudioAssetId: twinVoiceAsset.id,
+            avatarImageAssetId: requestedAvatarImageAssetId,
+          });
+
           const speech = await resolveVideoSpeechForGeneration({
             transcript,
             avatarName: resolveAvatarTrainingName({
@@ -395,6 +551,7 @@ export async function POST(request: Request) {
               videoId: result.videoId,
               generateMode: "avatar",
               voiceProvider: "elevenlabs_audio",
+              ...twinAssetIds,
             });
             return NextResponse.json(
               {
@@ -444,6 +601,10 @@ export async function POST(request: Request) {
           videoId: result.videoId,
           generateMode: "avatar",
           voiceProvider: "heygen_clone",
+          ...assetIdsAudit({
+            voiceAudioAssetId: requestedVoiceAudioAssetId,
+            avatarImageAssetId: requestedAvatarImageAssetId,
+          }),
         });
         return NextResponse.json(
           {
@@ -463,21 +624,33 @@ export async function POST(request: Request) {
           throw error;
         }
 
-        const assets = await repository.listTrainingAssetsForReference(
-          dashboard.profile?.id ?? "",
-        );
-        const { avatarImageAsset, voiceAudioAsset } =
-          pickAvatarImageAndVoiceAudioAssets(assets);
-        if (!avatarImageAsset) {
+        const imageResult = requireOwnedTrainingAsset(twinAssets, {
+          id: requestedAvatarImageAssetId,
+          role: "avatar_image",
+          label: "foto do avatar",
+        });
+        if (!imageResult.ok) {
           throw new Error(
-            `${message} (e nao foi encontrada foto para fallback de imagem).`,
+            `${message} (e nao foi encontrada a foto selecionada para fallback de imagem).`,
           );
         }
-        if (!voiceAudioAsset) {
+        const voiceResult = requireOwnedTrainingAsset(twinAssets, {
+          id: requestedVoiceAudioAssetId,
+          role: "voice_audio",
+          label: "áudio de voz",
+        });
+        if (!voiceResult.ok) {
           throw new Error(
-            `${message} (fallback por imagem exige áudio de voz enviado em Configurar avatar).`,
+            `${message} (fallback por imagem exige o áudio de voz selecionado em Configurar avatar).`,
           );
         }
+
+        const avatarImageAsset = imageResult.asset;
+        const voiceAudioAsset = voiceResult.asset;
+        const fallbackAssetIds = assetIdsAudit({
+          voiceAudioAssetId: voiceAudioAsset.id,
+          avatarImageAssetId: avatarImageAsset.id,
+        });
 
         const imageUrlBase = resolveAppBaseUrl(request);
         const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
@@ -511,6 +684,7 @@ export async function POST(request: Request) {
             videoId: fallbackResult.videoId,
             providerMode: "image_fallback",
             voiceProvider: "elevenlabs_audio",
+            ...fallbackAssetIds,
           });
           return NextResponse.json(
             {
@@ -547,6 +721,7 @@ export async function POST(request: Request) {
           videoId: fallbackResult.videoId,
           providerMode: "image_fallback",
           voiceProvider: "heygen_clone",
+          ...fallbackAssetIds,
         });
         return NextResponse.json(
           {
@@ -562,6 +737,9 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
+    appLogError("heygen", "video_generate_failed", error, {
+      durationMs: routeElapsed(),
+    });
     return handleRouteError(new Error(formatHeyGenError(error)));
   }
 }

@@ -18,6 +18,12 @@ export const COLLECTIONS = {
   sentinelArticleThemeVerdicts: "sentinelArticleThemeVerdicts",
   sentinelFactChecks: "sentinelFactChecks",
   asyncJobs: "asyncJobs",
+  /** Contas sociais conectadas (Ayrshare) por perfil político. */
+  socialConnections: "socialConnections",
+  /** Pacotes de publicação do Distribuidor. */
+  distributionPosts: "distributionPosts",
+  /** Trilha append-only de ações do Distribuidor. */
+  distributionAuditLog: "distributionAuditLog",
   auditLog: "auditLog",
   contractAcceptances: "contractAcceptances",
   /** Cadastro real do usuário (doc id = ownerUserId). */

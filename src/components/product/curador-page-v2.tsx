@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { useProductApp } from "@/components/product/provider";
 import { IdeologicalSpectrumSlider } from "@/components/product/persona-shared";
+import { ProductPageHeader } from "@/components/product/product-page-header";
 
 export function CuradorPageV2() {
   const { profileForm, setProfileForm, saveProfile, isSavingProfile } = useProductApp();
@@ -26,15 +27,17 @@ export function CuradorPageV2() {
       <div className="absolute top-[40%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
-        <header id="persona" data-onboarding-anchor="avatar-persona" className="mb-10 scroll-mt-24">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-md-text tracking-tight mb-3">
-            Calibragem de <span className="text-[var(--curador-text)]">Persona</span>
-          </h1>
-          <p className="text-md-text-soft text-sm md:text-base max-w-2xl">
-            Defina o posicionamento ideológico e o glossário pessoal usados na geração dos
-            roteiros.
-          </p>
-        </header>
+        <ProductPageHeader
+          id="persona"
+          data-onboarding-anchor="avatar-persona"
+          className="scroll-mt-24"
+          title={
+            <>
+              Calibragem de <span className="text-[var(--curador-text)]">Persona</span>
+            </>
+          }
+          description="Defina o posicionamento ideológico e o glossário pessoal usados na geração dos roteiros."
+        />
 
         <section className="bg-gradient-to-b from-md-surface/50 to-md-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8">
           <div className="border-b border-md-border pb-4 mb-6">

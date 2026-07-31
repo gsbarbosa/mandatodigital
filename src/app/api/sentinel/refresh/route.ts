@@ -19,6 +19,8 @@ import {
   getSentinelSuggestions,
   invalidateSentinelMemoryCache,
 } from "@/lib/sentinel-suggestions";
+import { appLog, appLogError, startTimer } from "@/lib/observability/log";
+import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
 
 export const maxDuration = 300;
 
@@ -36,6 +38,7 @@ function parseReason(body: unknown): RefreshReason {
 
 export async function POST(request: Request) {
   return apiRoute(async (repository) => {
+    const routeElapsed = startTimer();
     let reason: RefreshReason = "manual";
     try {
       const body = await request.json();
@@ -47,6 +50,12 @@ export async function POST(request: Request) {
     const dashboard = await repository.getDashboard();
 
     if (!dashboard.profile) {
+      appLog(
+        "sentinel",
+        "refresh_rejected",
+        { reason, cause: "missing_profile" },
+        "warn",
+      );
       return NextResponse.json(
         {
           message: "Crie e salve um perfil antes de atualizar o radar do Sentinela.",
@@ -61,12 +70,46 @@ export async function POST(request: Request) {
     const sessionUser = await getSessionUser();
     const premium = await isPremiumAccountMode(sessionUser?.email);
 
+    appLog("sentinel", "refresh_started", {
+      profileId,
+      reason,
+      premium,
+      demoMode: isDemoMode(),
+    });
+
+    if (isDemoMode() && reason === "manual") {
+      appLog(
+        "sentinel",
+        "refresh_rejected",
+        { profileId, reason, cause: "demo_manual_locked" },
+        "warn",
+      );
+      const cached =
+        profileId !== "default" ? await sentinelStorage.readCache(profileId) : null;
+      const credits = premium ? null : await getGuestSentinelCredits(ownerUserId);
+      return NextResponse.json(
+        {
+          message: DEMO_REFRESH_PAUTA_HINT,
+          suggestions: cached?.suggestions ?? [],
+          meta: cached?.meta ?? null,
+          credits,
+        },
+        { status: 403 },
+      );
+    }
+
     const cached = profileId !== "default" ? await sentinelStorage.readCache(profileId) : null;
     const lastRefreshWasSourceFailure = isGuestSentinelRefreshSourceFailure(cached?.meta);
 
     if (reason === "daily") {
       if (!needsDailySentinelRefresh(cached?.meta?.refreshedAt ?? cached?.refreshedAt)) {
         const credits = premium ? null : await getGuestSentinelCredits(ownerUserId);
+        appLog("sentinel", "refresh_skipped", {
+          profileId,
+          reason: "daily_already_fresh",
+          cachedCount: cached?.suggestions?.length ?? 0,
+          durationMs: routeElapsed(),
+        });
         return NextResponse.json({
           suggestions: cached?.suggestions ?? [],
           meta: cached?.meta ?? null,
@@ -87,6 +130,12 @@ export async function POST(request: Request) {
       credits &&
       credits.remaining <= 0
     ) {
+      appLog(
+        "sentinel",
+        "refresh_rejected",
+        { profileId, reason, cause: "credits_exhausted" },
+        "warn",
+      );
       return NextResponse.json(
         {
           message: guestSentinelCreditsExhaustedMessage(),
@@ -107,11 +156,11 @@ export async function POST(request: Request) {
         qualityRankEnabled: premium,
       });
     } catch (error) {
-      console.error(
-        "[sentinel-refresh] falha",
+      appLogError("sentinel", "refresh_failed", error, {
         profileId,
-        error instanceof Error ? error.message : error,
-      );
+        reason,
+        durationMs: routeElapsed(),
+      });
       throw error;
     }
 
@@ -140,6 +189,18 @@ export async function POST(request: Request) {
         suggestions: result.suggestions,
       });
     }
+
+    appLog("sentinel", "refresh_completed", {
+      profileId,
+      reason,
+      suggestionCount: result.suggestions.length,
+      sourceFailed,
+      articlesScanned: result.meta?.articlesScanned ?? null,
+      portalsMonitored: result.meta?.portalsMonitored ?? null,
+      qualityKept: result.meta?.qualityRankStats?.kept ?? null,
+      qualityDropped: result.meta?.qualityRankStats?.dropped ?? null,
+      durationMs: routeElapsed(),
+    });
 
     return NextResponse.json({
       ...result,

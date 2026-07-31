@@ -26,7 +26,7 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
           className="min-w-0 shrink-0"
           aria-label="Mandato Digital — início"
         >
-          <BrandLogo width={148} priority />
+          <BrandLogo markSize={18} fontSize={16} priority />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">

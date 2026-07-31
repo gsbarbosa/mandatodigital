@@ -43,6 +43,17 @@ export function CriativoIcon({ className }: IconProps) {
   );
 }
 
+export function DistribuidorIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <circle cx="6" cy="12" r="2.2" />
+      <circle cx="18" cy="6.5" r="2.2" />
+      <circle cx="18" cy="17.5" r="2.2" />
+      <path d="M8.1 11.2l7.2-3.5M8.1 12.8l7.2 3.5" />
+    </svg>
+  );
+}
+
 export function PautaIndependenteIcon({ className }: IconProps) {
   return (
     <svg className={className} {...BASE_PROPS}>

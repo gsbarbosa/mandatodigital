@@ -320,6 +320,13 @@ export function assertSuggestionThemesWithinRadar(
   );
 
   for (const suggestion of news) {
+    // Fallback municipal (geo-only) é esperado quando a cidade não tem os temas do radar.
+    if (
+      suggestion.pipeline === "geo-fallback" ||
+      suggestion.themeLabel.trim() === "Radar local"
+    ) {
+      continue;
+    }
     const label = suggestion.themeLabel.trim();
     expect(
       allowed.has(label),

@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { createFirebaseTrainingReadUrl } from "@/lib/training-asset-storage";
-import type { ProfileTrainingAsset } from "@/lib/types";
+import type { ProfileTrainingAsset, TrainingAssetRole } from "@/lib/types";
 
 const TOKEN_TTL_SECONDS = 3600;
 
@@ -86,7 +86,7 @@ function pickLatestAsset(assets: ProfileTrainingAsset[]) {
   return [...assets].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0] ?? null;
 }
 
-/** Foto (IMAGE) + audio de voz para treino HeyGen / clone de voz. */
+/** Foto (IMAGE) + audio de voz — só para listagens/UI. Geração deve usar requireOwnedTrainingAsset. */
 export function pickAvatarImageAndVoiceAudioAssets(assets: ProfileTrainingAsset[]) {
   const avatarImageAssets = assets.filter(
     (asset) => asset.trainingRole === "avatar_image",
@@ -107,19 +107,79 @@ export function pickCaricatureAsset(assets: ProfileTrainingAsset[]) {
   );
 }
 
+/**
+ * @deprecated Prefer requireOwnedTrainingAsset for generation/train.
+ * When preferredAssetId is set and not found, returns null (no silent fallback).
+ * When preferredAssetId is empty, returns latest caricature for list/UI helpers.
+ */
 export function resolveCaricatureAsset(
   assets: ProfileTrainingAsset[],
   preferredAssetId?: string | null,
 ) {
   const assetId = String(preferredAssetId ?? "").trim();
   if (assetId) {
-    const match = assets.find(
-      (asset) => asset.id === assetId && asset.trainingRole === "avatar_caricature",
+    return (
+      assets.find(
+        (asset) => asset.id === assetId && asset.trainingRole === "avatar_caricature",
+      ) ?? null
     );
-    if (match) {
-      return match;
-    }
   }
 
   return pickCaricatureAsset(assets);
+}
+
+const ROLE_LABELS: Record<TrainingAssetRole, string> = {
+  avatar_image: "foto do avatar",
+  avatar_caricature: "caricatura",
+  voice_audio: "áudio de voz",
+  consent: "termo de consentimento",
+  dataset: "dataset de treino",
+};
+
+export type RequireTrainingAssetResult =
+  | { ok: true; asset: ProfileTrainingAsset }
+  | { ok: false; message: string; status: 400 };
+
+/**
+ * Resolve um training asset por ID explícito + role.
+ * Sem fallback para “mais recente”: ID ausente/errado/role errada → falha.
+ * `assets` deve ser a lista já escopada ao perfil/referência do usuário.
+ */
+export function requireOwnedTrainingAsset(
+  assets: ProfileTrainingAsset[],
+  input: {
+    id?: string | null;
+    role: TrainingAssetRole;
+    label?: string;
+  },
+): RequireTrainingAssetResult {
+  const assetId = String(input.id ?? "").trim();
+  const label = input.label?.trim() || ROLE_LABELS[input.role];
+
+  if (!assetId) {
+    return {
+      ok: false,
+      status: 400,
+      message: `Selecione ${label} antes de continuar.`,
+    };
+  }
+
+  const match = assets.find((asset) => asset.id === assetId);
+  if (!match) {
+    return {
+      ok: false,
+      status: 400,
+      message: `O asset de ${label} selecionado não pertence a este perfil ou não existe mais. Atualize a página e tente de novo.`,
+    };
+  }
+
+  if (match.trainingRole !== input.role) {
+    return {
+      ok: false,
+      status: 400,
+      message: `O asset selecionado não é um(a) ${label} válido(a).`,
+    };
+  }
+
+  return { ok: true, asset: match };
 }

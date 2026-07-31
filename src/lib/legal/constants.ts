@@ -1,5 +1,5 @@
-export const CONTRACT_TEMPLATE_VERSION = "contract-v1";
-export const DOSSIER_TEMPLATE_VERSION = "dossier-v1";
+export const CONTRACT_TEMPLATE_VERSION = "contract-v2";
+export const DOSSIER_TEMPLATE_VERSION = "dossier-v2";
 
 export const EATEASY = {
   razaoSocial: "EATEASY SERVICOS DIGITAIS LTDA",

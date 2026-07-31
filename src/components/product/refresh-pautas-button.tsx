@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+
 type RefreshPautasButtonProps = {
   isLoading: boolean;
   onClick: () => void;
   disabled?: boolean;
+  /** Tooltip quando desabilitado (créditos, DEMO, etc.). */
+  disabledTitle?: string;
   variant?: "persona" | "monitor";
   className?: string;
 };
@@ -14,11 +18,16 @@ export function RefreshPautasButton({
   isLoading,
   onClick,
   disabled = false,
+  disabledTitle,
   variant = "persona",
   className = "",
 }: RefreshPautasButtonProps) {
   const [pending, setPending] = useState(false);
   const busy = isLoading || pending;
+  /** Conta de demonstração: refresh manual bloqueado (só ciclo da manhã). */
+  const demoLocked = isDemoMode();
+  const isDisabled = disabled || demoLocked;
+  const lockTitle = disabledTitle ?? (demoLocked ? DEMO_REFRESH_PAUTA_HINT : undefined);
 
   useEffect(() => {
     if (!isLoading) {
@@ -27,7 +36,7 @@ export function RefreshPautasButton({
   }, [isLoading]);
 
   function handleClick() {
-    if (busy || disabled) {
+    if (busy || isDisabled) {
       return;
     }
 
@@ -44,12 +53,14 @@ export function RefreshPautasButton({
     <button
       type="button"
       data-testid="refresh-pautas-button"
-      className={`refresh-pautas-btn ${variantClass}${busy ? " is-loading" : ""}${className ? ` ${className}` : ""}`}
+      data-guest-locked={demoLocked ? "true" : "false"}
+      className={`refresh-pautas-btn ${variantClass}${busy ? " is-loading" : ""}${isDisabled ? " is-locked" : ""}${className ? ` ${className}` : ""}`}
       onClick={handleClick}
-      disabled={busy || disabled}
+      disabled={busy || isDisabled}
       aria-busy={busy}
+      aria-disabled={isDisabled}
       aria-live="polite"
-      title="Atualizar pautas"
+      title={isDisabled ? lockTitle ?? "Atualizar pautas indisponível" : "Atualizar pautas"}
     >
       <span className="refresh-pautas-btn__content">
         {busy ? (

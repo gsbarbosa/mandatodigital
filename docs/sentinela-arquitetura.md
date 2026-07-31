@@ -117,7 +117,8 @@ Campos críticos:
 - `rssFetchStats` — tentativas/sucessos/erros HTTP da coleta  
 - `themeVerificationStats` — verify LLM  
 - `qualityReport` / `llmCostEstimate` / `qualityRankStats` — spike qualidade  
-- `emptyReason`, `oppositionUnavailableReason`  
+- `emptyReason`, `oppositionUnavailableReason`
+- `municipalFallback` — quando a esfera municipal não acha os temas do radar na cidade: amplia com notícias locais (`pipeline: geo-fallback`) e a UI mostra aviso + lista do que encontrou (só municipal) 
 - `radarThemesSignature` — invalida cache se o radar mudou  
 
 ---

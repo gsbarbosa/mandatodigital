@@ -1,4 +1,10 @@
-export type SentinelPipeline = "manual" | "portal" | "semantic" | "social" | "legacy";
+export type SentinelPipeline =
+  | "manual"
+  | "portal"
+  | "semantic"
+  | "social"
+  | "legacy"
+  | "geo-fallback";
 
 export const SENTINEL_PIPELINE_WEIGHT: Record<SentinelPipeline, number> = {
   manual: 1,
@@ -7,6 +13,8 @@ export const SENTINEL_PIPELINE_WEIGHT: Record<SentinelPipeline, number> = {
   portal: 1.12,
   semantic: 0.78,
   legacy: 0.9,
+  /** Ampliação municipal quando temas do radar não cobrem a cidade. */
+  "geo-fallback": 0.85,
 };
 
 export function sentinelPipelineLabel(pipeline: SentinelPipeline) {
@@ -19,6 +27,8 @@ export function sentinelPipelineLabel(pipeline: SentinelPipeline) {
       return "Semântico";
     case "social":
       return "Social";
+    case "geo-fallback":
+      return "Local (ampliado)";
     default:
       return "Radar";
   }

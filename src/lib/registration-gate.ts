@@ -1,5 +1,7 @@
 export const REGISTRATION_REQUIRED_PATH = "/acesso-antecipado/dados";
 export const PLAN_SELECTION_PATH = "/acesso-antecipado/planos";
+/** Informativo DEMO_MODE — segue para o produto sem gate obrigatório de planos. */
+export const DEMO_ACCESS_PATH = "/acesso-antecipado/demonstracao";
 
 /** Rotas permitidas enquanto o cadastro estiver incompleto. */
 export function isRegistrationAllowedPath(pathname: string) {
@@ -7,8 +9,24 @@ export function isRegistrationAllowedPath(pathname: string) {
     pathname === REGISTRATION_REQUIRED_PATH ||
     pathname.startsWith(`${REGISTRATION_REQUIRED_PATH}/`) ||
     pathname === PLAN_SELECTION_PATH ||
-    pathname.startsWith(`${PLAN_SELECTION_PATH}/`)
+    pathname.startsWith(`${PLAN_SELECTION_PATH}/`) ||
+    pathname === DEMO_ACCESS_PATH ||
+    pathname.startsWith(`${DEMO_ACCESS_PATH}/`)
   );
+}
+
+/**
+ * Próximo passo do cadastro incompleto.
+ * Em DEMO_MODE, após dados pessoais → tela de acesso à demonstração (não planos).
+ */
+export function resolveIncompleteRegistrationPath(input: {
+  needsPlanSelection: boolean;
+  demoMode?: boolean;
+}) {
+  if (input.needsPlanSelection) {
+    return input.demoMode ? DEMO_ACCESS_PATH : PLAN_SELECTION_PATH;
+  }
+  return REGISTRATION_REQUIRED_PATH;
 }
 
 function extractPlanQuery(nextPath: string | null | undefined): string {
@@ -31,11 +49,16 @@ export function resolvePostLoginPath(input: {
   registrationComplete: boolean;
   /** Dados pessoais ok, falta escolher o plano (fluxo "Entrar"). */
   needsPlanSelection?: boolean;
+  /** DEMO_MODE: pula gate de planos e manda ao informativo de demonstração. */
+  demoMode?: boolean;
   nextPath?: string | null;
 }) {
   if (!input.registrationComplete) {
     if (input.needsPlanSelection) {
-      return PLAN_SELECTION_PATH;
+      return resolveIncompleteRegistrationPath({
+        needsPlanSelection: true,
+        demoMode: input.demoMode,
+      });
     }
     return `${REGISTRATION_REQUIRED_PATH}${extractPlanQuery(input.nextPath)}`;
   }

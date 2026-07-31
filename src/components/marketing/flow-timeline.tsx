@@ -35,8 +35,8 @@ export function FlowTimeline() {
 
           <IconArrowRight size={28} className="mx-auto hidden shrink-0 text-sky-400 md:block" aria-hidden />
 
-          <div className="mx-auto w-full min-w-0 max-w-xs shrink rounded-2xl border border-sky-500/40 bg-sky-500/10 px-4 py-3 text-center shadow-[0_0_24px_rgba(56,189,248,0.15)] md:mx-0">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-sky-200">
+          <div className="mx-auto w-full min-w-0 max-w-xs shrink rounded-2xl border border-[var(--curador-border)] bg-[var(--curador-soft)] px-4 py-3 text-center shadow-[0_0_24px_rgba(56,189,248,0.12)] md:mx-0">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--curador-text)]">
               {middle}
             </p>
           </div>

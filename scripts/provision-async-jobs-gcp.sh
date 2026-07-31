@@ -13,7 +13,7 @@ echo "Project=$PROJECT BaseURL=$BASE_URL"
 
 gcloud config set project "$PROJECT"
 
-for TOPIC in md-jobs-seal md-jobs-voice md-jobs-dlq; do
+for TOPIC in md-jobs-seal md-jobs-voice md-jobs-publish md-jobs-dlq; do
   gcloud pubsub topics create "$TOPIC" --project="$PROJECT" 2>/dev/null || echo "topic $TOPIC already exists"
 done
 
@@ -35,6 +35,7 @@ create_push() {
 
 create_push "md-jobs-seal-push" "md-jobs-seal" "/api/workers/seal"
 create_push "md-jobs-voice-push" "md-jobs-voice" "/api/workers/voice"
+create_push "md-jobs-publish-push" "md-jobs-publish" "/api/workers/publish"
 
 echo ""
 echo "Proximos passos manuais:"

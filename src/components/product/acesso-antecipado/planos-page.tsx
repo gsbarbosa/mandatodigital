@@ -131,11 +131,11 @@ export function AcessoPlanosPage() {
       <div className="absolute top-[30%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-12">
-        <header className="text-center mb-12">
-          <h1 className="text-2xl md:text-3xl font-bold text-md-text tracking-tight mb-3">
+        <header className="mb-12 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-md-text md:text-3xl">
             {choosingPlan ? "Escolha seu plano" : "Planos e Preços"}
           </h1>
-          <p className="text-md-text-soft text-sm md:text-base max-w-2xl mx-auto">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-md-text-soft">
             {choosingPlan
               ? "Seus dados já estão salvos. Compare o que cada plano inclui e confirme para liberar o acesso."
               : "Monitoramento em tempo real, avatares personalizados com voz do candidato, e compliance total com TSE. Tudo integrado em uma plataforma."}

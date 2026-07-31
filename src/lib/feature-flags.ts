@@ -88,3 +88,34 @@ export function isAsyncSealEnabled() {
 export function isAsyncVoiceEnabled() {
   return readEnvFlag("ASYNC_VOICE_ENABLED") || readEnvFlag("NEXT_PUBLIC_ASYNC_VOICE_ENABLED");
 }
+
+/** Agente Distribuidor — publicação em redes (fail-closed até smoke). */
+export function isDistributionEnabled() {
+  return (
+    readEnvFlag("DISTRIBUTION_ENABLED") || readEnvFlag("NEXT_PUBLIC_DISTRIBUTION_ENABLED")
+  );
+}
+
+/** Enfileira publish_post via Pub/Sub/worker (pode ficar off com Distribuidor só em draft). */
+export function isDistributionPublishEnabled() {
+  return (
+    readEnvFlag("DISTRIBUTION_PUBLISH_ENABLED") ||
+    readEnvFlag("NEXT_PUBLIC_DISTRIBUTION_PUBLISH_ENABLED")
+  );
+}
+
+/**
+ * Modo demonstração / degustação (apresentações, convidados controlados).
+ * Fail-closed: default off.
+ *
+ * No client, Next só embute `process.env.NEXT_PUBLIC_*` com acesso **literal**
+ * (não via `process.env[name]` dinâmico). Por isso o PUBLIC não passa por
+ * `readEnvFlag`.
+ */
+export function isDemoMode() {
+  if (readEnvFlag("DEMO_MODE")) {
+    return true;
+  }
+  const pub = process.env.NEXT_PUBLIC_DEMO_MODE?.trim().toLowerCase();
+  return pub === "1" || pub === "true" || pub === "yes" || pub === "on";
+}

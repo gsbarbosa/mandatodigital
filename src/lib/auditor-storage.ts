@@ -84,8 +84,17 @@ export async function factCheckTopSentinelSuggestions(input: {
   }
 
   const { runFactCheck } = await import("@/lib/auditor/fact-check");
+  const { appLog, appLogError } = await import("@/lib/observability/log");
+  const batch = input.suggestions.slice(0, 10);
+  appLog("fact-check", "batch_started", {
+    profileId: input.profileId,
+    batchSize: batch.length,
+  });
 
-  for (const suggestion of input.suggestions.slice(0, 10)) {
+  let ok = 0;
+  let failed = 0;
+  for (let index = 0; index < batch.length; index += 1) {
+    const suggestion = batch[index];
     try {
       const result = await runFactCheck({
         script: suggestion.topic,
@@ -94,8 +103,22 @@ export async function factCheckTopSentinelSuggestions(input: {
       });
 
       await auditorStorage.saveFactCheck(input.profileId, suggestion.id, result);
-    } catch {
+      ok += 1;
+    } catch (error) {
+      failed += 1;
+      appLogError("fact-check", "batch_item_failed", error, {
+        profileId: input.profileId,
+        suggestionId: suggestion.id,
+        index,
+      });
       // Nao bloqueia refresh por falha individual.
     }
   }
+
+  appLog("fact-check", "batch_completed", {
+    profileId: input.profileId,
+    ok,
+    failed,
+    batchSize: batch.length,
+  });
 }

@@ -91,6 +91,14 @@ export const creativeProjectStorage = {
     return record;
   },
 
+  async getById(id: string) {
+    const snap = await col(COLLECTIONS.creativeProjects).doc(id).get();
+    if (!snap.exists) {
+      return null;
+    }
+    return mapDoc(snap.id, snap.data()!);
+  },
+
   async listByProfileId(profileId: string, limit = 50) {
     const snap = await col(COLLECTIONS.creativeProjects)
       .where("profileId", "==", profileId)

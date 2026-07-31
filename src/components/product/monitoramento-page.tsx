@@ -8,11 +8,16 @@ import {
   SignalEvidenceDrawer,
 } from "@/components/product/monitor-signal-card";
 import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
+import { ProductPageHeader } from "@/components/product/product-page-header";
 import { SentinelRefreshProgress } from "@/components/product/sentinel-refresh-progress";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
-import type { GuestSentinelCredits } from "@/lib/guest-limits";
-import { needsDailySentinelRefresh } from "@/lib/guest-limits";
+import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+import {
+  GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE,
+  needsDailySentinelRefresh,
+  type GuestSentinelCredits,
+} from "@/lib/guest-limits";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 import { groupSuggestionsBySphere, type MonitorSphere } from "@/lib/sphere-classifier";
@@ -129,6 +134,8 @@ export function MonitoramentoPage() {
       }
       dailyCheckInFlight.current = true;
       setIsRefreshing(true);
+      setLoadMessage(null);
+      setRefreshMessage(null);
       try {
         const response = await fetch("/api/sentinel/refresh", {
           method: "POST",
@@ -137,6 +144,9 @@ export function MonitoramentoPage() {
         });
         const payload = (await response.json()) as SuggestionsPayload;
         if (!response.ok) {
+          setLoadMessage(
+            payload.message || "Não foi possível atualizar as pautas automaticamente.",
+          );
           return;
         }
         if (payload.skipped) {
@@ -154,9 +164,14 @@ export function MonitoramentoPage() {
         if (count > 0) {
           setRefreshMessage(`Pautas atualizadas automaticamente (${count}).`);
           window.setTimeout(() => setRefreshMessage(null), 4200);
+        } else {
+          setLoadMessage(
+            payload.meta?.emptyReason ||
+              "Nenhuma pauta capturada nesta rodada para o radar atual.",
+          );
         }
       } catch {
-        // Silencioso — usuário ainda vê o cache.
+        setLoadMessage("Não foi possível atualizar as pautas automaticamente.");
       } finally {
         dailyCheckInFlight.current = false;
         setIsRefreshing(false);
@@ -171,13 +186,15 @@ export function MonitoramentoPage() {
     })();
   }, [loadSuggestions]);
 
-  // Após carregar meta, dispara daily se necessário.
+  // Após carregar meta, dispara daily se necessário (inclui 1º acesso sem cache).
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading || isRefreshing) {
       return;
     }
-    void runDailyRefreshIfNeeded(meta?.refreshedAt);
-  }, [isLoading, meta?.refreshedAt, runDailyRefreshIfNeeded]);
+    // refreshedAt vazio / inválido = cache miss → precisa coletar.
+    const stamp = meta?.refreshedAt?.trim() || null;
+    void runDailyRefreshIfNeeded(stamp);
+  }, [isLoading, isRefreshing, meta?.refreshedAt, runDailyRefreshIfNeeded]);
 
   useEffect(() => {
     function onVisible() {
@@ -197,8 +214,10 @@ export function MonitoramentoPage() {
     };
   }, [meta?.refreshedAt, runDailyRefreshIfNeeded]);
 
+  const creditsExhausted = Boolean(isGuestUi && credits && credits.remaining <= 0);
+
   async function handleRefresh() {
-    if (isRefreshing) {
+    if (isRefreshing || isDemoMode() || creditsExhausted) {
       return;
     }
 
@@ -332,7 +351,14 @@ export function MonitoramentoPage() {
     return null;
   }, [grouped]);
 
-  const refreshedDate = meta?.refreshedAt ? new Date(meta.refreshedAt) : null;
+  const refreshedDate = (() => {
+    const raw = meta?.refreshedAt?.trim();
+    if (!raw) {
+      return null;
+    }
+    const parsed = new Date(raw);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  })();
   const refreshedIsToday = refreshedDate
     ? refreshedDate.toDateString() === new Date().toDateString()
     : false;
@@ -341,38 +367,51 @@ export function MonitoramentoPage() {
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20" data-testid="monitoramento-page">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <header className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8 relative z-10">
-        <div>
-          <h1 className="text-2xl font-bold text-md-text tracking-tight mb-2">
-            Monitoramento de Pautas
-          </h1>
-          <p className="text-sm leading-snug text-md-text-muted whitespace-nowrap">
-            Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar.
-          </p>
-        </div>
-        <div
-          data-onboarding-anchor="pautas-radar"
-          className="flex flex-col gap-1 shrink-0 md:pt-1 w-[10.5rem]"
-        >
-          <RefreshPautasButton
-            variant="monitor"
-            isLoading={isRefreshing}
-            disabled={Boolean(isGuestUi && credits && credits.remaining <= 0)}
-            onClick={() => void handleRefresh()}
-          />
-          {refreshedDate ? (
-            <span className="text-xs text-md-text-soft text-right">
-              Atualizado {refreshedIsToday ? "hoje" : refreshedDate.toLocaleDateString("pt-BR")} às{" "}
-              {refreshedDate.toLocaleTimeString("pt-BR")}
-            </span>
-          ) : null}
-          <span className="text-xs text-md-text-soft text-right">Próx atualização às 08:00h</span>
-          <span className="text-[10px] leading-snug text-md-text-soft text-right">
-            Atualizações antecipadas consomem créditos (
-            {credits ? `${credits.remaining} restantes` : "1 de 5"}).
-          </span>
-        </div>
-      </header>
+      <ProductPageHeader
+        title="Monitoramento de Pautas"
+        description="Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar."
+        actions={
+          <div
+            data-onboarding-anchor="pautas-radar"
+            className="flex w-[10.5rem] shrink-0 flex-col gap-1 md:pt-1"
+          >
+            <RefreshPautasButton
+              variant="monitor"
+              isLoading={isRefreshing}
+              disabled={isDemoMode() || creditsExhausted}
+              disabledTitle={
+                isDemoMode()
+                  ? DEMO_REFRESH_PAUTA_HINT
+                  : creditsExhausted
+                    ? GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE
+                    : undefined
+              }
+              onClick={() => void handleRefresh()}
+            />
+            {refreshedDate ? (
+              <span className="text-right text-xs text-md-text-soft">
+                Atualizado {refreshedIsToday ? "hoje" : refreshedDate.toLocaleDateString("pt-BR")} às{" "}
+                {refreshedDate.toLocaleTimeString("pt-BR")}
+              </span>
+            ) : null}
+            <span className="text-right text-xs text-md-text-soft">Próx atualização às 08:00h</span>
+            {isDemoMode() ? (
+              <span className="text-right text-[10px] leading-snug text-[var(--distribuidor-text)]">
+                {DEMO_REFRESH_PAUTA_HINT}
+              </span>
+            ) : creditsExhausted ? (
+              <span className="text-right text-[10px] leading-snug text-[var(--distribuidor-text)]">
+                {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}
+              </span>
+            ) : (
+              <span className="text-right text-[10px] leading-snug text-md-text-soft">
+                Atualizações antecipadas consomem créditos (
+                {credits ? `${credits.remaining} restantes` : "1 de 5"}).
+              </span>
+            )}
+          </div>
+        }
+      />
 
       <div className="mb-10 space-y-4 relative z-10">
         {refreshMessage && !isRefreshing ? (
@@ -400,7 +439,7 @@ export function MonitoramentoPage() {
           </div>
         ) : null}
 
-        {!isLoading && !suggestions.length ? (
+        {!isLoading && !isRefreshing && !suggestions.length ? (
           <div className="rounded-xl border border-[var(--curador-border)] bg-[var(--curador-soft)] px-5 py-4">
             <p className="text-sm leading-relaxed text-md-text">
               {loadMessage || "Nenhuma pauta capturada ainda."}{" "}
@@ -433,12 +472,48 @@ export function MonitoramentoPage() {
           const items = grouped[sphere];
           const visible = visibleBySphere[sphere];
           const shown = items.slice(0, visible);
+          const municipalFallback =
+            sphere === "municipal" ? meta?.municipalFallback : undefined;
           return (
             <section key={sphere} id={sphere}>
               <h2 className="text-lg font-semibold text-md-text border-b border-md-border pb-3 mb-5 flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${dotClass}`} />
                 {title}
               </h2>
+
+              {municipalFallback ? (
+                <div
+                  className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-3"
+                  role="status"
+                  data-testid="municipal-fallback-banner"
+                >
+                  <p className="text-sm leading-relaxed text-md-text">
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                      Cobertura municipal ampliada:{" "}
+                    </span>
+                    Não encontramos reportagens recentes
+                    {municipalFallback.cities.length
+                      ? ` em ${municipalFallback.cities.join(", ")}`
+                      : " no município"}{" "}
+                    nos temas que você selecionou
+                    {municipalFallback.themesMissed.length
+                      ? ` (${municipalFallback.themesMissed.slice(0, 4).join(", ")}${municipalFallback.themesMissed.length > 4 ? "…" : ""})`
+                      : ""}
+                    . Listamos o que há de atual na cidade
+                    {municipalFallback.promotedCount
+                      ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
+                      : ""}
+                    .
+                  </p>
+                  {municipalFallback.foundTopics.length ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-md-text-soft">
+                      {municipalFallback.foundTopics.slice(0, 5).map((topic) => (
+                        <li key={topic}>{topic}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
 
               <ThemeChips themes={chipsBySphere[sphere]} />
 
@@ -482,9 +557,13 @@ export function MonitoramentoPage() {
                 </button>
               ) : null}
 
-              {!isLoading && !items.length ? (
+              {!isLoading && !isRefreshing && !items.length ? (
                 <div className="rounded-xl border border-md-border bg-md-surface px-5 py-6 shadow-sm">
-                  <p className="text-sm text-md-text-muted m-0">{emptyMessageForSphere(sphere)}</p>
+                  <p className="text-sm text-md-text-muted m-0">
+                    {municipalFallback
+                      ? "Não encontramos reportagens locais recentes nos temas selecionados nem outras notícias do município nesta rodada."
+                      : emptyMessageForSphere(sphere)}
+                  </p>
                   {sphere !== "adversarios" ? (
                     <Link
                       href="/monitoramento/temas"
