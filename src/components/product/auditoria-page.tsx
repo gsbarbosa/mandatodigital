@@ -9,6 +9,7 @@ import {
   type AuditSummary,
 } from "@/lib/audit/client";
 import { parseJsonOrText } from "@/components/product/persona-shared";
+import { ProductPageHeader } from "@/components/product/product-page-header";
 
 type TabId = "acessos" | "volumes" | "agentes" | "logs";
 
@@ -179,19 +180,18 @@ export function AuditoriaPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-[51px] md:px-6 md:pt-[77px] lg:px-8">
-      <header className="mb-8 space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--curador-text)]">
-          Conta
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight text-md-text md:text-3xl">
-          Auditoria
-        </h1>
-        <p className="max-w-2xl text-sm text-md-text-soft">
-          Relatorios da sua conta: acessos, volumes de conteudo, operacao dos agentes e
-          trilha de acoes com User ID, IP e horario em America/Sao_Paulo.
-        </p>
-        <p className="text-xs text-md-text-soft">{periodHint}</p>
-      </header>
+      <ProductPageHeader
+        title="Auditoria"
+        description={
+          <>
+            <p>
+              Relatorios da sua conta: acessos, volumes de conteudo, operacao dos agentes e trilha
+              de acoes com User ID, IP e horario em America/Sao_Paulo.
+            </p>
+            <p className="mt-2 text-xs text-md-text-soft">{periodHint}</p>
+          </>
+        }
+      />
 
       <div className="mb-6 flex flex-wrap gap-2 border-b border-md-border pb-3">
         {TABS.map((item) => {

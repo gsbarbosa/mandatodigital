@@ -10,9 +10,7 @@ import { AppearanceToggle } from "@/components/appearance-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
-import { DEMO_CREDITS_LOCKED_MESSAGE, isDemoUnlockedPath } from "@/lib/demo-mode";
 import { useEarlyAccess } from "@/lib/early-access";
-import { useDemoCreditsLock } from "./use-demo-credits-lock";
 import { useOnboarding } from "./onboarding-provider";
 import {
   AcessoAntecipadoIcon,
@@ -102,7 +100,7 @@ const NAV_BLOCKS: NavBlock[] = [
 
 const NAV_SINGLES: Array<NavChild & { icon: NavIcon }> = [
   { label: "Meus criativos", href: "/criativo", icon: CriativoIcon },
-  { label: "Distribuidor", href: "/distribuidor", icon: DistribuidorIcon },
+  { label: "Publicador", href: "/distribuidor", icon: DistribuidorIcon },
   { label: "Gerar pauta avulsa", href: "/independente", icon: PautaIndependenteIcon },
   { label: "Compliance TSE", href: "/compliance", icon: ComplianceIcon },
   { label: "Auditoria", href: "/auditoria", icon: AuditoriaIcon },
@@ -174,24 +172,6 @@ function isChildActive(
   return pathname.startsWith(`${path}/`);
 }
 
-function LockIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect x="5" y="11" width="14" height="9" rx="2" />
-      <path d="M8 11V7a4 4 0 118 0v4" />
-    </svg>
-  );
-}
-
 function rowClassName(active: boolean) {
   return `group flex h-11 items-center gap-3 rounded-xl border px-3 no-underline transition-colors ${
     active
@@ -199,12 +179,6 @@ function rowClassName(active: boolean) {
       : "border-md-border bg-md-surface/40 hover:bg-md-surface hover:border-md-border-hover"
   }`;
 }
-
-/** Linha travada pelo lock de créditos da degustação (DEMO_MODE). */
-const LOCKED_ROW_CLASS =
-  "group flex h-11 items-center gap-3 rounded-xl border border-md-border bg-md-surface/20 px-3 opacity-50 cursor-not-allowed select-none";
-const LOCKED_CHILD_CARD_CLASS =
-  "flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border border-md-border bg-md-surface/20 px-3 py-2 text-[13px] text-md-text-soft opacity-50 cursor-not-allowed select-none";
 
 function rowIconClassName(active: boolean) {
   return `h-5 w-5 shrink-0 ${active ? "text-[var(--curador-text)]" : "text-md-text-soft"}`;
@@ -225,7 +199,6 @@ type ChildRow = {
   onboardingAnchor?: string;
   icon?: NavIcon;
   actionDot?: boolean;
-  locked?: boolean;
 };
 
 function childCardClassName(active: boolean) {
@@ -249,9 +222,7 @@ function ChildTimeline({ rows }: { rows: ChildRow[] }) {
         const content = (
           <>
             {row.highlighted ? <OnbHighlightDot /> : null}
-            {row.locked ? (
-              <LockIcon className="h-3.5 w-3.5 shrink-0 text-md-text-soft" />
-            ) : row.icon ? (
+            {row.icon ? (
               <row.icon
                 className={`h-3.5 w-3.5 shrink-0 ${active ? "text-[var(--curador-text)]" : "text-md-text-soft"}`}
               />
@@ -276,15 +247,7 @@ function ChildTimeline({ rows }: { rows: ChildRow[] }) {
               />
               {!isLast ? <span className="mt-0.5 w-px flex-1 bg-md-border" /> : null}
             </div>
-            {row.locked ? (
-              <span
-                className={LOCKED_CHILD_CARD_CLASS}
-                title={DEMO_CREDITS_LOCKED_MESSAGE}
-                aria-disabled="true"
-              >
-                {content}
-              </span>
-            ) : row.isHashLink ? (
+            {row.isHashLink ? (
               <a href={row.href} onClick={row.onHashClick} className={childCardClassName(active)}>
                 {content}
               </a>
@@ -394,12 +357,6 @@ export function NavSidebar({
   const cnpjPending = !earlyAccess.cnpj;
   const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
 
-  const { locked: demoLocked } = useDemoCreditsLock();
-  const isPathLocked = useCallback(
-    (href: string) => demoLocked && !isDemoUnlockedPath(navHrefPath(href)),
-    [demoLocked],
-  );
-
   const earlyAccessChildren: NavChild[] = [
     { label: "Dados Pessoais", href: "/acesso-antecipado/dados" },
     { label: "Planos e Preços", href: "/acesso-antecipado/planos" },
@@ -420,16 +377,6 @@ export function NavSidebar({
       (item.href === "/criativo" || item.href.startsWith("/criativo"));
     const Icon = item.icon;
     const active = itemActive || Boolean(singleHl);
-    const locked = isPathLocked(item.href);
-
-    if (locked) {
-      return (
-        <span key={item.href} className={LOCKED_ROW_CLASS} title={DEMO_CREDITS_LOCKED_MESSAGE} aria-disabled="true">
-          <LockIcon className="h-5 w-5 shrink-0 text-md-text-soft" />
-          <span className="truncate text-sm text-md-text-soft">{item.label}</span>
-        </span>
-      );
-    }
 
     return (
       <Link
@@ -450,25 +397,15 @@ export function NavSidebar({
   return (
     <aside className="no-scrollbar w-64 bg-md-app-bg border-r border-md-border flex flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(15,23,42,0.12)]">
       <div className="border-b border-md-border-soft px-4 py-5">
-        {isPathLocked("/monitoramento") ? (
-          <span
-            className="flex w-full items-center opacity-60"
-            aria-label="Mandato Digital"
-            title={DEMO_CREDITS_LOCKED_MESSAGE}
-          >
-            <BrandLogo fluid priority />
-          </span>
-        ) : (
-          <Link
-            href="/monitoramento"
-            className="flex w-full items-center no-underline"
-            aria-label="Mandato Digital — monitoramento"
-            title="Ir ao monitoramento"
-            onClick={() => onLogoSecretClick?.()}
-          >
-            <BrandLogo fluid priority />
-          </Link>
-        )}
+        <Link
+          href="/monitoramento"
+          className="flex w-full items-center no-underline"
+          aria-label="Mandato Digital — monitoramento"
+          title="Ir ao monitoramento"
+          onClick={() => onLogoSecretClick?.()}
+        >
+          <BrandLogo fluid priority />
+        </Link>
         <p
           className="mt-2 text-center text-[10px] font-normal tracking-wide text-md-text-soft select-none"
           aria-label={`Versão ${APP_VERSION}`}
@@ -476,20 +413,6 @@ export function NavSidebar({
           v{APP_VERSION}
         </p>
       </div>
-
-      {demoLocked ? (
-        <div
-          role="status"
-          data-testid="demo-credits-locked-banner"
-          className="mx-3 mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-[11px] leading-snug text-amber-300"
-        >
-          <span className="mb-1 flex items-center gap-1.5 font-semibold">
-            <LockIcon className="h-3.5 w-3.5 shrink-0" />
-            Degustação encerrada
-          </span>
-          {DEMO_CREDITS_LOCKED_MESSAGE}
-        </div>
-      ) : null}
 
       <nav className="flex-1 p-3 space-y-1.5">
         {NAV_BLOCKS.map((block) => {
@@ -500,35 +423,22 @@ export function NavSidebar({
           const expanded = expandedBlock === block.label;
           const Icon = block.icon;
 
-          const blockLocked = isPathLocked(block.href);
-
           return (
           <div key={block.label} className="rounded-xl">
-            <div className={blockLocked ? LOCKED_ROW_CLASS : rowClassName(blockActive || Boolean(blockHl))}>
-              {blockLocked ? (
-                <span
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                  title={DEMO_CREDITS_LOCKED_MESSAGE}
-                  aria-disabled="true"
-                >
-                  <LockIcon className="h-5 w-5 shrink-0 text-md-text-soft" />
-                  <span className="truncate text-sm text-md-text-soft">{block.label}</span>
+            <div className={rowClassName(blockActive || Boolean(blockHl))}>
+              <Link
+                href={block.href as Route}
+                className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+                data-onboarding-anchor={
+                  block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
+                }
+              >
+                <Icon className={rowIconClassName(blockActive || Boolean(blockHl))} />
+                <span className={rowLabelClassName(blockActive || Boolean(blockHl))}>
+                  {blockHl ? <OnbHighlightDot /> : null}
+                  {block.label}
                 </span>
-              ) : (
-                <Link
-                  href={block.href as Route}
-                  className="flex min-w-0 flex-1 items-center gap-3 no-underline"
-                  data-onboarding-anchor={
-                    block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
-                  }
-                >
-                  <Icon className={rowIconClassName(blockActive || Boolean(blockHl))} />
-                  <span className={rowLabelClassName(blockActive || Boolean(blockHl))}>
-                    {blockHl ? <OnbHighlightDot /> : null}
-                    {block.label}
-                  </span>
-                </Link>
-              )}
+              </Link>
               {block.children?.length ? (
                 <button
                   type="button"
@@ -579,7 +489,6 @@ export function NavSidebar({
                             ? "avatar-config"
                             : undefined,
                       icon: child.variant === "settings" ? SettingsGearIcon : undefined,
-                      locked: isPathLocked(child.href),
                     };
                   })}
                 />
@@ -600,31 +509,14 @@ export function NavSidebar({
         </div>
 
         <div className="rounded-xl">
-          <div
-            className={
-              isPathLocked("/acesso-antecipado/dados")
-                ? LOCKED_ROW_CLASS
-                : rowClassName(earlyAccessActive)
-            }
-          >
-            {isPathLocked("/acesso-antecipado/dados") ? (
-              <span
-                className="flex min-w-0 flex-1 items-center gap-3"
-                title={DEMO_CREDITS_LOCKED_MESSAGE}
-                aria-disabled="true"
-              >
-                <LockIcon className="h-5 w-5 shrink-0 text-md-text-soft" />
-                <span className="truncate text-sm text-md-text-soft">{EARLY_ACCESS_LABEL}</span>
-              </span>
-            ) : (
-              <Link
-                href="/acesso-antecipado/dados"
-                className="flex min-w-0 flex-1 items-center gap-3 no-underline"
-              >
-                <AcessoAntecipadoIcon className={rowIconClassName(earlyAccessActive)} />
-                <span className={rowLabelClassName(earlyAccessActive)}>{EARLY_ACCESS_LABEL}</span>
-              </Link>
-            )}
+          <div className={rowClassName(earlyAccessActive)}>
+            <Link
+              href="/acesso-antecipado/dados"
+              className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+            >
+              <AcessoAntecipadoIcon className={rowIconClassName(earlyAccessActive)} />
+              <span className={rowLabelClassName(earlyAccessActive)}>{EARLY_ACCESS_LABEL}</span>
+            </Link>
             <button
               type="button"
               onClick={() => toggleBlock(EARLY_ACCESS_LABEL)}
@@ -651,7 +543,6 @@ export function NavSidebar({
                   href: child.href,
                   active: isChildActive(pathname, child.href, activeHash, pendingMonitorHash),
                   actionDot: child.showActionDot,
-                  locked: isPathLocked(child.href),
                 }))}
               />
             </div>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ExportComplianceModal } from "@/components/product/export-compliance-modal";
+import { ProductPageHeader } from "@/components/product/product-page-header";
 import { formatCreativeProjectTitle } from "@/lib/creative-project-display";
 import { withTseCaptionTag } from "@/lib/creative-ai-metadata";
 import { parseJsonOrText } from "@/components/product/persona-shared";
@@ -93,7 +94,7 @@ export function CriativoListPage() {
     setLoadError(null);
     try {
       if (!project.videoUrl?.trim()) {
-        throw new Error("O criativo precisa de vídeo antes de distribuir.");
+        throw new Error("O criativo precisa de vídeo antes de enviar ao Publicador.");
       }
 
       // Backend Ayrshare permanece fail-closed; o fluxo de produto usa store local.
@@ -121,12 +122,12 @@ export function CriativoListPage() {
         message?: string;
       }>(response);
       if (!response.ok || !payload.post) {
-        throw new Error(payload.message || "Nao foi possivel enviar ao Distribuidor.");
+        throw new Error(payload.message || "Nao foi possivel enviar ao Publicador.");
       }
       router.push(`/distribuidor?post=${payload.post.id}`);
     } catch (error) {
       setLoadError(
-        error instanceof Error ? error.message : "Nao foi possivel enviar ao Distribuidor.",
+        error instanceof Error ? error.message : "Nao foi possivel enviar ao Publicador.",
       );
     } finally {
       setDistributingId(null);
@@ -139,17 +140,13 @@ export function CriativoListPage() {
       <div className="absolute top-[30%] right-[-10%] w-[40%] h-[40%] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
-        <header className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-md-text tracking-tight">
-            Meus criativos
-          </h1>
-        </header>
+        <ProductPageHeader title="Meus criativos" />
 
         <div className="mb-10 rounded-xl border border-md-border bg-md-surface/40 px-5 py-4">
           <p className="text-sm leading-relaxed text-md-text-muted">
             Histórico de vídeos produzidos com seus avatares. Para visualizá-los, clique em{" "}
             <strong className="font-semibold text-md-text">ver vídeo</strong>. Com vídeo selado,
-            envie ao <strong className="font-semibold text-md-text">Distribuidor</strong> para
+            envie ao <strong className="font-semibold text-md-text">Publicador</strong> para
             publicar nas redes.
           </p>
         </div>
@@ -243,7 +240,7 @@ export function CriativoListPage() {
                           onClick={() => void sendToDistribuidor(project)}
                           className="inline-flex items-center justify-center rounded-lg border border-[var(--distribuidor-border)] bg-[var(--distribuidor-soft)] px-4 py-2 text-sm font-semibold text-[var(--distribuidor-text)] disabled:opacity-50"
                         >
-                          {distributingId === project.id ? "Enviando…" : "Distribuir"}
+                          {distributingId === project.id ? "Enviando…" : "Enviar ao Publicador"}
                         </button>
                         {project.captionUrl ? (
                           <button

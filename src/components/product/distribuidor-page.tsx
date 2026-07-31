@@ -21,19 +21,28 @@ import {
   type DemoConnectionsSnapshot,
 } from "@/lib/distribution/demo-store";
 import type { DistributionPost } from "@/lib/distribution/types";
+import { ProductPageHeader } from "@/components/product/product-page-header";
+import { useProductApp } from "@/components/product/provider";
 
 type TabId = "fila" | "contas" | "historico";
 
+const NOTICE_TTL_MS = 7000;
+const CAMPAIGN_PUBLISH_UNLOCK_LABEL = "16 de agosto de 2026";
+
+function previewAckStorageKey(profileId: string) {
+  return `mandato:distribuidor-preview-ack:${profileId}`;
+}
+
 const STATUS_LABEL: Record<string, string> = {
   draft: "Rascunho",
-  pending_approval: "Aguardando Go",
+  pending_approval: "Aguardando revisão",
   approved: "Aprovado",
   publishing: "Publicando",
   scheduled: "Agendado",
   published: "Publicado",
   partial_failure: "Falha parcial",
   failed: "Falhou",
-  rejected: "No-go",
+  rejected: "Descartado",
   blocked_blackout: "Blackout",
 };
 
@@ -78,8 +87,10 @@ function isEditable(status: DistributionPost["status"]) {
 export function DistribuidorPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { profile, profileForm } = useProductApp();
   const focusPostId = searchParams.get("post");
   const demoMode = isDistributionDemoMode();
+  const profileId = profile?.id ?? profileForm.id ?? "anonymous";
 
   const [tab, setTab] = useState<TabId>("fila");
   const [posts, setPosts] = useState<DistributionPost[]>([]);
@@ -93,6 +104,7 @@ export function DistribuidorPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [previewIntroOpen, setPreviewIntroOpen] = useState(false);
 
   const selected = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
@@ -148,7 +160,7 @@ export function DistribuidorPage() {
         return nextPosts[0]?.id ?? null;
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar Distribuidor.");
+      setError(err instanceof Error ? err.message : "Falha ao carregar Publicador.");
     } finally {
       if (!opts?.silent) {
         setIsLoading(false);
@@ -159,6 +171,40 @@ export function DistribuidorPage() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    if (!notice) {
+      return;
+    }
+    const timer = window.setTimeout(() => setNotice(null), NOTICE_TTL_MS);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    if (!demoMode || typeof window === "undefined") {
+      return;
+    }
+    try {
+      const key = previewAckStorageKey(profileId);
+      if (window.localStorage.getItem(key) !== "1") {
+        setPreviewIntroOpen(true);
+      }
+    } catch {
+      setPreviewIntroOpen(true);
+    }
+  }, [demoMode, profileId]);
+
+  function acknowledgePreviewIntro() {
+    setPreviewIntroOpen(false);
+    if (typeof window === "undefined") {
+      return;
+    }
+    try {
+      window.localStorage.setItem(previewAckStorageKey(profileId), "1");
+    } catch {
+      // ignore
+    }
+  }
 
   useEffect(() => {
     if (focusPostId) {
@@ -235,7 +281,7 @@ export function DistribuidorPage() {
         });
         approveDemoPost(selected.id);
       },
-      "Go confirmado. Publicação simulada nas redes selecionadas.",
+      "Publicação confirmada. Simulação nas redes selecionadas.",
       "historico",
     );
   }
@@ -244,10 +290,10 @@ export function DistribuidorPage() {
     if (!selected) {
       return;
     }
-    const reason = window.prompt("Motivo do No-go (opcional):") ?? "";
+    const reason = window.prompt("Motivo do descarte (opcional):") ?? "";
     runAction(() => {
       rejectDemoPost(selected.id, reason);
-    }, "No-go registrado.");
+    }, "Pacote descartado.");
   }
 
   function retry(postId: string) {
@@ -270,22 +316,18 @@ export function DistribuidorPage() {
       <div className="pointer-events-none absolute top-[28%] right-[-10%] h-[38%] w-[42%] rounded-full bg-orange-600/10 blur-[120px]" />
 
       <div className="relative z-10 mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <header className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--distribuidor-text)]">
-            Agente 05
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-md-text">Distribuidor</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-md-text-soft">
-            Revise o vídeo selado, escolha as redes, confirme Go/No-go e acompanhe o disparo
-            coordenado — com janela de horário e blackout eleitoral.
-          </p>
-        </header>
+        <ProductPageHeader
+          title="Publicador"
+          description="Revise o vídeo selado, escolha as redes, confirme Publicar ou Descartar e acompanhe o disparo coordenado — com janela de horário e blackout eleitoral."
+        />
 
         {demoMode ? (
           <div className="mb-6 rounded-xl border border-[var(--distribuidor-border)] bg-[var(--distribuidor-soft)] px-5 py-4">
             <p className="text-sm leading-relaxed text-[var(--distribuidor-text)]">
-              Pré-visualização do fluxo. A publicação real nas redes fica desligada por enquanto —
-              tudo aqui roda no navegador para você validar Go/No-go, contas e histórico.
+              Pré-visualização do fluxo. A publicação real nas redes fica liberada a partir de{" "}
+              <strong>{CAMPAIGN_PUBLISH_UNLOCK_LABEL}</strong> (início do período de campanha). Até
+              lá, tudo aqui roda no navegador para você validar Publicar/Descartar, contas e
+              histórico.
             </p>
           </div>
         ) : null}
@@ -315,12 +357,18 @@ export function DistribuidorPage() {
         </div>
 
         {notice ? (
-          <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+          <div
+            role="status"
+            className="mb-4 rounded-xl border border-[var(--sentinela-border)] bg-[var(--sentinela-soft)] px-4 py-3 text-sm font-medium text-[var(--sentinela-text)]"
+          >
             {notice}
           </div>
         ) : null}
         {error ? (
-          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div
+            role="alert"
+            className="mb-4 rounded-xl border border-[var(--auditor-border)] bg-[var(--auditor-soft)] px-4 py-3 text-sm font-medium text-[var(--auditor-text)]"
+          >
             {error}
           </div>
         ) : null}
@@ -365,7 +413,7 @@ export function DistribuidorPage() {
               className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-md-border border-t-[var(--distribuidor)]"
               aria-hidden="true"
             />
-            <p className="text-sm text-md-text-muted">Carregando Distribuidor…</p>
+            <p className="text-sm text-md-text-muted">Carregando Publicador…</p>
           </div>
         ) : tab === "contas" ? (
           <section className="space-y-6">
@@ -502,7 +550,7 @@ export function DistribuidorPage() {
               {!selected ? (
                 <div className="flex min-h-[280px] flex-col items-center justify-center text-center">
                   <p className="text-sm text-md-text-soft">
-                    Selecione um pacote na fila para revisar caption, redes e dar Go ou No-go.
+                    Selecione um pacote na fila para revisar caption, redes e publicar ou descartar.
                   </p>
                   <Link
                     href="/criativo"
@@ -514,7 +562,7 @@ export function DistribuidorPage() {
               ) : (
                 <div className="space-y-5">
                   <div>
-                    <h2 className="text-lg font-semibold text-md-text">Revisão Go / No-go</h2>
+                    <h2 className="text-lg font-semibold text-md-text">Revisão para publicação</h2>
                     <p className="mt-1 text-xs text-md-text-soft">
                       Status: {STATUS_LABEL[selected.status] ?? selected.status}
                       {selected.lastError ? ` — ${selected.lastError}` : ""}
@@ -621,7 +669,7 @@ export function DistribuidorPage() {
                           onClick={approve}
                           className="rounded-xl bg-[var(--distribuidor)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--distribuidor-hover)] disabled:opacity-50"
                         >
-                          Go — publicar
+                          Publicar
                         </button>
                         <button
                           type="button"
@@ -629,7 +677,7 @@ export function DistribuidorPage() {
                           onClick={reject}
                           className="rounded-xl border border-red-500/40 px-4 py-2 text-sm text-red-300 transition hover:bg-red-500/10 disabled:opacity-50"
                         >
-                          No-go
+                          Descartar
                         </button>
                       </>
                     ) : null}
@@ -650,6 +698,43 @@ export function DistribuidorPage() {
           </div>
         )}
       </div>
+
+      {previewIntroOpen ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="distribuidor-preview-title"
+            className="relative w-full max-w-md rounded-2xl border border-md-border bg-md-surface p-6 shadow-2xl"
+          >
+            <h2
+              id="distribuidor-preview-title"
+              className="text-xl font-bold tracking-tight text-md-text"
+            >
+              Publicação real a partir de {CAMPAIGN_PUBLISH_UNLOCK_LABEL}
+            </h2>
+            <div className="mt-4 space-y-3 text-sm leading-relaxed text-md-text-muted">
+              <p>
+                Pela legislação eleitoral, candidatos só podem iniciar posts de campanha a partir
+                dessa data. Até lá, o Publicador fica em{" "}
+                <strong className="text-md-text">pré-visualização</strong>.
+              </p>
+              <p>
+                Você já pode explorar a fila, conectar contas de demonstração, ensaiar Publicar ou
+                Descartar e ver o histórico — sem disparo real nas redes.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={acknowledgePreviewIntro}
+              className="mt-6 w-full rounded-xl bg-[var(--distribuidor)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+            >
+              Entendi, quero explorar
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

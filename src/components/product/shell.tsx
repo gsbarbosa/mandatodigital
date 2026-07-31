@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
-import type { Route } from "next";
+import { useState, type ReactNode } from "react";
 
 import { useProductApp } from "./provider";
 
+import { DemoAccountBadge } from "./demo-account-badge";
 import { DemoDegustacaoBanner } from "./demo-degustacao-banner";
-import { useDemoCreditsLock } from "./use-demo-credits-lock";
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { NavSidebar } from "./nav-sidebar";
 import { OnboardingChecklist } from "./onboarding-checklist";
@@ -16,7 +14,6 @@ import { OnboardingModals } from "./onboarding-modals";
 import { useOnboarding } from "./onboarding-provider";
 import { SupportWidget } from "./support-widget";
 import { getStepDef } from "@/lib/onboarding";
-import { isDemoUnlockedPath } from "@/lib/demo-mode";
 
 /**
  * Passos com tip fixo na lateral: o conteúdo abre espaço (só em telas largas)
@@ -47,20 +44,6 @@ export function ProductShell({ children }: { children: ReactNode }) {
   const guidedSide =
     guidedPlacement === "left" || guidedPlacement === "right" ? guidedPlacement : null;
 
-  // DEMO_MODE: créditos zerados empurram para Planos — sidebar já trava os links.
-  const { locked: demoLocked, checked: demoLockChecked } = useDemoCreditsLock();
-  const pathname = usePathname();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!demoLockChecked || !demoLocked) {
-      return;
-    }
-    if (!isDemoUnlockedPath(pathname)) {
-      router.replace("/acesso-antecipado/planos" as Route);
-    }
-  }, [demoLockChecked, demoLocked, pathname, router]);
-
   return (
     <div className="h-screen flex overflow-hidden bg-md-app-bg text-md-text-soft">
       <NavSidebar
@@ -73,6 +56,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
       <main
         className={`flex-1 min-w-0 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-bg relative transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
       >
+        <DemoAccountBadge />
         <DemoDegustacaoBanner />
         <OnboardingModals />
         <OnboardingCoachmark />

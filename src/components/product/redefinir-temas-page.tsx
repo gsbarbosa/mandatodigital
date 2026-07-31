@@ -6,8 +6,10 @@ import { useRouter } from "next/navigation";
 import { BrazilUfMap } from "@/components/product/brazil-uf-map";
 import { MunicipioPicker } from "@/components/product/municipio-picker";
 import { useOnboarding } from "@/components/product/onboarding-provider";
+import { ProductPageHeader } from "@/components/product/product-page-header";
 import { useProductApp } from "@/components/product/provider";
 import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
+import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 import { ThemeTagPill } from "@/components/product/theme-tag";
 import {
   DEMO_THEME_SAVE_BLOCKED_MESSAGE,
@@ -16,6 +18,7 @@ import {
   isDemoMode,
   readDemoThemeSaveCount,
 } from "@/lib/demo-mode";
+import { GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE } from "@/lib/guest-limits";
 import type { SocialHandle } from "@/lib/types";
 import { mirrorInterestThemesToSpheres } from "@/lib/sentinel-profile-themes";
 import {
@@ -296,6 +299,7 @@ export function RedefinirTemasPage() {
   const { profileForm, setProfileForm, saveProfile, isSavingProfile, sessionUser } =
     useProductApp();
   const { isPremium } = useDevAccountMode(sessionUser?.email);
+  const { exhausted: creditsExhausted } = useGuestCreditsGate();
   const { markRadarSaved, isActive: onboardingActive } = useOnboarding();
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
@@ -388,6 +392,11 @@ export function RedefinirTemasPage() {
   async function handleSave() {
     setSaveMessage(null);
 
+    if (creditsExhausted && !isPremium) {
+      setLimitMessage(GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE);
+      return;
+    }
+
     if (isDemoMode() && readDemoThemeSaveCount() >= DEMO_THEME_SAVE_LIMIT) {
       setLimitMessage(DEMO_THEME_SAVE_BLOCKED_MESSAGE);
       return;
@@ -420,6 +429,8 @@ export function RedefinirTemasPage() {
 
   const planNote = limitMessage ? (
     <span className="text-amber-400">{limitMessage}</span>
+  ) : creditsExhausted && !isPremium ? (
+    <span className="text-amber-400">{GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}</span>
   ) : saveMessage ? (
     <span className="text-[var(--sentinela-text)]" role="status">
       {saveMessage}
@@ -440,15 +451,15 @@ export function RedefinirTemasPage() {
       </div>
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-10">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-md-text tracking-tight mb-4">
-            Monitoramento de Pautas <span className="text-[var(--curador-text)]">&quot;da sua bandeira&quot;</span>
-          </h1>
-          <p className="text-md-text-soft text-sm md:text-base font-normal max-w-2xl mx-auto mb-6">
-            Monitore todos os assuntos de interesse da sua campanha em um só lugar, incluindo
-            adversários e temas de interesse. Vamos começar.
-          </p>
-        </header>
+        <ProductPageHeader
+          title={
+            <>
+              Monitoramento de Pautas{" "}
+              <span className="text-[var(--curador-text)]">&quot;da sua bandeira&quot;</span>
+            </>
+          }
+          description="Monitore todos os assuntos de interesse da sua campanha em um só lugar, incluindo adversários e temas de interesse. Vamos começar."
+        />
 
         <section
           id="territorio"
@@ -720,7 +731,12 @@ export function RedefinirTemasPage() {
             data-testid="salvar-radar-button"
             data-onboarding-anchor="temas-salvar"
             onClick={() => void handleSave()}
-            disabled={isSavingProfile}
+            disabled={isSavingProfile || (creditsExhausted && !isPremium)}
+            title={
+              creditsExhausted && !isPremium
+                ? GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE
+                : undefined
+            }
             className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"
           >
             {isSavingProfile ? "Salvando radar..." : "Salvar radar"}
