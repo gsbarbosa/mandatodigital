@@ -1,8 +1,8 @@
 "use client";
 
 import type { Route } from "next";
-import type { ComponentType } from "react";
-import { useCallback, useEffect, useState } from "react";
+import type { ComponentType, ReactNode } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -20,10 +20,8 @@ import {
   ComplianceIcon,
   CriativoIcon,
   DistribuidorIcon,
-  GuiaIcon,
   MonitoramentoIcon,
   PautaIndependenteIcon,
-  SuporteIcon,
 } from "./nav-icons";
 
 type NavChild = {
@@ -50,6 +48,40 @@ function SettingsGearIcon({ className }: { className?: string }) {
     >
       <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
       <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function MenuIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M18 6L6 18M6 6l12 12" />
     </svg>
   );
 }
@@ -98,15 +130,23 @@ const NAV_BLOCKS: NavBlock[] = [
   },
 ];
 
-const NAV_SINGLES: Array<NavChild & { icon: NavIcon }> = [
+/** Produção (acima do divisor) + compliance (abaixo). Publicador vem após pauta avulsa. */
+const NAV_SINGLES_PRIMARY: Array<NavChild & { icon: NavIcon }> = [
   { label: "Meus criativos", href: "/criativo", icon: CriativoIcon },
-  { label: "Publicador", href: "/distribuidor", icon: DistribuidorIcon },
   { label: "Gerar pauta avulsa", href: "/independente", icon: PautaIndependenteIcon },
+  { label: "Publicador", href: "/distribuidor", icon: DistribuidorIcon },
+];
+
+const NAV_SINGLES_SECONDARY: Array<NavChild & { icon: NavIcon }> = [
   { label: "Compliance TSE", href: "/compliance", icon: ComplianceIcon },
   { label: "Auditoria", href: "/auditoria", icon: AuditoriaIcon },
 ];
 
 const EARLY_ACCESS_LABEL = "Acesso antecipado";
+
+/** Sem `flex`/`hidden` aqui — o display é controlado pelo estado mobile/desktop. */
+const ASIDE_SURFACE =
+  "no-scrollbar w-64 bg-md-app-bg border-r border-md-border flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(15,23,42,0.12)]";
 
 function navHrefPath(href: string) {
   const hashIndex = href.indexOf("#");
@@ -267,16 +307,20 @@ function ChildTimeline({ rows }: { rows: ChildRow[] }) {
   );
 }
 
-export function NavSidebar({
+function NavSidebarPanel({
   sessionEmail,
   onSignOut,
   onLogoSecretClick,
   onOpenSupport,
+  onNavigate,
+  headerExtra,
 }: {
   sessionEmail: string | null;
   onSignOut: () => void;
   onLogoSecretClick?: () => void;
   onOpenSupport: () => void;
+  onNavigate?: () => void;
+  headerExtra?: ReactNode;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -308,6 +352,7 @@ export function NavSidebar({
       }
 
       setActiveHash(hrefHash);
+      onNavigate?.();
 
       if (pathname === path) {
         setPendingMonitorHash(null);
@@ -319,7 +364,7 @@ export function NavSidebar({
       setPendingMonitorHash(hrefHash);
       router.push(`${path}${hrefHash}` as Route);
     },
-    [pathname, router],
+    [onNavigate, pathname, router],
   );
 
   useEffect(() => {
@@ -370,6 +415,10 @@ export function NavSidebar({
   const earlyAccessActive = pathname.startsWith("/acesso-antecipado");
   const earlyAccessExpanded = expandedBlock === EARLY_ACCESS_LABEL;
 
+  function handleLinkNavigate() {
+    onNavigate?.();
+  }
+
   function renderSingle(item: NavChild & { icon: NavIcon }) {
     const itemActive = isChildActive(pathname, item.href, activeHash, pendingMonitorHash);
     const singleHl =
@@ -384,6 +433,7 @@ export function NavSidebar({
         href={item.href as Route}
         className={rowClassName(active)}
         data-onboarding-anchor={item.href === "/criativo" ? "criativo" : undefined}
+        onClick={handleLinkNavigate}
       >
         <Icon className={rowIconClassName(active)} />
         <span className={rowLabelClassName(active)}>
@@ -395,26 +445,41 @@ export function NavSidebar({
   }
 
   return (
-    <aside className="no-scrollbar w-64 bg-md-app-bg border-r border-md-border flex flex-col h-full overflow-y-auto shrink-0 relative z-10 shadow-[4px_0_24px_rgba(15,23,42,0.12)]">
+    <>
       <div className="border-b border-md-border-soft px-4 py-5">
-        <Link
-          href="/monitoramento"
-          className="flex w-full flex-col items-center gap-1.5 no-underline"
-          aria-label="Mandato Digital — monitoramento"
-          title="Ir ao monitoramento"
-          onClick={() => onLogoSecretClick?.()}
-        >
-          <BrandLogo markSize={20} fontSize={18} priority />
-          <span
-            className="text-[10px] font-normal tracking-wide text-md-text-soft select-none leading-none"
-            aria-label={`Versão ${APP_VERSION}`}
+        <div className="relative">
+          {headerExtra}
+          <Link
+            href="/monitoramento"
+            className="flex w-full flex-col items-center gap-1.5 no-underline"
+            aria-label="Mandato Digital — monitoramento"
+            title="Ir ao monitoramento"
+            onClick={() => {
+              onLogoSecretClick?.();
+              handleLinkNavigate();
+            }}
           >
-            v{APP_VERSION}
-          </span>
-        </Link>
+            <BrandLogo markSize={20} fontSize={18} priority />
+            <span
+              className="text-[10px] font-normal tracking-wide text-md-text-soft select-none leading-none"
+              aria-label={`Versão ${APP_VERSION}`}
+            >
+              v{APP_VERSION}
+            </span>
+          </Link>
+        </div>
       </div>
 
-      <nav className="flex-1 p-3 space-y-1.5">
+      <nav
+        className="flex-1 p-3 space-y-1.5"
+        onClick={(event) => {
+          if (!onNavigate) return;
+          const target = event.target as HTMLElement | null;
+          if (target?.closest?.("a[href]")) {
+            onNavigate();
+          }
+        }}
+      >
         {NAV_BLOCKS.map((block) => {
           const blockActive = isBlockActive(pathname, block.href);
           const blockHl =
@@ -424,88 +489,94 @@ export function NavSidebar({
           const Icon = block.icon;
 
           return (
-          <div key={block.label} className="rounded-xl">
-            <div className={rowClassName(blockActive || Boolean(blockHl))}>
-              <Link
-                href={block.href as Route}
-                className="flex min-w-0 flex-1 items-center gap-3 no-underline"
-                data-onboarding-anchor={
-                  block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
-                }
-              >
-                <Icon className={rowIconClassName(blockActive || Boolean(blockHl))} />
-                <span className={rowLabelClassName(blockActive || Boolean(blockHl))}>
-                  {blockHl ? <OnbHighlightDot /> : null}
-                  {block.label}
-                </span>
-              </Link>
-              {block.children?.length ? (
-                <button
-                  type="button"
-                  onClick={() => toggleBlock(block.label)}
-                  aria-expanded={expanded}
-                  aria-label={expanded ? `Recolher ${block.label}` : `Expandir ${block.label}`}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-md-surface-inset text-md-text-soft transition hover:text-md-text"
+            <div key={block.label} className="rounded-xl">
+              <div className={rowClassName(blockActive || Boolean(blockHl))}>
+                <Link
+                  href={block.href as Route}
+                  className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+                  data-onboarding-anchor={
+                    block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
+                  }
+                  onClick={handleLinkNavigate}
                 >
-                  <ChevronDownIcon
-                    className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+                  <Icon className={rowIconClassName(blockActive || Boolean(blockHl))} />
+                  <span className={rowLabelClassName(blockActive || Boolean(blockHl))}>
+                    {blockHl ? <OnbHighlightDot /> : null}
+                    {block.label}
+                  </span>
+                </Link>
+                {block.children?.length ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleBlock(block.label)}
+                    aria-expanded={expanded}
+                    aria-label={expanded ? `Recolher ${block.label}` : `Expandir ${block.label}`}
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-md-surface-inset text-md-text-soft transition hover:text-md-text"
+                  >
+                    <ChevronDownIcon
+                      className={`h-3.5 w-3.5 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                ) : null}
+              </div>
+
+              <div
+                className={`grid transition-[grid-template-rows] duration-200 ease-out ${
+                  expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                }`}
+              >
+                <div className="overflow-hidden pl-1">
+                  <ChildTimeline
+                    rows={(block.children ?? []).map((child) => {
+                      const childActive = isChildActive(
+                        pathname,
+                        child.href,
+                        activeHash,
+                        pendingMonitorHash,
+                      );
+                      const childHl =
+                        (temasConfigHl && child.href === "/monitoramento/temas") ||
+                        (sidebarTarget === "avatar-config" &&
+                          child.href === "/avatares/foto-real/treinar");
+                      const isHashLink = child.href.includes("#");
+
+                      return {
+                        key: child.href + child.label,
+                        label: child.label,
+                        href: child.href,
+                        active: childActive,
+                        highlighted: childHl,
+                        isHashLink,
+                        onHashClick: isHashLink
+                          ? (event: React.MouseEvent) => {
+                              event.preventDefault();
+                              navigateToMonitorSection(child.href);
+                            }
+                          : undefined,
+                        onboardingAnchor:
+                          child.href === "/monitoramento/temas"
+                            ? "temas-config"
+                            : child.href === "/avatares/foto-real/treinar"
+                              ? "avatar-config"
+                              : undefined,
+                        icon: child.variant === "settings" ? SettingsGearIcon : undefined,
+                      };
+                    })}
                   />
-                </button>
-              ) : null}
-            </div>
-
-            <div
-              className={`grid transition-[grid-template-rows] duration-200 ease-out ${
-                expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
-              }`}
-            >
-              <div className="overflow-hidden pl-1">
-                <ChildTimeline
-                  rows={(block.children ?? []).map((child) => {
-                    const childActive = isChildActive(pathname, child.href, activeHash, pendingMonitorHash);
-                    const childHl =
-                      (temasConfigHl && child.href === "/monitoramento/temas") ||
-                      (sidebarTarget === "avatar-config" &&
-                        child.href === "/avatares/foto-real/treinar");
-                    const isHashLink = child.href.includes("#");
-
-                    return {
-                      key: child.href + child.label,
-                      label: child.label,
-                      href: child.href,
-                      active: childActive,
-                      highlighted: childHl,
-                      isHashLink,
-                      onHashClick: isHashLink
-                        ? (event: React.MouseEvent) => {
-                            event.preventDefault();
-                            navigateToMonitorSection(child.href);
-                          }
-                        : undefined,
-                      onboardingAnchor:
-                        child.href === "/monitoramento/temas"
-                          ? "temas-config"
-                          : child.href === "/avatares/foto-real/treinar"
-                            ? "avatar-config"
-                            : undefined,
-                      icon: child.variant === "settings" ? SettingsGearIcon : undefined,
-                    };
-                  })}
-                />
+                </div>
               </div>
             </div>
-          </div>
-        );
+          );
         })}
 
         <div className="space-y-1.5">
-          {NAV_SINGLES.slice(0, 2).map((item) => renderSingle(item))}
+          {NAV_SINGLES_PRIMARY.map((item) => renderSingle(item))}
         </div>
 
         <div className="my-4 border-t-[3px] border-md-border-soft" aria-hidden="true" />
 
         <div className="space-y-1.5">
-          {NAV_SINGLES.slice(2).map((item) => renderSingle(item))}
+          {NAV_SINGLES_SECONDARY.map((item) => renderSingle(item))}
         </div>
 
         <div className="rounded-xl">
@@ -513,6 +584,7 @@ export function NavSidebar({
             <Link
               href="/acesso-antecipado/dados"
               className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+              onClick={handleLinkNavigate}
             >
               <AcessoAntecipadoIcon className={rowIconClassName(earlyAccessActive)} />
               <span className={rowLabelClassName(earlyAccessActive)}>{EARLY_ACCESS_LABEL}</span>
@@ -521,7 +593,9 @@ export function NavSidebar({
               type="button"
               onClick={() => toggleBlock(EARLY_ACCESS_LABEL)}
               aria-expanded={earlyAccessExpanded}
-              aria-label={earlyAccessExpanded ? "Recolher Acesso antecipado" : "Expandir Acesso antecipado"}
+              aria-label={
+                earlyAccessExpanded ? "Recolher Acesso antecipado" : "Expandir Acesso antecipado"
+              }
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-md-surface-inset text-md-text-soft transition hover:text-md-text"
             >
               <ChevronDownIcon
@@ -548,25 +622,33 @@ export function NavSidebar({
             </div>
           </div>
         </div>
-
-        {mounted && !pathname.startsWith("/acesso-antecipado") ? (
-          <button
-            type="button"
-            onClick={() => restartOnboarding()}
-            className={`w-full ${rowClassName(false)}`}
-          >
-            <GuiaIcon className={rowIconClassName(false)} />
-            <span className={rowLabelClassName(false)}>Passo-a-passo guiado</span>
-          </button>
-        ) : null}
-
-        <button type="button" onClick={onOpenSupport} className={`w-full ${rowClassName(false)}`}>
-          <SuporteIcon className={rowIconClassName(false)} />
-          <span className={rowLabelClassName(false)}>Suporte</span>
-        </button>
       </nav>
 
-      <div className="px-4 pb-3 border-t border-md-border-soft pt-3">
+      <div className="mt-auto px-4 pb-3 pt-3 border-t border-md-border-soft space-y-3">
+        <div className="flex flex-col items-start gap-1.5 px-0.5">
+          {mounted && !pathname.startsWith("/acesso-antecipado") ? (
+            <button
+              type="button"
+              onClick={() => {
+                restartOnboarding();
+                handleLinkNavigate();
+              }}
+              className="text-left text-xs text-md-text-soft transition-colors hover:text-md-text"
+            >
+              Passo-a-passo guiado
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              onOpenSupport();
+              handleLinkNavigate();
+            }}
+            className="text-left text-xs text-md-text-soft transition-colors hover:text-md-text"
+          >
+            Suporte
+          </button>
+        </div>
         <AppearanceToggle />
       </div>
 
@@ -599,13 +681,143 @@ export function NavSidebar({
             <Link
               href={"/dev/modo-conta" as Route}
               className="block text-[10px] tracking-wide text-md-text-soft hover:text-md-text transition-colors no-underline"
-              onClick={() => setEmailMenuOpen(false)}
+              onClick={() => {
+                setEmailMenuOpen(false);
+                handleLinkNavigate();
+              }}
             >
               Alternar modo da conta
             </Link>
           ) : null}
         </div>
       ) : null}
-    </aside>
+    </>
+  );
+}
+
+export function NavSidebar({
+  sessionEmail,
+  onSignOut,
+  onLogoSecretClick,
+  onOpenSupport,
+}: {
+  sessionEmail: string | null;
+  onSignOut: () => void;
+  onLogoSecretClick?: () => void;
+  onOpenSupport: () => void;
+}) {
+  const pathname = usePathname();
+  const drawerId = useId();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  // Fecha o drawer ao mudar de rota.
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Escape + scroll lock enquanto o drawer está aberto.
+  useEffect(() => {
+    if (!mobileOpen) {
+      return;
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen]);
+
+  // Em resize para desktop, garante drawer fechado.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      if (mq.matches) {
+        setMobileOpen(false);
+      }
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  return (
+    <>
+      <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-md-border bg-md-app-bg/95 px-4 backdrop-blur-md lg:hidden">
+        <Link
+          href="/monitoramento"
+          className="min-w-0 no-underline"
+          aria-label="Mandato Digital — monitoramento"
+          onClick={() => onLogoSecretClick?.()}
+        >
+          <BrandLogo markSize={18} fontSize={16} priority />
+        </Link>
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-md-border text-md-text transition hover:bg-md-overlay-hover"
+          aria-expanded={mobileOpen}
+          aria-controls={drawerId}
+          aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
+          onClick={() => setMobileOpen((open) => !open)}
+        >
+          {mobileOpen ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
+        </button>
+      </header>
+
+      {mobileOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          aria-label="Fechar menu"
+          onClick={closeMobile}
+        />
+      ) : null}
+
+      {/*
+        Um único painel: no desktop fica no fluxo (lg:flex relative);
+        no mobile só aparece como drawer fixo quando aberto.
+      */}
+      <aside
+        id={drawerId}
+        className={`${ASIDE_SURFACE} ${
+          mobileOpen
+            ? "flex fixed inset-y-0 left-0 z-50 max-w-[85vw] lg:static lg:z-10 lg:max-w-none"
+            : "hidden lg:flex"
+        }`}
+        role={mobileOpen ? "dialog" : undefined}
+        aria-modal={mobileOpen ? true : undefined}
+        aria-label={mobileOpen ? "Navegação" : undefined}
+      >
+        <NavSidebarPanel
+          sessionEmail={sessionEmail}
+          onSignOut={onSignOut}
+          onLogoSecretClick={onLogoSecretClick}
+          onOpenSupport={onOpenSupport}
+          onNavigate={mobileOpen ? closeMobile : undefined}
+          headerExtra={
+            mobileOpen ? (
+              <button
+                type="button"
+                className="absolute right-0 top-0 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-md-border text-md-text-soft transition hover:text-md-text lg:hidden"
+                aria-label="Fechar menu"
+                onClick={closeMobile}
+              >
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            ) : null
+          }
+        />
+      </aside>
+    </>
   );
 }

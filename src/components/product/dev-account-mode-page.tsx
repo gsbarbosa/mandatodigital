@@ -79,7 +79,7 @@ export function DevAccountModePage() {
 
   if (!allowed) {
     return (
-      <div className="max-w-md mx-auto p-8">
+      <div className="mx-auto max-w-md px-4 py-6 sm:px-6 sm:py-8">
         <h1 className="text-lg font-semibold text-md-text mb-2">Modo da conta</h1>
         <p className="text-sm text-md-text-soft mb-6">Esta conta não tem acesso a esta tela.</p>
         <Link href="/monitoramento" className="text-sm text-[var(--curador-text)] hover:text-[var(--curador-text)]">
@@ -90,7 +90,7 @@ export function DevAccountModePage() {
   }
 
   return (
-    <div className="max-w-md mx-auto p-8">
+    <div className="mx-auto max-w-md px-4 py-6 sm:px-6 sm:py-8">
       <p className="text-xs text-md-text-soft mb-1 truncate">{email}</p>
       <h1 className="text-lg font-semibold text-md-text mb-2">Modo da conta</h1>
       <p className="text-sm text-md-text-soft mb-8">

@@ -10,10 +10,11 @@ import {
   DEMO_ACCESS_BODY,
   DEMO_ACCESS_CTA,
   DEMO_ACCESS_TITLE,
-  isDemoMode,
+  isDemoModeActiveForEmail,
   markDemoDegustacaoSeen,
 } from "@/lib/demo-mode";
 import { useEarlyAccess, type EarlyAccessReservation } from "@/lib/early-access";
+import { getFirebaseAuth } from "@/lib/firebase/client";
 import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 /**
@@ -25,15 +26,18 @@ export function AcessoDemonstracaoPage() {
   const [, updateEarlyAccess] = useEarlyAccess();
   const [isStarting, setIsStarting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const demoActive = isDemoMode();
+  const [demoActive, setDemoActive] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!demoActive) {
+    const email = getFirebaseAuth().currentUser?.email ?? null;
+    const active = isDemoModeActiveForEmail(email);
+    setDemoActive(active);
+    if (!active) {
       router.replace(PLAN_SELECTION_PATH as Route);
     }
-  }, [demoActive, router]);
+  }, [router]);
 
-  if (!demoActive) {
+  if (demoActive !== true) {
     return null;
   }
 

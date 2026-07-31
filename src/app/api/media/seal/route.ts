@@ -5,7 +5,7 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
-import { isDemoMode } from "@/lib/feature-flags";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import { sealRemoteVideo } from "@/lib/media-tse-seal";
 
 export const maxDuration = 300;
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         videoUrl: body.videoUrl,
         mediaId: body.mediaId,
         guestTestWatermark: !premium,
-        campaignTarja: Boolean(body.campaignTarja) || isDemoMode(),
+        campaignTarja: Boolean(body.campaignTarja) || isDemoModeActiveForEmail(sessionUser?.email),
       });
       return NextResponse.json(sealed);
     });

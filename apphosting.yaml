@@ -80,6 +80,12 @@ env:
       - BUILD
       - RUNTIME
 
+  # Admin key (org) — gasto MTD / spend limit no painel /admin/provedores
+  - variable: OPENAI_ADMIN_KEY
+    secret: openai-admin-key
+    availability:
+      - RUNTIME
+
   - variable: HEYGEN_API_KEY
     secret: heygen-api-key
     availability:
@@ -236,6 +242,17 @@ env:
     availability:
       - BUILD
       - RUNTIME
+
+  # Painel /admin — recomendado (sem isto usa default de bootstrap + warning nos logs):
+  # Cadastre: npm run firebase:secrets:guide / --apply
+  # - variable: ADMIN_PASSWORD
+  #   secret: admin-password
+  #   availability:
+  #     - RUNTIME
+  # - variable: ADMIN_SESSION_SECRET
+  #   secret: admin-session-secret
+  #   availability:
+  #     - RUNTIME
 
   # Cadastre: npm run firebase:secrets:guide / --apply
   # - variable: JOBS_WORKER_SHARED_SECRET

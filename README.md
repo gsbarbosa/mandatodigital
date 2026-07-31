@@ -30,6 +30,7 @@ Abra `http://localhost:3000`.
 ## Documentacao
 
 - [Status de desenvolvimento (acompanhamento)](docs/status-desenvolvimento.md)
+- [Runbook sobreaviso DEMO (~180 pessoas)](docs/runbook-sobreaviso-demo.md)
 - [SPEC — Remodelagem UI/UX e navegacao](docs/spec-remodelagem-ui-navegacao.md)
 - [Sentinela — guia de uso (passo a passo)](docs/sentinela.md)
 - [Plano roadmap Sentinela / Validador / MVP](docs/plano-roadmap-sentinel-auditor-mvp.md)

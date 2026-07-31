@@ -12,7 +12,7 @@ import { ProductPageHeader } from "@/components/product/product-page-header";
 import { SentinelRefreshProgress } from "@/components/product/sentinel-refresh-progress";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
-import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+import { DEMO_REFRESH_PAUTA_HINT, isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE,
   needsDailySentinelRefresh,
@@ -217,7 +217,7 @@ export function MonitoramentoPage() {
   const creditsExhausted = Boolean(isGuestUi && credits && credits.remaining <= 0);
 
   async function handleRefresh() {
-    if (isRefreshing || isDemoMode() || creditsExhausted) {
+    if (isRefreshing || isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted) {
       return;
     }
 
@@ -364,7 +364,7 @@ export function MonitoramentoPage() {
     : false;
 
   return (
-    <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20" data-testid="monitoramento-page">
+    <div className="relative z-10 mx-auto max-w-5xl px-4 py-6 pb-20 sm:px-6 sm:py-8 lg:px-8" data-testid="monitoramento-page">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
       <ProductPageHeader
@@ -373,14 +373,14 @@ export function MonitoramentoPage() {
         actions={
           <div
             data-onboarding-anchor="pautas-radar"
-            className="flex w-[10.5rem] shrink-0 flex-col gap-1 md:pt-1"
+            className="flex w-full shrink-0 flex-col gap-1 sm:w-[10.5rem] md:pt-1"
           >
             <RefreshPautasButton
               variant="monitor"
               isLoading={isRefreshing}
-              disabled={isDemoMode() || creditsExhausted}
+              disabled={isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted}
               disabledTitle={
-                isDemoMode()
+                isDemoModeActiveForEmail(sessionUser?.email)
                   ? DEMO_REFRESH_PAUTA_HINT
                   : creditsExhausted
                     ? GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE
@@ -395,7 +395,7 @@ export function MonitoramentoPage() {
               </span>
             ) : null}
             <span className="text-right text-xs text-md-text-soft">Próx atualização às 08:00h</span>
-            {isDemoMode() ? (
+            {isDemoModeActiveForEmail(sessionUser?.email) ? (
               <span className="text-right text-[10px] leading-snug text-[var(--distribuidor-text)]">
                 {DEMO_REFRESH_PAUTA_HINT}
               </span>

@@ -84,6 +84,8 @@ type ProductAppContextValue = {
     silent?: boolean;
     throwOnError?: boolean;
     sentinelRefreshPolicy?: "onboarding" | "themes" | "skip";
+    /** DEMO: conta no limite server-side de 3 saves de tema (só redefinir-temas). */
+    countDemoThemeSave?: boolean;
   }) => Promise<{
     sentinelRefreshSkipped?: boolean;
     sentinelRefreshMessage?: string | null;
@@ -225,6 +227,7 @@ export function ProductAppProvider({
     silent?: boolean;
     throwOnError?: boolean;
     sentinelRefreshPolicy?: "onboarding" | "themes" | "skip";
+    countDemoThemeSave?: boolean;
   }) {
     setIsSavingProfile(true);
     setStatusMessage(null);
@@ -303,6 +306,7 @@ export function ProductAppProvider({
           ...parsedPayload.data,
           draftSave: options?.allowDraftDefaults === true,
           sentinelRefreshPolicy: options?.sentinelRefreshPolicy ?? "themes",
+          countDemoThemeSave: options?.countDemoThemeSave === true,
         }),
       });
 

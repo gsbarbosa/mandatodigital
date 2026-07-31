@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+import { DEMO_REFRESH_PAUTA_HINT, isDemoModeActiveForEmail } from "@/lib/demo-mode";
+import { useProductApp } from "./provider";
 
 type RefreshPautasButtonProps = {
   isLoading: boolean;
@@ -22,10 +23,11 @@ export function RefreshPautasButton({
   variant = "persona",
   className = "",
 }: RefreshPautasButtonProps) {
+  const { sessionUser } = useProductApp();
   const [pending, setPending] = useState(false);
   const busy = isLoading || pending;
   /** Conta de demonstração: refresh manual bloqueado (só ciclo da manhã). */
-  const demoLocked = isDemoMode();
+  const demoLocked = isDemoModeActiveForEmail(sessionUser?.email);
   const isDisabled = disabled || demoLocked;
   const lockTitle = disabledTitle ?? (demoLocked ? DEMO_REFRESH_PAUTA_HINT : undefined);
 

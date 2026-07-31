@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { getSessionUser } from "@/lib/auth/session";
 import { getAuthSetupMessage, isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import { resolvePostLoginPath } from "@/lib/registration-gate";
-import { isDemoMode } from "@/lib/feature-flags";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
@@ -35,7 +35,7 @@ export default async function LoginPage({
         resolvePostLoginPath({
           registrationComplete: isUserRegistrationComplete(registration),
           needsPlanSelection: needsPlanSelection(registration),
-          demoMode: isDemoMode(),
+          demoMode: isDemoModeActiveForEmail(sessionUser.email),
           nextPath: params.next,
         }) as Route,
       );

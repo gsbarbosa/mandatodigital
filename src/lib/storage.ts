@@ -654,10 +654,12 @@ const firestoreRepository: Repository = {
       col(COLLECTIONS.profileTrainingAssets)
         .where("profileId", "==", profile.id)
         .orderBy("createdAt", "desc")
+        .limit(40)
         .get(),
       col(COLLECTIONS.contentRequests)
         .where("profileId", "==", profile.id)
         .orderBy("createdAt", "desc")
+        .limit(40)
         .get(),
       col(COLLECTIONS.evaluationRuns)
         .where("profileId", "==", profile.id)

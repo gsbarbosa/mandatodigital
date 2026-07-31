@@ -1,9 +1,30 @@
 /**
  * Constantes e helpers do modo DEMO (apresentação / degustação).
  * Tudo atrás de `isDemoMode()` — desligar a flag restaura o comportamento normal.
+ * Contas em `DEMO_MODE_EXEMPT_EMAILS` ficam em full product mesmo com a flag ligada.
  */
 
+import { normalizeAccountEmail } from "@/lib/dev-account-mode";
 import { isDemoMode } from "@/lib/feature-flags";
+
+/** Contas internas isentas da degustação enquanto DEMO_MODE global está on. */
+export const DEMO_MODE_EXEMPT_EMAILS = ["tribeiro81@gmail.com"] as const;
+
+export function isDemoModeExemptEmail(email: string | null | undefined) {
+  const normalized = normalizeAccountEmail(email);
+  return (DEMO_MODE_EXEMPT_EMAILS as readonly string[]).includes(normalized);
+}
+
+/**
+ * DEMO efetivo para um usuário: flag global ligada e e-mail fora da isenção.
+ * Preferir este helper (com e-mail da sessão) em vez de `isDemoMode()` puro.
+ */
+export function isDemoModeActiveForEmail(email: string | null | undefined) {
+  if (!isDemoMode()) {
+    return false;
+  }
+  return !isDemoModeExemptEmail(email);
+}
 
 /** Limite de salvamentos de temas (Sentinela) na degustação. */
 export const DEMO_THEME_SAVE_LIMIT = 3;

@@ -1,10 +1,12 @@
 "use client";
 
-import { isDemoMode } from "@/lib/demo-mode";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
+import { useProductApp } from "./provider";
 
-/** Selo fixo: conta de demonstração — só com DEMO_MODE. */
+/** Selo fixo: conta de demonstração — DEMO_MODE global, exceto e-mails isentos. */
 export function DemoAccountBadge() {
-  if (!isDemoMode()) {
+  const { sessionUser } = useProductApp();
+  if (!isDemoModeActiveForEmail(sessionUser?.email)) {
     return null;
   }
 
@@ -13,7 +15,7 @@ export function DemoAccountBadge() {
       role="status"
       aria-label="Conta de demonstração"
       data-testid="demo-account-badge"
-      className="pointer-events-none fixed right-4 top-4 z-40 sm:right-6 sm:top-5"
+      className="pointer-events-none fixed right-4 top-[3.75rem] z-40 sm:right-6 lg:top-5"
     >
       <span className="inline-flex items-center gap-2 rounded-full border border-[var(--distribuidor-border)] bg-[var(--distribuidor-soft)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--distribuidor-hover)] shadow-[0_8px_24px_rgba(15,23,42,0.12)] backdrop-blur-sm">
         <span

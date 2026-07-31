@@ -6,19 +6,21 @@ import {
   DEMO_DEGUSTACAO_BODY,
   DEMO_DEGUSTACAO_TITLE,
   hasSeenDemoDegustacao,
-  isDemoMode,
+  isDemoModeActiveForEmail,
   markDemoDegustacaoSeen,
 } from "@/lib/demo-mode";
+import { useProductApp } from "./provider";
 
-/** Modal de boas-vindas da degustação — só aparece 1x por navegador, em DEMO_MODE. */
+/** Modal de boas-vindas da degustação — só aparece 1x por navegador, em DEMO efetivo. */
 export function DemoDegustacaoBanner() {
+  const { sessionUser } = useProductApp();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (isDemoMode() && !hasSeenDemoDegustacao()) {
+    if (isDemoModeActiveForEmail(sessionUser?.email) && !hasSeenDemoDegustacao()) {
       setOpen(true);
     }
-  }, []);
+  }, [sessionUser?.email]);
 
   if (!open) {
     return null;

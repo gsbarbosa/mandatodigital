@@ -8,7 +8,7 @@ import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import {
   resolveIncompleteRegistrationPath,
 } from "@/lib/registration-gate";
-import { isDemoMode } from "@/lib/feature-flags";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
@@ -39,7 +39,7 @@ export default async function HomePage() {
         redirect(
           resolveIncompleteRegistrationPath({
             needsPlanSelection: needsPlanSelection(registration),
-            demoMode: isDemoMode(),
+            demoMode: isDemoModeActiveForEmail(sessionUser.email),
           }),
         );
       }

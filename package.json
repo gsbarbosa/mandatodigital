@@ -28,7 +28,9 @@
     "prebuild": "node scripts/sync-brand-logo.mjs",
     "firebase:secrets:guide": "node scripts/firebase-secrets-guide.mjs",
     "firebase:secrets:apply": "node scripts/firebase-secrets-guide.mjs --apply",
-    "env:pull": "node scripts/pull-remote-env.mjs"
+    "env:pull": "node scripts/pull-remote-env.mjs",
+    "demo:oncall-check": "node scripts/demo-oncall-check.mjs",
+    "demo:disable-mode": "node scripts/disable-demo-mode-post-event.mjs"
   },
   "keywords": [
     "nextjs",

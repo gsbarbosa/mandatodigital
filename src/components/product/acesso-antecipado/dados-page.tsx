@@ -27,7 +27,7 @@ import {
   type EarlyAccessPlanId,
   type EarlyAccessReservation,
 } from "@/lib/early-access";
-import { isDemoMode } from "@/lib/demo-mode";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 
 const UF_LIST = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
@@ -267,7 +267,9 @@ export function AcessoDadosPage() {
           router.replace(
             resolveIncompleteRegistrationPath({
               needsPlanSelection: true,
-              demoMode: isDemoMode(),
+              demoMode: isDemoModeActiveForEmail(
+                payload.authEmail?.trim() || sessionUser?.email?.trim() || null,
+              ),
             }) as Route,
           );
           return;
@@ -566,7 +568,7 @@ export function AcessoDadosPage() {
         router.replace(
           resolveIncompleteRegistrationPath({
             needsPlanSelection: true,
-            demoMode: isDemoMode(),
+            demoMode: isDemoModeActiveForEmail(authEmail || sessionUser?.email || form.email),
           }) as Route,
         );
         router.refresh();
@@ -1029,7 +1031,9 @@ export function AcessoDadosPage() {
                   ? "Salvando..."
                   : selectedPlanId
                     ? "Realizar reserva de vaga (100% gratuita)"
-                    : "Salvar e escolher plano"}
+                    : isDemoModeActiveForEmail(authEmail || sessionUser?.email || form.email)
+                      ? "Salvar"
+                      : "Salvar e escolher plano"}
               </button>
             </>
           ) : null}
