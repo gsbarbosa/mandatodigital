@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { FactCheckInput, FactCheckResult } from "@/lib/auditor/types";
 import { fetchArticlesCorpus } from "@/lib/auditor/url-extract";
 import { parseJsonResponse, requestStructuredJson } from "@/lib/llm";
+import { appLog, appLogError, startTimer } from "@/lib/observability/log";
 
 const factCheckResponseSchema = z.object({
   verdict: z.enum(["verified", "disputed", "inconclusive"]),
@@ -58,8 +59,17 @@ function heuristicFallback(input: FactCheckInput): FactCheckResult {
 }
 
 export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResult> {
+  const elapsed = startTimer();
   const script = input.script.trim();
+  const articleCount = input.articles?.length ?? 0;
+  appLog("fact-check", "started", {
+    articleCount,
+    scriptChars: script.length,
+    hasTopic: Boolean(input.topic?.trim()),
+  });
+
   if (!script) {
+    appLog("fact-check", "skipped", { reason: "empty_script" }, "warn");
     return {
       ...heuristicFallback(input),
       verdict: "skipped",
@@ -77,6 +87,12 @@ export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResu
     });
 
     if (!execution.rawText) {
+      appLog(
+        "fact-check",
+        "llm_fallback",
+        { reason: "empty_llm_response", articleCount, durationMs: elapsed() },
+        "warn",
+      );
       return heuristicFallback(input);
     }
 
@@ -84,8 +100,23 @@ export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResu
     const validated = factCheckResponseSchema.safeParse(parsed);
 
     if (!validated.success) {
+      appLog(
+        "fact-check",
+        "llm_fallback",
+        { reason: "invalid_llm_json", articleCount, durationMs: elapsed() },
+        "warn",
+      );
       return heuristicFallback(input);
     }
+
+    appLog("fact-check", "completed", {
+      verdict: validated.data.verdict,
+      confidence: Math.round(validated.data.confidence),
+      provider: execution.provider,
+      model: execution.model,
+      claimCount: validated.data.claims.length,
+      durationMs: elapsed(),
+    });
 
     return {
       verdict: validated.data.verdict,
@@ -97,7 +128,11 @@ export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResu
       provider: execution.provider,
       model: execution.model,
     };
-  } catch {
+  } catch (error) {
+    appLogError("fact-check", "failed_heuristic_fallback", error, {
+      articleCount,
+      durationMs: elapsed(),
+    });
     return heuristicFallback(input);
   }
 }

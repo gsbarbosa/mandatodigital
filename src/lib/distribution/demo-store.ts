@@ -216,7 +216,7 @@ export function createDemoPost(input: CreateDemoPostInput): DistributionPost {
     ? input.channels
     : [...DISTRIBUTION_CHANNEL_IDS];
   const stamp = nowIso();
-  const captionBase = input.captionBase.trim() || "Pacote pronto para revisão Go/No-go.";
+  const captionBase = input.captionBase.trim() || "Pacote pronto para revisão.";
   const post: DistributionPost = {
     id: createId("dpost"),
     ownerUserId: "demo",
@@ -328,7 +328,7 @@ export function rejectDemoPost(id: string, reason: string): DistributionPost {
     ...post,
     status: "rejected",
     rejectReason: reason.trim(),
-    lastError: reason.trim() ? `No-go: ${reason.trim()}` : "No-go",
+    lastError: reason.trim() ? `Descartado: ${reason.trim()}` : "Descartado",
     updatedAt: nowIso(),
   }));
 }

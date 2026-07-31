@@ -96,7 +96,7 @@ export async function PATCH(request: Request) {
   return apiRoute(async (repository) => {
     if (!isDistributionEnabled()) {
       return NextResponse.json(
-        { message: "Distribuidor desligado (DISTRIBUTION_ENABLED)." },
+        { message: "Publicador desligado (DISTRIBUTION_ENABLED)." },
         { status: 503 },
       );
     }

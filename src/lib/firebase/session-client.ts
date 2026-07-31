@@ -19,7 +19,19 @@ export function formatAuthClientError(message: string) {
   }
 
   if (normalized.includes("weak-password")) {
-    return "Senha fraca. Use pelo menos 6 caracteres.";
+    return "Senha fraca. Use pelo menos 6 caracteres, com letra e número.";
+  }
+
+  if (normalized.includes("user-not-found")) {
+    return "Nao encontramos conta com este e-mail.";
+  }
+
+  if (normalized.includes("invalid-email")) {
+    return "E-mail invalido.";
+  }
+
+  if (normalized.includes("missing-email")) {
+    return "Informe o e-mail para redefinir a senha.";
   }
 
   if (normalized.includes("too-many-requests")) {

@@ -7,7 +7,7 @@ export function distributionDisabledResponse() {
   return NextResponse.json(
     {
       message:
-        "Distribuidor desligado. Defina DISTRIBUTION_ENABLED=true apos configurar Ayrshare.",
+        "Publicador desligado. Defina DISTRIBUTION_ENABLED=true apos configurar Ayrshare.",
     },
     { status: 503 },
   );
