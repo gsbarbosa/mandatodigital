@@ -6,6 +6,7 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
+import { isDemoMode } from "@/lib/feature-flags";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
   countInFlightJobsForOwner,
@@ -19,6 +20,7 @@ export const maxDuration = 60;
 const bodySchema = z.object({
   videoUrl: z.string().min(1),
   mediaId: z.string().min(1),
+  campaignTarja: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
           mediaId: body.mediaId,
           videoUrl: body.videoUrl,
           guestTestWatermark: !premium,
+          campaignTarja: Boolean(body.campaignTarja) || isDemoMode(),
         },
       });
 

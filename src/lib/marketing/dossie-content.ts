@@ -13,7 +13,8 @@ export const dossieHeader = {
     },
     {
       label: "Base Normativa",
-      value: "Lei nº 9.504/1997, Resolução TSE nº 23.607/2019 e Resolução TSE nº 23.732/2024",
+      value:
+        "Lei nº 9.504/1997; Resolução TSE nº 23.607/2019; art. 9º-B da Resolução TSE nº 23.610/2019 (redação da Res. TSE nº 23.755/2026); Resolução TSE nº 23.732/2024",
     },
   ],
 } as const;
@@ -49,12 +50,12 @@ export const dossieSections: DossieSection[] = [
   },
   {
     number: "3",
-    title: "Certificado de Conformidade Algorítmica (Res. TSE 23.732)",
+    title: "Certificado de Conformidade Algorítmica (Res. TSE 23.610/2019 e 23.755/2026)",
     body: "Declaramos que o ecossistema de Inteligência Artificial da plataforma, composto por seus agentes autônomos, possui travas de segurança (guardrails) com foco em:",
     bullets: [
       {
         lead: "Rotulação Visual Obrigatória (Marca d'Água):",
-        body: "Todos os vídeos gerados com o Gêmeo Digital recebem, via renderização em servidor (hardcoded), a inserção de uma marca d'água semitransparente com os dizeres padronizados sobre \"Conteúdo Sintético\", em alto contraste e posicionamento contínuo durante toda a exibição da peça.",
+        body: "Todos os vídeos gerados com o Gêmeo Digital recebem, via renderização em servidor (hardcoded), a inserção de uma marca d'água com os dizeres \"Conteúdo gerado por Inteligência Artificial - Res. TSE 23.610/19 e 23.755/26\", em alto contraste e posicionamento contínuo durante toda a exibição da peça, nos termos do art. 9º-B da Res. TSE 23.610/2019 (redação da Res. TSE 23.755/2026).",
       },
       {
         lead: "Rotulação Textual (Legendas):",

@@ -37,7 +37,7 @@ function buildContractBody(input: ContractFillInput & { acceptedAtLabel: string 
 
   return `INSTRUMENTO PARTICULAR DE LICENCIAMENTO DE SOFTWARE (SaaS) PARA FINS ELEITORAIS
 
-Pelo presente instrumento particular, as partes abaixo qualificadas celebram este Contrato de Licenciamento de Software e Prestação de Serviços, que se regerá pelas cláusulas e condições a seguir, bem como pela legislação eleitoral vigente (em especial as Resoluções TSE nº 23.607/2019 e 23.732/2024).
+Pelo presente instrumento particular, as partes abaixo qualificadas celebram este Contrato de Licenciamento de Software e Prestação de Serviços, que se regerá pelas cláusulas e condições a seguir, bem como pela legislação eleitoral vigente (em especial as Resoluções TSE nº 23.607/2019, 23.610/2019 art. 9º-B com redação da 23.755/2026, e 23.732/2024).
 
 QUADRO RESUMO E QUALIFICAÇÃO DAS PARTES
 
@@ -61,7 +61,7 @@ CLÁUSULA PRIMEIRA – DO OBJETO
 CLÁUSULA SEGUNDA – DAS OBRIGAÇÕES DA CONTRATADA
 2.1. Disponibilizar o acesso à plataforma 24 horas por dia, 7 dias por semana, ressalvadas eventuais janelas de manutenção técnica.
 2.2. Garantir o funcionamento dos algoritmos (Agentes Sentinela, Curador, Criativo, Auditor e Distribuidor) conforme os parâmetros contratados.
-2.3. Aplicar automaticamente em todos os materiais audiovisuais gerados pela plataforma as marcas d'água exigidas pela Justiça Eleitoral informando tratar-se de "Conteúdo Sintético".
+2.3. Aplicar automaticamente em todos os materiais audiovisuais gerados pela plataforma as marcas d'água exigidas pela Justiça Eleitoral com o texto "Conteúdo gerado por Inteligência Artificial - Res. TSE 23.610/19 e 23.755/26".
 2.4. Fornecer, de forma automatizada, as Notas Fiscais correspondentes aos pagamentos efetuados, emitidas estritamente contra o CNPJ Eleitoral do CONTRATANTE.
 
 CLÁUSULA TERCEIRA – DAS OBRIGAÇÕES DO CONTRATANTE
@@ -86,10 +86,11 @@ CLÁUSULA SÉTIMA – DO PREÇO E CONDIÇÕES DE PAGAMENTO
 7.2. O pagamento será realizado via ${payment}, com liquidação condicionada à comprovação de origem na conta bancária de campanha do CONTRATANTE.
 7.3. O acesso à plataforma será liberado imediatamente após a confirmação e conciliação bancária do pagamento.
 
-CLÁUSULA OITAVA – DO COMPLIANCE ELEITORAL E INTELIGÊNCIA ARTIFICIAL (RES. TSE 23.732)
-8.1. A CONTRATADA declara, e o CONTRATANTE reconhece, que a plataforma utiliza ferramentas de Inteligência Artificial para otimização de narrativas e edição de mídia.
-8.2. Para adequação ao silêncio eleitoral, a CONTRATADA ativará o bloqueio automático de disparos e publicações (Apagão Algorítmico) nas 72 (setenta e duas) horas que antecedem o pleito, impedindo o uso do Agente Distribuidor para fins de propaganda eleitoral.
-8.3. As partes atestam o aceite conjunto do "Dossiê de Transparência e Conformidade Eleitoral", gerado no momento desta contratação, que passa a ser parte integrante e inseparável deste instrumento.
+CLÁUSULA OITAVA – DO COMPLIANCE ELEITORAL E INTELIGÊNCIA ARTIFICIAL (RES. TSE 23.610/2019 E 23.755/2026)
+8.1. A CONTRATADA declara, e o CONTRATANTE reconhece, que a plataforma utiliza ferramentas de Inteligência Artificial para otimização de narrativas e edição de mídia, com rotulagem obrigatória nos termos do art. 9º-B da Resolução TSE nº 23.610/2019 (redação da Resolução TSE nº 23.755/2026), além das exigências de transparência da Resolução TSE nº 23.732/2024.
+8.2. Todos os materiais audiovisuais gerados recebem selo queimado com o texto: "Conteúdo gerado por Inteligência Artificial - Res. TSE 23.610/19 e 23.755/26", além de tag de legenda e metadados técnicos.
+8.3. Para adequação ao silêncio eleitoral, a CONTRATADA ativará o bloqueio automático de disparos e publicações (Apagão Algorítmico) nas 72 (setenta e duas) horas que antecedem o pleito, impedindo o uso do Agente Distribuidor para fins de propaganda eleitoral.
+8.4. As partes atestam o aceite conjunto do "Dossiê de Transparência e Conformidade Eleitoral", gerado no momento desta contratação, que passa a ser parte integrante e inseparável deste instrumento.
 
 CLÁUSULA NONA – DA VIGÊNCIA E RESCISÃO
 9.1. Este contrato entra em vigor na data do seu aceite digital e permanecerá válido até o término oficial do período de campanha eleitoral de 2026 ou esgotamento dos créditos do plano contratado.
@@ -121,16 +122,16 @@ Emitente: ${EATEASY.razaoSocial}
 CNPJ: ${EATEASY.cnpj}
 NIRE: ${EATEASY.nire}
 Produto: Plataforma Mandato Digital
-Base Legal: Resolução TSE nº 23.607/2019 e Resolução TSE nº 23.732/2024
+Base Legal: Resolução TSE nº 23.607/2019; art. 9º-B da Resolução TSE nº 23.610/2019 (redação da Res. TSE nº 23.755/2026); Resolução TSE nº 23.732/2024
 
 1. OBJETIVO DO DOCUMENTO
 O presente dossiê certifica os parâmetros técnicos, jurídicos e operacionais adotados pela plataforma Mandato Digital para a prestação de serviços de inteligência artificial aplicados à comunicação política. Este documento atesta perante a Justiça Eleitoral e demais órgãos de controle que a tecnologia licenciada opera em estrita obediência às diretrizes de transparência, integridade da informação e proteção do processo eleitoral.
 
-2. CERTIFICADO DE CONFORMIDADE ALGORÍTMICA (Res. TSE 23.732)
+2. CERTIFICADO DE CONFORMIDADE ALGORÍTMICA (Res. TSE 23.610/2019 e 23.755/2026)
 Declaramos que o ecossistema de Inteligência Artificial da plataforma, composto por seus agentes autônomos, possui travas de segurança (guardrails) intransponíveis pelo usuário, garantindo:
-• Rotulação Visual Obrigatória (Marca d'Água): Todos os vídeos gerados com Avatar Caricato, Mascote 3D ou Gêmeo Digital, recebem, via renderização em servidor (hardcoded), a inserção de uma marca d'água semitransparente com os dizeres padronizados sobre "Conteúdo Sintético", em alto contraste e posicionamento contínuo durante toda a exibição da peça.
+• Rotulação Visual Obrigatória (Marca d'Água): Todos os vídeos gerados com Avatar Caricato, Mascote 3D ou Gêmeo Digital, recebem, via renderização em servidor (hardcoded), a inserção de uma marca d'água com os dizeres "Conteúdo gerado por Inteligência Artificial - Res. TSE 23.610/19 e 23.755/26", em alto contraste e posicionamento contínuo durante toda a exibição da peça.
 • Rotulação Textual (Legendas): Em publicações automatizadas multicanal, o sistema injeta via código a tag informativa de conformidade eleitoral no corpo do texto, sem possibilidade de exclusão prévia pelo usuário.
-• Prevenção à Desinformação: O sistema adota mecanismos para reduzir o risco de geração de deepfakes, ataques reputacionais e disseminação de informações sabidamente falsas. Para isso, prioriza a consulta a múltiplas fontes jornalísticas reconhecidas e, quando aplicável, utiliza Inteligência Artificial e integrações com serviços de checagem de fatos para auxiliar na validação das informações antes da geração e disponibilização de conteúdos.
+• Prevenção à Desinformação e anti-simulação: O sistema adota mecanismos para reduzir o risco de geração de deepfakes, ataques reputacionais e disseminação de informações sabidamente falsas. Bloqueia ou disputa roteiros que atribuam falas, atos ou cenas a terceiros sem suporte em fontes, ou que simulem contexto factual não verificado. Prioriza consulta a múltiplas fontes jornalísticas reconhecidas e, quando aplicável, utiliza checagem de fatos antes da publicação.
 
 3. ATESTADO DE APAGÃO ALGORÍTMICO (Silêncio Eleitoral)
 A fim de proteger o pleito e o candidato de eventuais sanções por propaganda irregular, a plataforma conta com uma contingência automática e programada de segurança. A função de disparo coordenado a partir da plataforma Mandato Digital possui um Kill Switch (Trava de Silêncio Eleitoral).

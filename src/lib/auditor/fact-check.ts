@@ -25,6 +25,9 @@ function buildPrompt(input: FactCheckInput, corpus: string) {
     system:
       "Voce e um validador factual para conteudo politico no Brasil. " +
       "Compare o roteiro apenas com as fontes fornecidas (nao invente URLs). " +
+      "Trate como disputed qualquer trecho que atribua falas, atos ou posicoes a terceiros " +
+      "(jornalistas, autoridades, adversarios, cidadaos) sem suporte explicito nas fontes, ou que simule " +
+      "contextos factuais nao verificados como se fossem reais. " +
       "Responda JSON: { verdict, confidence, summary, claims[], sources[] }. " +
       "verdict=verified se claims centrais tem suporte; disputed se ha contradicoes materiais; inconclusive se fontes insuficientes.",
     user: [
