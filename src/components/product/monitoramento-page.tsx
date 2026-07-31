@@ -12,7 +12,7 @@ import { ProductPageHeader } from "@/components/product/product-page-header";
 import { SentinelRefreshProgress } from "@/components/product/sentinel-refresh-progress";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
-import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+import { DEMO_REFRESH_PAUTA_HINT, isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE,
   needsDailySentinelRefresh,
@@ -217,7 +217,7 @@ export function MonitoramentoPage() {
   const creditsExhausted = Boolean(isGuestUi && credits && credits.remaining <= 0);
 
   async function handleRefresh() {
-    if (isRefreshing || isDemoMode() || creditsExhausted) {
+    if (isRefreshing || isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted) {
       return;
     }
 
@@ -378,9 +378,9 @@ export function MonitoramentoPage() {
             <RefreshPautasButton
               variant="monitor"
               isLoading={isRefreshing}
-              disabled={isDemoMode() || creditsExhausted}
+              disabled={isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted}
               disabledTitle={
-                isDemoMode()
+                isDemoModeActiveForEmail(sessionUser?.email)
                   ? DEMO_REFRESH_PAUTA_HINT
                   : creditsExhausted
                     ? GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE
@@ -395,7 +395,7 @@ export function MonitoramentoPage() {
               </span>
             ) : null}
             <span className="text-right text-xs text-md-text-soft">Próx atualização às 08:00h</span>
-            {isDemoMode() ? (
+            {isDemoModeActiveForEmail(sessionUser?.email) ? (
               <span className="text-right text-[10px] leading-snug text-[var(--distribuidor-text)]">
                 {DEMO_REFRESH_PAUTA_HINT}
               </span>

@@ -4,8 +4,11 @@ import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript, countTranscriptWords } from "@/lib/avatar-video-script";
-import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/demo-mode";
-import { isDemoMode } from "@/lib/feature-flags";
+import {
+  isDemoModeActiveForEmail,
+  maxScriptWordsForPlan,
+  maxVideoSecondsLabelForPlan,
+} from "@/lib/demo-mode";
 import {
   demoVideosExhaustedMessage,
   releaseDemoVideoQuota,
@@ -132,7 +135,7 @@ export async function POST(request: Request) {
         freePromptChars: freePrompt.length,
         asyncVoice: isAsyncVoiceEnabled(),
         elevenLabsProvider: isElevenLabsAudioVoiceProvider(),
-        demoMode: isDemoMode(),
+        demoMode: isDemoModeActiveForEmail((await getSessionUser())?.email),
       });
 
       if (!topic && !explicitTranscript) {
@@ -149,7 +152,8 @@ export async function POST(request: Request) {
       }
 
       // DEMO: limite server-side por generateMode (antes só localStorage).
-      if (isDemoMode()) {
+      const sessionForDemo = await getSessionUser();
+      if (isDemoModeActiveForEmail(sessionForDemo?.email)) {
         const ownerUserId = getStorageOwnerUserId()?.trim() || "anonymous";
         const consumed = await tryConsumeDemoVideoQuota(ownerUserId, generateMode);
         if (!consumed.ok) {

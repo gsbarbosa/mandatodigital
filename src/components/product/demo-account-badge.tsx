@@ -1,10 +1,12 @@
 "use client";
 
-import { isDemoMode } from "@/lib/demo-mode";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
+import { useProductApp } from "./provider";
 
-/** Selo fixo: conta de demonstração — só com DEMO_MODE. */
+/** Selo fixo: conta de demonstração — DEMO_MODE global, exceto e-mails isentos. */
 export function DemoAccountBadge() {
-  if (!isDemoMode()) {
+  const { sessionUser } = useProductApp();
+  if (!isDemoModeActiveForEmail(sessionUser?.email)) {
     return null;
   }
 

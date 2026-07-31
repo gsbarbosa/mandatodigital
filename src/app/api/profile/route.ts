@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
   DEMO_THEME_SAVE_BLOCKED_MESSAGE,
-  isDemoMode,
+  isDemoModeActiveForEmail,
 } from "@/lib/demo-mode";
 import { tryConsumeDemoThemeSave } from "@/lib/demo-usage-storage";
 import {
@@ -76,7 +76,7 @@ export async function PUT(request: Request) {
 
       // DEMO: limite server-side só quando a UI de temas pede (countDemoThemeSave).
       // Outros saves usam policy "themes" por default e NÃO devem consumir a cota.
-      if (isDemoMode() && !draftSave && countDemoThemeSave) {
+      if (isDemoModeActiveForEmail(sessionUser?.email) && !draftSave && countDemoThemeSave) {
         const demoTheme = await tryConsumeDemoThemeSave(ownerUserId);
         if (!demoTheme.ok) {
           return NextResponse.json(
@@ -106,7 +106,7 @@ export async function PUT(request: Request) {
           sentinelRefreshSkipped = true;
           sentinelRefreshMessage = guestSentinelCreditsExhaustedMessage();
           await invalidateSentinelCacheAsync(profile.id);
-        } else if (isDemoMode() && refreshPolicy === "themes") {
+        } else if (isDemoModeActiveForEmail(sessionUser?.email) && refreshPolicy === "themes") {
           // DEMO: pautas só de manhã — save de tema não dispara coleta pesada.
           sentinelRefreshSkipped = true;
           await invalidateSentinelCacheAsync(profile.id);

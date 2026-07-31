@@ -4,7 +4,7 @@ import { z } from "zod";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { isDemoMode } from "@/lib/feature-flags";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   demoVideosExhaustedMessage,
   releaseDemoVideoQuota,
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
       const ownerUserId = toDatabaseOwnerUserId(sessionUser.id);
       let demoRelease: (() => Promise<void>) | null = null;
-      if (isDemoMode()) {
+      if (isDemoModeActiveForEmail(sessionUser.email)) {
         const bucket = body.createVideo.generateMode;
         const consumed = await tryConsumeDemoVideoQuota(ownerUserId, bucket);
         if (!consumed.ok) {

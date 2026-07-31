@@ -15,7 +15,7 @@ import {
   DEMO_THEME_SAVE_BLOCKED_MESSAGE,
   DEMO_THEME_SAVE_LIMIT,
   incrementDemoThemeSaveCount,
-  isDemoMode,
+  isDemoModeActiveForEmail,
   readDemoThemeSaveCount,
 } from "@/lib/demo-mode";
 import { GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE } from "@/lib/guest-limits";
@@ -397,7 +397,7 @@ export function RedefinirTemasPage() {
       return;
     }
 
-    if (isDemoMode() && readDemoThemeSaveCount() >= DEMO_THEME_SAVE_LIMIT) {
+    if (isDemoModeActiveForEmail(sessionUser?.email) && readDemoThemeSaveCount() >= DEMO_THEME_SAVE_LIMIT) {
       setLimitMessage(DEMO_THEME_SAVE_BLOCKED_MESSAGE);
       return;
     }
@@ -410,7 +410,7 @@ export function RedefinirTemasPage() {
         sentinelRefreshPolicy: "themes",
         countDemoThemeSave: true,
       });
-      if (isDemoMode()) {
+      if (isDemoModeActiveForEmail(sessionUser?.email)) {
         incrementDemoThemeSaveCount();
       }
       // Libera o Próximo do passo "Salvar radar" no onboarding guiado.

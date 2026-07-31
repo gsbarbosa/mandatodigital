@@ -13,7 +13,7 @@ import {
   isRegistrationAllowedPath,
   resolveIncompleteRegistrationPath,
 } from "@/lib/registration-gate";
-import { isDemoMode } from "@/lib/feature-flags";
+import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
@@ -43,7 +43,7 @@ export default async function ProductLayout({
         redirect(
           resolveIncompleteRegistrationPath({
             needsPlanSelection: needsPlanSelection(registration),
-            demoMode: isDemoMode(),
+            demoMode: isDemoModeActiveForEmail(sessionUser.email),
           }),
         );
       }

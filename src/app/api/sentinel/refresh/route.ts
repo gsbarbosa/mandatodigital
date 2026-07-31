@@ -20,7 +20,7 @@ import {
   invalidateSentinelMemoryCache,
 } from "@/lib/sentinel-suggestions";
 import { appLog, appLogError, startTimer } from "@/lib/observability/log";
-import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+import { DEMO_REFRESH_PAUTA_HINT, isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   checkDistributedRateLimit,
   releaseDistributedRateLimit,
@@ -81,10 +81,10 @@ export async function POST(request: Request) {
       profileId,
       reason,
       premium,
-      demoMode: isDemoMode(),
+      demoMode: isDemoModeActiveForEmail(sessionUser?.email),
     });
 
-    if (isDemoMode() && reason === "manual") {
+    if (isDemoModeActiveForEmail(sessionUser?.email) && reason === "manual") {
       appLog(
         "sentinel",
         "refresh_rejected",

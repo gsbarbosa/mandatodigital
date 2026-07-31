@@ -93,7 +93,7 @@ import {
   demoFixedAvatarScript,
   type DemoAvatarScriptKind,
   incrementDemoVideosForAvatar,
-  isDemoMode,
+  isDemoModeActiveForEmail,
   readDemoVideosForAvatar,
 } from "@/lib/demo-mode";
 import { DemoGenerateConfirmModal } from "@/components/product/demo-generate-confirm-modal";
@@ -220,6 +220,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     saveProfile,
     isSavingProfile,
     trainingAssets,
+    sessionUser,
   } = useProductApp();
 
   const assetReferenceId = profile?.id ?? profileForm.id ?? null;
@@ -387,7 +388,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     if (creditsExhausted) {
       return { reason: creditsExhaustedMessage };
     }
-    if (isDemoMode() && readDemoVideosForAvatar(resolveDemoAvatarKey()) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
+    if (isDemoModeActiveForEmail(sessionUser?.email) && readDemoVideosForAvatar(resolveDemoAvatarKey()) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
       return {
         reason: `Limite da degustação atingido: este avatar já gerou ${DEMO_MAX_VIDEOS_PER_AVATAR} vídeos. Escolha um plano para continuar produzindo.`,
       };
@@ -1587,7 +1588,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       showUserError(setVideoError, new Error(creditsExhaustedMessage));
       return;
     }
-    if (isDemoMode()) {
+    if (isDemoModeActiveForEmail(sessionUser?.email)) {
       const demoAvatarKey = resolveDemoAvatarKey();
       if (readDemoVideosForAvatar(demoAvatarKey) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
         showUserError(
@@ -1615,7 +1616,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     autoPollStartedRef.current = false;
     let startedVideoId: string | null = null;
 
-    const demoActive = isDemoMode();
+    const demoActive = isDemoModeActiveForEmail(sessionUser?.email);
     const demoAvatarKey = demoActive ? resolveDemoAvatarKey() : "";
 
     try {
@@ -2665,12 +2666,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
           <div
             className={`${CRIATIVO_PANEL_CLASS} relative z-10 scroll-mt-24 ${
-              isDemoMode() && useFreePromptAsTranscript ? "pt-14" : ""
+              isDemoModeActiveForEmail(sessionUser?.email) && useFreePromptAsTranscript ? "pt-14" : ""
             }`}
             id="avatar"
             data-onboarding-anchor="criativo-avatar"
           >
-            {isDemoMode() && useFreePromptAsTranscript ? (
+            {isDemoModeActiveForEmail(sessionUser?.email) && useFreePromptAsTranscript ? (
               <div className="absolute inset-x-0 top-0 z-20 rounded-t-[1.75rem] bg-amber-500 px-4 py-2 text-center text-xs font-bold uppercase tracking-wide text-black shadow-md">
                 {DEMO_CAMPAIGN_OVERLAY_TEXT}
               </div>
