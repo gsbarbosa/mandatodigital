@@ -11,9 +11,9 @@ import { requireSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import {
   isRegistrationAllowedPath,
-  PLAN_SELECTION_PATH,
-  REGISTRATION_REQUIRED_PATH,
+  resolveIncompleteRegistrationPath,
 } from "@/lib/registration-gate";
+import { isDemoMode } from "@/lib/feature-flags";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
@@ -41,9 +41,10 @@ export default async function ProductLayout({
       const pathname = (await headers()).get("x-pathname") ?? "";
       if (!isRegistrationAllowedPath(pathname)) {
         redirect(
-          needsPlanSelection(registration)
-            ? PLAN_SELECTION_PATH
-            : REGISTRATION_REQUIRED_PATH,
+          resolveIncompleteRegistrationPath({
+            needsPlanSelection: needsPlanSelection(registration),
+            demoMode: isDemoMode(),
+          }),
         );
       }
     }

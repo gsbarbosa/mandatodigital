@@ -6,9 +6,9 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { getSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import {
-  PLAN_SELECTION_PATH,
-  REGISTRATION_REQUIRED_PATH,
+  resolveIncompleteRegistrationPath,
 } from "@/lib/registration-gate";
+import { isDemoMode } from "@/lib/feature-flags";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
@@ -37,9 +37,10 @@ export default async function HomePage() {
       });
       if (!isUserRegistrationComplete(registration)) {
         redirect(
-          needsPlanSelection(registration)
-            ? PLAN_SELECTION_PATH
-            : REGISTRATION_REQUIRED_PATH,
+          resolveIncompleteRegistrationPath({
+            needsPlanSelection: needsPlanSelection(registration),
+            demoMode: isDemoMode(),
+          }),
         );
       }
     }

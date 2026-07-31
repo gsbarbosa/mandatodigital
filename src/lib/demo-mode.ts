@@ -16,18 +16,37 @@ export const DEMO_CAMPAIGN_OVERLAY_TEXT =
   "Divulgação autorizada somente em período de campanha, após 16/Agosto.";
 
 /**
- * Roteiro fixo falado pelo avatar na degustação (propaganda Mandato Digital).
- * Substituído no generate — o usuário vê o aviso antes de confirmar.
+ * Roteiro fixo falado na degustação (~15s ≈ 35 palavras a ~2.3 pal/s).
+ * O rótulo muda conforme o estilo (Gêmeo Digital, Caricato ou Mascote 3D).
  */
-export const DEMO_FIXED_AVATAR_SCRIPT =
-  "Olá. Este é o meu gêmeo digital no Mandato Digital, a plataforma que une monitoramento, roteiro, avatar e compliance eleitoral em um só fluxo. " +
-  "Aqui você acompanha pautas, produz conteúdo com a sua imagem e voz, e publica com transparência exigida pela Justiça Eleitoral. " +
-  "Na versão completa, cada vídeo fala o roteiro aprovado da sua campanha. Nesta degustação, o objetivo é você conhecer o resultado visual do avatar. " +
-  "Mandato Digital: inteligência artificial a serviço do seu mandato, com responsabilidade e conformidade.";
+export type DemoAvatarScriptKind = "gemeo" | "caricato" | "mascote3d";
 
-export const DEMO_GENERATE_AVATAR_NOTICE =
-  "Neste modo degustação, o vídeo gerado é exclusivamente de caráter elucidativo e permite a visualização do seu avatar. " +
-  "Para os assinantes, o roteiro aprovado é o roteiro falado do seu avatar.";
+const DEMO_AVATAR_SCRIPT_LABEL: Record<DemoAvatarScriptKind, string> = {
+  gemeo: "Gêmeo Digital",
+  caricato: "Caricato",
+  mascote3d: "Mascote 3D",
+};
+
+export function demoFixedAvatarScript(kind: DemoAvatarScriptKind = "gemeo"): string {
+  const label = DEMO_AVATAR_SCRIPT_LABEL[kind];
+  return (
+    `Olá. Este é o meu ${label} no Mandato Digital: monitoramento, roteiro, avatar e compliance em um só fluxo. ` +
+    "Nesta degustação, você conhece o resultado visual do avatar. Mandato Digital: IA a serviço do seu mandato."
+  );
+}
+
+/** @deprecated Preferir `demoFixedAvatarScript(kind)` — mantido como default (Gêmeo). */
+export const DEMO_FIXED_AVATAR_SCRIPT = demoFixedAvatarScript("gemeo");
+
+export const DEMO_GENERATE_AVATAR_TITLE = "Vídeo de demonstração";
+
+export const DEMO_GENERATE_AVATAR_BODY =
+  "Na degustação o vídeo serve para você ver o resultado do avatar — ilustrativo, com limites do modo demonstração. " +
+  "Nos planos pagos, o roteiro aprovado é o que o avatar fala de fato.";
+
+export const DEMO_GENERATE_AVATAR_CTA = "Gerar vídeo de demonstração";
+
+export const DEMO_GENERATE_AVATAR_CANCEL = "Cancelar";
 
 export const DEMO_DEGUSTACAO_TITLE = "Degustação Liberada";
 
@@ -35,29 +54,20 @@ export const DEMO_DEGUSTACAO_BODY =
   "Você está no pacote degustação: explore o Sentinela, monte seu avatar e gere vídeos de demonstração. " +
   "Os créditos são limitados — quando acabarem, restam Planos e CNPJ para continuar a reserva.";
 
-export const DEMO_CREDITS_LOCKED_MESSAGE =
-  "Seus créditos da degustação acabaram. Escolha um plano ou avance o CNPJ para liberar a campanha completa.";
+/** Tela pós-cadastro em DEMO_MODE (antes de entrar no produto). */
+export const DEMO_ACCESS_TITLE = "Acesso de demonstração";
+
+export const DEMO_ACCESS_BODY =
+  "Seus dados foram salvos. Nesta fase de lançamento você entra com acesso de demonstração do Mandato Digital: " +
+  "explore o monitoramento, configure temas e experimente o avatar com limites da degustação.";
+
+export const DEMO_ACCESS_CTA = "Seguir com acesso de demonstração";
 
 export const DEMO_REFRESH_PAUTA_HINT =
   "Nesta versão as pautas são atualizadas unicamente pela manhã.";
 
 export const DEMO_THEME_SAVE_BLOCKED_MESSAGE =
   "Limite da degustação atingido: você já salvou os temas 3 vezes. Escolha um plano para continuar ajustando.";
-
-/** Rotas que permanecem acessíveis com créditos esgotados em DEMO_MODE. */
-export const DEMO_UNLOCKED_PATHS = [
-  "/acesso-antecipado/planos",
-  "/acesso-antecipado/cnpj",
-  "/planos",
-  "/login",
-  "/logout",
-] as const;
-
-export function isDemoUnlockedPath(pathname: string): boolean {
-  return DEMO_UNLOCKED_PATHS.some(
-    (path) => pathname === path || pathname.startsWith(`${path}/`),
-  );
-}
 
 export { isDemoMode };
 

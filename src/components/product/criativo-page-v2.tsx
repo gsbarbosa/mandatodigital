@@ -15,6 +15,7 @@ import {
   voiceToneOptions,
 } from "@/lib/constants";
 import { PautaContextCard } from "@/components/product/pauta-context-card";
+import { ProductPageHeader } from "@/components/product/product-page-header";
 import { ThemeTagPill } from "@/components/product/theme-tag";
 import { useProductApp } from "@/components/product/provider";
 import {
@@ -88,13 +89,15 @@ import {
 } from "@/lib/sentinel-mock-suggestions";
 import {
   DEMO_CAMPAIGN_OVERLAY_TEXT,
-  DEMO_FIXED_AVATAR_SCRIPT,
-  DEMO_GENERATE_AVATAR_NOTICE,
   DEMO_MAX_VIDEOS_PER_AVATAR,
+  demoFixedAvatarScript,
+  type DemoAvatarScriptKind,
   incrementDemoVideosForAvatar,
   isDemoMode,
   readDemoVideosForAvatar,
 } from "@/lib/demo-mode";
+import { DemoGenerateConfirmModal } from "@/components/product/demo-generate-confirm-modal";
+import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 
 const CRIATIVO_PANEL_CLASS =
   "rounded-[1.75rem] border border-md-border bg-gradient-to-b from-md-surface/50 to-md-slate-900/20 backdrop-blur-xl p-6 md:p-8 shadow-xl mb-8";
@@ -133,6 +136,8 @@ export type CriativoPageMode = "padrao" | "independente";
 export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { exhausted: creditsExhausted, exhaustedMessage: creditsExhaustedMessage } =
+    useGuestCreditsGate();
   const [creativeForm, setCreativeForm] = useState<CreativeFormState>(EMPTY_CREATIVE_FORM);
   const [isTraining, setIsTraining] = useState(false);
   const [trainingError, setTrainingError] = useState<string | null>(null);
@@ -167,6 +172,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSealing, setIsSealing] = useState(false);
+  const [demoGenerateOpen, setDemoGenerateOpen] = useState(false);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -230,12 +236,18 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   );
 
   const avatarImageAssets = useMemo(
-    () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "avatar_image"),
+    () =>
+      [...visibleTrainingAssets.filter((asset) => asset.trainingRole === "avatar_image")].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
     [visibleTrainingAssets],
   );
 
   const voiceAudioAssets = useMemo(
-    () => visibleTrainingAssets.filter((asset) => asset.trainingRole === "voice_audio"),
+    () =>
+      [...visibleTrainingAssets.filter((asset) => asset.trainingRole === "voice_audio")].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
     [visibleTrainingAssets],
   );
 
@@ -371,6 +383,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   function getGenerateDisabledReason(): { reason: string; href?: Route } | null {
     if (isGenerating) {
       return null;
+    }
+    if (creditsExhausted) {
+      return { reason: creditsExhaustedMessage };
     }
     if (isDemoMode() && readDemoVideosForAvatar(resolveDemoAvatarKey()) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
       return {
@@ -894,6 +909,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       await saveProfile({ allowDraftDefaults: true, silent: true });
     }
 
+    if (!voiceAudioAssets[0]?.id) {
+      throw new Error("Envie um áudio de voz em Configurar avatar antes de preparar a voz.");
+    }
+    if (trainMode === "photo_real" && !avatarImageAssets[0]?.id) {
+      throw new Error("Envie a foto do rosto em Configurar avatar.");
+    }
+    if (trainMode === "caricature" && !selectedCaricatureAssetId.trim()) {
+      throw new Error("Selecione um modelo de caricatura antes de preparar a voz.");
+    }
+
     const response = await fetchHeygenApi("/api/heygen/train", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -935,6 +960,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           }
           return elevenLabsVoiceId.trim() || undefined;
         })(),
+        voiceAudioAssetId: voiceAudioAssets[0]?.id,
+        avatarImageAssetId:
+          trainMode === "caricature" ? undefined : avatarImageAssets[0]?.id,
         caricatureAssetId:
           trainMode === "caricature" ? selectedCaricatureAssetId : undefined,
       }),
@@ -1541,6 +1569,41 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     );
   }
 
+  function resolveDemoAvatarScriptKind(): DemoAvatarScriptKind {
+    if (activeProductionTemplate === "caricature_mascot_3d") {
+      return "mascote3d";
+    }
+    if (activeProductionTemplate === "caricature_editorial") {
+      return "caricato";
+    }
+    return "gemeo";
+  }
+
+  function requestGenerate() {
+    if (isGenerating || isSealing) {
+      return;
+    }
+    if (creditsExhausted) {
+      showUserError(setVideoError, new Error(creditsExhaustedMessage));
+      return;
+    }
+    if (isDemoMode()) {
+      const demoAvatarKey = resolveDemoAvatarKey();
+      if (readDemoVideosForAvatar(demoAvatarKey) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
+        showUserError(
+          setVideoError,
+          new Error(
+            `Limite da degustação atingido: este avatar já gerou ${DEMO_MAX_VIDEOS_PER_AVATAR} vídeos. Escolha um plano para continuar produzindo.`,
+          ),
+        );
+        return;
+      }
+      setDemoGenerateOpen(true);
+      return;
+    }
+    void handleGenerate();
+  }
+
   async function handleGenerate() {
     setVideoError(null);
     setVideoStatus(null);
@@ -1556,14 +1619,15 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     const demoAvatarKey = demoActive ? resolveDemoAvatarKey() : "";
 
     try {
+      if (creditsExhausted) {
+        throw new Error(creditsExhaustedMessage);
+      }
+
       if (demoActive) {
         if (readDemoVideosForAvatar(demoAvatarKey) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
           throw new Error(
             `Limite da degustação atingido: este avatar já gerou ${DEMO_MAX_VIDEOS_PER_AVATAR} vídeos. Escolha um plano para continuar produzindo.`,
           );
-        }
-        if (!window.confirm(DEMO_GENERATE_AVATAR_NOTICE)) {
-          return;
         }
       }
 
@@ -1594,19 +1658,35 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       }
       let resolvedVoiceId = heygenVoiceId;
       let resolvedElevenLabsVoiceId = elevenLabsVoiceId;
+      const selectedVoiceAudioAssetId = voiceAudioAssets[0]?.id?.trim() ?? "";
+      const selectedAvatarImageAssetId = avatarImageAssets[0]?.id?.trim() ?? "";
       if (
         avatarTrack === "caricature" ||
         avatarTrack === "photo_real" ||
         avatarTrack === "realistic"
       ) {
+        if (!selectedVoiceAudioAssetId) {
+          throw new Error(
+            "Envie um áudio de voz em Configurar avatar antes de gerar o vídeo.",
+          );
+        }
         if (avatarTrack === "caricature" && !selectedCaricatureAssetId.trim()) {
           throw new Error("Selecione um modelo de caricatura para gerar o vídeo.");
         }
         if (
           (avatarTrack === "photo_real" || avatarTrack === "realistic") &&
-          !avatarImageAssets[0]
+          !selectedAvatarImageAssetId
         ) {
           throw new Error("Envie a foto do rosto em Configurar avatar.");
+        }
+        if (
+          avatarTrack === "caricature" &&
+          selectedCaricatureAssetId.trim() &&
+          !sortedCaricatureAssets.some((asset) => asset.id === selectedCaricatureAssetId.trim())
+        ) {
+          throw new Error(
+            "A caricatura selecionada não está mais disponível. Escolha o modelo novamente.",
+          );
         }
         const trainMode =
           avatarTrack === "photo_real" || avatarTrack === "realistic"
@@ -1631,6 +1711,13 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic: useFreePromptAsTranscript ? undefined : topic || scriptTopicSnapshot,
+          avatarId:
+            avatarTrack === "realistic" ||
+            (avatarTrack !== "caricature" &&
+              avatarTrack !== "photo_real" &&
+              heygenAvatarId.trim())
+              ? heygenAvatarId.trim() || undefined
+              : undefined,
           voiceId: resolvedVoiceId.trim() || undefined,
           elevenLabsVoiceId: resolvedElevenLabsVoiceId.trim() || undefined,
           generateMode:
@@ -1639,14 +1726,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               : avatarTrack === "photo_real" || avatarTrack === "realistic"
                 ? "photo_real"
                 : "avatar",
+          voiceAudioAssetId: selectedVoiceAudioAssetId || undefined,
+          avatarImageAssetId: selectedAvatarImageAssetId || undefined,
           caricatureAssetId:
-            avatarTrack === "caricature" ? selectedCaricatureAssetId : undefined,
+            avatarTrack === "caricature" ? selectedCaricatureAssetId.trim() || undefined : undefined,
           name: useFreePromptAsTranscript
             ? `Criativo - prompt livre - ${profileForm.fullName || "Politico"}`
             : `Criativo - ${profileForm.fullName || "Politico"} - ${topic || scriptTopicSnapshot}`,
-          // Degustação: o avatar sempre fala o roteiro fixo (apenas visualização do avatar).
+          // Degustação: roteiro fixo (~15s), rótulo conforme o estilo do avatar.
           transcript: demoActive
-            ? DEMO_FIXED_AVATAR_SCRIPT
+            ? demoFixedAvatarScript(resolveDemoAvatarScriptKind())
             : useFreePromptAsTranscript
               ? free
               : scriptDraft.trim(),
@@ -2285,29 +2374,22 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     <div className="max-w-5xl mx-auto p-8 relative z-10 pb-20">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
-      <header className={`relative z-10 ${mode === "independente" ? "mb-5" : "mb-8"}`}>
-        {mode === "independente" ? (
-          <>
-            <h1 className="text-2xl font-bold text-md-text tracking-tight mb-2">
-              Criar conteúdo independente
-            </h1>
-            <p className="text-md-text-soft text-sm md:text-base max-w-3xl leading-snug">
-              <strong className="text-md-text-muted font-medium">
+      <ProductPageHeader
+        title={mode === "independente" ? "Criar conteúdo independente" : "Nova pauta"}
+        description={
+          mode === "independente" ? (
+            <>
+              <strong className="font-medium text-md-text-muted">
                 Use seu avatar para falar o que você quiser publicar.
               </strong>{" "}
               Sem estúdio, sem gravações demoradas, sem ensaios e sem despesas. E o melhor, é você
               falando com a sua voz para o seu público em segundos.
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold text-md-text tracking-tight mb-2">Nova pauta</h1>
-            <p className="text-md-text-soft text-sm md:text-base max-w-2xl">
-              Defina o enquadramento desta pauta, aprove o roteiro e gere o vídeo.
-            </p>
-          </>
-        )}
-      </header>
+            </>
+          ) : (
+            "Defina o enquadramento desta pauta, aprove o roteiro e gere o vídeo."
+          )
+        }
+      />
 
       {mode === "padrao" ? (
         <div className="mb-6 relative z-10">
@@ -2604,10 +2686,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
               <button
                 type="button"
                 className={`${CRIATIVO_PRIMARY_BTN_CLASS} px-6 py-3`}
-                onClick={() => void handleGenerate()}
+                onClick={() => requestGenerate()}
                 disabled={
                   isGenerating ||
                   isSealing ||
+                  creditsExhausted ||
                   (isPollingTwinTraining && !twinReadyForVideo) ||
                   !canProduceContent ||
                   ((avatarTrack === "caricature" || avatarTrack === "photo_real") && isTraining) ||
@@ -2710,6 +2793,15 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         }}
       />
     ) : null}
+    <DemoGenerateConfirmModal
+      open={demoGenerateOpen}
+      busy={isGenerating}
+      onCancel={() => setDemoGenerateOpen(false)}
+      onConfirm={() => {
+        setDemoGenerateOpen(false);
+        void handleGenerate();
+      }}
+    />
     </>
   );
 }
