@@ -1029,7 +1029,9 @@ export function AcessoDadosPage() {
                   ? "Salvando..."
                   : selectedPlanId
                     ? "Realizar reserva de vaga (100% gratuita)"
-                    : "Salvar e escolher plano"}
+                    : isDemoMode()
+                      ? "Salvar"
+                      : "Salvar e escolher plano"}
               </button>
             </>
           ) : null}
