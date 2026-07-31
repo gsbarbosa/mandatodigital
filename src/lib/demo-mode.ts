@@ -16,22 +16,24 @@ export const DEMO_CAMPAIGN_OVERLAY_TEXT =
   "Divulgação autorizada somente em período de campanha, após 16/Agosto.";
 
 /**
- * Roteiro fixo falado na degustação (~15s ≈ 35 palavras a ~2.3 pal/s).
- * O rótulo muda conforme o estilo (Gêmeo Digital, Caricato ou Mascote 3D).
+ * Roteiro fixo falado na degustação.
+ * O trecho "[gêmeo digital]" muda conforme o estilo escolhido (gêmeo / caricato / 3D).
  */
 export type DemoAvatarScriptKind = "gemeo" | "caricato" | "mascote3d";
 
 const DEMO_AVATAR_SCRIPT_LABEL: Record<DemoAvatarScriptKind, string> = {
-  gemeo: "Gêmeo Digital",
-  caricato: "Caricato",
-  mascote3d: "Mascote 3D",
+  gemeo: "gêmeo digital",
+  caricato: "caricato",
+  mascote3d: "mascote 3D",
 };
 
 export function demoFixedAvatarScript(kind: DemoAvatarScriptKind = "gemeo"): string {
   const label = DEMO_AVATAR_SCRIPT_LABEL[kind];
   return (
-    `Olá. Este é o meu ${label} no Mandato Digital: monitoramento, roteiro, avatar e compliance em um só fluxo. ` +
-    "Nesta degustação, você conhece o resultado visual do avatar. Mandato Digital: IA a serviço do seu mandato."
+    `Olá. Eu sou o seu ${label}. Nessa degustação o objetivo é conhecer o resultado visual do seu avatar treinado. ` +
+    "Se não está soando exatamente como você, basta fazer um novo upload da sua voz. " +
+    "Aproveito para dizer que além dos avatares, monitoramos os temas da sua região, geramos pautas automatizadas, " +
+    "publicações em 7 redes sociais e tudo em conformidade com as resoluções atuais do TSE."
   );
 }
 
