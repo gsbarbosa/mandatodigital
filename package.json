@@ -11,6 +11,7 @@
     "test": "vitest run",
     "sentinel:quality-eval": "node scripts/sentinel-quality-eval.cjs",
     "sentinel:quality-gate": "npx vite-node --config vitest.config.ts scripts/sentinel-quality-gate.ts",
+    "sentinel:quality-municipal": "npx vite-node --config vitest.config.ts scripts/sentinel-quality-municipal.ts",
     "sentinel:refresh-local": "npx vite-node --config vitest.config.ts scripts/sentinel-refresh-local.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",

@@ -14,8 +14,13 @@ import {
   scoreSentinelArticle,
   type RssNewsItem,
 } from "@/lib/sentinel-rss";
+import {
+  isMunicipalGeoFallbackSuggestion,
+  promoteMunicipalGeoFallback,
+} from "@/lib/sentinel-municipal-fallback";
 import { buildSentinelQualityReport, estimateSentinelLlmCost } from "@/lib/sentinel-quality";
 import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
+import { appLog, startTimer } from "@/lib/observability/log";
 import {
   resolveMaxPerTheme,
   finalizeSuggestionFeed,
@@ -444,12 +449,18 @@ function buildEmptyMeta(
     articlesScanned?: number;
     pipelinesEnabled?: boolean;
     expansionTermsCount?: number;
+    /**
+     * Só marque true quando houve coleta real.
+     * Cache miss NÃO deve carimbar refreshedAt — senão o daily refresh
+     * acha que o ciclo do dia já rodou e não dispara o loading no 1º acesso.
+     */
+    stampRefreshTime?: boolean;
   },
 ): SentinelSuggestionsMeta {
   return {
     source: options?.pipelinesEnabled ? "sentinel-v2-pipelines" : "google-news-rss+portals",
     cached: false,
-    refreshedAt: new Date().toISOString(),
+    refreshedAt: options?.stampRefreshTime ? new Date().toISOString() : "",
     radarThemesCount: getRadarThemesCount(profile),
     radarThemesSignature: buildRadarThemesSignature(profile),
     articlesScanned: options?.articlesScanned ?? 0,
@@ -491,6 +502,8 @@ export function buildRadarThemesSignature(profile: PoliticianProfile) {
       .map((row) => `${row.network}:${row.handle}`.trim())
       .join("\n"),
     profile.interestSites.join("\n"),
+    profile.municipalCities.join("\n"),
+    profile.state.trim().toUpperCase(),
   ].join("\n::\n");
 
   return createHash("sha256").update(payload).digest("hex").slice(0, 16);
@@ -652,6 +665,7 @@ export async function getSentinelSuggestions(
   profile: PoliticianProfile,
   options?: { forceRefresh?: boolean; qualityRankEnabled?: boolean },
 ) {
+  const elapsed = startTimer();
   const cacheKey = profile.id || "default";
   const forceRefresh = Boolean(options?.forceRefresh);
   const qualityRankEnabled = options?.qualityRankEnabled !== false;
@@ -663,6 +677,11 @@ export async function getSentinelSuggestions(
   if (cached) {
     const hydrated = await hydrateCachedOppositionSuggestions(profile, cacheKey, cached);
     const suggestions = filterSuggestionsForProfile(profile, hydrated.suggestions);
+    appLog("sentinel", "suggestions_cache_hit", {
+      profileId: cacheKey,
+      suggestionCount: suggestions.length,
+      durationMs: elapsed(),
+    });
     return {
       suggestions,
       meta: withOppositionMeta(profile, hydrated.meta, true),
@@ -679,6 +698,12 @@ export async function getSentinelSuggestions(
     const meta = buildEmptyMeta(profile, {
       emptyReason: "Configure temas de interesse, portais municipais ou perfis @ no radar.",
     });
+    appLog(
+      "sentinel",
+      "suggestions_empty_radar",
+      { profileId: cacheKey, durationMs: elapsed() },
+      "warn",
+    );
     return { suggestions: [], meta };
   }
 
@@ -686,10 +711,21 @@ export async function getSentinelSuggestions(
   if (!forceRefresh) {
     const meta = buildEmptyMeta(profile, {
       emptyReason:
-        "Nenhuma pauta em cache para este radar. Clique em Atualizar pautas para buscar notícias.",
+        "Nenhuma pauta em cache para este radar. A busca automática vai iniciar em instantes.",
+    });
+    appLog("sentinel", "suggestions_cache_miss_no_force", {
+      profileId: cacheKey,
+      durationMs: elapsed(),
     });
     return { suggestions: [], meta };
   }
+
+  appLog("sentinel", "suggestions_collect_started", {
+    profileId: cacheKey,
+    radarThemesCount,
+    portalsMonitored,
+    qualityRankEnabled,
+  });
 
   const articlesBundle = await collectSentinelArticles(profile);
   const articleBuild = await buildSuggestions(profile, articlesBundle.articles, articlesBundle);
@@ -707,7 +743,14 @@ export async function getSentinelSuggestions(
     profileLabel: [profile.fullName, profile.city, profile.state].filter(Boolean).join(" · "),
     enabled: qualityRankEnabled,
   });
-  const suggestions = qualityRank.suggestions;
+
+  // Depois do rank: se municipal ficou sem temas do radar, amplia com notícias locais.
+  const municipalFallbackResult = promoteMunicipalGeoFallback({
+    profile,
+    articles: articlesBundle.articles,
+    suggestions: qualityRank.suggestions,
+  });
+  const suggestions = municipalFallbackResult.suggestions;
 
   const oppositionUnavailableReason = buildOppositionUnavailableMeta(profile);
   const v2Enabled = isSentinelV2PipelinesEnabled();
@@ -752,11 +795,35 @@ export async function getSentinelSuggestions(
           : "Nenhuma materia recente encontrada para os temas e portais configurados."
         : undefined,
     oppositionUnavailableReason,
+    municipalFallback: municipalFallbackResult.meta,
   };
 
   if (fetchLooksBroken) {
-    console.warn("[sentinel] coleta RSS zerada", rssFetchStats);
+    appLog(
+      "sentinel",
+      "rss_collect_broken",
+      {
+        profileId: cacheKey,
+        attempted: rssFetchStats.attempted,
+        succeeded: rssFetchStats.succeeded,
+        failed: rssFetchStats.failed,
+      },
+      "warn",
+    );
   }
+
+  appLog("sentinel", "suggestions_collect_completed", {
+    profileId: cacheKey,
+    articlesScanned: articlesBundle.articles.length,
+    articleSuggestions: articleSuggestions.length,
+    socialSuggestions: socialSuggestions.length,
+    oppositionSuggestions: oppositionSuggestions.length,
+    afterRank: suggestions.length,
+    qualityKept: qualityRank.stats.kept,
+    qualityDropped: qualityRank.stats.dropped,
+    qualityLlmCalls: qualityRank.stats.llmCalls,
+    durationMs: elapsed(),
+  });
 
   const expiresAt = Date.now() + CACHE_TTL_MS;
   await persistSuggestionsCache(cacheKey, suggestions, meta, expiresAt);
@@ -799,6 +866,11 @@ export function filterSuggestionsForProfile(
     // O tema exibido no card precisa ser um tema ativo do radar.
     // matchedThemes sozinho não basta: expansão órfã pode rotular "Cameras Corporais"
     // e ainda assim cruzar um tema fiscal por falso positivo de sinônimo.
+    // Exceção: fallback municipal geo-only ("Radar local") — só esfera municipal.
+    if (isMunicipalGeoFallbackSuggestion(suggestion)) {
+      return true;
+    }
+
     const themeLabel = suggestion.themeLabel.trim().toLowerCase();
     return Boolean(themeLabel && interestThemes.has(themeLabel));
   });

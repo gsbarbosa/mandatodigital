@@ -53,7 +53,13 @@ export type SentinelEngagementMetrics = {
   byNetwork: SentinelNetworkEngagement[];
 };
 
-export type SentinelPipeline = "manual" | "portal" | "semantic" | "social" | "legacy";
+export type SentinelPipeline =
+  | "manual"
+  | "portal"
+  | "semantic"
+  | "social"
+  | "legacy"
+  | "geo-fallback";
 
 /** Sinal do Sentinela com dados de alta confiabilidade (scraping + config + Trends). */
 export type MockSentinelSuggestion = {
@@ -88,6 +94,8 @@ export function sentinelPipelineBadgeLabel(pipeline: SentinelPipeline | undefine
       return "Semântico";
     case "social":
       return "Social";
+    case "geo-fallback":
+      return "Local";
     default:
       return "Radar";
   }

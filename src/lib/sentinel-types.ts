@@ -1,5 +1,15 @@
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 
+export type SentinelMunicipalFallbackMeta = {
+  reason: "themes_missed" | "few_local";
+  /** Temas do radar sem card municipal temático. */
+  themesMissed: string[];
+  /** Tópicos/títulos promovidos no fallback geo. */
+  foundTopics: string[];
+  promotedCount: number;
+  cities: string[];
+};
+
 export type SentinelSuggestionsMeta = {
   source: "google-news-rss+portals" | "sentinel-v2-pipelines";
   cached: boolean;
@@ -48,6 +58,11 @@ export type SentinelSuggestionsMeta = {
   };
   emptyReason?: string;
   oppositionUnavailableReason?: string;
+  /**
+   * Esfera municipal: não achamos os temas do radar na cidade —
+   * ampliamos para notícias locais e avisamos o usuário.
+   */
+  municipalFallback?: SentinelMunicipalFallbackMeta;
   /** Hash dos temas ativos no radar quando o cache foi gravado. */
   radarThemesSignature?: string;
 };

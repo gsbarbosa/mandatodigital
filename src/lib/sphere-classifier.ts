@@ -278,6 +278,14 @@ export function classifySuggestionSphere(
     return "municipal";
   }
 
+  // Ampliação municipal quando o radar não achou os temas na cidade.
+  if (
+    suggestion.pipeline === "geo-fallback" ||
+    suggestion.themeLabel.trim() === "Radar local"
+  ) {
+    return "municipal";
+  }
+
   const articles = suggestion.evidence.articles ?? [];
   const interestDomains = interestSites.map(normalizeDomain).filter(Boolean);
   const hintsList = articles.map(articleSourceHints);

@@ -180,6 +180,52 @@ describe("sentinel-suggestions cache", () => {
     expect(filterSuggestionsForProfile(activeProfile, suggestions)).toEqual([]);
   });
 
+  it("mantem card de fallback municipal geo-only fora do radar de temas", () => {
+    const activeProfile = {
+      ...profile,
+      sentinelThemesFederal: ["Segurança Pública"],
+      sentinelThemesEstadual: ["Segurança Pública"],
+      sentinelThemes: ["Segurança Pública"],
+      municipalCities: ["Arcos"],
+    } as PoliticianProfile;
+
+    const suggestions: MockSentinelSuggestion[] = [
+      {
+        id: "geo-1",
+        themeLabel: "Radar local",
+        matchedThemes: ["Radar local"],
+        pipeline: "geo-fallback",
+        topic: "Arcos · Feira livre reabre",
+        relevanceScore: 40,
+        evidence: {
+          postsAnalyzed: 1,
+          outletCount: 1,
+          byNetwork: [],
+          actors: [],
+          articles: [
+            {
+              title: "Feira livre de Arcos reabre",
+              url: "https://local/1",
+            },
+          ],
+          engagementTrendPercent: 0,
+        },
+        engagement: {
+          relevanceScore: 40,
+          scoreTrendPercent: 0,
+          likes: 0,
+          comments: 0,
+          shares: 0,
+          postsAnalyzed: 1,
+          sources: [],
+          byNetwork: [],
+        },
+      },
+    ];
+
+    expect(filterSuggestionsForProfile(activeProfile, suggestions)).toHaveLength(1);
+  });
+
   it("retorna meta consistente quando radar esta vazio", async () => {
     const { getSentinelSuggestions } = await import("@/lib/sentinel-suggestions");
     const emptyProfile = {
@@ -213,7 +259,8 @@ describe("sentinel-suggestions cache", () => {
 
     const result = await getSentinelSuggestions(activeProfile);
     expect(result.suggestions).toEqual([]);
-    expect(result.meta.emptyReason).toMatch(/Atualizar pautas/i);
+    expect(result.meta.emptyReason).toMatch(/busca autom[aá]tica/i);
+    expect(result.meta.refreshedAt).toBe("");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
