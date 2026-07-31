@@ -4,6 +4,12 @@ import { z } from "zod";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
+import { isDemoMode } from "@/lib/feature-flags";
+import {
+  demoVideosExhaustedMessage,
+  releaseDemoVideoQuota,
+  tryConsumeDemoVideoQuota,
+} from "@/lib/demo-usage-storage";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
   AsyncJobQuotaError,
@@ -40,9 +46,23 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: "Nao autenticado." }, { status: 401 });
       }
 
+      const ownerUserId = toDatabaseOwnerUserId(sessionUser.id);
+      let demoRelease: (() => Promise<void>) | null = null;
+      if (isDemoMode()) {
+        const bucket = body.createVideo.generateMode;
+        const consumed = await tryConsumeDemoVideoQuota(ownerUserId, bucket);
+        if (!consumed.ok) {
+          return NextResponse.json(
+            { message: demoVideosExhaustedMessage(), demoUsage: consumed.usage },
+            { status: 429 },
+          );
+        }
+        demoRelease = () => releaseDemoVideoQuota(ownerUserId, bucket);
+      }
+
       try {
         const enqueued = await enqueueVoiceCreateVideoJob({
-          ownerUserId: toDatabaseOwnerUserId(sessionUser.id),
+          ownerUserId,
           payload: body,
         });
         return NextResponse.json(
@@ -50,6 +70,9 @@ export async function POST(request: Request) {
           { status: 202 },
         );
       } catch (error) {
+        if (demoRelease) {
+          await demoRelease().catch(() => undefined);
+        }
         if (error instanceof AsyncJobQuotaError) {
           return NextResponse.json({ message: error.message }, { status: 429 });
         }

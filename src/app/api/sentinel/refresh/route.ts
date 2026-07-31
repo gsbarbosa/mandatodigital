@@ -21,6 +21,13 @@ import {
 } from "@/lib/sentinel-suggestions";
 import { appLog, appLogError, startTimer } from "@/lib/observability/log";
 import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+import {
+  checkDistributedRateLimit,
+  releaseDistributedRateLimit,
+  SENTINEL_PLATFORM_REFRESH_MAX_PER_DAY,
+  SENTINEL_PLATFORM_REFRESH_WINDOW_MS,
+  sentinelPlatformRateLimitKey,
+} from "@/lib/rate-limit-firestore";
 
 export const maxDuration = 300;
 
@@ -147,6 +154,43 @@ export async function POST(request: Request) {
       );
     }
 
+    const platformRateKey = sentinelPlatformRateLimitKey(ownerUserId);
+    const platformLimit = await checkDistributedRateLimit({
+      key: platformRateKey,
+      max: SENTINEL_PLATFORM_REFRESH_MAX_PER_DAY,
+      windowMs: SENTINEL_PLATFORM_REFRESH_WINDOW_MS,
+      consume: true,
+    });
+    if (!platformLimit.allowed) {
+      appLog(
+        "sentinel",
+        "refresh_rejected",
+        {
+          profileId,
+          reason,
+          cause: "platform_rate_limit",
+          retryAfterMs: platformLimit.retryAfterMs ?? null,
+        },
+        "warn",
+      );
+      const retryCredits = premium ? null : await getGuestSentinelCredits(ownerUserId);
+      return NextResponse.json(
+        {
+          message: `Limite diário de atualizações do Sentinela atingido (${SENTINEL_PLATFORM_REFRESH_MAX_PER_DAY}/dia). Tente novamente mais tarde.`,
+          suggestions: cached?.suggestions ?? [],
+          meta: cached?.meta ?? null,
+          credits: retryCredits,
+          rateLimited: true,
+        },
+        {
+          status: 429,
+          headers: platformLimit.retryAfterMs
+            ? { "Retry-After": String(Math.ceil(platformLimit.retryAfterMs / 1000)) }
+            : undefined,
+        },
+      );
+    }
+
     invalidateSentinelMemoryCache(profileId);
 
     let result;
@@ -156,6 +200,7 @@ export async function POST(request: Request) {
         qualityRankEnabled: premium,
       });
     } catch (error) {
+      await releaseDistributedRateLimit({ key: platformRateKey });
       appLogError("sentinel", "refresh_failed", error, {
         profileId,
         reason,

@@ -2,7 +2,7 @@
 
 Documento vivo para acompanhar o que **já existe**, o que está **parcial** e o que **falta implementar**.
 
-**Última atualização:** 2026-07-28  
+**Última atualização:** 2026-07-31  
 **Produção:** https://mandatodigital--madatodigital.us-central1.hosted.app  
 **Branch principal:** `main`
 
@@ -24,15 +24,18 @@ Documentos relacionados:
 | ❌ | Não implementado |
 | ⏸ | Bloqueado por decisão externa (produto, jurídico, API key) |
 
-**Flags em produção** (`apphosting.yaml`, 2026-06-24):
+**Flags em produção** (`apphosting.yaml`, 2026-07-31):
 
 | Flag | Prod |
 |------|------|
 | `SENTINEL_V2_PIPELINES` | `true` |
 | `SENTINEL_LLM_EXPANSION` | `true` |
 | `SENTINEL_TREND_PROXY` | `true` |
+| `SENTINEL_SOCIAL_ENABLED` | `true` |
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
-| `SENTINEL_SOCIAL_ENABLED` | off (default) |
+| `DEMO_MODE` | `true` (degustação) |
+| `ASYNC_SEAL` / `ASYNC_VOICE` / `PUBSUB_JOBS` | `false` (sync) |
+| `DISTRIBUTION_*` | `false` (fail-closed) |
 
 **Persistência:** Firestore + Firebase Storage (`npm run db:reset`).
 
@@ -48,10 +51,10 @@ Documentos relacionados:
 | Firebase Storage (treino/vídeo/compliance) | ✅ | Signed URLs |
 | Feature flags por env | ✅ | `src/lib/feature-flags.ts` |
 | Reset Firestore (`npm run db:reset`) | ✅ | Ambiente zerado |
-| Rate limit refresh Sentinela (30/dia/usuário) | ✅ | `src/lib/rate-limit.ts` |
+| Rate limit refresh Sentinela (30/dia/usuário) | ✅ | Firestore `rate-limit-firestore.ts` (wired em `/api/sentinel/refresh`) |
 | Fila de jobs (LLM, social, fact-check async) | ❌ | Fase 3.1 |
-| Rate limit vídeos (ex.: 5/dia) | ❌ | Fase 3.1 |
-| `minInstances: 1` Cloud Run | ❌ | Fase 3.1 |
+| Rate limit vídeos (ex.: 5/dia) | 🟡 | Em `DEMO_MODE`: 2 vídeos/avatar (generateMode) server-side |
+| `minInstances: 1` Cloud Run | ✅ | `apphosting.yaml` (`minInstances: 1`, `maxInstances: 10`) |
 | Cutover total → Firestore + Storage | ✅ | Sem Postgres/Supabase |
 
 ---
@@ -209,14 +212,15 @@ Flag: `DEMO_MODE` + `NEXT_PUBLIC_DEMO_MODE` (ligada em `apphosting.yaml` para a 
 | Banner Degustação Liberada | ✅ | 1× pós-login |
 | Lock pós-créditos (só Planos/CNPJ) | ✅ | Nav + redirect |
 | Atualizar pauta inativo | ✅ | Hint manhã |
-| Limite 3 saves de tema | ✅ | localStorage |
+| Limite 3 saves de tema | ✅ | localStorage + **server** (`demo-usage-storage`) |
 | Tarja campanha 16/Ago | ✅ | PNG + CSS no roteiro livre |
-| Roteiro fixo + 2 vídeos/avatar | ✅ | Propaganda MD |
+| Roteiro fixo + 2 vídeos/avatar | ✅ | Server-side por `generateMode` + UX localStorage |
 | Selo TSE 23.610/19 + 23.755/26 | ✅ | Permanente (não só demo) |
 | Modal export | ✅ | Já existia; texto ok |
 | Limites 90s / 3min por plano | ✅ | Permanente + copy Planos |
 | Roteiro com evidências | ✅ | Permanente |
 | Termo Gêmeo reforçado | ✅ | Permanente |
+| Save de tema não dispara coleta pesada | ✅ | Alinhado a “pautas só de manhã” |
 
 
 ---

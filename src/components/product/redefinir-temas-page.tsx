@@ -408,6 +408,7 @@ export function RedefinirTemasPage() {
         silent: true,
         throwOnError: true,
         sentinelRefreshPolicy: "themes",
+        countDemoThemeSave: true,
       });
       if (isDemoMode()) {
         incrementDemoThemeSaveCount();

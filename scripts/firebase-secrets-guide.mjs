@@ -22,6 +22,8 @@ const SECRET_MAP = [
   ["FIREBASE_SERVICE_ACCOUNT_JSON", "firebase-service-account-json"],
   ["RESEND_API_KEY", "resend-api-key"],
   ["JOBS_WORKER_SHARED_SECRET", "jobs-worker-shared-secret"],
+  ["ADMIN_PASSWORD", "admin-password"],
+  ["ADMIN_SESSION_SECRET", "admin-session-secret"],
 ];
 
 function loadEnvFile(filePath) {

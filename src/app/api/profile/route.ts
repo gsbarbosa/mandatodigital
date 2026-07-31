@@ -5,6 +5,11 @@ import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
+  DEMO_THEME_SAVE_BLOCKED_MESSAGE,
+  isDemoMode,
+} from "@/lib/demo-mode";
+import { tryConsumeDemoThemeSave } from "@/lib/demo-usage-storage";
+import {
   getGuestSentinelCredits,
   tryConsumeGuestSentinelCredit,
 } from "@/lib/guest-credits-storage";
@@ -44,11 +49,14 @@ export async function PUT(request: Request) {
       const body = (await request.json()) as Record<string, unknown> & {
         draftSave?: boolean;
         sentinelRefreshPolicy?: unknown;
+        countDemoThemeSave?: unknown;
       };
       const draftSave = body.draftSave === true;
       const refreshPolicy = parseRefreshPolicy(body.sentinelRefreshPolicy);
+      const countDemoThemeSave = body.countDemoThemeSave === true;
       delete body.draftSave;
       delete body.sentinelRefreshPolicy;
+      delete body.countDemoThemeSave;
 
       const dashboard = await repository.getDashboard();
       const previousSignature = dashboard.profile
@@ -62,14 +70,30 @@ export async function PUT(request: Request) {
           )
         : (body as Parameters<typeof mergeProfileInputForSave>[0]);
 
+      const sessionUser = await getSessionUser();
+      const premium = await isPremiumAccountMode(sessionUser?.email);
+      const ownerUserId = getStorageOwnerUserId()?.trim() || "anonymous";
+
+      // DEMO: limite server-side só quando a UI de temas pede (countDemoThemeSave).
+      // Outros saves usam policy "themes" por default e NÃO devem consumir a cota.
+      if (isDemoMode() && !draftSave && countDemoThemeSave) {
+        const demoTheme = await tryConsumeDemoThemeSave(ownerUserId);
+        if (!demoTheme.ok) {
+          return NextResponse.json(
+            {
+              message: DEMO_THEME_SAVE_BLOCKED_MESSAGE,
+              profile: dashboard.profile,
+              demoUsage: demoTheme.usage,
+            },
+            { status: 429 },
+          );
+        }
+      }
+
       const payload = profileInputSchema.parse(merged);
       const profile = await repository.saveProfile(payload);
       const radarChanged =
         Boolean(profile.id) && buildRadarThemesSignature(profile) !== previousSignature;
-
-      const sessionUser = await getSessionUser();
-      const premium = await isPremiumAccountMode(sessionUser?.email);
-      const ownerUserId = getStorageOwnerUserId()?.trim() || "anonymous";
 
       let sentinelRefreshSkipped = false;
       let sentinelRefreshMessage: string | null = null;
@@ -81,8 +105,10 @@ export async function PUT(request: Request) {
         if (consumeOnSuccess && credits && credits.remaining <= 0) {
           sentinelRefreshSkipped = true;
           sentinelRefreshMessage = guestSentinelCreditsExhaustedMessage();
-          // Invalida cache de assinatura antiga para o GET não servir pautas órfãs,
-          // mas não dispara coleta nova.
+          await invalidateSentinelCacheAsync(profile.id);
+        } else if (isDemoMode() && refreshPolicy === "themes") {
+          // DEMO: pautas só de manhã — save de tema não dispara coleta pesada.
+          sentinelRefreshSkipped = true;
           await invalidateSentinelCacheAsync(profile.id);
         } else {
           await invalidateSentinelCacheAsync(profile.id);
