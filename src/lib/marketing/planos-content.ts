@@ -44,7 +44,7 @@ export const pricingPlans: PricingPlan[] = [
     campaignTotalLabel: "Pacote Campanha: R$ 2.994",
     features: [
       { text: "Monitoramento ilimitado de redes sociais, portais, sites e blogs" },
-      { text: "Produção de 5 avatares/mês (2 digitais e 3 caricaturas/3D)." },
+      { text: "Produção de 5 avatares/mês (2 digitais e 3 caricaturas/3D), vídeos de até 1 minuto." },
       { text: "Checagem de fatos básica." },
     ],
     restriction: "Vagas garantidas no Lote Atual",
@@ -62,7 +62,7 @@ export const pricingPlans: PricingPlan[] = [
     features: [
       { text: "Todos os benefícios do plano Essencial." },
       {
-        text: "Produção de 22 avatares/mês (livre escolha) com renderização avançada de Gêmeo Digital.",
+        text: "Produção de 22 avatares/mês (livre escolha) com renderização avançada de Gêmeo Digital, vídeos de até 90 segundos.",
       },
       {
         text: "Provas geradas e protocoladas para o seu corpo jurídico.",
@@ -86,7 +86,7 @@ export const pricingPlans: PricingPlan[] = [
     features: [
       { text: "Todos os benefícios do plano Avançado." },
       {
-        text: "(livre escolha) com renderização avançada de Gêmeo Digital.",
+        text: "(livre escolha) com renderização avançada de Gêmeo Digital, vídeos de até 3 minutos.",
         strongPrefix: "Produção de 60 avatares/mês",
       },
       {
@@ -166,9 +166,9 @@ export const pricingComparison = {
     {
       label: "Avatares com voz do candidato (Gêmeo Digital, Caricato e 3D)",
       values: [
-        "5, sendo máximo com 2 Gêmeo Digital",
-        "22 com renderização avançada e sem restrições por tipo de avatar",
-        "60 com renderização avançada e sem restrições por tipo de avatar",
+        "5, sendo máximo com 2 Gêmeo Digital — vídeos até 1 minuto",
+        "22 com renderização avançada e sem restrições por tipo de avatar — vídeos até 90 segundos",
+        "60 com renderização avançada e sem restrições por tipo de avatar — vídeos até 3 minutos",
       ],
     },
     { label: "Inclusão de posicionamento ideológico", values: ["✓", "✓", "✓"] },

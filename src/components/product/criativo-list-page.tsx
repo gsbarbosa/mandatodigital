@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { ExportComplianceModal } from "@/components/product/export-compliance-modal";
 import { formatCreativeProjectTitle } from "@/lib/creative-project-display";
 import { withTseCaptionTag } from "@/lib/creative-ai-metadata";
 import { parseJsonOrText } from "@/components/product/persona-shared";
+import { createDemoPost, isDistributionDemoMode } from "@/lib/distribution/demo-store";
+import type { DistributionPost } from "@/lib/distribution/types";
 import type { CreativeProject } from "@/lib/types";
 
 function formatProjectDate(value: string) {
@@ -45,9 +48,11 @@ function projectStatusBadge(status: CreativeProject["status"]) {
 }
 
 export function CriativoListPage() {
+  const router = useRouter();
   const [projects, setProjects] = useState<CreativeProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [distributingId, setDistributingId] = useState<string | null>(null);
   const [exportTarget, setExportTarget] = useState<{
     mediaId: string;
     mediaUrl: string;
@@ -83,6 +88,51 @@ export function CriativoListPage() {
     void loadProjects();
   }, [loadProjects]);
 
+  async function sendToDistribuidor(project: CreativeProject) {
+    setDistributingId(project.id);
+    setLoadError(null);
+    try {
+      if (!project.videoUrl?.trim()) {
+        throw new Error("O criativo precisa de vídeo antes de distribuir.");
+      }
+
+      // Backend Ayrshare permanece fail-closed; o fluxo de produto usa store local.
+      if (isDistributionDemoMode()) {
+        const post = createDemoPost({
+          creativeProjectId: project.id,
+          videoUrl: project.videoUrl,
+          captionBase:
+            project.captionUrl?.trim() ||
+            project.scriptDraft?.trim() ||
+            project.topic?.trim() ||
+            formatCreativeProjectTitle(project),
+        });
+        router.push(`/distribuidor?post=${post.id}`);
+        return;
+      }
+
+      const response = await fetch("/api/distribution/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ creativeProjectId: project.id }),
+      });
+      const payload = await parseJsonOrText<{
+        post?: DistributionPost;
+        message?: string;
+      }>(response);
+      if (!response.ok || !payload.post) {
+        throw new Error(payload.message || "Nao foi possivel enviar ao Distribuidor.");
+      }
+      router.push(`/distribuidor?post=${payload.post.id}`);
+    } catch (error) {
+      setLoadError(
+        error instanceof Error ? error.message : "Nao foi possivel enviar ao Distribuidor.",
+      );
+    } finally {
+      setDistributingId(null);
+    }
+  }
+
   return (
     <div className="min-h-full relative pb-20">
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[40%] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none" />
@@ -98,7 +148,9 @@ export function CriativoListPage() {
         <div className="mb-10 rounded-xl border border-md-border bg-md-surface/40 px-5 py-4">
           <p className="text-sm leading-relaxed text-md-text-muted">
             Histórico de vídeos produzidos com seus avatares. Para visualizá-los, clique em{" "}
-            <strong className="font-semibold text-md-text">ver vídeo</strong>.
+            <strong className="font-semibold text-md-text">ver vídeo</strong>. Com vídeo selado,
+            envie ao <strong className="font-semibold text-md-text">Distribuidor</strong> para
+            publicar nas redes.
           </p>
         </div>
 
@@ -171,7 +223,7 @@ export function CriativoListPage() {
                     </div>
 
                     {project.videoUrl ? (
-                      <div className="flex shrink-0 items-center gap-3">
+                      <div className="flex shrink-0 flex-wrap items-center gap-3">
                         <button
                           type="button"
                           onClick={() =>
@@ -184,6 +236,14 @@ export function CriativoListPage() {
                           className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-sm font-semibold text-md-text no-underline shadow-[0_0_15px_rgba(6,182,212,0.2)] transition-all hover:from-cyan-400 hover:to-blue-500"
                         >
                           Ver vídeo
+                        </button>
+                        <button
+                          type="button"
+                          disabled={distributingId === project.id}
+                          onClick={() => void sendToDistribuidor(project)}
+                          className="inline-flex items-center justify-center rounded-lg border border-[var(--distribuidor-border)] bg-[var(--distribuidor-soft)] px-4 py-2 text-sm font-semibold text-[var(--distribuidor-text)] disabled:opacity-50"
+                        >
+                          {distributingId === project.id ? "Enviando…" : "Distribuir"}
                         </button>
                         {project.captionUrl ? (
                           <button

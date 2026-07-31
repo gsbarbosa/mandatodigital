@@ -21,9 +21,13 @@ export type {
 } from "@/lib/avatar-video-prompt";
 export { buildPoliticalContextPrompt } from "@/lib/political-context-prompt";
 
-/** ~1 min de fala em PT-BR (alinhado ao prompt de redacao). */
+/** ~1 min de fala em PT-BR (alinhado ao prompt de redacao); default do plano Essencial. */
 export const MAX_TRANSCRIPT_WORDS = AVATAR_VIDEO_TARGET_WORDS;
 const MAX_TRANSCRIPT_CHARS = 1200;
+
+export function countTranscriptWords(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
 function clampTranscriptByWords(transcript: string, maxWords = MAX_TRANSCRIPT_WORDS) {
   const words = transcript.trim().split(/\s+/).filter(Boolean);
@@ -46,6 +50,7 @@ function normalizeSpokenTranscript(raw: string) {
 export function buildAvatarVideoTranscriptFallback(input: {
   topic: string;
   profile?: PoliticianProfile | null;
+  maxWords?: number;
 }) {
   const context = pickCuradorVideoContext(input.topic, input.profile);
   const lines: string[] = [`Hoje quero falar sobre ${context.topic}.`];
@@ -63,11 +68,11 @@ export function buildAvatarVideoTranscriptFallback(input: {
   lines.push("Vou ser direto, claro e trazer uma mensagem objetiva para voce compartilhar.");
 
   const transcript = lines.join(" ").replace(/\s+/g, " ").trim();
-  return clampTranscriptByWords(transcript);
+  return clampTranscriptByWords(transcript, input.maxWords);
 }
 
-function clampTranscript(transcript: string) {
-  const byWords = clampTranscriptByWords(transcript);
+function clampTranscript(transcript: string, maxWords?: number) {
+  const byWords = clampTranscriptByWords(transcript, maxWords);
   if (byWords.length <= MAX_TRANSCRIPT_CHARS) {
     return byWords;
   }
@@ -98,6 +103,10 @@ export async function buildAvatarVideoTranscript(input: {
   topic: string;
   profile?: PoliticianProfile | null;
   curadorContext?: Partial<CuradorVideoContext>;
+  /** Teto de palavras conforme o plano do usuario (default ~1 min / Essencial). */
+  maxWords?: number;
+  /** Rotulo de duracao usado na copy do prompt (ex.: "90 segundos", "3 minutos"). */
+  durationLabel?: string;
 }) {
   const topic = input.topic.trim();
   const politicalContext = await resolvePoliticalContext(topic, input.curadorContext);
@@ -110,6 +119,8 @@ export async function buildAvatarVideoTranscript(input: {
       politicalContext,
       sentinelBriefing: undefined,
     },
+    targetWords: input.maxWords,
+    durationLabel: input.durationLabel,
   });
 
   const execution = await requestPlainText(prompt.system, prompt.user, {
@@ -119,7 +130,7 @@ export async function buildAvatarVideoTranscript(input: {
 
   const spoken = normalizeSpokenTranscript(execution.rawText ?? "");
   if (spoken) {
-    return clampTranscript(spoken);
+    return clampTranscript(spoken, input.maxWords);
   }
 
   return buildAvatarVideoTranscriptFallback(input);

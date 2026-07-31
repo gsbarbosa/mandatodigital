@@ -11,6 +11,7 @@ import { RefreshPautasButton } from "@/components/product/refresh-pautas-button"
 import { SentinelRefreshProgress } from "@/components/product/sentinel-refresh-progress";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
+import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
 import type { GuestSentinelCredits } from "@/lib/guest-limits";
 import { needsDailySentinelRefresh } from "@/lib/guest-limits";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
@@ -367,10 +368,16 @@ export function MonitoramentoPage() {
             </span>
           ) : null}
           <span className="text-xs text-md-text-soft text-right">Próx atualização às 08:00h</span>
-          <span className="text-[10px] leading-snug text-md-text-soft text-right">
-            Atualizações antecipadas consomem créditos (
-            {credits ? `${credits.remaining} restantes` : "1 de 5"}).
-          </span>
+          {isDemoMode() ? (
+            <span className="text-[10px] leading-snug text-md-text-soft text-right">
+              {DEMO_REFRESH_PAUTA_HINT}
+            </span>
+          ) : (
+            <span className="text-[10px] leading-snug text-md-text-soft text-right">
+              Atualizações antecipadas consomem créditos (
+              {credits ? `${credits.remaining} restantes` : "1 de 5"}).
+            </span>
+          )}
         </div>
       </header>
 

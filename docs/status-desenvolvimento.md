@@ -2,7 +2,7 @@
 
 Documento vivo para acompanhar o que **já existe**, o que está **parcial** e o que **falta implementar**.
 
-**Última atualização:** 2026-06-24  
+**Última atualização:** 2026-07-28  
 **Produção:** https://mandatodigital--madatodigital.us-central1.hosted.app  
 **Branch principal:** `main`
 
@@ -185,10 +185,39 @@ Referência detalhada: [sentinela.md](sentinela.md)
 
 | Item | Status | Notas |
 |------|--------|-------|
-| UI v2 (`/distribuidor`) | 🔶 | Mock — salva prefs no perfil |
-| Publicação real (WhatsApp, redes, email) | ❌ | |
-| Janelas de publicação automatizadas | ❌ | |
-| Blackout eleitoral (72h antes / 24h depois) | ❌ | Fase 3.2 / compliance |
+| UI v2 (`/distribuidor`) | ✅ | Fila Go/No-go, Contas, Histórico (preview local) |
+| Fluxo Criativo → Fila | ✅ | CTA **Distribuir** grava pacote no store local |
+| Conexão OAuth (Ayrshare) | ⏸ | Backend fail-closed; Contas simula vínculo no browser |
+| Draft a partir do Criativo | ✅ | Caption/vídeo do criativo selado |
+| Publicação real (7 redes) | ⏸ | Código + worker prontos; flags off até smoke |
+| Janelas / `scheduledAt` | ✅ | UI + simulação scheduled/published |
+| Blackout eleitoral (72h / 24h) | ✅ | Data em Contas (local); gate real no backend |
+| Audit log distribuição | ⏸ | Só com backend ligado |
+| Feature flags | ✅ | `DISTRIBUTION_*` = false (fail-closed) |
+
+Ver [adr-distribution-ayrshare.md](adr-distribution-ayrshare.md).
+
+---
+
+## 7b. Modo DEMO (`DEMO_MODE`)
+
+Flag: `DEMO_MODE` + `NEXT_PUBLIC_DEMO_MODE` (ligada em `apphosting.yaml` para a apresentação; desligar depois).
+
+| Item | Status | Notas |
+|------|--------|-------|
+| CTA "Reserve sua vaga" | ✅ | Marketing |
+| Banner Degustação Liberada | ✅ | 1× pós-login |
+| Lock pós-créditos (só Planos/CNPJ) | ✅ | Nav + redirect |
+| Atualizar pauta inativo | ✅ | Hint manhã |
+| Limite 3 saves de tema | ✅ | localStorage |
+| Tarja campanha 16/Ago | ✅ | PNG + CSS no roteiro livre |
+| Roteiro fixo + 2 vídeos/avatar | ✅ | Propaganda MD |
+| Selo TSE 23.610/19 + 23.755/26 | ✅ | Permanente (não só demo) |
+| Modal export | ✅ | Já existia; texto ok |
+| Limites 90s / 3min por plano | ✅ | Permanente + copy Planos |
+| Roteiro com evidências | ✅ | Permanente |
+| Termo Gêmeo reforçado | ✅ | Permanente |
+
 
 ---
 
@@ -196,9 +225,9 @@ Referência detalhada: [sentinela.md](sentinela.md)
 
 | Item | Status | Notas |
 |------|--------|-------|
-| Selo TSE — metadados JSON | 🔶 | `creative-ai-metadata.ts` |
-| Selo TSE — overlay queimado no vídeo | 🟡 | FFmpeg + fail-closed; guest: `VERSÃO DE TESTE` |
-| Texto selo validado juridicamente | ⏸ | |
+| Selo TSE — metadados JSON | ✅ | `creative-ai-metadata.ts` v2026-07-31 |
+| Selo TSE — overlay queimado no vídeo | ✅ | PNG fontsize 30; guest + tarja campanha |
+| Texto selo validado juridicamente | 🟡 | Norma atualizada no código/contrato/dossiê — revisar jurídico |
 | ElevenLabs → áudio → HeyGen (sai limite 10) | 🟡 | Código + flag stg; smoke + secret ELEVENLABS_API_KEY |
 | Backgrounds HeyGen | ❌ | P4 backlog |
 | Spike carga (50 usuários simulados) | ❌ | Fase 3.1 |

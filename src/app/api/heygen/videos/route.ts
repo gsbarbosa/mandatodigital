@@ -3,7 +3,9 @@ import { NextResponse } from "next/server";
 import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
-import { buildAvatarVideoTranscript } from "@/lib/avatar-video-script";
+import { buildAvatarVideoTranscript, countTranscriptWords } from "@/lib/avatar-video-script";
+import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/demo-mode";
+import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 import {
   formatHeyGenError,
   heygenCreateVideo,
@@ -90,6 +92,20 @@ export async function POST(request: Request) {
 
       const dashboard = await repository.getDashboard();
 
+      const registration = await getUserRegistrationForOwner().catch(() => null);
+      const planId = registration?.planId || null;
+      const maxScriptWords = maxScriptWordsForPlan(planId);
+      const durationLabel = maxVideoSecondsLabelForPlan(planId).replace(/^até\s+/i, "");
+
+      if (explicitTranscript && countTranscriptWords(explicitTranscript) > maxScriptWords) {
+        return NextResponse.json(
+          {
+            message: `O roteiro excede o limite de ${maxScriptWords} palavras (${durationLabel}) do seu plano.`,
+          },
+          { status: 400 },
+        );
+      }
+
       if (generateMode === "caricature" || generateMode === "photo_real") {
         const assets = await repository.listTrainingAssetsForReference(
           dashboard.profile?.id ?? "",
@@ -128,6 +144,8 @@ export async function POST(request: Request) {
           : await buildAvatarVideoTranscript({
               topic,
               profile: dashboard.profile,
+              maxWords: maxScriptWords,
+              durationLabel,
             });
 
         const transcript = explicitTranscript
@@ -316,6 +334,8 @@ export async function POST(request: Request) {
         : await buildAvatarVideoTranscript({
             topic,
             profile: dashboard.profile,
+            maxWords: maxScriptWords,
+            durationLabel,
           });
 
       const transcript = explicitTranscript

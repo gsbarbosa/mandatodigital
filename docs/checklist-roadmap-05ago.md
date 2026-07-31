@@ -65,7 +65,7 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 | Menu “Meus pagamentos” + alerta 5 dias antes do vencimento | todo | pendente | Fora do nav |
 | Travas/cadeados por ausência de pagamento / data | todo | pendente | Não existe |
 | Teste de volumetria HeyGen (+ provedor alternativo) | todo | pendente | Não documentado |
-| Agente Distribuidor | inprogress | pendente | UI mock; sem publicação real |
+| Agente Distribuidor | done | pendente | UI + APIs + worker; flags off ate smoke Ayrshare |
 | Materialidade — dados salvos e estruturados (agora) | done | pendente | `auditLog` + `/auditoria` (auth, vídeos, jobs, contrato, treino, suporte) |
 | Materialidade self-service (relatórios + prints + export) | todo | pendente | Meta sugerida ≥ 10/Set |
 

@@ -22,6 +22,10 @@ export type AvatarVideoPromptInput = {
   topic: string;
   profile?: PoliticianProfile | null;
   curadorContext?: Partial<CuradorVideoContext>;
+  /** Teto de palavras do roteiro, conforme o plano do usuario (default ~1 min). */
+  targetWords?: number;
+  /** Rotulo de duracao usado na copy do prompt (ex.: "90 segundos", "3 minutos"). */
+  durationLabel?: string;
 };
 
 export type AvatarVideoPromptBundle = {
@@ -171,10 +175,12 @@ export function buildAvatarVideoPrompt(
     pickCuradorVideoContext(input.topic, input.profile),
     input.curadorContext,
   );
+  const targetWords = input.targetWords ?? AVATAR_VIDEO_TARGET_WORDS;
+  const durationLabel = input.durationLabel ?? "1 minuto";
 
   const systemParts = [
     "Voce e o estrategista chefe e redator principal de um candidato politico.",
-    "Sua missao e criar roteiros curtos (maximo 1 minuto) desenhados matematicamente para retencao extrema e alto potencial de viralizacao organica, assumindo a identidade do candidato.",
+    `Sua missao e criar roteiros curtos (maximo ${durationLabel}) desenhados matematicamente para retencao extrema e alto potencial de viralizacao organica, assumindo a identidade do candidato.`,
   ];
 
   if (context.spectrum) {
@@ -188,6 +194,10 @@ export function buildAvatarVideoPrompt(
       "Sua equipe de inteligencia preparou um dossie sobre o que esta acontecendo agora em relacao ao tema do video.",
       "Aqui esta o contexto atual:",
       context.politicalContext.trim(),
+      "",
+      "Regra anti-desinformacao: toda alegacao factual do roteiro deve se apoiar estritamente no CONTEXTO ATUAL acima. " +
+        "Nao invente dados, numeros, citacoes ou falas atribuidas a terceiros (jornalistas, autoridades, adversarios, cidadaos) que nao estejam explicitamente descritos ali. " +
+        "Nao simule declaracoes ou atos de terceiros como se fossem fatos verificados sem essa base.",
     );
   }
 
@@ -232,7 +242,7 @@ export function buildAvatarVideoPrompt(
   );
 
   const userParts = [
-    `Redija um roteiro de video magnetico e direto ao ponto, com duracao maxima de 1 minuto (cerca de ${AVATAR_VIDEO_TARGET_WORDS} palavras).`,
+    `Redija um roteiro de video magnetico e direto ao ponto, com duracao maxima de ${durationLabel} (cerca de ${targetWords} palavras).`,
     "O objetivo e gerar imediata concordancia no espectador e faze-lo querer compartilhar o video.",
     "",
     "Parametros do Conteudo:",

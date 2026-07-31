@@ -2,7 +2,7 @@ import type { Route } from "next";
 
 /** CTA comercial padrão do marketing site. */
 export const MARKETING_CTA_HREF = "/planos" as Route;
-export const MARKETING_CTA_LABEL = "Garanta sua vaga";
+export const MARKETING_CTA_LABEL = "Reserve sua vaga";
 
 export const MARKETING_CLOSING = {
   title: "Saia na frente. Antes que o adversário trave a sua vaga.",

@@ -9,6 +9,13 @@ import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
 import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
 import { ThemeTagPill } from "@/components/product/theme-tag";
+import {
+  DEMO_THEME_SAVE_BLOCKED_MESSAGE,
+  DEMO_THEME_SAVE_LIMIT,
+  incrementDemoThemeSaveCount,
+  isDemoMode,
+  readDemoThemeSaveCount,
+} from "@/lib/demo-mode";
 import type { SocialHandle } from "@/lib/types";
 import { mirrorInterestThemesToSpheres } from "@/lib/sentinel-profile-themes";
 import {
@@ -380,6 +387,12 @@ export function RedefinirTemasPage() {
 
   async function handleSave() {
     setSaveMessage(null);
+
+    if (isDemoMode() && readDemoThemeSaveCount() >= DEMO_THEME_SAVE_LIMIT) {
+      setLimitMessage(DEMO_THEME_SAVE_BLOCKED_MESSAGE);
+      return;
+    }
+
     try {
       const result = await saveProfile({
         allowDraftDefaults: true,
@@ -387,6 +400,9 @@ export function RedefinirTemasPage() {
         throwOnError: true,
         sentinelRefreshPolicy: "themes",
       });
+      if (isDemoMode()) {
+        incrementDemoThemeSaveCount();
+      }
       // Libera o Próximo do passo "Salvar radar" no onboarding guiado.
       markRadarSaved();
       if (result?.sentinelRefreshSkipped && result.sentinelRefreshMessage) {

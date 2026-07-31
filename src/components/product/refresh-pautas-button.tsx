@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { DEMO_REFRESH_PAUTA_HINT, isDemoMode } from "@/lib/demo-mode";
+
 type RefreshPautasButtonProps = {
   isLoading: boolean;
   onClick: () => void;
@@ -19,6 +21,8 @@ export function RefreshPautasButton({
 }: RefreshPautasButtonProps) {
   const [pending, setPending] = useState(false);
   const busy = isLoading || pending;
+  const demoLocked = isDemoMode();
+  const isDisabled = disabled || demoLocked;
 
   useEffect(() => {
     if (!isLoading) {
@@ -27,7 +31,7 @@ export function RefreshPautasButton({
   }, [isLoading]);
 
   function handleClick() {
-    if (busy || disabled) {
+    if (busy || isDisabled) {
       return;
     }
 
@@ -46,10 +50,10 @@ export function RefreshPautasButton({
       data-testid="refresh-pautas-button"
       className={`refresh-pautas-btn ${variantClass}${busy ? " is-loading" : ""}${className ? ` ${className}` : ""}`}
       onClick={handleClick}
-      disabled={busy || disabled}
+      disabled={busy || isDisabled}
       aria-busy={busy}
       aria-live="polite"
-      title="Atualizar pautas"
+      title={demoLocked ? DEMO_REFRESH_PAUTA_HINT : "Atualizar pautas"}
     >
       <span className="refresh-pautas-btn__content">
         {busy ? (

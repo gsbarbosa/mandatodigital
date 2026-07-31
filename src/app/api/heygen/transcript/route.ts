@@ -6,7 +6,14 @@ import {
   buildAvatarVideoTranscript,
   type CuradorVideoContext,
 } from "@/lib/avatar-video-script";
+import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/demo-mode";
+import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 import type { PoliticianProfile } from "@/lib/types";
+
+/** "até 90 segundos" -> "90 segundos" (copy do prompt já usa "duracao maxima de"). */
+function bareDurationLabel(planId: string | null | undefined) {
+  return maxVideoSecondsLabelForPlan(planId).replace(/^até\s+/i, "");
+}
 
 function mergeProfileWithCuradorContext(
   profile: PoliticianProfile | null,
@@ -51,10 +58,14 @@ export async function POST(request: Request) {
         dashboard.profile,
         body.curadorContext,
       );
+      const registration = await getUserRegistrationForOwner().catch(() => null);
+      const maxWords = maxScriptWordsForPlan(registration?.planId || null);
       const transcript = await buildAvatarVideoTranscript({
         topic,
         profile,
         curadorContext: body.curadorContext,
+        maxWords,
+        durationLabel: bareDurationLabel(registration?.planId || null),
       });
 
       return NextResponse.json({ transcript }, { status: 200 });
