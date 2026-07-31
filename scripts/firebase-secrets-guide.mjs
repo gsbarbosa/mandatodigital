@@ -14,6 +14,7 @@ import { spawnSync } from "node:child_process";
 
 const SECRET_MAP = [
   ["OPENAI_API_KEY", "openai-api-key"],
+  ["OPENAI_ADMIN_KEY", "openai-admin-key"],
   ["ANTHROPIC_API_KEY", "anthropic-api-key"],
   ["HEYGEN_API_KEY", "heygen-api-key"],
   ["ELEVENLABS_API_KEY", "elevenlabs-api-key"],
