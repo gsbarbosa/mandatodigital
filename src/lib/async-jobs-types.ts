@@ -1,4 +1,4 @@
-export const ASYNC_JOB_TYPES = ["seal_video", "voice_tts"] as const;
+export const ASYNC_JOB_TYPES = ["seal_video", "voice_tts", "publish_post"] as const;
 export type AsyncJobType = (typeof ASYNC_JOB_TYPES)[number];
 
 export const ASYNC_JOB_STATUSES = [
@@ -31,6 +31,7 @@ export type SealVideoPayload = {
   mediaId: string;
   videoUrl: string;
   guestTestWatermark?: boolean;
+  campaignTarja?: boolean;
 };
 
 export type VoiceTtsPayload = {
@@ -47,4 +48,11 @@ export type VoiceTtsPayload = {
     title?: string;
     caricatureAssetId?: string;
   };
+};
+
+export type PublishPostJobPayload = {
+  distributionPostId: string;
+  channels: string[];
+  scheduledAt?: string | null;
+  retryFailedOnly?: boolean;
 };

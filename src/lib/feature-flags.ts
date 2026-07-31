@@ -88,3 +88,26 @@ export function isAsyncSealEnabled() {
 export function isAsyncVoiceEnabled() {
   return readEnvFlag("ASYNC_VOICE_ENABLED") || readEnvFlag("NEXT_PUBLIC_ASYNC_VOICE_ENABLED");
 }
+
+/** Agente Distribuidor — publicação em redes (fail-closed até smoke). */
+export function isDistributionEnabled() {
+  return (
+    readEnvFlag("DISTRIBUTION_ENABLED") || readEnvFlag("NEXT_PUBLIC_DISTRIBUTION_ENABLED")
+  );
+}
+
+/** Enfileira publish_post via Pub/Sub/worker (pode ficar off com Distribuidor só em draft). */
+export function isDistributionPublishEnabled() {
+  return (
+    readEnvFlag("DISTRIBUTION_PUBLISH_ENABLED") ||
+    readEnvFlag("NEXT_PUBLIC_DISTRIBUTION_PUBLISH_ENABLED")
+  );
+}
+
+/**
+ * Modo demonstração / degustação (apresentações, convidados controlados).
+ * Fail-closed: default off. Preferir NEXT_PUBLIC_ para UI client.
+ */
+export function isDemoMode() {
+  return readEnvFlag("DEMO_MODE") || readEnvFlag("NEXT_PUBLIC_DEMO_MODE");
+}

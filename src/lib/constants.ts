@@ -294,17 +294,15 @@ export const hardDataSourceOptions = [
   "INEP (IDEB/ENEM)",
 ] as const;
 
+/** Labels das 7 redes do Distribuidor (alinhado a `DISTRIBUTION_CHANNELS`). */
 export const distributionChannelOptions = [
-  "Instagram (Feed/Reels)",
-  "X / Twitter (Threads)",
+  "Instagram Reels",
+  "Facebook",
   "TikTok",
-  "YouTube (Shorts)",
-  "Facebook (Pagina)",
-  "LinkedIn",
+  "YouTube Shorts",
   "Threads",
-  "WhatsApp (Grupos VIP)",
-  "Telegram (Canal Oficial)",
-  "Kwai",
+  "LinkedIn",
+  "X",
 ] as const;
 
 export const distributionWindowOptions = [

@@ -15,6 +15,9 @@ export function getPubSubTopicForJobType(type: AsyncJobType) {
   if (type === "seal_video") {
     return process.env.PUBSUB_TOPIC_SEAL?.trim() || "md-jobs-seal";
   }
+  if (type === "publish_post") {
+    return process.env.PUBSUB_TOPIC_PUBLISH?.trim() || "md-jobs-publish";
+  }
   return process.env.PUBSUB_TOPIC_VOICE?.trim() || "md-jobs-voice";
 }
 

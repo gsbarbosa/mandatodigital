@@ -109,6 +109,22 @@
       ]
     },
     {
+      "collectionGroup": "distributionPosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerUserId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "distributionPosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ayrsharePostId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "userRegistrations",
       "queryScope": "COLLECTION",
       "fields": [

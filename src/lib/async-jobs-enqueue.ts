@@ -27,7 +27,9 @@ export async function enqueueAsyncJob(input: {
     throw new AsyncJobQuotaError(
       input.type === "seal_video"
         ? "Ja existe uma selagem em andamento. Aguarde terminar antes de gerar outra."
-        : "Ja existe um job de voz em andamento. Aguarde terminar antes de gerar outro.",
+        : input.type === "publish_post"
+          ? "Ja existe uma publicacao em andamento. Aguarde terminar antes de disparar outra."
+          : "Ja existe um job de voz em andamento. Aguarde terminar antes de gerar outro.",
     );
   }
 
