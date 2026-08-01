@@ -36,6 +36,7 @@ import {
 } from "@/lib/caricature-asset-variant";
 import {
   isDevAccountModeEmail,
+  isForcePremiumAccountEmail,
   readDevAccountModeFromDocumentCookie,
 } from "@/lib/dev-account-mode";
 import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
@@ -568,8 +569,9 @@ export function ProductAppProvider({
 
     const quota = guestCaricatureQuota({ assets: trainingAssets, variant });
     const premiumClient =
-      isDevAccountModeEmail(sessionUser?.email) &&
-      readDevAccountModeFromDocumentCookie() === "premium";
+      isForcePremiumAccountEmail(sessionUser?.email) ||
+      (isDevAccountModeEmail(sessionUser?.email) &&
+        readDevAccountModeFromDocumentCookie() === "premium");
     if (!premiumClient && quota.reached) {
       caricatureRegenInFlightRef.current[variant] = false;
       setCaricatureRegenJobs((current) => ({
