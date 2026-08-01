@@ -8,7 +8,10 @@ import { normalizeAccountEmail } from "@/lib/dev-account-mode";
 import { isDemoMode } from "@/lib/feature-flags";
 
 /** Contas internas isentas da degustação enquanto DEMO_MODE global está on. */
-export const DEMO_MODE_EXEMPT_EMAILS = ["tribeiro81@gmail.com"] as const;
+export const DEMO_MODE_EXEMPT_EMAILS = [
+  "tribeiro81@gmail.com",
+  "gsbarbosa180@gmail.com",
+] as const;
 
 export function isDemoModeExemptEmail(email: string | null | undefined) {
   const normalized = normalizeAccountEmail(email);
