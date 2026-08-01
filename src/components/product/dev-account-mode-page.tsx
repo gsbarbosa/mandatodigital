@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useProductApp } from "@/components/product/provider";
 import {
   isDevAccountModeEmail,
+  isForcePremiumAccountEmail,
   type DevAccountMode,
 } from "@/lib/dev-account-mode";
 
@@ -13,7 +14,8 @@ export function DevAccountModePage() {
   const { sessionUser } = useProductApp();
   const email = sessionUser?.email ?? "";
   const allowed = isDevAccountModeEmail(email);
-  const [mode, setMode] = useState<DevAccountMode>("guest");
+  const forcedPremium = isForcePremiumAccountEmail(email);
+  const [mode, setMode] = useState<DevAccountMode>(forcedPremium ? "premium" : "guest");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +27,7 @@ export function DevAccountModePage() {
       const payload = (await response.json().catch(() => ({}))) as {
         allowed?: boolean;
         mode?: DevAccountMode;
+        forcedPremium?: boolean;
         message?: string;
       };
       if (!response.ok) {
@@ -47,6 +50,10 @@ export function DevAccountModePage() {
   }, [allowed, load]);
 
   async function handleSave(next: DevAccountMode) {
+    if (forcedPremium) {
+      setMessage("Contas de sócio ficam sempre em premium.");
+      return;
+    }
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -94,20 +101,21 @@ export function DevAccountModePage() {
       <p className="text-xs text-md-text-soft mb-1 truncate">{email}</p>
       <h1 className="text-lg font-semibold text-md-text mb-2">Modo da conta</h1>
       <p className="text-sm text-md-text-soft mb-8">
-        Alterna entre a versão para convidados (limites) e premium (sem esses limites), só para
-        testes internos.
+        {forcedPremium
+          ? "Conta de sócio: premium permanente (sem limites de convidado)."
+          : "Alterna entre a versão para convidados (limites) e premium (sem esses limites), só para testes internos."}
       </p>
 
       <div className="space-y-3 mb-6">
         <button
           type="button"
-          disabled={saving}
+          disabled={saving || forcedPremium}
           onClick={() => void handleSave("guest")}
           className={`w-full text-left rounded-xl border px-4 py-3 transition-colors ${
             mode === "guest"
               ? "border-cyan-700/60 bg-[var(--curador-soft)] text-md-text"
               : "border-md-border bg-md-surface/40 text-md-text-muted hover:border-md-border"
-          }`}
+          } disabled:opacity-50`}
         >
           <span className="block text-sm font-medium">Convidado</span>
           <span className="block text-xs text-md-text-soft mt-0.5">
@@ -117,13 +125,13 @@ export function DevAccountModePage() {
 
         <button
           type="button"
-          disabled={saving}
+          disabled={saving || forcedPremium}
           onClick={() => void handleSave("premium")}
           className={`w-full text-left rounded-xl border px-4 py-3 transition-colors ${
             mode === "premium"
               ? "border-amber-700/60 bg-[var(--distribuidor-soft)] text-md-text"
               : "border-md-border bg-md-surface/40 text-md-text-muted hover:border-md-border"
-          }`}
+          } disabled:opacity-50`}
         >
           <span className="block text-sm font-medium">Premium</span>
           <span className="block text-xs text-md-text-soft mt-0.5">

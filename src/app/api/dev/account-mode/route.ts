@@ -5,6 +5,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import {
   DEV_ACCOUNT_MODE_COOKIE,
   isDevAccountModeEmail,
+  isForcePremiumAccountEmail,
   parseDevAccountMode,
   type DevAccountMode,
 } from "@/lib/dev-account-mode";
@@ -29,7 +30,12 @@ export async function GET() {
     }
 
     const mode = await resolveDevAccountMode(user.email);
-    return NextResponse.json({ allowed: true, mode, email: user.email });
+    return NextResponse.json({
+      allowed: true,
+      mode,
+      email: user.email,
+      forcedPremium: isForcePremiumAccountEmail(user.email),
+    });
   });
 }
 
@@ -43,11 +49,21 @@ export async function PUT(request: Request) {
       );
     }
 
+    if (isForcePremiumAccountEmail(user.email)) {
+      return NextResponse.json({
+        allowed: true,
+        mode: "premium" as DevAccountMode,
+        email: user.email,
+        forcedPremium: true,
+        message: "Contas de sócio ficam sempre em premium.",
+      });
+    }
+
     const body = (await request.json().catch(() => ({}))) as { mode?: string };
     const mode = parseDevAccountMode(body.mode);
     const cookieStore = await cookies();
     cookieStore.set(DEV_ACCOUNT_MODE_COOKIE, mode, modeCookieOptions(60 * 60 * 24 * 365));
 
-    return NextResponse.json({ allowed: true, mode, email: user.email });
+    return NextResponse.json({ allowed: true, mode, email: user.email, forcedPremium: false });
   });
 }

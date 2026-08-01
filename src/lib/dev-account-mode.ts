@@ -1,4 +1,4 @@
-/** Contas internas que podem alternar convidado ↔ premium no app. */
+/** Contas internas com premium forçado (sem limites de convidado). */
 export const DEV_ACCOUNT_MODE_ALLOWLIST = [
   "gsbarbosa180@gmail.com",
   "tribeiro81@gmail.com",
@@ -22,12 +22,17 @@ export function isE2eAccountEmail(email: string | null | undefined) {
   return normalized.startsWith("e2e.") && normalized.endsWith(`@${E2E_ACCOUNT_EMAIL_DOMAIN}`);
 }
 
-export function isDevAccountModeEmail(email: string | null | undefined) {
+/** Sócios: sempre premium (não dependem do cookie convidado/premium). */
+export function isForcePremiumAccountEmail(email: string | null | undefined) {
   const normalized = normalizeAccountEmail(email);
-  if ((DEV_ACCOUNT_MODE_ALLOWLIST as readonly string[]).includes(normalized)) {
+  return (DEV_ACCOUNT_MODE_ALLOWLIST as readonly string[]).includes(normalized);
+}
+
+export function isDevAccountModeEmail(email: string | null | undefined) {
+  if (isForcePremiumAccountEmail(email)) {
     return true;
   }
-  return isE2eAccountEmail(normalized);
+  return isE2eAccountEmail(email);
 }
 
 export function parseDevAccountMode(value: string | null | undefined): DevAccountMode {
