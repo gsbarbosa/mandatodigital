@@ -21,7 +21,6 @@ import { useProductApp } from "@/components/product/provider";
 import {
   AVATAR_TYPE_BY_TRACK,
   CaricatureAssetPreview,
-  MAX_SCRIPT_WORDS,
   ProductionTemplateEmptyPreview,
   ProductionTemplateOption,
   ProductionTemplatePendingPreview,
@@ -50,7 +49,7 @@ import {
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
 import { pickLatestCaricatureForVariant } from "@/lib/caricature-asset-variant";
-import { getCriativoGate } from "@/lib/criativo-gate";
+import { getCriativoGate, withGateReturnParam } from "@/lib/criativo-gate";
 import {
   isConsentApproved,
   isTwinLookReadyForVideo,
@@ -94,6 +93,8 @@ import {
   type DemoAvatarScriptKind,
   incrementDemoVideosForAvatar,
   isDemoModeActiveForEmail,
+  maxScriptWordsForPlan,
+  maxVideoSecondsLabelForPlan,
   readDemoVideosForAvatar,
 } from "@/lib/demo-mode";
 import { DemoGenerateConfirmModal } from "@/components/product/demo-generate-confirm-modal";
@@ -222,6 +223,30 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     trainingAssets,
     sessionUser,
   } = useProductApp();
+
+  // Teto de palavras do roteiro conforme o plano (Essencial 140 / Avancado 210 / Elite 420).
+  // Default Essencial ate a resposta chegar, para nao liberar mais do que o plano confirmado.
+  const [scriptPlanId, setScriptPlanId] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/user/registration", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { registration?: { planId?: string | null } } | null) => {
+        if (!cancelled) {
+          setScriptPlanId(payload?.registration?.planId ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setScriptPlanId(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const scriptWordLimit = maxScriptWordsForPlan(scriptPlanId);
+  const scriptDurationLabel = maxVideoSecondsLabelForPlan(scriptPlanId);
 
   const assetReferenceId = profile?.id ?? profileForm.id ?? null;
   const visibleTrainingAssets = useMemo(
@@ -814,6 +839,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 ? buildSentinelBriefingForCriativo(sentinelSuggestion)
                 : undefined,
             }),
+            // Texto completo das matérias (não só o título) — o servidor busca o conteúdo
+            // real das páginas antes de escrever o roteiro.
+            articles: sentinelSuggestion?.evidence.articles ?? undefined,
         }),
       });
       const payload = await parseJsonOrText<{ transcript?: string; message?: string }>(response);
@@ -843,8 +871,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       setScriptError("Gere ou escreva um roteiro antes de aprovar.");
       return;
     }
-    if (countWords(draft) > MAX_SCRIPT_WORDS) {
-      setScriptError(`O roteiro deve ter no maximo ${MAX_SCRIPT_WORDS} palavras (~1 minuto).`);
+    if (countWords(draft) > scriptWordLimit) {
+      setScriptError(
+        `O roteiro deve ter no maximo ${scriptWordLimit} palavras (${scriptDurationLabel}).`,
+      );
       return;
     }
     if (scriptTopicSnapshot !== creativeForm.topic.trim()) {
@@ -1734,9 +1764,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           name: useFreePromptAsTranscript
             ? `Criativo - prompt livre - ${profileForm.fullName || "Politico"}`
             : `Criativo - ${profileForm.fullName || "Politico"} - ${topic || scriptTopicSnapshot}`,
-          // Degustação: roteiro fixo (~15s), rótulo conforme o estilo do avatar.
+          // Degustação: roteiro fixo (~15s), com o mesmo arquétipo/tom escolhidos no Criativo
+          // (a mesma lógica de "ferramentas táticas" do gerador real, sem posicionamento
+          // ideológico — a degustação não tem tema para ancorar isso).
           transcript: demoActive
-            ? demoFixedAvatarScript(resolveDemoAvatarScriptKind())
+            ? demoFixedAvatarScript(resolveDemoAvatarScriptKind(), {
+                archetype: creativeForm.personaArchetypes[0],
+                tone: creativeForm.voiceTones[0],
+              })
             : useFreePromptAsTranscript
               ? free
               : scriptDraft.trim(),
@@ -2369,6 +2404,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     hasPhotoAvatar: Boolean(avatarImageAssets[0]),
     hasCaricaturePair: hasAnyCaricatureReady,
   });
+  const criativoReturnTo = (() => {
+    const basePath = mode === "independente" ? "/independente" : "/criativo/novo";
+    const query = searchParams.toString();
+    return query ? `${basePath}?${query}` : basePath;
+  })();
+  const criativoGateHref = criativoGate
+    ? (withGateReturnParam(criativoGate.href, criativoReturnTo) as Route)
+    : null;
 
   return (
     <>
@@ -2416,11 +2459,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         <PautaContextCard suggestion={sentinelSuggestion} />
       ) : null}
 
-      {criativoGate ? (
+      {criativoGate && criativoGateHref ? (
         <div className={`${CRIATIVO_PANEL_CLASS} persona-form-group relative z-10`}>
           <p className="text-sm text-amber-300/90 leading-relaxed">{criativoGate.reason}</p>
           <div className="mt-4">
-            <Link href={criativoGate.href as Route} className={CRIATIVO_PRIMARY_BTN_CLASS}>
+            <Link href={criativoGateHref} className={CRIATIVO_PRIMARY_BTN_CLASS}>
               {criativoGate.cta}
             </Link>
           </div>
@@ -2482,7 +2525,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <label className={CRIATIVO_LABEL_CLASS}>Digite o que deseja falar</label>
                   <span className="text-xs text-md-text-soft">
-                    Limite de 1 minuto (até {MAX_SCRIPT_WORDS} palavras)
+                    Limite de {scriptDurationLabel} ({scriptWordLimit} palavras)
                   </span>
                 </div>
                 <textarea
@@ -2495,12 +2538,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 <div className="persona-script-footer">
                   <p
                     className={
-                      freePromptWordCount > MAX_SCRIPT_WORDS
+                      freePromptWordCount > scriptWordLimit
                         ? "persona-script-meta is-warning"
                         : "persona-script-meta"
                     }
                   >
-                    {freePromptWordCount}/{MAX_SCRIPT_WORDS} palavras
+                    {freePromptWordCount}/{scriptWordLimit} palavras
                   </p>
                 </div>
                 <div className="bg-[var(--curador-soft)] border border-[var(--curador-border)] rounded-lg py-2.5 px-3.5 flex items-center gap-2 text-[11px] text-[var(--curador-text)] mt-2">
@@ -2556,7 +2599,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 <label className={CRIATIVO_LABEL_CLASS}>Aprovação do roteiro</label>
                 <p className={`${CRIATIVO_HELPER_CLASS} mt-1 mb-3`}>
                   Veja o roteiro do vídeo que será produzido. Altere-o conforme necessário. Máximo
-                  de {MAX_SCRIPT_WORDS} palavras (ou ~1 minuto).
+                  de {scriptWordLimit} palavras ({scriptDurationLabel}).
                 </p>
                 <div className="bg-[var(--curador-soft)] border border-[var(--curador-border)] rounded-lg py-2.5 px-3.5 flex items-start gap-2 text-[11px] text-[var(--curador-text)] mt-2">
                   <svg className="h-4 w-4 shrink-0 text-[var(--curador-text)] mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -2587,12 +2630,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 <div className="persona-script-footer">
                   <p
                     className={
-                      scriptWordCount > MAX_SCRIPT_WORDS
+                      scriptWordCount > scriptWordLimit
                         ? "persona-script-meta is-warning"
                         : "persona-script-meta"
                     }
                   >
-                    {scriptWordCount}/{MAX_SCRIPT_WORDS} palavras
+                    {scriptWordCount}/{scriptWordLimit} palavras
                   </p>
                   <button
                     type="button"
@@ -2600,7 +2643,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     onClick={() => void handleApproveScript()}
                     disabled={
                       !scriptDraft.trim() ||
-                      scriptWordCount > MAX_SCRIPT_WORDS ||
+                      scriptWordCount > scriptWordLimit ||
                       isFactChecking
                     }
                   >
@@ -2696,7 +2739,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                   !canProduceContent ||
                   ((avatarTrack === "caricature" || avatarTrack === "photo_real") && isTraining) ||
                   (mode === "independente" &&
-                    (!freePrompt.trim() || freePromptWordCount > MAX_SCRIPT_WORDS))
+                    (!freePrompt.trim() || freePromptWordCount > scriptWordLimit))
                 }
               >
                 {isGenerating ? (

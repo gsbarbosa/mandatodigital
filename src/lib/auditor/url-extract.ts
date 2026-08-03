@@ -46,13 +46,13 @@ export async function fetchArticleText(url: string): Promise<string | null> {
 export async function fetchArticlesCorpus(
   articles: Array<{ title: string; url: string; sourceName?: string }>,
 ) {
-  const snippets: string[] = [];
-
-  for (const article of articles.slice(0, 4)) {
-    const body = await fetchArticleText(article.url);
-    const header = `[${article.sourceName ?? "Fonte"}] ${article.title} (${article.url})`;
-    snippets.push(body ? `${header}\n${body}` : `${header}\n(conteudo indisponivel para fetch)`);
-  }
+  const snippets = await Promise.all(
+    articles.slice(0, 4).map(async (article) => {
+      const body = await fetchArticleText(article.url);
+      const header = `[${article.sourceName ?? "Fonte"}] ${article.title} (${article.url})`;
+      return body ? `${header}\n${body}` : `${header}\n(conteudo indisponivel para fetch)`;
+    }),
+  );
 
   return snippets.join("\n\n---\n\n");
 }

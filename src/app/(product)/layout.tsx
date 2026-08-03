@@ -14,6 +14,7 @@ import {
   resolveIncompleteRegistrationPath,
 } from "@/lib/registration-gate";
 import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
+import { hasAnyMonitoringRadarConfigured } from "@/lib/sentinel-profile-themes";
 import {
   ensureUserRegistration,
   isUserRegistrationComplete,
@@ -22,11 +23,16 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/** Tela padrão de monitoramento — só faz sentido depois de haver ao menos um radar configurado. */
+const MONITORAMENTO_PATH = "/monitoramento";
+const MONITORAMENTO_TEMAS_PATH = "/monitoramento/temas";
+
 export default async function ProductLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  const pathname = (await headers()).get("x-pathname") ?? "";
   const sessionUser = isFirebaseAuthConfigured() ? await requireSessionUser() : null;
   let registrationComplete = true;
 
@@ -38,7 +44,6 @@ export default async function ProductLayout({
     registrationComplete = isUserRegistrationComplete(registration);
 
     if (!registrationComplete) {
-      const pathname = (await headers()).get("x-pathname") ?? "";
       if (!isRegistrationAllowedPath(pathname)) {
         redirect(
           resolveIncompleteRegistrationPath({
@@ -54,6 +59,14 @@ export default async function ProductLayout({
     (repository) => repository.getDashboard(),
     sessionUser,
   );
+
+  if (
+    registrationComplete &&
+    pathname === MONITORAMENTO_PATH &&
+    (!initialData.profile || !hasAnyMonitoringRadarConfigured(initialData.profile))
+  ) {
+    redirect(MONITORAMENTO_TEMAS_PATH);
+  }
 
   return (
     <ProductAppProvider initialData={initialData} sessionUser={sessionUser}>

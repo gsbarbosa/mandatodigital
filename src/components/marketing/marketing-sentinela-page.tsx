@@ -84,7 +84,6 @@ export function MarketingSentinelaPage() {
                       <td className="px-4 py-3.5 font-semibold text-emerald-400">{row.score}</td>
                       <td className="px-4 py-3.5 tabular-nums text-md-text-muted">{row.likes}</td>
                       <td className="px-4 py-3.5 tabular-nums text-md-text-muted">{row.comments}</td>
-                      <td className="px-4 py-3.5 tabular-nums text-md-text-muted">{row.shares}</td>
                       <td className="px-4 py-3.5 last:pr-5">
                         <span className="inline-flex min-w-[8.5rem] items-center justify-between rounded-lg border border-md-border bg-md-bg/70 px-3 py-1.5 text-xs text-md-text-muted">
                           {row.action}

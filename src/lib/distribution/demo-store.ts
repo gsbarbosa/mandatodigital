@@ -170,38 +170,13 @@ export function getDemoConnections(): DemoConnectionsSnapshot {
   const state = readState();
   return {
     electionDate: state.electionDate,
-    channels: DISTRIBUTION_CHANNELS.map((channel) => {
-      const row = state.platforms[channel.id];
-      return {
-        id: channel.id,
-        label: channel.label,
-        connected: Boolean(row?.connected),
-        displayName: row?.displayName ?? null,
-      };
-    }),
+    channels: DISTRIBUTION_CHANNELS.map((channel) => ({
+      id: channel.id,
+      label: channel.label,
+      connected: false,
+      displayName: null,
+    })),
   };
-}
-
-export function setDemoElectionDate(electionDate: string | null) {
-  const state = readState();
-  writeState({ ...state, electionDate });
-}
-
-export function connectDemoAccounts() {
-  const stamp = nowIso();
-  const state = readState();
-  const platforms: Partial<Record<DistributionChannelId, ConnectedPlatformState>> = {
-    ...state.platforms,
-  };
-  for (const channel of DISTRIBUTION_CHANNELS) {
-    platforms[channel.id] = {
-      connected: true,
-      displayName: `Conta demo · ${channel.label}`,
-      connectedAt: stamp,
-    };
-  }
-  writeState({ ...state, platforms });
-  return getDemoConnections();
 }
 
 export type CreateDemoPostInput = {

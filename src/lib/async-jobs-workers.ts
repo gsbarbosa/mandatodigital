@@ -235,7 +235,7 @@ export async function processPublishJob(jobId: string) {
       throw new Error("Contas sociais nao conectadas para este perfil.");
     }
 
-    const blackout = checkElectoralBlackout({ electionDate: connection.electionDate });
+    const blackout = checkElectoralBlackout();
     if (blackout.blocked) {
       await distributionPostStorage.update(post.id, {
         status: "blocked_blackout",

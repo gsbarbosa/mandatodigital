@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
+import { fetchArticlesCorpus } from "@/lib/auditor/url-extract";
 import {
   buildAvatarVideoTranscript,
   type CuradorVideoContext,
 } from "@/lib/avatar-video-script";
 import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/demo-mode";
+import type { SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 import type { PoliticianProfile } from "@/lib/types";
 
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
       const body = (await request.json().catch(() => ({}))) as {
         topic?: string;
         curadorContext?: Partial<CuradorVideoContext>;
+        articles?: SentinelNewsArticle[];
       };
       const topic = String(body.topic ?? "").trim();
 
@@ -60,10 +63,24 @@ export async function POST(request: Request) {
       );
       const registration = await getUserRegistrationForOwner().catch(() => null);
       const maxWords = maxScriptWordsForPlan(registration?.planId || null);
+
+      // Texto completo das matérias (não só título) para o roteiro nascer com base factual
+      // real, não só inferindo do título — o mesmo fetch já usado no fact-check pós-aprovação.
+      const articles = Array.isArray(body.articles) ? body.articles : [];
+      const corpus = articles.length ? await fetchArticlesCorpus(articles).catch(() => "") : "";
+      const curadorContext = corpus
+        ? {
+            ...body.curadorContext,
+            sentinelBriefing: [body.curadorContext?.sentinelBriefing, `Texto completo das matérias:\n${corpus}`]
+              .filter(Boolean)
+              .join("\n\n"),
+          }
+        : body.curadorContext;
+
       const transcript = await buildAvatarVideoTranscript({
         topic,
         profile,
-        curadorContext: body.curadorContext,
+        curadorContext,
         maxWords,
         durationLabel: bareDurationLabel(registration?.planId || null),
       });

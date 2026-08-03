@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getApifyToken,
   isApifyConfigured,
-  isInstagramFeedPost,
   normalizeApifyInstagramItems,
   normalizeInstagramHandle,
 } from "./sentinel-instagram-posts";
@@ -23,14 +22,15 @@ describe("sentinel-instagram-posts", () => {
     expect(normalizeInstagramHandle("@KimKataguiri")).toBe("kimkataguiri");
   });
 
-  it("ignora reels e posts de outros usuarios", () => {
+  it("inclui reels e ignora posts de outros usuarios", () => {
     const posts = normalizeApifyInstagramItems(
       [
         {
           ownerUsername: "kimkataguiri",
           url: "https://www.instagram.com/reel/abc123/",
-          caption: "Reel irrelevante",
-          type: "Reel",
+          caption: "Reel relevante",
+          type: "Video",
+          productType: "clips",
           timestamp: "2026-07-08T12:00:00.000Z",
         },
         {
@@ -53,23 +53,12 @@ describe("sentinel-instagram-posts", () => {
       "kimkataguiri",
     );
 
-    expect(posts).toHaveLength(1);
-    expect(posts[0]?.url).toContain("/p/realpost/");
-    expect(posts[0]?.caption).toContain("Voto impresso");
-  });
-
-  it("detecta feed post vs reel pela url", () => {
-    expect(
-      isInstagramFeedPost({
-        url: "https://www.instagram.com/p/abc/",
-        postType: "Image",
-      }),
-    ).toBe(true);
-    expect(
-      isInstagramFeedPost({
-        url: "https://www.instagram.com/reel/abc/",
-        postType: "Reel",
-      }),
-    ).toBe(false);
+    expect(posts).toHaveLength(2);
+    expect(posts.map((post) => post.url)).toEqual(
+      expect.arrayContaining([
+        "https://www.instagram.com/p/realpost/",
+        "https://www.instagram.com/reel/abc123/",
+      ]),
+    );
   });
 });

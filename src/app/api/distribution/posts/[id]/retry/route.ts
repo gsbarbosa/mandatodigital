@@ -5,7 +5,6 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { checkElectoralBlackout } from "@/lib/distribution/blackout";
-import { socialConnectionStorage } from "@/lib/distribution/connection-storage";
 import { enqueuePublishPostJob } from "@/lib/distribution/enqueue-publish";
 import { assertDistributionReady } from "@/lib/distribution/guard";
 import { distributionPostStorage } from "@/lib/distribution/post-storage";
@@ -52,8 +51,7 @@ export async function POST(_request: Request, { params }: Params) {
       );
     }
 
-    const connection = await socialConnectionStorage.getByProfileId(post.profileId);
-    const blackout = checkElectoralBlackout({ electionDate: connection?.electionDate });
+    const blackout = checkElectoralBlackout();
     if (blackout.blocked) {
       return NextResponse.json({ message: blackout.reason }, { status: 423 });
     }

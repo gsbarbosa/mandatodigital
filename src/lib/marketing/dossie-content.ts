@@ -50,7 +50,7 @@ export const dossieSections: DossieSection[] = [
   },
   {
     number: "3",
-    title: "Certificado de Conformidade Algorítmica (Res. TSE 23.610/2019 e 23.755/2026)",
+    title: "Certificado de Conformidade Algorítmica\n(Res. TSE 23.610/2019 e 23.755/2026)",
     body: "Declaramos que o ecossistema de Inteligência Artificial da plataforma, composto por seus agentes autônomos, possui travas de segurança (guardrails) com foco em:",
     bullets: [
       {

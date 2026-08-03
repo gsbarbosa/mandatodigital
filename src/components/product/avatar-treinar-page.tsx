@@ -187,7 +187,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                 <li><strong>Direito de Exclusão:</strong> Posso solicitar a exclusão total dos meus dados e do modelo de IA criado a qualquer momento, o que resultará na interrupção imediata dos serviços.</li>
                 <li><strong>Titularidade da voz e imagem:</strong> O avatar só pode falar em nome do titular deste consentimento — nunca em nome de terceiros, pessoas falecidas ou personas fictícias.</li>
                 <li><strong>Cessão de uso:</strong> Cedo à plataforma Mandato Digital o uso da minha imagem e voz para fins de treinamento do modelo de IA e geração dos vídeos do avatar.</li>
-                <li><strong>Rotulagem TSE:</strong> Estou ciente de que todo material gerado recebe selo, legenda e metadados de conteúdo por Inteligência Artificial, conforme Res. TSE 23.610/19 e 23.755/26.</li>
+                <li><strong>Rotulagem TSE:</strong> Estou ciente de que todo material gerado recebe selo e metadados de conteúdo por Inteligência Artificial, conforme Res. TSE 23.610/19 e 23.755/26.</li>
                 <li><strong>Declaração do operador:</strong> Se eu não for o titular da imagem/voz enviada, declaro possuir autorização expressa do titular para realizar este treinamento em seu nome.</li>
               </ul>
             </div>

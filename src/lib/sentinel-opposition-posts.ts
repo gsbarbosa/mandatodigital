@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import {
   fetchInstagramProfilePosts,
   isApifyReady,
-  isInstagramFeedPost,
   normalizeInstagramHandle,
   type InstagramProfilePost,
 } from "@/lib/sentinel-instagram-posts";
@@ -64,14 +63,13 @@ function suggestionFromPost(input: {
   sourceList: "interest" | "opposition";
 }): MockSentinelSuggestion | null {
   const handle = normalizeInstagramHandle(input.row.handle);
-  if (!handle || !isInstagramFeedPost(input.post)) {
+  if (!handle) {
     return null;
   }
 
   const likes = input.post.likes;
   const comments = input.post.comments;
-  const shares = input.post.shares;
-  const engagement = weightedEngagement(likes, comments, shares);
+  const engagement = weightedEngagement(likes, comments);
   // relevanceScore fica alinhado ao engajamento para ordenação/UI sem cruzar temas.
   const relevanceScore = Math.min(99, Math.max(20, Math.round(30 + Math.log10(engagement + 1) * 22)));
   const themeLabel = defaultThemeLabel(handle);
@@ -94,7 +92,6 @@ function suggestionFromPost(input: {
           network: "instagram",
           likes,
           comments,
-          shares,
         },
       ],
       actors: [actor],
@@ -105,7 +102,6 @@ function suggestionFromPost(input: {
       scoreTrendPercent: 0,
       likes,
       comments,
-      shares,
       postsAnalyzed: 1,
       sources: ["instagram"],
       byNetwork: [
@@ -113,7 +109,6 @@ function suggestionFromPost(input: {
           network: "instagram",
           likes,
           comments,
-          shares,
         },
       ],
     },
@@ -136,16 +131,8 @@ function publishedAtMs(suggestion: MockSentinelSuggestion): number {
 
 function sortByEngagementThenRecency(suggestions: MockSentinelSuggestion[]) {
   return [...suggestions].sort((left, right) => {
-    const leftEng = weightedEngagement(
-      left.engagement.likes,
-      left.engagement.comments,
-      left.engagement.shares,
-    );
-    const rightEng = weightedEngagement(
-      right.engagement.likes,
-      right.engagement.comments,
-      right.engagement.shares,
-    );
+    const leftEng = weightedEngagement(left.engagement.likes, left.engagement.comments);
+    const rightEng = weightedEngagement(right.engagement.likes, right.engagement.comments);
     if (rightEng !== leftEng) {
       return rightEng - leftEng;
     }
@@ -248,7 +235,7 @@ async function buildOppositionNewsFallbacks(
           postsAnalyzed: 1,
           outletCount: 1,
           engagementTrendPercent: 0,
-          byNetwork: [{ network: "instagram", likes: 0, comments: 0, shares: 0 }],
+          byNetwork: [{ network: "instagram", likes: 0, comments: 0 }],
           actors: [actor],
           articles: [
             {
@@ -264,10 +251,9 @@ async function buildOppositionNewsFallbacks(
           scoreTrendPercent: 0,
           likes: 0,
           comments: 0,
-          shares: 0,
           postsAnalyzed: 1,
           sources: ["instagram"],
-          byNetwork: [{ network: "instagram", likes: 0, comments: 0, shares: 0 }],
+          byNetwork: [{ network: "instagram", likes: 0, comments: 0 }],
         },
       });
     }

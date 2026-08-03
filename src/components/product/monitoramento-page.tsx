@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MonitorSignalCard,
   SignalEvidenceDrawer,
+  primarySignalActor,
+  primarySignalArticle,
 } from "@/components/product/monitor-signal-card";
 import { RefreshPautasButton } from "@/components/product/refresh-pautas-button";
 import { ProductPageHeader } from "@/components/product/product-page-header";
@@ -21,7 +23,10 @@ import {
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 import { groupSuggestionsBySphere, type MonitorSphere } from "@/lib/sphere-classifier";
-import { resolveSentinelThemeSpheres } from "@/lib/sentinel-profile-themes";
+import {
+  hasAnyMonitoringRadarConfigured,
+  resolveSentinelThemeSpheres,
+} from "@/lib/sentinel-profile-themes";
 import {
   isDevAccountModeEmail,
   readDevAccountModeFromDocumentCookie,
@@ -49,6 +54,20 @@ const SECTIONS: Array<{
   { sphere: "interesse", title: "Interesse", dotClass: "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]" },
   { sphere: "adversarios", title: "Adversários", dotClass: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" },
 ];
+
+/** Mesma origem de data usada no card (artigo ou ator primário) para ordenar por publicação. */
+function suggestionPublishedAtMs(suggestion: MockSentinelSuggestion): number {
+  const iso = primarySignalArticle(suggestion)?.publishedAt ?? primarySignalActor(suggestion)?.publishedAt;
+  if (!iso) {
+    return 0;
+  }
+  const time = new Date(iso).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function sortByPublishedAtDesc(items: MockSentinelSuggestion[]): MockSentinelSuggestion[] {
+  return [...items].sort((a, b) => suggestionPublishedAtMs(b) - suggestionPublishedAtMs(a));
+}
 
 function ThemeChips({ themes }: { themes: string[] }) {
   const uniqueThemes = Array.from(new Set(themes.map((theme) => theme.trim()).filter(Boolean)));
@@ -88,6 +107,24 @@ export function MonitoramentoPage() {
   });
   const [evidenceSuggestion, setEvidenceSuggestion] = useState<MockSentinelSuggestion | null>(null);
   const dailyCheckInFlight = useRef(false);
+  /**
+   * Falha do daily (rate limit, rede etc.) não deve virar loop: o efeito abaixo
+   * refaz a chamada toda vez que isRefreshing volta a false, e a resposta de erro
+   * nunca atualiza meta.refreshedAt — sem essa trava, tentava de novo a cada ciclo,
+   * infinitamente, mesmo quando o servidor pede pra esperar ~24h (platform_rate_limit).
+   */
+  const dailyAttemptBlocked = useRef(false);
+
+  /**
+   * Sem nenhum radar configurado, o refresh automático nunca encontra nada pra marcar
+   * como concluído (meta.refreshedAt fica vazio) e o efeito abaixo tenta de novo a cada
+   * ciclo — a animação de progresso ficaria girando pra sempre. O layout já redireciona
+   * pra `/monitoramento/temas` nesse caso, mas isso é uma trava extra do próprio componente.
+   */
+  const hasRadarConfigured = useMemo(
+    () => hasAnyMonitoringRadarConfigured(profileForm),
+    [profileForm],
+  );
 
   const isGuestUi = useMemo(() => {
     const email = sessionUser?.email ?? "";
@@ -126,7 +163,7 @@ export function MonitoramentoPage() {
 
   const runDailyRefreshIfNeeded = useCallback(
     async (refreshedAt: string | null | undefined) => {
-      if (dailyCheckInFlight.current) {
+      if (!hasRadarConfigured || dailyCheckInFlight.current || dailyAttemptBlocked.current) {
         return;
       }
       if (!needsDailySentinelRefresh(refreshedAt)) {
@@ -144,6 +181,7 @@ export function MonitoramentoPage() {
         });
         const payload = (await response.json()) as SuggestionsPayload;
         if (!response.ok) {
+          dailyAttemptBlocked.current = true;
           setLoadMessage(
             payload.message || "Não foi possível atualizar as pautas automaticamente.",
           );
@@ -171,13 +209,14 @@ export function MonitoramentoPage() {
           );
         }
       } catch {
+        dailyAttemptBlocked.current = true;
         setLoadMessage("Não foi possível atualizar as pautas automaticamente.");
       } finally {
         dailyCheckInFlight.current = false;
         setIsRefreshing(false);
       }
     },
-    [],
+    [hasRadarConfigured],
   );
 
   useEffect(() => {
@@ -217,7 +256,7 @@ export function MonitoramentoPage() {
   const creditsExhausted = Boolean(isGuestUi && credits && credits.remaining <= 0);
 
   async function handleRefresh() {
-    if (isRefreshing || isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted) {
+    if (!hasRadarConfigured || isRefreshing || isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted) {
       return;
     }
 
@@ -256,7 +295,7 @@ export function MonitoramentoPage() {
 
   const grouped = useMemo(() => {
     const themeSpheres = resolveSentinelThemeSpheres(profileForm);
-    return groupSuggestionsBySphere(
+    const groups = groupSuggestionsBySphere(
       suggestions,
       profileForm.interestSites,
       profileForm.state,
@@ -267,6 +306,9 @@ export function MonitoramentoPage() {
       },
       profileForm.municipalCities,
     );
+    return Object.fromEntries(
+      Object.entries(groups).map(([sphere, items]) => [sphere, sortByPublishedAtDesc(items)]),
+    ) as Record<MonitorSphere, MockSentinelSuggestion[]>;
   }, [
     suggestions,
     profileForm.interestSites,
@@ -389,22 +431,22 @@ export function MonitoramentoPage() {
               onClick={() => void handleRefresh()}
             />
             {refreshedDate ? (
-              <span className="text-right text-xs text-md-text-soft">
+              <span className="text-center text-xs text-md-text-soft">
                 Atualizado {refreshedIsToday ? "hoje" : refreshedDate.toLocaleDateString("pt-BR")} às{" "}
                 {refreshedDate.toLocaleTimeString("pt-BR")}
               </span>
             ) : null}
-            <span className="text-right text-xs text-md-text-soft">Próx atualização às 08:00h</span>
+            <span className="text-center text-xs text-md-text-soft">Próx atualização às 08:00h</span>
             {isDemoModeActiveForEmail(sessionUser?.email) ? (
-              <span className="text-right text-[10px] leading-snug text-[var(--distribuidor-text)]">
+              <span className="text-center text-[10px] leading-snug text-[var(--distribuidor-text)]">
                 {DEMO_REFRESH_PAUTA_HINT}
               </span>
             ) : creditsExhausted ? (
-              <span className="text-right text-[10px] leading-snug text-[var(--distribuidor-text)]">
+              <span className="text-center text-[10px] leading-snug text-[var(--distribuidor-text)]">
                 {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}
               </span>
             ) : (
-              <span className="text-right text-[10px] leading-snug text-md-text-soft">
+              <span className="text-center text-[10px] leading-snug text-md-text-soft">
                 Atualizações antecipadas consomem créditos (
                 {credits ? `${credits.remaining} restantes` : "1 de 5"}).
               </span>
@@ -491,11 +533,8 @@ export function MonitoramentoPage() {
                     <span className="font-semibold text-emerald-700 dark:text-emerald-300">
                       Cobertura municipal ampliada:{" "}
                     </span>
-                    Não encontramos reportagens recentes
-                    {municipalFallback.cities.length
-                      ? ` em ${municipalFallback.cities.join(", ")}`
-                      : " no município"}{" "}
-                    nos temas que você selecionou
+                    Não encontramos reportagens recentes na(s) sua(s) Cidade(s) nos temas que você
+                    selecionou
                     {municipalFallback.themesMissed.length
                       ? ` (${municipalFallback.themesMissed.slice(0, 4).join(", ")}${municipalFallback.themesMissed.length > 4 ? "…" : ""})`
                       : ""}
@@ -589,6 +628,10 @@ export function MonitoramentoPage() {
             .join(" · ")}
         </p>
       ) : null}
+
+      <p className="mt-2 text-xs text-md-text-soft relative z-10">
+        * Score de Engajamento = curtidas + (2 × comentários).
+      </p>
 
       <SignalEvidenceDrawer
         suggestion={evidenceSuggestion}

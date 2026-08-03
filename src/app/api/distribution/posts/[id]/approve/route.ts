@@ -75,7 +75,6 @@ export async function POST(_request: Request, { params }: Params) {
     }
 
     const blackout = checkElectoralBlackout({
-      electionDate: connection?.electionDate,
       at: post.scheduledAt ? new Date(post.scheduledAt) : new Date(),
     });
     if (blackout.blocked) {
