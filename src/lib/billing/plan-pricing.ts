@@ -47,6 +47,37 @@ export function getPlanPricing(planId: EarlyAccessPlanId): PlanPricing {
   return PLAN_PRICING[planId];
 }
 
+/** Conta interna: boleto de R$ 1,00 para smoke de pagamento + NFS-e. */
+export const BILLING_SMOKE_TEST_EMAILS = ["gsbarbosa180@gmail.com"] as const;
+export const BILLING_SMOKE_TEST_VALUE = 1;
+
+export function isBillingSmokeTestEmail(email: string | null | undefined): boolean {
+  const normalized = String(email ?? "")
+    .trim()
+    .toLowerCase();
+  return (BILLING_SMOKE_TEST_EMAILS as readonly string[]).includes(normalized);
+}
+
+export type CheckoutPricing = PlanPricing & { smokeTest: boolean };
+
+/** Pricing efetivo do checkout — smoke override só por e-mail allowlist no server. */
+export function resolveCheckoutPricing(
+  planId: EarlyAccessPlanId,
+  email: string | null | undefined,
+): CheckoutPricing {
+  const base = getPlanPricing(planId);
+  if (!isBillingSmokeTestEmail(email)) {
+    return { ...base, smokeTest: false };
+  }
+  return {
+    ...base,
+    installmentValue: BILLING_SMOKE_TEST_VALUE,
+    installmentCount: 1,
+    campaignTotal: BILLING_SMOKE_TEST_VALUE,
+    smokeTest: true,
+  };
+}
+
 export function formatBrl(value: number): string {
   return value.toLocaleString("pt-BR", {
     style: "currency",

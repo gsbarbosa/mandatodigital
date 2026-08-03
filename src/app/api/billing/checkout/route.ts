@@ -16,7 +16,7 @@ import { buildAsaasNfsInvoiceSettings, isAsaasNfsEnabled } from "@/lib/billing/n
 import {
   asaasDatePlusDays,
   formatBrl,
-  getPlanPricing,
+  resolveCheckoutPricing,
   subscriptionEndDateFromFirstDue,
 } from "@/lib/billing/plan-pricing";
 import { appLog, appLogError } from "@/lib/observability/log";
@@ -58,7 +58,8 @@ export async function POST(request: Request) {
         );
       }
 
-      const pricing = getPlanPricing(body.planId);
+      const sessionEmail = session.email || registration.email || "";
+      const pricing = resolveCheckoutPricing(body.planId, sessionEmail);
       const ownerUserId = registration.ownerUserId;
 
       let customerId = registration.asaasCustomerId;
@@ -74,24 +75,52 @@ export async function POST(request: Request) {
       }
 
       let subscriptionId = registration.asaasSubscriptionId;
+      // Smoke R$1: se já houver assinatura de valor cheio, cria outra de teste.
+      if (subscriptionId && pricing.smokeTest) {
+        try {
+          const existingPayments = await asaasListSubscriptionPayments(subscriptionId);
+          const primary = pickPrimaryBoletoPayment(existingPayments);
+          const existingValue = primary?.value ?? null;
+          if (existingValue != null && Math.abs(existingValue - pricing.installmentValue) > 0.009) {
+            appLog("billing", "smoke_test_replacing_subscription", {
+              ownerUserId,
+              previousSubscriptionId: subscriptionId,
+              previousValue: existingValue,
+            });
+            subscriptionId = null;
+          }
+        } catch {
+          subscriptionId = null;
+        }
+      }
+
       let createdSubscription = false;
       let nfsConfigured = false;
       if (!subscriptionId) {
-        const nextDueDate = asaasDatePlusDays(3);
-        const endDate = subscriptionEndDateFromFirstDue(nextDueDate);
+        const nextDueDate = asaasDatePlusDays(pricing.smokeTest ? 1 : 3);
+        const endDate = pricing.smokeTest
+          ? nextDueDate
+          : subscriptionEndDateFromFirstDue(nextDueDate);
+        const description = pricing.smokeTest
+          ? `TESTE NFS — Mandato Digital ${pricing.label} (R$ 1,00)`
+          : `Mandato Digital — ${pricing.label} (parcela 1/${pricing.installmentCount})`;
         const subscription = await asaasCreateBoletoSubscription({
           customerId,
           value: pricing.installmentValue,
           nextDueDate,
           endDate,
-          description: `Mandato Digital — ${pricing.label} (parcela 1/${pricing.installmentCount})`,
-          externalReference: `${ownerUserId}:${body.planId}`,
+          description,
+          externalReference: pricing.smokeTest
+            ? `${ownerUserId}:${body.planId}:smoke`
+            : `${ownerUserId}:${body.planId}`,
         });
         subscriptionId = subscription.id;
         createdSubscription = true;
 
         if (isAsaasNfsEnabled()) {
-          const nfsSettings = buildAsaasNfsInvoiceSettings({ planLabel: pricing.label });
+          const nfsSettings = buildAsaasNfsInvoiceSettings({
+            planLabel: pricing.smokeTest ? `${pricing.label} (teste)` : pricing.label,
+          });
           if (!nfsSettings) {
             appLog(
               "billing",
@@ -160,6 +189,7 @@ export async function POST(request: Request) {
         asaasSubscriptionId: subscriptionId,
         nfsConfigured,
         subscriptionCreated: createdSubscription,
+        smokeTest: pricing.smokeTest,
       });
     });
   } catch (error) {

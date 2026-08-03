@@ -6,7 +6,7 @@ import {
 } from "@/lib/asaas/client";
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
-import { formatBrl, getPlanPricing } from "@/lib/billing/plan-pricing";
+import { formatBrl, getPlanPricing, isBillingSmokeTestEmail } from "@/lib/billing/plan-pricing";
 import {
   getUserRegistrationForOwner,
   updateUserRegistrationBilling,
@@ -26,6 +26,7 @@ export async function GET() {
         planId: null,
         boleto: null,
         nfs: null,
+        smokeTestAvailable: isBillingSmokeTestEmail(session.email),
       });
     }
 
@@ -82,6 +83,9 @@ export async function GET() {
         pdfUrl: registration.lastNfsPdfUrl,
         xmlUrl: registration.lastNfsXmlUrl,
       },
+      smokeTestAvailable: isBillingSmokeTestEmail(
+        session.email || registration.email,
+      ),
     });
   });
 }

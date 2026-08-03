@@ -45,6 +45,7 @@ export function AcessoPlanosPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [billingStatus, setBillingStatus] = useState<string | null>(null);
   const [registeredPlanId, setRegisteredPlanId] = useState<EarlyAccessPlanId | null>(null);
+  const [smokeTestAvailable, setSmokeTestAvailable] = useState(false);
   const selectedPlanId = earlyAccess.reservation?.planId ?? registeredPlanId;
 
   useEffect(() => {
@@ -77,9 +78,11 @@ export function AcessoPlanosPage() {
           const bill = (await billRes.json()) as {
             billingStatus?: string;
             planId?: EarlyAccessPlanId | null;
+            smokeTestAvailable?: boolean;
           };
           if (!cancelled) {
             setBillingStatus(bill.billingStatus ?? null);
+            setSmokeTestAvailable(Boolean(bill.smokeTestAvailable));
             if (
               bill.planId === "essencial" ||
               bill.planId === "avancado" ||
@@ -286,7 +289,9 @@ export function AcessoPlanosPage() {
                           ? "Ver boleto pendente"
                           : isSaving
                             ? "Gerando boleto..."
-                            : "Gerar boleto (3 parcelas)"}
+                            : smokeTestAvailable
+                              ? "Gerar boleto teste (R$ 1,00)"
+                              : "Gerar boleto (3 parcelas)"}
                     </button>
                   ) : (
                     <button
@@ -308,7 +313,11 @@ export function AcessoPlanosPage() {
                         : "bg-md-surface-inset border border-md-border text-md-text hover:bg-md-overlay-hover"
                     }`}
                   >
-                    {isSaving ? "Gerando boleto..." : "Assinar com boleto"}
+                    {isSaving
+                      ? "Gerando boleto..."
+                      : smokeTestAvailable
+                        ? "Assinar teste (R$ 1,00)"
+                        : "Assinar com boleto"}
                   </button>
                 ) : (
                   <button
