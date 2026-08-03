@@ -1,0 +1,31 @@
+---
+description: Fluxo Git — feature a partir de staging; só Gustavo mergeia em staging/main
+alwaysApply: true
+---
+
+# Git workflow — feature → staging → main
+
+Quem desenvolve feature **não** mexe em `staging` nem em `main`.
+
+## Papéis
+
+- **Dev (ex.: Thiago):** cria e mantém só `feat/...`; push da feature; avisa o Gustavo.
+- **Gustavo:** review, merge feature → `staging`, promoção `staging` → `main`, deploy via pipe.
+
+## Passos do dev
+
+1. `git fetch origin && git checkout staging && git pull origin staging`
+2. `git checkout -b feat/<slug-curto-descritivo>`
+3. Trabalhar somente nessa branch
+4. `git push -u origin HEAD`
+5. Avisar o Gustavo — ele mergeia em `staging` e promove para `main`
+
+## Proibições
+
+- Nunca commit/push em `main` ou direto em `staging`
+- Nunca PR direto para `main`
+- Nunca mergear a própria feature em `staging`/`main` sem o Gustavo
+- Nunca force-push em `staging` ou `main`
+- Atualizar a feature: trazer `staging` **para** a feature — nunca o contrário
+
+Se pedirem "subir" o trabalho do Thiago: interprete como push da feature branch + aviso ao Gustavo — não push/merge em `staging`/`main` no lugar dele.
