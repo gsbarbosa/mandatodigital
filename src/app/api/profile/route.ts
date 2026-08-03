@@ -5,10 +5,9 @@ import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
-  DEMO_THEME_SAVE_BLOCKED_MESSAGE,
-  isDemoModeActiveForEmail,
-} from "@/lib/demo-mode";
-import { tryConsumeDemoThemeSave } from "@/lib/demo-usage-storage";
+  GUEST_THEME_SAVE_BLOCKED_MESSAGE,
+  tryConsumeGuestThemeSave,
+} from "@/lib/guest-usage-storage";
 import {
   getGuestSentinelCredits,
   tryConsumeGuestSentinelCredit,
@@ -49,14 +48,16 @@ export async function PUT(request: Request) {
       const body = (await request.json()) as Record<string, unknown> & {
         draftSave?: boolean;
         sentinelRefreshPolicy?: unknown;
-        countDemoThemeSave?: unknown;
+        countGuestThemeSave?: unknown;
       };
       const draftSave = body.draftSave === true;
       const refreshPolicy = parseRefreshPolicy(body.sentinelRefreshPolicy);
-      const countDemoThemeSave = body.countDemoThemeSave === true;
+      const countGuestThemeSave =
+        body.countGuestThemeSave === true || body.countDemoThemeSave === true;
       delete body.draftSave;
       delete body.sentinelRefreshPolicy;
       delete body.countDemoThemeSave;
+      delete body.countGuestThemeSave;
 
       const dashboard = await repository.getDashboard();
       const previousSignature = dashboard.profile
@@ -74,16 +75,16 @@ export async function PUT(request: Request) {
       const premium = await isPremiumAccountMode(sessionUser?.email);
       const ownerUserId = getStorageOwnerUserId()?.trim() || "anonymous";
 
-      // DEMO: limite server-side só quando a UI de temas pede (countDemoThemeSave).
+      // Free trial (convidado): limite server-side só quando a UI de temas pede.
       // Outros saves usam policy "themes" por default e NÃO devem consumir a cota.
-      if (isDemoModeActiveForEmail(sessionUser?.email) && !draftSave && countDemoThemeSave) {
-        const demoTheme = await tryConsumeDemoThemeSave(ownerUserId);
-        if (!demoTheme.ok) {
+      if (!premium && !draftSave && countGuestThemeSave) {
+        const guestTheme = await tryConsumeGuestThemeSave(ownerUserId);
+        if (!guestTheme.ok) {
           return NextResponse.json(
             {
-              message: DEMO_THEME_SAVE_BLOCKED_MESSAGE,
+              message: GUEST_THEME_SAVE_BLOCKED_MESSAGE,
               profile: dashboard.profile,
-              demoUsage: demoTheme.usage,
+              guestUsage: guestTheme.usage,
             },
             { status: 429 },
           );
@@ -105,10 +106,6 @@ export async function PUT(request: Request) {
         if (consumeOnSuccess && credits && credits.remaining <= 0) {
           sentinelRefreshSkipped = true;
           sentinelRefreshMessage = guestSentinelCreditsExhaustedMessage();
-          await invalidateSentinelCacheAsync(profile.id);
-        } else if (isDemoModeActiveForEmail(sessionUser?.email) && refreshPolicy === "themes") {
-          // DEMO: pautas só de manhã — save de tema não dispara coleta pesada.
-          sentinelRefreshSkipped = true;
           await invalidateSentinelCacheAsync(profile.id);
         } else {
           await invalidateSentinelCacheAsync(profile.id);

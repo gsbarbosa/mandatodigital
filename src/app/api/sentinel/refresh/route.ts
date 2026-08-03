@@ -20,7 +20,6 @@ import {
   invalidateSentinelMemoryCache,
 } from "@/lib/sentinel-suggestions";
 import { appLog, appLogError, startTimer } from "@/lib/observability/log";
-import { DEMO_REFRESH_PAUTA_HINT, isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   checkDistributedRateLimit,
   releaseDistributedRateLimit,
@@ -81,29 +80,7 @@ export async function POST(request: Request) {
       profileId,
       reason,
       premium,
-      demoMode: isDemoModeActiveForEmail(sessionUser?.email),
     });
-
-    if (isDemoModeActiveForEmail(sessionUser?.email) && reason === "manual") {
-      appLog(
-        "sentinel",
-        "refresh_rejected",
-        { profileId, reason, cause: "demo_manual_locked" },
-        "warn",
-      );
-      const cached =
-        profileId !== "default" ? await sentinelStorage.readCache(profileId) : null;
-      const credits = premium ? null : await getGuestSentinelCredits(ownerUserId);
-      return NextResponse.json(
-        {
-          message: DEMO_REFRESH_PAUTA_HINT,
-          suggestions: cached?.suggestions ?? [],
-          meta: cached?.meta ?? null,
-          credits,
-        },
-        { status: 403 },
-      );
-    }
 
     const cached = profileId !== "default" ? await sentinelStorage.readCache(profileId) : null;
     const lastRefreshWasSourceFailure = isGuestSentinelRefreshSourceFailure(cached?.meta);

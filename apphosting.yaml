@@ -230,19 +230,6 @@ env:
       - BUILD
       - RUNTIME
 
-  # Modo DEMO / degustação — ligar para apresentações; desligar depois.
-  - variable: DEMO_MODE
-    value: "true"
-    availability:
-      - BUILD
-      - RUNTIME
-
-  - variable: NEXT_PUBLIC_DEMO_MODE
-    value: "true"
-    availability:
-      - BUILD
-      - RUNTIME
-
   # Painel /admin — recomendado (sem isto usa default de bootstrap + warning nos logs):
   # Cadastre: npm run firebase:secrets:guide / --apply
   # - variable: ADMIN_PASSWORD

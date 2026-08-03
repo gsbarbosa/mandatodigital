@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { DEMO_REFRESH_PAUTA_HINT, isDemoModeActiveForEmail } from "@/lib/demo-mode";
-import { useProductApp } from "./provider";
-
 type RefreshPautasButtonProps = {
   isLoading: boolean;
   onClick: () => void;
   disabled?: boolean;
-  /** Tooltip quando desabilitado (créditos, DEMO, etc.). */
+  /** Tooltip quando desabilitado (créditos esgotados, etc.). */
   disabledTitle?: string;
   variant?: "persona" | "monitor";
   className?: string;
@@ -23,13 +20,10 @@ export function RefreshPautasButton({
   variant = "persona",
   className = "",
 }: RefreshPautasButtonProps) {
-  const { sessionUser } = useProductApp();
   const [pending, setPending] = useState(false);
   const busy = isLoading || pending;
-  /** Conta de demonstração: refresh manual bloqueado (só ciclo da manhã). */
-  const demoLocked = isDemoModeActiveForEmail(sessionUser?.email);
-  const isDisabled = disabled || demoLocked;
-  const lockTitle = disabledTitle ?? (demoLocked ? DEMO_REFRESH_PAUTA_HINT : undefined);
+  const isDisabled = disabled;
+  const lockTitle = disabledTitle;
 
   useEffect(() => {
     if (!isLoading) {
@@ -55,7 +49,6 @@ export function RefreshPautasButton({
     <button
       type="button"
       data-testid="refresh-pautas-button"
-      data-guest-locked={demoLocked ? "true" : "false"}
       className={`refresh-pautas-btn ${variantClass}${busy ? " is-loading" : ""}${isDisabled ? " is-locked" : ""}${className ? ` ${className}` : ""}`}
       onClick={handleClick}
       disabled={busy || isDisabled}

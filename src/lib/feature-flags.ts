@@ -103,19 +103,3 @@ export function isDistributionPublishEnabled() {
     readEnvFlag("NEXT_PUBLIC_DISTRIBUTION_PUBLISH_ENABLED")
   );
 }
-
-/**
- * Modo demonstração / degustação (apresentações, convidados controlados).
- * Fail-closed: default off.
- *
- * No client, Next só embute `process.env.NEXT_PUBLIC_*` com acesso **literal**
- * (não via `process.env[name]` dinâmico). Por isso o PUBLIC não passa por
- * `readEnvFlag`.
- */
-export function isDemoMode() {
-  if (readEnvFlag("DEMO_MODE")) {
-    return true;
-  }
-  const pub = process.env.NEXT_PUBLIC_DEMO_MODE?.trim().toLowerCase();
-  return pub === "1" || pub === "true" || pub === "yes" || pub === "on";
-}

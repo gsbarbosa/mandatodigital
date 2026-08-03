@@ -4,9 +4,9 @@ import type { Route } from "next";
 
 import { getSessionUser } from "@/lib/auth/session";
 import { getAuthSetupMessage, isFirebaseAuthConfigured } from "@/lib/firebase/env";
-import { resolvePostLoginPath } from "@/lib/registration-gate";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
+import { resolvePostLoginPath, FREE_TRIAL_DEFAULT_PLAN_ID } from "@/lib/registration-gate";
 import {
+  assignUserRegistrationPlan,
   ensureUserRegistration,
   isUserRegistrationComplete,
   needsPlanSelection,
@@ -27,15 +27,18 @@ export default async function LoginPage({
   if (isFirebaseAuthConfigured()) {
     const sessionUser = await getSessionUser();
     if (sessionUser) {
-      const registration = await ensureUserRegistration({
+      let registration = await ensureUserRegistration({
         ownerUserId: sessionUser.id,
         email: sessionUser.email,
       });
+      if (needsPlanSelection(registration)) {
+        const assigned = await assignUserRegistrationPlan(FREE_TRIAL_DEFAULT_PLAN_ID);
+        registration = assigned.registration;
+      }
       redirect(
         resolvePostLoginPath({
           registrationComplete: isUserRegistrationComplete(registration),
           needsPlanSelection: needsPlanSelection(registration),
-          demoMode: isDemoModeActiveForEmail(sessionUser.email),
           nextPath: params.next,
         }) as Route,
       );

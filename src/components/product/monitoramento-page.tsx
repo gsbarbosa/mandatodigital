@@ -14,7 +14,6 @@ import { ProductPageHeader } from "@/components/product/product-page-header";
 import { SentinelRefreshProgress } from "@/components/product/sentinel-refresh-progress";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { useProductApp } from "@/components/product/provider";
-import { DEMO_REFRESH_PAUTA_HINT, isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
   GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE,
   needsDailySentinelRefresh,
@@ -256,7 +255,7 @@ export function MonitoramentoPage() {
   const creditsExhausted = Boolean(isGuestUi && credits && credits.remaining <= 0);
 
   async function handleRefresh() {
-    if (!hasRadarConfigured || isRefreshing || isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted) {
+    if (!hasRadarConfigured || isRefreshing || creditsExhausted) {
       return;
     }
 
@@ -420,13 +419,9 @@ export function MonitoramentoPage() {
             <RefreshPautasButton
               variant="monitor"
               isLoading={isRefreshing}
-              disabled={isDemoModeActiveForEmail(sessionUser?.email) || creditsExhausted}
+              disabled={creditsExhausted}
               disabledTitle={
-                isDemoModeActiveForEmail(sessionUser?.email)
-                  ? DEMO_REFRESH_PAUTA_HINT
-                  : creditsExhausted
-                    ? GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE
-                    : undefined
+                creditsExhausted ? GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE : undefined
               }
               onClick={() => void handleRefresh()}
             />
@@ -437,11 +432,7 @@ export function MonitoramentoPage() {
               </span>
             ) : null}
             <span className="text-center text-xs text-md-text-soft">Próx atualização às 08:00h</span>
-            {isDemoModeActiveForEmail(sessionUser?.email) ? (
-              <span className="text-center text-[10px] leading-snug text-[var(--distribuidor-text)]">
-                {DEMO_REFRESH_PAUTA_HINT}
-              </span>
-            ) : creditsExhausted ? (
+            {creditsExhausted ? (
               <span className="text-center text-[10px] leading-snug text-[var(--distribuidor-text)]">
                 {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}
               </span>

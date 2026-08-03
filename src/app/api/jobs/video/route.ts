@@ -4,12 +4,12 @@ import { z } from "zod";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
+import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
-  demoVideosExhaustedMessage,
-  releaseDemoVideoQuota,
-  tryConsumeDemoVideoQuota,
-} from "@/lib/demo-usage-storage";
+  guestVideosExhaustedMessage,
+  releaseGuestVideoQuota,
+  tryConsumeGuestVideoQuota,
+} from "@/lib/guest-usage-storage";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
   AsyncJobQuotaError,
@@ -47,17 +47,18 @@ export async function POST(request: Request) {
       }
 
       const ownerUserId = toDatabaseOwnerUserId(sessionUser.id);
-      let demoRelease: (() => Promise<void>) | null = null;
-      if (isDemoModeActiveForEmail(sessionUser.email)) {
+      let guestRelease: (() => Promise<void>) | null = null;
+      const premium = await isPremiumAccountMode(sessionUser.email);
+      if (!premium) {
         const bucket = body.createVideo.generateMode;
-        const consumed = await tryConsumeDemoVideoQuota(ownerUserId, bucket);
+        const consumed = await tryConsumeGuestVideoQuota(ownerUserId, bucket);
         if (!consumed.ok) {
           return NextResponse.json(
-            { message: demoVideosExhaustedMessage(), demoUsage: consumed.usage },
+            { message: guestVideosExhaustedMessage(), guestUsage: consumed.usage },
             { status: 429 },
           );
         }
-        demoRelease = () => releaseDemoVideoQuota(ownerUserId, bucket);
+        guestRelease = () => releaseGuestVideoQuota(ownerUserId, bucket);
       }
 
       try {
@@ -70,8 +71,8 @@ export async function POST(request: Request) {
           { status: 202 },
         );
       } catch (error) {
-        if (demoRelease) {
-          await demoRelease().catch(() => undefined);
+        if (guestRelease) {
+          await guestRelease().catch(() => undefined);
         }
         if (error instanceof AsyncJobQuotaError) {
           return NextResponse.json({ message: error.message }, { status: 429 });

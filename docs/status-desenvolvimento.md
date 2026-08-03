@@ -33,7 +33,6 @@ Documentos relacionados:
 | `SENTINEL_TREND_PROXY` | `true` |
 | `SENTINEL_SOCIAL_ENABLED` | `true` |
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
-| `DEMO_MODE` | `true` (degustação) |
 | `ASYNC_SEAL` / `ASYNC_VOICE` / `PUBSUB_JOBS` | `false` (sync) |
 | `DISTRIBUTION_*` | `false` (fail-closed) |
 
@@ -53,7 +52,7 @@ Documentos relacionados:
 | Reset Firestore (`npm run db:reset`) | ✅ | Ambiente zerado |
 | Rate limit refresh Sentinela (30/dia/usuário) | ✅ | Firestore `rate-limit-firestore.ts` (wired em `/api/sentinel/refresh`) |
 | Fila de jobs (LLM, social, fact-check async) | ❌ | Fase 3.1 |
-| Rate limit vídeos (ex.: 5/dia) | 🟡 | Em `DEMO_MODE`: 2 vídeos/avatar (generateMode) server-side |
+| Rate limit vídeos (ex.: 5/dia) | 🟡 | No free trial (convidado): 2 vídeos/avatar (generateMode) server-side |
 | `minInstances: 1` Cloud Run | ✅ | `apphosting.yaml` (`minInstances: 1`, `maxInstances: 10`) |
 | Cutover total → Firestore + Storage | ✅ | Sem Postgres/Supabase |
 
@@ -202,26 +201,12 @@ Ver [adr-distribution-ayrshare.md](adr-distribution-ayrshare.md).
 
 ---
 
-## 7b. Modo DEMO (`DEMO_MODE`)
+## 7b. Modo DEMO (removido)
 
-Flag: `DEMO_MODE` + `NEXT_PUBLIC_DEMO_MODE` (ligada em `apphosting.yaml` para a apresentação; desligar depois).
-
-| Item | Status | Notas |
-|------|--------|-------|
-| CTA "Reserve sua vaga" | ✅ | Marketing |
-| Banner Degustação Liberada | ✅ | 1× pós-login |
-| Lock pós-créditos (só Planos/CNPJ) | ✅ | Nav + redirect |
-| Atualizar pauta inativo | ✅ | Hint manhã |
-| Limite 3 saves de tema | ✅ | localStorage + **server** (`demo-usage-storage`) |
-| Tarja campanha 16/Ago | ✅ | PNG + CSS no roteiro livre |
-| Roteiro fixo + 2 vídeos/avatar | ✅ | Server-side por `generateMode` + UX localStorage |
-| Selo TSE 23.610/19 + 23.755/26 | ✅ | Permanente (não só demo) |
-| Modal export | ✅ | Já existia; texto ok |
-| Limites 90s / 3min por plano | ✅ | Permanente + copy Planos |
-| Roteiro com evidências | ✅ | Permanente |
-| Termo Gêmeo reforçado | ✅ | Permanente |
-| Save de tema não dispara coleta pesada | ✅ | Alinhado a “pautas só de manhã” |
-
+O `DEMO_MODE`/degustação foi removido. O cadastro sem plano explícito agora entra direto no
+**free trial (convidado)**, com cotas equivalentes absorvidas por `guest-limits.ts` /
+`guest-usage-storage.ts` (3 saves de tema, 2 vídeos/avatar, créditos do Sentinela). Selo TSE,
+tarja de campanha e limites de roteiro por plano continuam permanentes (não dependiam do modo demo).
 
 ---
 

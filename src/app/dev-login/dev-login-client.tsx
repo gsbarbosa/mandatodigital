@@ -8,7 +8,6 @@ import { signInWithCustomToken } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import { persistFirebaseSession, formatAuthClientError } from "@/lib/firebase/session-client";
 import { resolvePostLoginPath } from "@/lib/registration-gate";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 
 export function DevLoginClient() {
   const router = useRouter();
@@ -40,7 +39,6 @@ export function DevLoginClient() {
         const destination = resolvePostLoginPath({
           registrationComplete: session.registrationComplete,
           needsPlanSelection: session.needsPlanSelection,
-          demoMode: isDemoModeActiveForEmail(session.email),
           nextPath: null,
         });
 

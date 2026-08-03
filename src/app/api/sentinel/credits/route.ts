@@ -8,7 +8,7 @@ import { getStorageOwnerUserId } from "@/lib/storage-context";
 
 /**
  * Créditos do convidado, sem depender de perfil salvo — usado pelo gate de
- * DEMO_MODE na sidebar (lock quando `remaining === 0`).
+ * free trial na sidebar (lock quando `remaining === 0`).
  */
 export async function GET() {
   return apiRoute(async () => {

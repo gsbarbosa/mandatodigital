@@ -12,13 +12,14 @@ import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 import { ThemeTagPill } from "@/components/product/theme-tag";
 import {
-  DEMO_THEME_SAVE_BLOCKED_MESSAGE,
-  DEMO_THEME_SAVE_LIMIT,
-  incrementDemoThemeSaveCount,
-  isDemoModeActiveForEmail,
-  readDemoThemeSaveCount,
-} from "@/lib/demo-mode";
-import { GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE } from "@/lib/guest-limits";
+  GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE,
+  GUEST_THEME_SAVE_BLOCKED_MESSAGE,
+  GUEST_THEME_SAVE_LIMIT,
+} from "@/lib/guest-limits";
+import {
+  incrementGuestThemeSaveCount,
+  readGuestThemeSaveCount,
+} from "@/lib/guest-client-usage";
 import type { SocialHandle } from "@/lib/types";
 import { mirrorInterestThemesToSpheres } from "@/lib/sentinel-profile-themes";
 import {
@@ -398,8 +399,8 @@ export function RedefinirTemasPage() {
       return;
     }
 
-    if (isDemoModeActiveForEmail(sessionUser?.email) && readDemoThemeSaveCount() >= DEMO_THEME_SAVE_LIMIT) {
-      setLimitMessage(DEMO_THEME_SAVE_BLOCKED_MESSAGE);
+    if (!isPremium && readGuestThemeSaveCount() >= GUEST_THEME_SAVE_LIMIT) {
+      setLimitMessage(GUEST_THEME_SAVE_BLOCKED_MESSAGE);
       return;
     }
 
@@ -409,10 +410,10 @@ export function RedefinirTemasPage() {
         silent: true,
         throwOnError: true,
         sentinelRefreshPolicy: "themes",
-        countDemoThemeSave: true,
+        countGuestThemeSave: true,
       });
-      if (isDemoModeActiveForEmail(sessionUser?.email)) {
-        incrementDemoThemeSaveCount();
+      if (!isPremium) {
+        incrementGuestThemeSaveCount();
       }
       // Libera o Próximo do passo "Salvar radar" no onboarding guiado.
       markRadarSaved();

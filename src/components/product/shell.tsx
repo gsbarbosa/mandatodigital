@@ -4,8 +4,6 @@ import { useState, type ReactNode } from "react";
 
 import { useProductApp } from "./provider";
 
-import { DemoAccountBadge } from "./demo-account-badge";
-import { DemoDegustacaoBanner } from "./demo-degustacao-banner";
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { NavSidebar } from "./nav-sidebar";
 import { OnboardingChecklist } from "./onboarding-checklist";
@@ -56,8 +54,6 @@ export function ProductShell({ children }: { children: ReactNode }) {
       <main
         className={`relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-bg transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
       >
-        <DemoAccountBadge />
-        <DemoDegustacaoBanner />
         <OnboardingModals />
         <OnboardingCoachmark />
         <OnboardingChecklist hidden={supportOpen} />

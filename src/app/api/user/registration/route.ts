@@ -7,6 +7,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { digitsOnly, isValidCpf, isValidPhoneBr } from "@/lib/br-input";
 import { mergeProfileInputForSave } from "@/lib/profile-save";
 import { profileInputSchema } from "@/lib/schemas";
+import { FREE_TRIAL_DEFAULT_PLAN_ID } from "@/lib/registration-gate";
 import {
   assignUserRegistrationPlan,
   completeUserRegistration,
@@ -14,7 +15,6 @@ import {
   findRegistrationByCpf,
   getUserRegistrationForOwner,
   needsPlanSelection,
-  saveUserRegistrationPersonalData,
   toEarlyAccessReservationShape,
   updateUserRegistrationTeamContact,
 } from "@/lib/user-registration-storage";
@@ -179,28 +179,10 @@ export async function POST(request: Request) {
       const merged = buildDraftProfileInput(personal, email, dashboard.profile);
       const profile = await repository.saveProfile(profileInputSchema.parse(merged));
 
-      if (!body.planId) {
-        const stored = await saveUserRegistrationPersonalData({
-          data: personal,
-          profileId: profile.id,
-        });
-
-        return NextResponse.json(
-          {
-            registration: stored,
-            reservation: null,
-            profileId: stored.profileId,
-            profile,
-            authEmail: authEmail || null,
-            needsPlanSelection: true,
-            message: "Dados salvos. Escolha um plano para concluir a reserva.",
-          },
-          { status: 201 },
-        );
-      }
-
+      // Sem plano explícito → free trial (essencial). Planos continua acessível depois.
+      const planId = body.planId ?? FREE_TRIAL_DEFAULT_PLAN_ID;
       const { registration: stored, seat } = await completeUserRegistration({
-        data: { ...personal, planId: body.planId },
+        data: { ...personal, planId },
         profileId: profile.id,
       });
 

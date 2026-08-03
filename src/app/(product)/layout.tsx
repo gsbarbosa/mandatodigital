@@ -12,10 +12,11 @@ import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import {
   isRegistrationAllowedPath,
   resolveIncompleteRegistrationPath,
+  FREE_TRIAL_DEFAULT_PLAN_ID,
 } from "@/lib/registration-gate";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import { hasAnyMonitoringRadarConfigured } from "@/lib/sentinel-profile-themes";
 import {
+  assignUserRegistrationPlan,
   ensureUserRegistration,
   isUserRegistrationComplete,
   needsPlanSelection,
@@ -37,10 +38,17 @@ export default async function ProductLayout({
   let registrationComplete = true;
 
   if (sessionUser && isFirebaseAuthConfigured()) {
-    const registration = await ensureUserRegistration({
+    let registration = await ensureUserRegistration({
       ownerUserId: sessionUser.id,
       email: sessionUser.email,
     });
+
+    // Legado: dados ok sem plano → libera free trial (essencial) sem gate de planos.
+    if (needsPlanSelection(registration)) {
+      const assigned = await assignUserRegistrationPlan(FREE_TRIAL_DEFAULT_PLAN_ID);
+      registration = assigned.registration;
+    }
+
     registrationComplete = isUserRegistrationComplete(registration);
 
     if (!registrationComplete) {
@@ -48,7 +56,6 @@ export default async function ProductLayout({
         redirect(
           resolveIncompleteRegistrationPath({
             needsPlanSelection: needsPlanSelection(registration),
-            demoMode: isDemoModeActiveForEmail(sessionUser.email),
           }),
         );
       }

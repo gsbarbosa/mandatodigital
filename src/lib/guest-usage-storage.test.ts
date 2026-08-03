@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { DEMO_MAX_VIDEOS_PER_AVATAR, DEMO_THEME_SAVE_LIMIT } from "./demo-mode";
-import { buildDemoUsage, demoVideosExhaustedMessage } from "./demo-usage-storage";
+import { GUEST_MAX_VIDEOS_PER_AVATAR, GUEST_THEME_SAVE_LIMIT } from "./guest-limits";
+import { buildGuestUsage, guestVideosExhaustedMessage } from "./guest-usage-storage";
 
-describe("buildDemoUsage", () => {
+describe("buildGuestUsage", () => {
   it("zera quando doc vazio", () => {
-    const usage = buildDemoUsage(undefined);
+    const usage = buildGuestUsage(undefined);
     expect(usage.themeSaves).toBe(0);
-    expect(usage.themeSavesRemaining).toBe(DEMO_THEME_SAVE_LIMIT);
+    expect(usage.themeSavesRemaining).toBe(GUEST_THEME_SAVE_LIMIT);
     expect(usage.videosByAvatar).toEqual({});
-    expect(usage.videosPerAvatarLimit).toBe(DEMO_MAX_VIDEOS_PER_AVATAR);
+    expect(usage.videosPerAvatarLimit).toBe(GUEST_MAX_VIDEOS_PER_AVATAR);
   });
 
   it("calcula remaining a partir do doc", () => {
-    const usage = buildDemoUsage({
+    const usage = buildGuestUsage({
       demoThemeSaves: 2,
       demoVideosByAvatar: { avatar: 2, caricature: 1 },
     });
@@ -23,6 +23,6 @@ describe("buildDemoUsage", () => {
   });
 
   it("mensagem de video alinhada ao client", () => {
-    expect(demoVideosExhaustedMessage()).toContain(String(DEMO_MAX_VIDEOS_PER_AVATAR));
+    expect(guestVideosExhaustedMessage()).toContain(String(GUEST_MAX_VIDEOS_PER_AVATAR));
   });
 });

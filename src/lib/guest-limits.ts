@@ -1,7 +1,20 @@
-/** Limites da versão para convidados (guest / free) — Sentinela. */
+/** Limites da versão para convidados (guest / free trial). */
 
 /** Créditos vitalícios para force-refresh (botão + save de temas). */
 export const GUEST_SENTINEL_FORCE_CREDITS = 5;
+
+/** Máximo de salvamentos de temas (radar) no free trial. */
+export const GUEST_THEME_SAVE_LIMIT = 3;
+
+/** Máximo de vídeos gerados por avatar no free trial. */
+export const GUEST_MAX_VIDEOS_PER_AVATAR = 2;
+
+export const GUEST_THEME_SAVE_BLOCKED_MESSAGE =
+  "Limite da versão gratuita atingido: você já salvou os temas 3 vezes. Escolha um plano para continuar ajustando.";
+
+export function guestVideosExhaustedMessage(limit = GUEST_MAX_VIDEOS_PER_AVATAR) {
+  return `Limite da versão gratuita atingido: este avatar já gerou ${limit} vídeos. Escolha um plano para continuar produzindo.`;
+}
 
 /** Horário (America/Sao_Paulo) a partir do qual o ciclo diário automático libera. */
 export const SENTINEL_DAILY_REFRESH_HOUR_BRT = 8;

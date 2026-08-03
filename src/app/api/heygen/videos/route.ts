@@ -4,16 +4,13 @@ import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript, countTranscriptWords } from "@/lib/avatar-video-script";
+import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
-  isDemoModeActiveForEmail,
-  maxScriptWordsForPlan,
-  maxVideoSecondsLabelForPlan,
-} from "@/lib/demo-mode";
-import {
-  demoVideosExhaustedMessage,
-  releaseDemoVideoQuota,
-  tryConsumeDemoVideoQuota,
-} from "@/lib/demo-usage-storage";
+  guestVideosExhaustedMessage,
+  releaseGuestVideoQuota,
+  tryConsumeGuestVideoQuota,
+} from "@/lib/guest-usage-storage";
+import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-limits";
 import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 import {
@@ -81,7 +78,7 @@ function failAsset(result: { ok: false; message: string; status: 400 }) {
 
 export async function POST(request: Request) {
   const routeElapsed = startTimer();
-  const demoQuota = {
+  const guestQuota = {
     release: null as null | (() => Promise<void>),
   };
   try {
@@ -135,7 +132,7 @@ export async function POST(request: Request) {
         freePromptChars: freePrompt.length,
         asyncVoice: isAsyncVoiceEnabled(),
         elevenLabsProvider: isElevenLabsAudioVoiceProvider(),
-        demoMode: isDemoModeActiveForEmail((await getSessionUser())?.email),
+        premium: await isPremiumAccountMode((await getSessionUser())?.email),
       });
 
       if (!topic && !explicitTranscript) {
@@ -151,24 +148,25 @@ export async function POST(request: Request) {
         );
       }
 
-      // DEMO: limite server-side por generateMode (antes só localStorage).
-      const sessionForDemo = await getSessionUser();
-      if (isDemoModeActiveForEmail(sessionForDemo?.email)) {
+      // Free trial (convidado): limite server-side por generateMode.
+      const sessionForQuota = await getSessionUser();
+      const premium = await isPremiumAccountMode(sessionForQuota?.email);
+      if (!premium) {
         const ownerUserId = getStorageOwnerUserId()?.trim() || "anonymous";
-        const consumed = await tryConsumeDemoVideoQuota(ownerUserId, generateMode);
+        const consumed = await tryConsumeGuestVideoQuota(ownerUserId, generateMode);
         if (!consumed.ok) {
           appLog(
             "heygen",
             "video_generate_rejected",
-            { profileId, reason: "demo_video_quota", generateMode },
+            { profileId, reason: "guest_video_quota", generateMode },
             "warn",
           );
           return NextResponse.json(
-            { message: demoVideosExhaustedMessage(), demoUsage: consumed.usage },
+            { message: guestVideosExhaustedMessage(), guestUsage: consumed.usage },
             { status: 429 },
           );
         }
-        demoQuota.release = () => releaseDemoVideoQuota(ownerUserId, generateMode);
+        guestQuota.release = () => releaseGuestVideoQuota(ownerUserId, generateMode);
       }
 
       const registration = await getUserRegistrationForOwner().catch((error) => {
@@ -771,13 +769,13 @@ export async function POST(request: Request) {
       }
     });
 
-    if (demoQuota.release && response.status >= 400) {
-      await demoQuota.release();
+    if (guestQuota.release && response.status >= 400) {
+      await guestQuota.release();
     }
     return response;
   } catch (error) {
-    if (demoQuota.release) {
-      await demoQuota.release().catch(() => undefined);
+    if (guestQuota.release) {
+      await guestQuota.release().catch(() => undefined);
     }
     appLogError("heygen", "video_generate_failed", error, {
       durationMs: routeElapsed(),

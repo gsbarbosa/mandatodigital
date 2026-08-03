@@ -1,21 +1,23 @@
 /**
- * Contadores server-side do modo DEMO (fonte da verdade).
- * O localStorage no client continua como UX; sem este módulo o limite era bypassável.
+ * Contadores server-side do free trial (convidado) — fonte da verdade.
+ * Persistido em `guestCredits` (mesmo doc do owner).
  *
- * Persistido em `guestCredits` (mesmo doc do owner) para não criar collection nova.
+ * Campos Firestore legados `demoThemeSaves` / `demoVideosByAvatar` são reutilizados
+ * para não zerar cotas de quem já usou a degustação.
  */
 
 import {
-  DEMO_MAX_VIDEOS_PER_AVATAR,
-  DEMO_THEME_SAVE_BLOCKED_MESSAGE,
-  DEMO_THEME_SAVE_LIMIT,
-} from "@/lib/demo-mode";
+  GUEST_MAX_VIDEOS_PER_AVATAR,
+  GUEST_THEME_SAVE_BLOCKED_MESSAGE,
+  GUEST_THEME_SAVE_LIMIT,
+  guestVideosExhaustedMessage,
+} from "@/lib/guest-limits";
 import { getFirestore } from "@/lib/firebase/admin";
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
 
-export type DemoVideoBucketKey = "avatar" | "caricature" | "photo_real";
+export type GuestVideoBucketKey = "avatar" | "caricature" | "photo_real";
 
-export type DemoUsage = {
+export type GuestUsage = {
   themeSaves: number;
   themeSavesLimit: number;
   themeSavesRemaining: number;
@@ -23,7 +25,7 @@ export type DemoUsage = {
   videosPerAvatarLimit: number;
 };
 
-type GuestCreditsDemoFields = {
+type GuestCreditsUsageFields = {
   demoThemeSaves?: number;
   demoVideosByAvatar?: Record<string, number>;
 };
@@ -46,48 +48,42 @@ function normalizeVideosMap(raw: unknown): Record<string, number> {
   return out;
 }
 
-export function buildDemoUsage(data: GuestCreditsDemoFields | undefined): DemoUsage {
+export function buildGuestUsage(data: GuestCreditsUsageFields | undefined): GuestUsage {
   const themeSaves = Math.max(0, Math.floor(Number(data?.demoThemeSaves ?? 0)));
   const videosByAvatar = normalizeVideosMap(data?.demoVideosByAvatar);
   return {
     themeSaves,
-    themeSavesLimit: DEMO_THEME_SAVE_LIMIT,
-    themeSavesRemaining: Math.max(0, DEMO_THEME_SAVE_LIMIT - themeSaves),
+    themeSavesLimit: GUEST_THEME_SAVE_LIMIT,
+    themeSavesRemaining: Math.max(0, GUEST_THEME_SAVE_LIMIT - themeSaves),
     videosByAvatar,
-    videosPerAvatarLimit: DEMO_MAX_VIDEOS_PER_AVATAR,
+    videosPerAvatarLimit: GUEST_MAX_VIDEOS_PER_AVATAR,
   };
 }
 
-export function demoVideosExhaustedMessage(limit = DEMO_MAX_VIDEOS_PER_AVATAR) {
-  return `Limite da degustação atingido: este avatar já gerou ${limit} vídeos. Escolha um plano para continuar produzindo.`;
-}
+export { GUEST_THEME_SAVE_BLOCKED_MESSAGE, guestVideosExhaustedMessage };
 
-export { DEMO_THEME_SAVE_BLOCKED_MESSAGE };
-
-export async function getDemoUsage(ownerUserId: string): Promise<DemoUsage> {
+export async function getGuestUsage(ownerUserId: string): Promise<GuestUsage> {
   const trimmed = ownerUserId.trim();
   if (!trimmed || trimmed === "anonymous") {
-    return buildDemoUsage(undefined);
+    return buildGuestUsage(undefined);
   }
   const snap = await usageRef(trimmed).get();
-  return buildDemoUsage(snap.data() as GuestCreditsDemoFields | undefined);
+  return buildGuestUsage(snap.data() as GuestCreditsUsageFields | undefined);
 }
 
-export type ConsumeDemoResult =
-  | { ok: true; usage: DemoUsage }
-  | { ok: false; usage: DemoUsage };
+export type ConsumeGuestResult =
+  | { ok: true; usage: GuestUsage }
+  | { ok: false; usage: GuestUsage };
 
-/**
- * Consome 1 slot de vídeo demo por bucket (generateMode). Transação.
- */
-export async function tryConsumeDemoVideoQuota(
+/** Consome 1 slot de vídeo por bucket (generateMode). Transação. */
+export async function tryConsumeGuestVideoQuota(
   ownerUserId: string,
-  avatarKey: DemoVideoBucketKey | string,
-): Promise<ConsumeDemoResult> {
+  avatarKey: GuestVideoBucketKey | string,
+): Promise<ConsumeGuestResult> {
   const trimmed = ownerUserId.trim();
   const key = avatarKey.trim() || "default";
   if (!trimmed || trimmed === "anonymous") {
-    return { ok: false, usage: buildDemoUsage(undefined) };
+    return { ok: false, usage: buildGuestUsage(undefined) };
   }
 
   const db = getFirestore();
@@ -95,10 +91,10 @@ export async function tryConsumeDemoVideoQuota(
 
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const data = (snap.data() as GuestCreditsDemoFields | undefined) ?? {};
-    const usage = buildDemoUsage(data);
+    const data = (snap.data() as GuestCreditsUsageFields | undefined) ?? {};
+    const usage = buildGuestUsage(data);
     const current = usage.videosByAvatar[key] ?? 0;
-    if (current >= DEMO_MAX_VIDEOS_PER_AVATAR) {
+    if (current >= GUEST_MAX_VIDEOS_PER_AVATAR) {
       return { ok: false, usage };
     }
 
@@ -111,14 +107,14 @@ export async function tryConsumeDemoVideoQuota(
       },
       { merge: true },
     );
-    return { ok: true, usage: buildDemoUsage({ ...data, demoVideosByAvatar: nextMap }) };
+    return { ok: true, usage: buildGuestUsage({ ...data, demoVideosByAvatar: nextMap }) };
   });
 }
 
 /** Devolve 1 slot (falha após consumir, antes do sucesso). */
-export async function releaseDemoVideoQuota(
+export async function releaseGuestVideoQuota(
   ownerUserId: string,
-  avatarKey: DemoVideoBucketKey | string,
+  avatarKey: GuestVideoBucketKey | string,
 ): Promise<void> {
   const trimmed = ownerUserId.trim();
   const key = avatarKey.trim() || "default";
@@ -131,7 +127,7 @@ export async function releaseDemoVideoQuota(
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const data = (snap.data() as GuestCreditsDemoFields | undefined) ?? {};
+    const data = (snap.data() as GuestCreditsUsageFields | undefined) ?? {};
     const map = normalizeVideosMap(data.demoVideosByAvatar);
     const current = map[key] ?? 0;
     if (current <= 0) {
@@ -154,15 +150,13 @@ export async function releaseDemoVideoQuota(
   });
 }
 
-/**
- * Consome 1 salvamento de temas na degustação. Transação.
- */
-export async function tryConsumeDemoThemeSave(
+/** Consome 1 salvamento de temas no free trial. Transação. */
+export async function tryConsumeGuestThemeSave(
   ownerUserId: string,
-): Promise<ConsumeDemoResult> {
+): Promise<ConsumeGuestResult> {
   const trimmed = ownerUserId.trim();
   if (!trimmed || trimmed === "anonymous") {
-    return { ok: false, usage: buildDemoUsage(undefined) };
+    return { ok: false, usage: buildGuestUsage(undefined) };
   }
 
   const db = getFirestore();
@@ -170,9 +164,9 @@ export async function tryConsumeDemoThemeSave(
 
   return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    const data = (snap.data() as GuestCreditsDemoFields | undefined) ?? {};
-    const usage = buildDemoUsage(data);
-    if (usage.themeSaves >= DEMO_THEME_SAVE_LIMIT) {
+    const data = (snap.data() as GuestCreditsUsageFields | undefined) ?? {};
+    const usage = buildGuestUsage(data);
+    if (usage.themeSaves >= GUEST_THEME_SAVE_LIMIT) {
       return { ok: false, usage };
     }
 
@@ -187,7 +181,7 @@ export async function tryConsumeDemoThemeSave(
     );
     return {
       ok: true,
-      usage: buildDemoUsage({ ...data, demoThemeSaves: nextSaves }),
+      usage: buildGuestUsage({ ...data, demoThemeSaves: nextSaves }),
     };
   });
 }

@@ -1,7 +1,8 @@
 export const REGISTRATION_REQUIRED_PATH = "/acesso-antecipado/dados";
 export const PLAN_SELECTION_PATH = "/acesso-antecipado/planos";
-/** Informativo DEMO_MODE — segue para o produto sem gate obrigatório de planos. */
-export const DEMO_ACCESS_PATH = "/acesso-antecipado/demonstracao";
+
+/** Plano default do free trial (convidado) ao concluir dados pessoais. */
+export const FREE_TRIAL_DEFAULT_PLAN_ID = "essencial" as const;
 
 /** Rotas permitidas enquanto o cadastro estiver incompleto. */
 export function isRegistrationAllowedPath(pathname: string) {
@@ -9,22 +10,20 @@ export function isRegistrationAllowedPath(pathname: string) {
     pathname === REGISTRATION_REQUIRED_PATH ||
     pathname.startsWith(`${REGISTRATION_REQUIRED_PATH}/`) ||
     pathname === PLAN_SELECTION_PATH ||
-    pathname.startsWith(`${PLAN_SELECTION_PATH}/`) ||
-    pathname === DEMO_ACCESS_PATH ||
-    pathname.startsWith(`${DEMO_ACCESS_PATH}/`)
+    pathname.startsWith(`${PLAN_SELECTION_PATH}/`)
   );
 }
 
 /**
  * Próximo passo do cadastro incompleto.
- * Em DEMO_MODE, após dados pessoais → tela de acesso à demonstração (não planos).
+ * Com free trial, após dados pessoais o fluxo conclui no servidor —
+ * este helper só cobre o caso legado em que ainda falta plano.
  */
 export function resolveIncompleteRegistrationPath(input: {
   needsPlanSelection: boolean;
-  demoMode?: boolean;
 }) {
   if (input.needsPlanSelection) {
-    return input.demoMode ? DEMO_ACCESS_PATH : PLAN_SELECTION_PATH;
+    return PLAN_SELECTION_PATH;
   }
   return REGISTRATION_REQUIRED_PATH;
 }
@@ -47,17 +46,14 @@ function extractPlanQuery(nextPath: string | null | undefined): string {
 
 export function resolvePostLoginPath(input: {
   registrationComplete: boolean;
-  /** Dados pessoais ok, falta escolher o plano (fluxo "Entrar"). */
+  /** Dados pessoais ok, falta escolher o plano (legado — free trial costuma concluir no POST). */
   needsPlanSelection?: boolean;
-  /** DEMO_MODE: pula gate de planos e manda ao informativo de demonstração. */
-  demoMode?: boolean;
   nextPath?: string | null;
 }) {
   if (!input.registrationComplete) {
     if (input.needsPlanSelection) {
       return resolveIncompleteRegistrationPath({
         needsPlanSelection: true,
-        demoMode: input.demoMode,
       });
     }
     return `${REGISTRATION_REQUIRED_PATH}${extractPlanQuery(input.nextPath)}`;

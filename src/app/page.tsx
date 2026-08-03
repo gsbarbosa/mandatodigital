@@ -6,10 +6,11 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { getSessionUser } from "@/lib/auth/session";
 import { isFirebaseAuthConfigured } from "@/lib/firebase/env";
 import {
+  FREE_TRIAL_DEFAULT_PLAN_ID,
   resolveIncompleteRegistrationPath,
 } from "@/lib/registration-gate";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import {
+  assignUserRegistrationPlan,
   ensureUserRegistration,
   isUserRegistrationComplete,
   needsPlanSelection,
@@ -31,15 +32,18 @@ export default async function HomePage() {
   if (isFirebaseAuthConfigured()) {
     const sessionUser = await getSessionUser();
     if (sessionUser) {
-      const registration = await ensureUserRegistration({
+      let registration = await ensureUserRegistration({
         ownerUserId: sessionUser.id,
         email: sessionUser.email,
       });
+      if (needsPlanSelection(registration)) {
+        const assigned = await assignUserRegistrationPlan(FREE_TRIAL_DEFAULT_PLAN_ID);
+        registration = assigned.registration;
+      }
       if (!isUserRegistrationComplete(registration)) {
         redirect(
           resolveIncompleteRegistrationPath({
             needsPlanSelection: needsPlanSelection(registration),
-            demoMode: isDemoModeActiveForEmail(sessionUser.email),
           }),
         );
       }

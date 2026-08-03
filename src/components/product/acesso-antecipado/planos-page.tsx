@@ -139,8 +139,8 @@ export function AcessoPlanosPage() {
             {choosingPlan ? (
               <>
                 Seus dados já estão salvos. Compare o que cada plano inclui e confirme para
-                liberar o acesso - <strong>sem cobrança ou compromisso</strong> antes da
-                degustação
+                liberar o acesso - <strong>sem cobrança ou compromisso</strong> no período de
+                testes
               </>
             ) : (
               "Monitoramento em tempo real, avatares personalizados com voz do candidato, e compliance total com TSE. Tudo integrado em uma plataforma."

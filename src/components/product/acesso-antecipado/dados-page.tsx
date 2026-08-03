@@ -27,8 +27,6 @@ import {
   type EarlyAccessPlanId,
   type EarlyAccessReservation,
 } from "@/lib/early-access";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
-
 const UF_LIST = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
   "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
@@ -267,9 +265,6 @@ export function AcessoDadosPage() {
           router.replace(
             resolveIncompleteRegistrationPath({
               needsPlanSelection: true,
-              demoMode: isDemoModeActiveForEmail(
-                payload.authEmail?.trim() || sessionUser?.email?.trim() || null,
-              ),
             }) as Route,
           );
           return;
@@ -563,12 +558,11 @@ export function AcessoDadosPage() {
         }));
       }
 
-      // Sem plano (Entrar) → demonstração (DEMO) ou escolha de plano.
+      // Sem plano explícito no payload → servidor já assume free trial (essencial).
       if (payload?.needsPlanSelection || !payload?.reservation) {
         router.replace(
           resolveIncompleteRegistrationPath({
             needsPlanSelection: true,
-            demoMode: isDemoModeActiveForEmail(authEmail || sessionUser?.email || form.email),
           }) as Route,
         );
         router.refresh();
@@ -1031,9 +1025,7 @@ export function AcessoDadosPage() {
                   ? "Salvando..."
                   : selectedPlanId
                     ? "Realizar reserva de vaga (100% gratuita)"
-                    : isDemoModeActiveForEmail(authEmail || sessionUser?.email || form.email)
-                      ? "Salvar"
-                      : "Salvar e escolher plano"}
+                    : "Salvar"}
               </button>
             </>
           ) : null}

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  DEMO_ACCESS_PATH,
   isRegistrationAllowedPath,
   PLAN_SELECTION_PATH,
   REGISTRATION_REQUIRED_PATH,
@@ -11,15 +10,15 @@ import {
 
 describe("registration-gate", () => {
   describe("isRegistrationAllowedPath", () => {
-    it("permite dados pessoais, planos e demonstracao", () => {
+    it("permite dados pessoais e planos", () => {
       expect(isRegistrationAllowedPath("/acesso-antecipado/dados")).toBe(true);
       expect(isRegistrationAllowedPath("/acesso-antecipado/dados/")).toBe(true);
       expect(isRegistrationAllowedPath("/acesso-antecipado/planos")).toBe(true);
       expect(isRegistrationAllowedPath("/acesso-antecipado/planos/")).toBe(true);
-      expect(isRegistrationAllowedPath("/acesso-antecipado/demonstracao")).toBe(true);
     });
 
-    it("bloqueia cnpj e o restante do produto", () => {
+    it("bloqueia demonstracao, cnpj e o restante do produto", () => {
+      expect(isRegistrationAllowedPath("/acesso-antecipado/demonstracao")).toBe(false);
       expect(isRegistrationAllowedPath("/acesso-antecipado/cnpj")).toBe(false);
       expect(isRegistrationAllowedPath("/monitoramento")).toBe(false);
       expect(isRegistrationAllowedPath("/app")).toBe(false);
@@ -28,20 +27,18 @@ describe("registration-gate", () => {
   });
 
   describe("resolveIncompleteRegistrationPath", () => {
-    it("em demo manda para demonstracao em vez de planos", () => {
+    it("manda para planos quando ainda falta plano (legado)", () => {
       expect(
         resolveIncompleteRegistrationPath({
           needsPlanSelection: true,
-          demoMode: true,
         }),
-      ).toBe(DEMO_ACCESS_PATH);
+      ).toBe(PLAN_SELECTION_PATH);
 
       expect(
         resolveIncompleteRegistrationPath({
-          needsPlanSelection: true,
-          demoMode: false,
+          needsPlanSelection: false,
         }),
-      ).toBe(PLAN_SELECTION_PATH);
+      ).toBe(REGISTRATION_REQUIRED_PATH);
     });
   });
 
@@ -62,7 +59,7 @@ describe("registration-gate", () => {
       ).toBe(REGISTRATION_REQUIRED_PATH);
     });
 
-    it("manda para planos quando so falta escolher o plano", () => {
+    it("manda para planos quando so falta escolher o plano (legado)", () => {
       expect(
         resolvePostLoginPath({
           registrationComplete: false,
@@ -70,17 +67,6 @@ describe("registration-gate", () => {
           nextPath: "/monitoramento",
         }),
       ).toBe(PLAN_SELECTION_PATH);
-    });
-
-    it("em DEMO_MODE manda para informativo de demonstracao", () => {
-      expect(
-        resolvePostLoginPath({
-          registrationComplete: false,
-          needsPlanSelection: true,
-          demoMode: true,
-          nextPath: "/monitoramento",
-        }),
-      ).toBe(DEMO_ACCESS_PATH);
     });
 
     it("preserva o plano escolhido no redirect de cadastro incompleto", () => {

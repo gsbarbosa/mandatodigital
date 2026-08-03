@@ -87,17 +87,15 @@ import {
   type MockSentinelSuggestion,
 } from "@/lib/sentinel-mock-suggestions";
 import {
-  DEMO_CAMPAIGN_OVERLAY_TEXT,
-  DEMO_MAX_VIDEOS_PER_AVATAR,
-  demoFixedAvatarScript,
-  type DemoAvatarScriptKind,
-  incrementDemoVideosForAvatar,
-  isDemoModeActiveForEmail,
-  maxScriptWordsForPlan,
-  maxVideoSecondsLabelForPlan,
-  readDemoVideosForAvatar,
-} from "@/lib/demo-mode";
-import { DemoGenerateConfirmModal } from "@/components/product/demo-generate-confirm-modal";
+  incrementGuestVideosForAvatar,
+  readGuestVideosForAvatar,
+} from "@/lib/guest-client-usage";
+import {
+  GUEST_MAX_VIDEOS_PER_AVATAR,
+  guestVideosExhaustedMessage,
+} from "@/lib/guest-limits";
+import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-limits";
+import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 
 const CRIATIVO_PANEL_CLASS =
@@ -173,7 +171,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSealing, setIsSealing] = useState(false);
-  const [demoGenerateOpen, setDemoGenerateOpen] = useState(false);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -223,6 +220,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     trainingAssets,
     sessionUser,
   } = useProductApp();
+  const { isPremium } = useDevAccountMode(sessionUser?.email);
 
   // Teto de palavras do roteiro conforme o plano (Essencial 140 / Avancado 210 / Elite 420).
   // Default Essencial ate a resposta chegar, para nao liberar mais do que o plano confirmado.
@@ -413,9 +411,9 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     if (creditsExhausted) {
       return { reason: creditsExhaustedMessage };
     }
-    if (isDemoModeActiveForEmail(sessionUser?.email) && readDemoVideosForAvatar(resolveDemoAvatarKey()) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
+    if (!isPremium && readGuestVideosForAvatar(resolveGuestAvatarKey()) >= GUEST_MAX_VIDEOS_PER_AVATAR) {
       return {
-        reason: `Limite da degustação atingido: este avatar já gerou ${DEMO_MAX_VIDEOS_PER_AVATAR} vídeos. Escolha um plano para continuar produzindo.`,
+        reason: guestVideosExhaustedMessage(),
       };
     }
     if (isPollingTwinTraining && !twinReadyForVideo) {
@@ -1589,8 +1587,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     }
   }
 
-  /** Chave do avatar para o limite de vídeos da degustação (item 06). */
-  function resolveDemoAvatarKey(): string {
+  /** Chave do avatar para o limite de vídeos do free trial. */
+  function resolveGuestAvatarKey(): string {
     return (
       heygenAvatarGroupId.trim() ||
       heygenAvatarId.trim() ||
@@ -1598,16 +1596,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       avatarImageAssets[0]?.id ||
       "default"
     );
-  }
-
-  function resolveDemoAvatarScriptKind(): DemoAvatarScriptKind {
-    if (activeProductionTemplate === "caricature_mascot_3d") {
-      return "mascote3d";
-    }
-    if (activeProductionTemplate === "caricature_editorial") {
-      return "caricato";
-    }
-    return "gemeo";
   }
 
   function requestGenerate() {
@@ -1618,19 +1606,12 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       showUserError(setVideoError, new Error(creditsExhaustedMessage));
       return;
     }
-    if (isDemoModeActiveForEmail(sessionUser?.email)) {
-      const demoAvatarKey = resolveDemoAvatarKey();
-      if (readDemoVideosForAvatar(demoAvatarKey) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
-        showUserError(
-          setVideoError,
-          new Error(
-            `Limite da degustação atingido: este avatar já gerou ${DEMO_MAX_VIDEOS_PER_AVATAR} vídeos. Escolha um plano para continuar produzindo.`,
-          ),
-        );
+    if (!isPremium) {
+      const guestAvatarKey = resolveGuestAvatarKey();
+      if (readGuestVideosForAvatar(guestAvatarKey) >= GUEST_MAX_VIDEOS_PER_AVATAR) {
+        showUserError(setVideoError, new Error(guestVideosExhaustedMessage()));
         return;
       }
-      setDemoGenerateOpen(true);
-      return;
     }
     void handleGenerate();
   }
@@ -1646,20 +1627,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     autoPollStartedRef.current = false;
     let startedVideoId: string | null = null;
 
-    const demoActive = isDemoModeActiveForEmail(sessionUser?.email);
-    const demoAvatarKey = demoActive ? resolveDemoAvatarKey() : "";
+    const guestTrial = !isPremium;
+    const guestAvatarKey = guestTrial ? resolveGuestAvatarKey() : "";
 
     try {
       if (creditsExhausted) {
         throw new Error(creditsExhaustedMessage);
       }
 
-      if (demoActive) {
-        if (readDemoVideosForAvatar(demoAvatarKey) >= DEMO_MAX_VIDEOS_PER_AVATAR) {
-          throw new Error(
-            `Limite da degustação atingido: este avatar já gerou ${DEMO_MAX_VIDEOS_PER_AVATAR} vídeos. Escolha um plano para continuar produzindo.`,
-          );
-        }
+      if (guestTrial && readGuestVideosForAvatar(guestAvatarKey) >= GUEST_MAX_VIDEOS_PER_AVATAR) {
+        throw new Error(guestVideosExhaustedMessage());
       }
 
       const topic = creativeForm.topic.trim();
@@ -1764,17 +1741,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           name: useFreePromptAsTranscript
             ? `Criativo - prompt livre - ${profileForm.fullName || "Politico"}`
             : `Criativo - ${profileForm.fullName || "Politico"} - ${topic || scriptTopicSnapshot}`,
-          // Degustação: roteiro fixo (~15s), com o mesmo arquétipo/tom escolhidos no Criativo
-          // (a mesma lógica de "ferramentas táticas" do gerador real, sem posicionamento
-          // ideológico — a degustação não tem tema para ancorar isso).
-          transcript: demoActive
-            ? demoFixedAvatarScript(resolveDemoAvatarScriptKind(), {
-                archetype: creativeForm.personaArchetypes[0],
-                tone: creativeForm.voiceTones[0],
-              })
-            : useFreePromptAsTranscript
-              ? free
-              : scriptDraft.trim(),
+          transcript: useFreePromptAsTranscript ? free : scriptDraft.trim(),
           freePrompt: useFreePromptAsTranscript ? undefined : free || undefined,
         }),
       });
@@ -1879,7 +1846,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       const sealed = await sealVideoIfPossible({
         heygenVideoId: id,
         videoUrl: result.videoUrl,
-        campaignTarja: demoActive && useFreePromptAsTranscript,
+        campaignTarja: false,
       });
       setVideoUrl(sealed.videoUrl);
       setVideoStatus("completed");
@@ -1895,8 +1862,8 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             ? ["HeyGen", "ElevenLabs"]
             : ["HeyGen"],
       });
-      if (demoActive) {
-        incrementDemoVideosForAvatar(demoAvatarKey);
+      if (guestTrial) {
+        incrementGuestVideosForAvatar(guestAvatarKey);
       }
       router.push("/criativo");
     } catch (error) {
@@ -2708,17 +2675,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           )}
 
           <div
-            className={`${CRIATIVO_PANEL_CLASS} relative z-10 scroll-mt-24 ${
-              isDemoModeActiveForEmail(sessionUser?.email) && useFreePromptAsTranscript ? "pt-14" : ""
-            }`}
+            className={`${CRIATIVO_PANEL_CLASS} relative z-10 scroll-mt-24`}
             id="avatar"
             data-onboarding-anchor="criativo-avatar"
           >
-            {isDemoModeActiveForEmail(sessionUser?.email) && useFreePromptAsTranscript ? (
-              <div className="absolute inset-x-0 top-0 z-20 rounded-t-[1.75rem] bg-amber-500 px-4 py-2 text-center text-xs font-bold uppercase tracking-wide text-black shadow-md">
-                {DEMO_CAMPAIGN_OVERLAY_TEXT}
-              </div>
-            ) : null}
             <div className="border-b border-md-border pb-4 mb-6">
               <h2 className="text-xl font-bold text-md-text">Produzir vídeo</h2>
             </div>
@@ -2837,15 +2797,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         }}
       />
     ) : null}
-    <DemoGenerateConfirmModal
-      open={demoGenerateOpen}
-      busy={isGenerating}
-      onCancel={() => setDemoGenerateOpen(false)}
-      onConfirm={() => {
-        setDemoGenerateOpen(false);
-        void handleGenerate();
-      }}
-    />
     </>
   );
 }

@@ -26,7 +26,6 @@ import {
   completeSocialRedirectSignIn,
   signInWithGoogle,
 } from "@/lib/firebase/social-auth";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import { resolvePostLoginPath } from "@/lib/registration-gate";
 import { clearPlanIntent, parseEarlyAccessPlanId } from "@/lib/early-access";
 import type { Route } from "next";
@@ -102,13 +101,10 @@ export function LoginForm() {
 
         setIsFinishingAuth(true);
         const session = await persistFirebaseSession();
-        const authEmail =
-          getFirebaseAuth().currentUser?.email ?? null;
         router.replace(
           resolvePostLoginPath({
             registrationComplete: session.registrationComplete,
             needsPlanSelection: session.needsPlanSelection,
-            demoMode: isDemoModeActiveForEmail(authEmail),
             nextPath,
           }) as Route,
         );
@@ -145,13 +141,10 @@ export function LoginForm() {
 
     try {
       const session = await persistFirebaseSession();
-      const authEmail =
-        getFirebaseAuth().currentUser?.email ?? normalizeAuthEmail(email);
       router.replace(
         resolvePostLoginPath({
           registrationComplete: session.registrationComplete,
           needsPlanSelection: session.needsPlanSelection,
-          demoMode: isDemoModeActiveForEmail(authEmail),
           nextPath,
         }) as Route,
       );

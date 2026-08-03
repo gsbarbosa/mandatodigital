@@ -9,7 +9,7 @@ import {
   TSE_SEAL_OVERLAY_TEXT,
   TSE_SEAL_VERSION,
 } from "@/lib/creative-ai-metadata";
-import { DEMO_CAMPAIGN_OVERLAY_TEXT } from "@/lib/demo-mode";
+import { CAMPAIGN_OVERLAY_TEXT } from "@/lib/campaign-overlay";
 import { resolveFfmpegBinary } from "@/lib/ffmpeg-binary";
 import { storeComplianceBuffer } from "@/lib/legal/contract-storage";
 
@@ -220,7 +220,7 @@ export async function sealRemoteVideo(input: {
     guestTestWatermark: Boolean(input.guestTestWatermark),
     guestOverlayText: input.guestTestWatermark ? GUEST_TEST_WATERMARK_TEXT : undefined,
     campaignTarja: Boolean(input.campaignTarja),
-    campaignOverlayText: input.campaignTarja ? DEMO_CAMPAIGN_OVERLAY_TEXT : undefined,
+    campaignOverlayText: input.campaignTarja ? CAMPAIGN_OVERLAY_TEXT : undefined,
   };
 }
 

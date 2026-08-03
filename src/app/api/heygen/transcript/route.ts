@@ -7,7 +7,7 @@ import {
   buildAvatarVideoTranscript,
   type CuradorVideoContext,
 } from "@/lib/avatar-video-script";
-import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/demo-mode";
+import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-limits";
 import type { SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
 import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 import type { PoliticianProfile } from "@/lib/types";

@@ -6,7 +6,6 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
-import { isDemoModeActiveForEmail } from "@/lib/demo-mode";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
   countInFlightJobsForOwner,
@@ -56,7 +55,7 @@ export async function POST(request: Request) {
           mediaId: body.mediaId,
           videoUrl: body.videoUrl,
           guestTestWatermark: !premium,
-          campaignTarja: Boolean(body.campaignTarja) || isDemoModeActiveForEmail(sessionUser.email),
+          campaignTarja: Boolean(body.campaignTarja),
         },
       });
 
