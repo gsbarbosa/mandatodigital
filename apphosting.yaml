@@ -263,6 +263,42 @@ env:
   #   availability:
   #     - RUNTIME
 
+  # Asaas (boleto). Cadastre: npm run firebase:secrets:guide / --apply
+  - variable: ASAAS_API_KEY
+    secret: asaas-api-key
+    availability:
+      - RUNTIME
+  - variable: ASAAS_WEBHOOK_TOKEN
+    secret: asaas-webhook-token
+    availability:
+      - RUNTIME
+  # - variable: ASAAS_API_URL
+  #   value: "https://api.asaas.com/v3"
+  #   availability:
+  #     - RUNTIME
+
+  # NFS-e automática (painel Asaas já configurado — Portal Nacional / 010501).
+  - variable: ASAAS_NFS_ENABLED
+    value: "true"
+    availability:
+      - RUNTIME
+  - variable: ASAAS_NFS_MUNICIPAL_SERVICE_CODE
+    value: "010501"
+    availability:
+      - RUNTIME
+  - variable: ASAAS_NFS_MUNICIPAL_SERVICE_NAME
+    value: "Licenciamento ou cessão de direito de uso de programas de computação"
+    availability:
+      - RUNTIME
+  - variable: ASAAS_NFS_ISS
+    value: "2.5"
+    availability:
+      - RUNTIME
+  - variable: ASAAS_NFS_RETAIN_ISS
+    value: "false"
+    availability:
+      - RUNTIME
+
   # Opcional — descomente apos cadastrar com npm run firebase:secrets:apply:
   # - variable: ANTHROPIC_API_KEY
   #   secret: anthropic-api-key

@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { useProductApp } from "./provider";
 
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
+import { BillingPendingBanner } from "./billing-pending-banner";
 import { NavSidebar } from "./nav-sidebar";
 import { OnboardingChecklist } from "./onboarding-checklist";
 import { OnboardingCoachmark } from "./onboarding-coachmark";
@@ -54,6 +55,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
       <main
         className={`relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-b from-md-app-bg to-md-bg transition-[padding] duration-200 ${guidedGutterClass(guidedSide)}`}
       >
+        <BillingPendingBanner />
         <OnboardingModals />
         <OnboardingCoachmark />
         <OnboardingChecklist hidden={supportOpen} />

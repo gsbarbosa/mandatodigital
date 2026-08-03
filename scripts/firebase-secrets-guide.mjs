@@ -25,6 +25,8 @@ const SECRET_MAP = [
   ["JOBS_WORKER_SHARED_SECRET", "jobs-worker-shared-secret"],
   ["ADMIN_PASSWORD", "admin-password"],
   ["ADMIN_SESSION_SECRET", "admin-session-secret"],
+  ["ASAAS_API_KEY", "asaas-api-key"],
+  ["ASAAS_WEBHOOK_TOKEN", "asaas-webhook-token"],
 ];
 
 function loadEnvFile(filePath) {

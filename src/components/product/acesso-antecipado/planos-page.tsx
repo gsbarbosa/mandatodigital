@@ -13,7 +13,7 @@ import {
   type EarlyAccessPlanId,
   type EarlyAccessReservation,
 } from "@/lib/early-access";
-import { REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
+import { BILLING_PAYMENT_PATH, REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
 
 const COMPARISON_ROWS: Array<{
   section?: string;
@@ -39,33 +39,55 @@ const COMPARISON_ROWS: Array<{
 export function AcessoPlanosPage() {
   const router = useRouter();
   const [earlyAccess, updateEarlyAccess] = useEarlyAccess();
-  const selectedPlanId = earlyAccess.reservation?.planId ?? null;
   const [needsPlan, setNeedsPlan] = useState(false);
   const [hydrated, setHydrated] = useState(false);
-  const [savingPlanId, setSavingPlanId] = useState<EarlyAccessPlanId | null>(null);
+  const [checkoutPlanId, setCheckoutPlanId] = useState<EarlyAccessPlanId | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [billingStatus, setBillingStatus] = useState<string | null>(null);
+  const [registeredPlanId, setRegisteredPlanId] = useState<EarlyAccessPlanId | null>(null);
+  const selectedPlanId = earlyAccess.reservation?.planId ?? registeredPlanId;
 
   useEffect(() => {
     let cancelled = false;
 
     async function hydrate() {
       try {
-        const response = await fetch("/api/user/registration", {
-          credentials: "same-origin",
-        });
-        if (!response.ok) {
-          return;
+        const [regRes, billRes] = await Promise.all([
+          fetch("/api/user/registration", { credentials: "same-origin" }),
+          fetch("/api/billing/status", { credentials: "same-origin" }),
+        ]);
+        if (regRes.ok) {
+          const payload = (await regRes.json()) as {
+            needsPlanSelection?: boolean;
+            reservation?: EarlyAccessReservation | null;
+            registration?: { planId?: EarlyAccessPlanId | "" };
+          };
+          if (!cancelled) {
+            setNeedsPlan(Boolean(payload.needsPlanSelection));
+            if (payload.reservation) {
+              updateEarlyAccess({ reservation: payload.reservation });
+            }
+            const planFromReg = payload.reservation?.planId || payload.registration?.planId;
+            if (planFromReg === "essencial" || planFromReg === "avancado" || planFromReg === "elite") {
+              setRegisteredPlanId(planFromReg);
+            }
+          }
         }
-        const payload = (await response.json()) as {
-          needsPlanSelection?: boolean;
-          reservation?: EarlyAccessReservation | null;
-        };
-        if (cancelled) {
-          return;
-        }
-        setNeedsPlan(Boolean(payload.needsPlanSelection));
-        if (payload.reservation) {
-          updateEarlyAccess({ reservation: payload.reservation });
+        if (billRes.ok) {
+          const bill = (await billRes.json()) as {
+            billingStatus?: string;
+            planId?: EarlyAccessPlanId | null;
+          };
+          if (!cancelled) {
+            setBillingStatus(bill.billingStatus ?? null);
+            if (
+              bill.planId === "essencial" ||
+              bill.planId === "avancado" ||
+              bill.planId === "elite"
+            ) {
+              setRegisteredPlanId(bill.planId);
+            }
+          }
         }
       } finally {
         if (!cancelled) {
@@ -85,42 +107,61 @@ export function AcessoPlanosPage() {
     router.push(`${REGISTRATION_REQUIRED_PATH}?plan=${planId}` as Route);
   }
 
-  async function handleConfirmPlan(planId: EarlyAccessPlanId) {
+  async function handleCheckoutBoleto(planId: EarlyAccessPlanId) {
     setErrorMessage(null);
-    setSavingPlanId(planId);
+    setCheckoutPlanId(planId);
     try {
-      const response = await fetch("/api/user/registration", {
-        method: "PATCH",
+      // Garante plano no cadastro se ainda estiver escolhendo.
+      if (needsPlan && !selectedPlanId) {
+        const regResponse = await fetch("/api/user/registration", {
+          method: "PATCH",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ planId }),
+        });
+        const regPayload = (await regResponse.json().catch(() => null)) as {
+          message?: string;
+          reservation?: EarlyAccessReservation | null;
+          seatStatus?: "active" | "reserve";
+        } | null;
+        if (!regResponse.ok || !regPayload?.reservation) {
+          throw new Error(regPayload?.message || "Nao foi possivel confirmar o plano.");
+        }
+        updateEarlyAccess({
+          reservation: {
+            ...regPayload.reservation,
+            seatStatus: regPayload.reservation.seatStatus ?? regPayload.seatStatus ?? "active",
+          },
+        });
+        writePlanIntent(planId);
+      }
+
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId }),
       });
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
-        reservation?: EarlyAccessReservation | null;
-        seatStatus?: "active" | "reserve";
       } | null;
-
-      if (!response.ok || !payload?.reservation) {
-        throw new Error(payload?.message || "Nao foi possivel confirmar o plano.");
+      if (!response.ok) {
+        throw new Error(payload?.message || "Nao foi possivel gerar o boleto.");
       }
 
-      updateEarlyAccess({
-        reservation: {
-          ...payload.reservation,
-          seatStatus: payload.reservation.seatStatus ?? payload.seatStatus ?? "active",
-        },
-      });
-      writePlanIntent(planId);
-      router.replace(APP_HOME_PATH);
+      router.push(BILLING_PAYMENT_PATH as Route);
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel confirmar o plano.",
+        error instanceof Error ? error.message : "Nao foi possivel gerar o boleto.",
       );
     } finally {
-      setSavingPlanId(null);
+      setCheckoutPlanId(null);
     }
+  }
+
+  async function handleConfirmPlan(planId: EarlyAccessPlanId) {
+    await handleCheckoutBoleto(planId);
   }
 
   const choosingPlan = needsPlan && !selectedPlanId;
@@ -164,7 +205,10 @@ export function AcessoPlanosPage() {
             const isSelected = selectedPlanId === plan.id;
             const isRecommendedSlot = !selectedPlanId && plan.id === "avancado";
             const highlighted = isSelected || isRecommendedSlot;
-            const isSaving = savingPlanId === plan.id;
+            const isSaving = checkoutPlanId === plan.id;
+            const billingActive = billingStatus === "active";
+            const billingPending =
+              billingStatus === "pending_payment" || billingStatus === "past_due";
 
             return (
               <div
@@ -225,21 +269,38 @@ export function AcessoPlanosPage() {
                 </p>
 
                 {selectedPlanId ? (
-                  <button
-                    type="button"
-                    disabled
-                    className={`w-full py-3 rounded-xl text-sm font-semibold ${
-                      isSelected
-                        ? "bg-emerald-500/10 border border-[var(--sentinela-border)] text-[var(--sentinela-text)] cursor-default"
-                        : "bg-md-surface-inset border border-md-border text-md-text-soft cursor-not-allowed"
-                    }`}
-                  >
-                    {isSelected ? "Plano da sua reserva" : "Troca de plano indisponível"}
-                  </button>
+                  isSelected ? (
+                    <button
+                      type="button"
+                      disabled={!hydrated || Boolean(checkoutPlanId) || billingActive}
+                      onClick={() =>
+                        billingPending
+                          ? router.push(BILLING_PAYMENT_PATH as Route)
+                          : void handleCheckoutBoleto(plan.id)
+                      }
+                      className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 bg-gradient-to-r from-cyan-500 to-blue-600 text-md-text"
+                    >
+                      {billingActive
+                        ? "Plano ativo"
+                        : billingPending
+                          ? "Ver boleto pendente"
+                          : isSaving
+                            ? "Gerando boleto..."
+                            : "Gerar boleto (3 parcelas)"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3 rounded-xl text-sm font-semibold bg-md-surface-inset border border-md-border text-md-text-soft cursor-not-allowed"
+                    >
+                      Troca de plano indisponível
+                    </button>
+                  )
                 ) : choosingPlan ? (
                   <button
                     type="button"
-                    disabled={!hydrated || Boolean(savingPlanId)}
+                    disabled={!hydrated || Boolean(checkoutPlanId)}
                     onClick={() => void handleConfirmPlan(plan.id)}
                     className={`w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
                       plan.id === "avancado"
@@ -247,7 +308,7 @@ export function AcessoPlanosPage() {
                         : "bg-md-surface-inset border border-md-border text-md-text hover:bg-md-overlay-hover"
                     }`}
                   >
-                    {isSaving ? "Confirmando..." : "Confirmar este plano"}
+                    {isSaving ? "Gerando boleto..." : "Assinar com boleto"}
                   </button>
                 ) : (
                   <button
@@ -263,8 +324,7 @@ export function AcessoPlanosPage() {
                   </button>
                 )}
                 <p className="text-[10px] text-md-text-soft text-center mt-3">
-                  Reserva gratuita. Experimente gratuitamente. Você tem até o dia 16/julho para
-                  garantir sua vaga
+                  Pagamento exclusivo por boleto (TSE). Pacote em 3 parcelas mensais.
                 </p>
               </div>
             );

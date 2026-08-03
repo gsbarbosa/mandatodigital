@@ -2,6 +2,7 @@ import type { DocumentData } from "firebase-admin/firestore";
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import type { EarlyAccessPlanId } from "@/lib/early-access-types";
+import { parseBillingStatus, type BillingStatus } from "@/lib/billing/plan-pricing";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
   decideSeatAssignment,
@@ -37,6 +38,67 @@ function parseStatus(value: unknown): UserRegistrationStatus {
   return "incomplete";
 }
 
+function emptyBillingFields() {
+  return {
+    billingStatus: "trial" as BillingStatus,
+    asaasCustomerId: null as string | null,
+    asaasSubscriptionId: null as string | null,
+    pendingBoletoUrl: null as string | null,
+    pendingBoletoLinhaDigitavel: null as string | null,
+    pendingBoletoDueDate: null as string | null,
+    pendingBoletoValue: null as number | null,
+    paidInstallments: 0,
+    lastNfsPdfUrl: null as string | null,
+    lastNfsXmlUrl: null as string | null,
+    lastNfsNumber: null as string | null,
+    lastNfsStatus: null as string | null,
+  };
+}
+
+function mapBillingFields(data: DocumentData) {
+  const paid = Number(data.paidInstallments ?? 0);
+  return {
+    billingStatus: parseBillingStatus(data.billingStatus),
+    asaasCustomerId: data.asaasCustomerId ? String(data.asaasCustomerId) : null,
+    asaasSubscriptionId: data.asaasSubscriptionId
+      ? String(data.asaasSubscriptionId)
+      : null,
+    pendingBoletoUrl: data.pendingBoletoUrl ? String(data.pendingBoletoUrl) : null,
+    pendingBoletoLinhaDigitavel: data.pendingBoletoLinhaDigitavel
+      ? String(data.pendingBoletoLinhaDigitavel)
+      : null,
+    pendingBoletoDueDate: data.pendingBoletoDueDate
+      ? String(data.pendingBoletoDueDate)
+      : null,
+    pendingBoletoValue:
+      data.pendingBoletoValue == null || data.pendingBoletoValue === ""
+        ? null
+        : Number(data.pendingBoletoValue),
+    paidInstallments: Number.isFinite(paid) && paid > 0 ? Math.floor(paid) : 0,
+    lastNfsPdfUrl: data.lastNfsPdfUrl ? String(data.lastNfsPdfUrl) : null,
+    lastNfsXmlUrl: data.lastNfsXmlUrl ? String(data.lastNfsXmlUrl) : null,
+    lastNfsNumber: data.lastNfsNumber ? String(data.lastNfsNumber) : null,
+    lastNfsStatus: data.lastNfsStatus ? String(data.lastNfsStatus) : null,
+  };
+}
+
+function billingFieldsFromRegistration(existing: UserRegistration) {
+  return {
+    billingStatus: existing.billingStatus,
+    asaasCustomerId: existing.asaasCustomerId,
+    asaasSubscriptionId: existing.asaasSubscriptionId,
+    pendingBoletoUrl: existing.pendingBoletoUrl,
+    pendingBoletoLinhaDigitavel: existing.pendingBoletoLinhaDigitavel,
+    pendingBoletoDueDate: existing.pendingBoletoDueDate,
+    pendingBoletoValue: existing.pendingBoletoValue,
+    paidInstallments: existing.paidInstallments,
+    lastNfsPdfUrl: existing.lastNfsPdfUrl,
+    lastNfsXmlUrl: existing.lastNfsXmlUrl,
+    lastNfsNumber: existing.lastNfsNumber,
+    lastNfsStatus: existing.lastNfsStatus,
+  };
+}
+
 function mapDoc(ownerUserId: string, data: DocumentData | undefined): UserRegistration | null {
   if (!data) {
     return null;
@@ -57,6 +119,7 @@ function mapDoc(ownerUserId: string, data: DocumentData | undefined): UserRegist
     teamEmail: String(data.teamEmail ?? ""),
     teamPhone: String(data.teamPhone ?? ""),
     planId: parsePlanId(data.planId),
+    ...mapBillingFields(data),
     createdAt: String(data.createdAt ?? nowIso()),
     updatedAt: String(data.updatedAt ?? nowIso()),
     completedAt: data.completedAt ? String(data.completedAt) : null,
@@ -94,6 +157,7 @@ function mapLegacyReservation(
     teamEmail: String(data.teamEmail ?? ""),
     teamPhone: String(data.teamPhone ?? ""),
     planId,
+    ...emptyBillingFields(),
     createdAt: String(data.reservedAt ?? data.createdAt ?? nowIso()),
     updatedAt: String(data.updatedAt ?? nowIso()),
     completedAt: hasCore ? completedAt : null,
@@ -261,6 +325,7 @@ export async function ensureUserRegistration(input: {
     teamEmail: "",
     teamPhone: "",
     planId: "",
+    ...emptyBillingFields(),
     createdAt: now,
     updatedAt: now,
     completedAt: null,
@@ -334,6 +399,7 @@ export async function saveUserRegistrationPersonalData(input: {
     teamEmail: input.data.teamEmail.trim(),
     teamPhone: input.data.teamPhone.replace(/\D/g, ""),
     planId: "",
+    ...(existing ? billingFieldsFromRegistration(existing) : emptyBillingFields()),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     completedAt: null,
@@ -377,6 +443,7 @@ export async function completeUserRegistration(input: {
     teamEmail: input.data.teamEmail.trim(),
     teamPhone: input.data.teamPhone.replace(/\D/g, ""),
     planId: input.data.planId,
+    ...(existing ? billingFieldsFromRegistration(existing) : emptyBillingFields()),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     completedAt: existing?.completedAt ?? now,
@@ -471,4 +538,64 @@ export function toEarlyAccessReservationShape(row: UserRegistration) {
     reservedAt: row.completedAt ?? row.createdAt,
     seatStatus: row.status === "reserve" ? ("reserve" as const) : ("active" as const),
   };
+}
+
+export type UserBillingUpdate = Partial<{
+  billingStatus: BillingStatus;
+  asaasCustomerId: string | null;
+  asaasSubscriptionId: string | null;
+  pendingBoletoUrl: string | null;
+  pendingBoletoLinhaDigitavel: string | null;
+  pendingBoletoDueDate: string | null;
+  pendingBoletoValue: number | null;
+  paidInstallments: number;
+  planId: EarlyAccessPlanId;
+  lastNfsPdfUrl: string | null;
+  lastNfsXmlUrl: string | null;
+  lastNfsNumber: string | null;
+  lastNfsStatus: string | null;
+}>;
+
+export async function updateUserRegistrationBilling(
+  ownerUserId: string,
+  patch: UserBillingUpdate,
+): Promise<UserRegistration> {
+  const id = toDatabaseOwnerUserId(ownerUserId);
+  const existing = await readRegistrationDoc(id);
+  if (!existing) {
+    throw new Error("Cadastro nao encontrado para atualizar cobranca.");
+  }
+
+  const updated: UserRegistration = {
+    ...existing,
+    ...patch,
+    updatedAt: nowIso(),
+  };
+
+  await col(COLLECTIONS.userRegistrations).doc(id).set(updated, { merge: true });
+  return updated;
+}
+
+export async function findRegistrationByAsaasCustomerId(
+  asaasCustomerId: string,
+): Promise<UserRegistration | null> {
+  const trimmed = asaasCustomerId.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const snap = await col(COLLECTIONS.userRegistrations)
+    .where("asaasCustomerId", "==", trimmed)
+    .limit(1)
+    .get();
+  if (snap.empty) {
+    return null;
+  }
+  const doc = snap.docs[0];
+  return mapDoc(doc.id, doc.data());
+}
+
+export function isBillingActive(
+  registration: UserRegistration | null | undefined,
+): boolean {
+  return registration?.billingStatus === "active";
 }
