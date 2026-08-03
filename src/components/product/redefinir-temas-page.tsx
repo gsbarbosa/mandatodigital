@@ -300,10 +300,11 @@ export function RedefinirTemasPage() {
     useProductApp();
   const { isPremium } = useDevAccountMode(sessionUser?.email);
   const { exhausted: creditsExhausted } = useGuestCreditsGate();
-  const { markRadarSaved, isActive: onboardingActive } = useOnboarding();
+  const { markRadarSaved, guideOpen: onboardingGuideOpen } = useOnboarding();
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
   const [showMonitoramentoPrompt, setShowMonitoramentoPrompt] = useState(false);
+  const [guestNoteDismissed, setGuestNoteDismissed] = useState(false);
 
   // Temas, municípios e portais regionais têm teto fixo independente do plano —
   // só perfis de rede social e adversários seguem o teto ampliado do premium.
@@ -421,7 +422,7 @@ export function RedefinirTemasPage() {
       } else {
         // Durante o onboarding guiado, o próprio tip leva para o próximo passo
         // (bridge "Temas configurados!") — este prompt manual só faz sentido fora dele.
-        setShowMonitoramentoPrompt(!onboardingActive);
+        setShowMonitoramentoPrompt(!onboardingGuideOpen);
       }
     } catch {
       // Erro exibido pelo provider (banner global).
@@ -436,11 +437,21 @@ export function RedefinirTemasPage() {
     <span className="text-[var(--sentinela-text)]" role="status">
       {saveMessage}
     </span>
-  ) : !isPremium ? (
-    <span>
-      Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} municípios,{" "}
-      {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de rede sociais e{" "}
-      {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
+  ) : !isPremium && !guestNoteDismissed ? (
+    <span className="flex items-start gap-2">
+      <span>
+        Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} municípios,{" "}
+        {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de rede sociais e{" "}
+        {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
+      </span>
+      <button
+        type="button"
+        aria-label="Fechar aviso"
+        onClick={() => setGuestNoteDismissed(true)}
+        className="shrink-0 text-md-text-soft hover:text-md-text"
+      >
+        ×
+      </button>
     </span>
   ) : null;
 
@@ -590,14 +601,15 @@ export function RedefinirTemasPage() {
             </p>
             <InfoList items={SEARCH_ENGINE_SOURCE_ITEMS} dotClassName="bg-emerald-400" />
             <p className="text-sm text-md-text-soft mt-4 mb-8">
-              Inclua portais regionais do seu interesse para monitorarmos. Isso aumenta a chance de
-              encontrarmos notícias dos temas selecionados, dentro do seu(s) município(s).
+              Inclua portais, sites e blogs regionais do seu interesse para monitorarmos. Isso
+              aumenta a chance de encontrarmos notícias dos temas selecionados, dentro do seu(s)
+              município(s).
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <h4 className="text-xs font-bold text-md-text-soft tracking-widest uppercase mb-4">
-                  Portais regionais
+                  Portais, Sites e Blogs
                 </h4>
                 <div className="space-y-3 mb-4">
                   {profileForm.interestSites.map((site, index) => (
@@ -770,7 +782,7 @@ export function RedefinirTemasPage() {
                 onClick={() => setShowMonitoramentoPrompt(false)}
                 className="px-5 py-2.5 rounded-lg border border-md-border text-md-text-muted text-sm font-medium hover:bg-md-overlay-hover transition-colors"
               >
-                Não (N)
+                Não
               </button>
               <button
                 type="button"
@@ -778,7 +790,7 @@ export function RedefinirTemasPage() {
                 onClick={() => router.push("/monitoramento")}
                 className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text text-sm font-semibold transition-all"
               >
-                Sim (S)
+                Sim
               </button>
             </div>
           </div>

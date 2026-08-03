@@ -78,16 +78,8 @@ function publishedAtMs(suggestion: MockSentinelSuggestion): number {
 
 function sortByEngagementThenRecency(suggestions: MockSentinelSuggestion[]) {
   return [...suggestions].sort((left, right) => {
-    const leftEng = weightedEngagement(
-      left.engagement.likes,
-      left.engagement.comments,
-      left.engagement.shares,
-    );
-    const rightEng = weightedEngagement(
-      right.engagement.likes,
-      right.engagement.comments,
-      right.engagement.shares,
-    );
+    const leftEng = weightedEngagement(left.engagement.likes, left.engagement.comments);
+    const rightEng = weightedEngagement(right.engagement.likes, right.engagement.comments);
     if (rightEng !== leftEng) {
       return rightEng - leftEng;
     }
@@ -145,7 +137,6 @@ async function buildInterestNewsFallbacks(
               network: actor.network,
               likes: 0,
               comments: 0,
-              shares: 0,
             },
           ],
           actors: [actor],
@@ -163,7 +154,6 @@ async function buildInterestNewsFallbacks(
           scoreTrendPercent: 0,
           likes: 0,
           comments: 0,
-          shares: 0,
           postsAnalyzed: 1,
           sources: [actor.network],
           byNetwork: [
@@ -171,7 +161,6 @@ async function buildInterestNewsFallbacks(
               network: actor.network,
               likes: 0,
               comments: 0,
-              shares: 0,
             },
           ],
         },

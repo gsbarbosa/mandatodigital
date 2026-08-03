@@ -7,27 +7,12 @@ export type InstagramProfilePost = {
   publishedAt: string | null;
   likes: number;
   comments: number;
-  shares: number;
   postType: string;
   ownerUsername: string;
 };
 
 export function normalizeInstagramHandle(handle: string) {
   return handle.trim().replace(/^@+/, "").toLowerCase();
-}
-
-export function isInstagramFeedPost(post: Pick<InstagramProfilePost, "url" | "postType">) {
-  const url = post.url.toLowerCase();
-  const type = post.postType.toLowerCase();
-
-  if (url.includes("/reel/") || url.includes("/reels/")) {
-    return false;
-  }
-  if (type.includes("reel") || type === "clips") {
-    return false;
-  }
-
-  return true;
 }
 
 function readNumber(value: unknown) {
@@ -99,14 +84,9 @@ export function normalizeApifyInstagramItems(
         readTimestamp(row.pubDate),
       likes: readNumber(row.likesCount ?? row.likes ?? row.likeCount),
       comments: readNumber(row.commentsCount ?? row.comments ?? row.commentCount),
-      shares: readNumber(row.sharesCount ?? row.shares ?? row.repostsCount),
       postType: readString(row.type) || readString(row.productType) || "post",
       ownerUsername: ownerUsername || handle,
     };
-
-    if (!isInstagramFeedPost(post)) {
-      continue;
-    }
 
     posts.push(post);
   }

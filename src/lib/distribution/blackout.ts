@@ -1,10 +1,12 @@
 /**
  * Blackout eleitoral: 72h antes / 24h depois da data da eleição.
+ * Data fixa para todos os candidatos, em conformidade com as resoluções do TSE.
  * Referência: docs/status-desenvolvimento.md (compliance Fase 3.2).
  */
 
 export const BLACKOUT_HOURS_BEFORE = 72;
 export const BLACKOUT_HOURS_AFTER = 24;
+export const ELECTION_DATE = "2026-10-04";
 
 export type BlackoutCheckResult =
   | { blocked: false }
@@ -45,31 +47,20 @@ export function getBlackoutWindow(electionDate: string): {
 
 /**
  * Verifica se `at` (default agora) cai no blackout da eleição.
- * Sem data válida → não bloqueia.
+ * A data da eleição é fixa (ELECTION_DATE) e vale para todos os candidatos.
  */
-export function checkElectoralBlackout(input: {
-  electionDate: string | null | undefined;
-  at?: Date;
-}): BlackoutCheckResult {
-  const raw = input.electionDate?.trim();
-  if (!raw) {
-    return { blocked: false };
-  }
+export function checkElectoralBlackout(input?: { at?: Date }): BlackoutCheckResult {
+  const window = getBlackoutWindow(ELECTION_DATE)!;
 
-  const window = getBlackoutWindow(raw);
-  if (!window) {
-    return { blocked: false };
-  }
-
-  const at = input.at ?? new Date();
+  const at = input?.at ?? new Date();
   if (at.getTime() < window.start.getTime() || at.getTime() > window.end.getTime()) {
     return { blocked: false };
   }
 
   return {
     blocked: true,
-    reason: `Blackout eleitoral ativo (${BLACKOUT_HOURS_BEFORE}h antes / ${BLACKOUT_HOURS_AFTER}h depois da eleição em ${raw}). Publicação bloqueada.`,
-    electionDate: raw,
+    reason: `Blackout eleitoral ativo (${BLACKOUT_HOURS_BEFORE}h antes / ${BLACKOUT_HOURS_AFTER}h depois da eleição em ${ELECTION_DATE}). Publicação bloqueada.`,
+    electionDate: ELECTION_DATE,
     windowStart: window.start.toISOString(),
     windowEnd: window.end.toISOString(),
   };

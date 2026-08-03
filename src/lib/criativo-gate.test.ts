@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getCriativoGate } from "./criativo-gate";
+import { getCriativoGate, withGateReturnParam } from "./criativo-gate";
 
 describe("getCriativoGate", () => {
   it("manda espectro vazio para Personalizar", () => {
@@ -55,5 +55,25 @@ describe("getCriativoGate", () => {
         hasCaricaturePair: true,
       }),
     ).toBeNull();
+  });
+});
+
+describe("withGateReturnParam", () => {
+  it("insere o return antes do hash", () => {
+    expect(withGateReturnParam("/curador#persona", "/criativo/novo")).toBe(
+      "/curador?return=%2Fcriativo%2Fnovo#persona",
+    );
+  });
+
+  it("preserva a query de origem, codificada", () => {
+    expect(
+      withGateReturnParam("/curador#persona", "/criativo/novo?tema=Educação"),
+    ).toBe("/curador?return=%2Fcriativo%2Fnovo%3Ftema%3DEduca%C3%A7%C3%A3o#persona");
+  });
+
+  it("funciona em hrefs sem hash", () => {
+    expect(withGateReturnParam("/avatares/foto-real/treinar", "/independente")).toBe(
+      "/avatares/foto-real/treinar?return=%2Findependente",
+    );
   });
 });

@@ -27,8 +27,6 @@ import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
 import type { ProfileTrainingAsset } from "@/lib/types";
 import type { TwinLookDisplayMeta } from "@/lib/heygen-twin-display";
 
-export const MAX_SCRIPT_WORDS = 140;
-
 export const AVATAR_TYPE_BY_TRACK = {
   realistic: "Meu Gêmeo Digital",
   caricature: "Minha Caricatura",

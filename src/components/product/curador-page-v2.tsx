@@ -1,19 +1,62 @@
 "use client";
 
+import type { Route } from "next";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { useProductApp } from "@/components/product/provider";
 import { IdeologicalSpectrumSlider } from "@/components/product/persona-shared";
 import { ProductPageHeader } from "@/components/product/product-page-header";
+import type { AvatarTipoSlug } from "@/lib/avatar-tipos";
+import { readCuradorHeygenPrefs } from "@/lib/curador-heygen-prefs";
+
+/** Tela de origem no hub de avatares — para onde o Salvar desta página retorna o usuário. */
+const AVATAR_HUB_HREF_BY_SLUG: Record<AvatarTipoSlug, Route> = {
+  "foto-real": "/avatares/foto-real" as Route,
+  caricato: "/avatares/caricato" as Route,
+  "3d": "/avatares/3d" as Route,
+};
+
+/** Só aceita caminho interno (`/algo`) — nunca `//host` (protocol-relative) nem URL absoluta. */
+function safeReturnPath(value: string | null): Route | null {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+  return value as Route;
+}
 
 export function CuradorPageV2() {
-  const { profileForm, setProfileForm, saveProfile, isSavingProfile } = useProductApp();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { profile, profileForm, setProfileForm, saveProfile, isSavingProfile } = useProductApp();
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   async function handleSave() {
     setSaveMessage(null);
     try {
       await saveProfile({ allowDraftDefaults: true, silent: true, throwOnError: true });
+
+      // Origem explícita (ex.: gate do Criativo) tem prioridade sobre o hub de avatares:
+      // evita mandar de volta a uma tela de avatar desatualizada quando o usuário veio
+      // do Criativo/Independente para resolver um pré-requisito.
+      const returnParam = safeReturnPath(searchParams.get("return"));
+      if (returnParam) {
+        router.push(returnParam);
+        return;
+      }
+
+      const profileId = profile?.id ?? profileForm.id ?? null;
+      const lastAvatarTipoSlug = profileId
+        ? readCuradorHeygenPrefs(profileId).lastAvatarTipoSlug
+        : undefined;
+      const returnHref = lastAvatarTipoSlug
+        ? AVATAR_HUB_HREF_BY_SLUG[lastAvatarTipoSlug]
+        : null;
+      if (returnHref) {
+        router.push(returnHref);
+        return;
+      }
+
       setSaveMessage("Persona salva com sucesso.");
       window.setTimeout(() => setSaveMessage(null), 2800);
     } catch {
@@ -71,10 +114,16 @@ export function CuradorPageV2() {
           data-onboarding-anchor="avatar-glossario"
           className="bg-gradient-to-b from-md-surface/50 to-md-slate-900/20 backdrop-blur-xl border border-md-border rounded-[1.75rem] p-6 md:p-8 shadow-xl mb-8 scroll-mt-24"
         >
+          <div className="border-b border-md-border pb-4 mb-6">
+            <h2 className="text-xl font-bold text-md-text flex items-center gap-2">
+              Glossário de expressões
+            </h2>
+          </div>
           <p className="text-sm text-md-text-soft mb-4">
-            Inclua características fundamentais da sua expressão, como por exemplo: né, tipo,
-            entendeu, sabe, tá, ok, certo, mano, assim. As expressões do glossário são
-            incorporadas nos roteiros dos vídeos.
+            Caso utilize alguma expressão recorrente, como: né, tipo, entendeu, sabe, tá, ok,
+            certo, mano, assim, entre outras, você pode incluí-las no seu glossário de
+            expressões. As expressões serão automaticamente incorporadas nos roteiros dos seus
+            vídeos.
           </p>
           <textarea
             className="w-full min-h-[140px] rounded-xl border border-md-border bg-md-bg/60 px-4 py-3 text-sm text-md-text placeholder:text-md-text-soft focus:outline-none focus:ring-2 focus:ring-cyan-500/40 focus:border-cyan-500/50"

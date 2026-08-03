@@ -60,7 +60,17 @@ export function MarketingDossiePage() {
       {dossieSections.map((section) => (
         <MarketingSection
           key={section.number}
-          title={`${section.number}. ${section.title}`}
+          title={
+            <>
+              {section.number}.{" "}
+              {section.title.split("\n").map((line, index) => (
+                <span key={index}>
+                  {index > 0 ? <br /> : null}
+                  {line}
+                </span>
+              ))}
+            </>
+          }
           lead={section.body}
           titleNoWrap
           justifyLead

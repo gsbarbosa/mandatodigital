@@ -22,6 +22,9 @@ export async function updateSession(request: NextRequest) {
     pathname === "/conformidade" ||
     pathname === "/planos" ||
     pathname === "/dossie";
+  const isDevRoute =
+    process.env.NODE_ENV !== "production" &&
+    (pathname === "/dev-login" || pathname === "/api/dev/login");
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
@@ -30,7 +33,8 @@ export async function updateSession(request: NextRequest) {
     pathname === "/api/auth/session" ||
     pathname === "/api/auth/clear-session" ||
     isMarketingRoute ||
-    isAdminRoute;
+    isAdminRoute ||
+    isDevRoute;
   const isApiRoute = pathname.startsWith("/api/");
 
   if (!isFirebaseAuthConfigured()) {

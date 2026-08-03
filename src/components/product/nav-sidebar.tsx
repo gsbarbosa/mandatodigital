@@ -11,6 +11,7 @@ import { BrandLogo } from "@/components/brand-logo";
 import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
 import { useEarlyAccess } from "@/lib/early-access";
+import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 import { useOnboarding } from "./onboarding-provider";
 import {
   AcessoAntecipadoIcon,
@@ -139,7 +140,7 @@ const NAV_SINGLES_PRIMARY: Array<NavChild & { icon: NavIcon }> = [
 
 const NAV_SINGLES_SECONDARY: Array<NavChild & { icon: NavIcon }> = [
   { label: "Compliance TSE", href: "/compliance", icon: ComplianceIcon },
-  { label: "Auditoria", href: "/auditoria", icon: AuditoriaIcon },
+  { label: "Blindagem Documental", href: "/auditoria", icon: AuditoriaIcon },
 ];
 
 const EARLY_ACCESS_LABEL = "Acesso antecipado";
@@ -257,7 +258,7 @@ function ChildTimeline({ rows }: { rows: ChildRow[] }) {
   return (
     <ul className="mt-2 mb-1 space-y-1.5">
       {rows.map((row, index) => {
-        const active = row.active || Boolean(row.highlighted);
+        const active = row.active;
         const isLast = index === rows.length - 1;
         const content = (
           <>
@@ -400,6 +401,7 @@ function NavSidebarPanel({
   const [earlyAccess] = useEarlyAccess();
   const [emailMenuOpen, setEmailMenuOpen] = useState(false);
   const cnpjPending = !earlyAccess.cnpj;
+  const { exhausted: guestCreditsExhausted } = useGuestCreditsGate();
   const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
 
   const earlyAccessChildren: NavChild[] = [
@@ -425,7 +427,7 @@ function NavSidebarPanel({
       sidebarTarget === "criativo" &&
       (item.href === "/criativo" || item.href.startsWith("/criativo"));
     const Icon = item.icon;
-    const active = itemActive || Boolean(singleHl);
+    const active = itemActive;
 
     return (
       <Link
@@ -490,7 +492,7 @@ function NavSidebarPanel({
 
           return (
             <div key={block.label} className="rounded-xl">
-              <div className={rowClassName(blockActive || Boolean(blockHl))}>
+              <div className={rowClassName(blockActive)}>
                 <Link
                   href={block.href as Route}
                   className="flex min-w-0 flex-1 items-center gap-3 no-underline"
@@ -499,8 +501,8 @@ function NavSidebarPanel({
                   }
                   onClick={handleLinkNavigate}
                 >
-                  <Icon className={rowIconClassName(blockActive || Boolean(blockHl))} />
-                  <span className={rowLabelClassName(blockActive || Boolean(blockHl))}>
+                  <Icon className={rowIconClassName(blockActive)} />
+                  <span className={rowLabelClassName(blockActive)}>
                     {blockHl ? <OnbHighlightDot /> : null}
                     {block.label}
                   </span>
@@ -588,6 +590,12 @@ function NavSidebarPanel({
             >
               <AcessoAntecipadoIcon className={rowIconClassName(earlyAccessActive)} />
               <span className={rowLabelClassName(earlyAccessActive)}>{EARLY_ACCESS_LABEL}</span>
+              {guestCreditsExhausted ? (
+                <span
+                  className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-pulse"
+                  title="Ação Requerida"
+                />
+              ) : null}
             </Link>
             <button
               type="button"

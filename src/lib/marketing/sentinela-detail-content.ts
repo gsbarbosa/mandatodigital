@@ -32,7 +32,6 @@ export const sentinelaDetail = {
       "Score",
       "Curtidas",
       "Comentários",
-      "Compart.",
       "Gerar Pauta com:",
     ] as const,
     rows: [
@@ -45,7 +44,6 @@ export const sentinelaDetail = {
         score: "↑300%",
         likes: "790",
         comments: "306",
-        shares: "420",
         action: "Gêmeo Digital",
       },
       {
@@ -57,7 +55,6 @@ export const sentinelaDetail = {
         score: "↑218%",
         likes: "1.2k",
         comments: "542",
-        shares: "389",
         action: "Avatar Caricato",
       },
       {
@@ -69,7 +66,6 @@ export const sentinelaDetail = {
         score: "↑180%",
         likes: "3.4k",
         comments: "890",
-        shares: "612",
         action: "Avatar 3D",
       },
     ],

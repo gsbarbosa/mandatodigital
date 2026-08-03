@@ -31,7 +31,6 @@ const _sampleSuggestion: MockSentinelSuggestion = {
     scoreTrendPercent: 0,
     likes: 0,
     comments: 0,
-    shares: 0,
     postsAnalyzed: 1,
     sources: [],
     byNetwork: [],

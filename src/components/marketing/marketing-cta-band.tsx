@@ -30,7 +30,7 @@ export function MarketingCtaBand({
   return (
     <section className="border-t border-md-border-soft py-16 sm:py-20">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-slate-900/60 to-md-bg p-8 sm:p-12">
+        <div className="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-md-surface/60 to-md-bg p-8 sm:p-12">
           <h2 className="max-w-3xl text-2xl font-bold tracking-tight text-md-text sm:text-3xl">
             {renderTitle(title)}
           </h2>

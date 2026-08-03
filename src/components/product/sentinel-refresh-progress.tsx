@@ -45,16 +45,12 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
     >
       <div className="flex items-start gap-4 mb-5">
         <span
-          className="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-md-border border-t-[var(--sentinela)] motion-reduce:animate-none"
+          className="mt-0.5 h-10 w-10 shrink-0 animate-spin rounded-full border-2 border-md-border border-t-[var(--sentinela)] motion-reduce:animate-none"
           aria-hidden="true"
         />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-md-text tracking-tight">
-            Sentinela em ação
-          </p>
-          <p className="mt-1 text-xs text-md-text-soft leading-relaxed">
-            Estamos varrendo fontes e montando suas pautas. Isso pode levar até cerca de 2
-            minutos na primeira busca.
+            Estamos varrendo fontes e montando suas pautas. Isso pode levar cerca de 2 minutos
           </p>
         </div>
       </div>
@@ -69,14 +65,14 @@ export function SentinelRefreshProgress({ active }: SentinelRefreshProgressProps
         />
       </div>
 
-      <ol className="space-y-2.5">
+      <ol className="space-y-0">
         {SENTINEL_REFRESH_STEPS.map((label, index) => {
           const done = index < stepIndex;
           const current = index === stepIndex;
           return (
             <li
               key={label}
-              className={`flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors duration-300 ${
+              className={`flex items-start gap-3 rounded-xl px-3 py-1 transition-colors duration-300 ${
                 current
                   ? "bg-[var(--sentinela-soft)] border border-[var(--sentinela-border)]"
                   : done

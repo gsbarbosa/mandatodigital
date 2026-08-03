@@ -39,3 +39,16 @@ export function getCriativoGate(input: {
   }
   return null;
 }
+
+/**
+ * Anexa `return` (URL de origem, ex.: Criativo/Independente com sua query atual) ao href do
+ * gate, antes do hash — para a tela de destino poder trazer o usuário de volta após resolver
+ * o pré-requisito.
+ */
+export function withGateReturnParam(href: string, returnTo: string): string {
+  const hashIndex = href.indexOf("#");
+  const base = hashIndex === -1 ? href : href.slice(0, hashIndex);
+  const hash = hashIndex === -1 ? "" : href.slice(hashIndex);
+  const separator = base.includes("?") ? "&" : "?";
+  return `${base}${separator}return=${encodeURIComponent(returnTo)}${hash}`;
+}

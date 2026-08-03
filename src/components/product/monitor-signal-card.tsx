@@ -13,6 +13,7 @@ import type {
 import { buildCriativoNovoHref } from "@/lib/sentinel-mock-suggestions";
 import {
   articleOutletLabel,
+  displayTitleWithoutOutlet,
   normalizeDomain,
   weightedEngagement,
 } from "@/lib/sphere-classifier";
@@ -196,16 +197,15 @@ export function MonitorSignalCard({
   const publishedAt = article?.publishedAt ?? actor?.publishedAt;
   const dateLabel = formatSignalDate(publishedAt);
   const dateParts = formatSignalDateParts(publishedAt);
-  const socialHeadline =
+  const socialHeadline = displayTitleWithoutOutlet(
     oppositionCard && suggestion.topic.includes(" · ")
       ? suggestion.topic.split(" · ").slice(1).join(" · ")
-      : suggestion.topic;
-  const engagement = suggestion.engagement;
-  const engagementScore = weightedEngagement(
-    engagement.likes,
-    engagement.comments,
-    engagement.shares,
+      // O @handle já aparece na coluna à esquerda do card — repetir no título é redundante.
+      : suggestion.topic.replace(/^@\S+\s*·\s*/, ""),
+    article ? articleOutletLabel(article) : null,
   );
+  const engagement = suggestion.engagement;
+  const engagementScore = weightedEngagement(engagement.likes, engagement.comments);
 
   return (
     <div
@@ -267,7 +267,9 @@ export function MonitorSignalCard({
         <div className="flex-1">
           {isNewsCard && article ? (
             <>
-              <h3 className="text-lg font-bold text-md-text mb-1">{article.title}</h3>
+              <h3 className="text-lg font-bold text-md-text mb-1">
+                {displayTitleWithoutOutlet(article.title, articleOutletLabel(article))}
+              </h3>
               {suggestion.briefing?.trim() ? (
                 <p className="text-sm text-md-text-muted mb-2 leading-relaxed">
                   {suggestion.briefing.trim()}
@@ -313,7 +315,7 @@ export function MonitorSignalCard({
 
               <div className="flex flex-wrap items-center gap-4 text-xs mb-3 mt-2">
                 <span className="text-md-text-soft">
-                  Engajamento*: <strong className="text-md-text">{formatCount(engagementScore)}</strong>
+                  Score de Engajamento*: <strong className="text-md-text">{formatCount(engagementScore)}</strong>
                 </span>
                 {actor ? (
                   <a
@@ -348,12 +350,6 @@ export function MonitorSignalCard({
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z" />
                   </svg>
                   <span>{formatCount(engagement.comments)}</span>
-                </div>
-                <div className="flex items-center gap-1.5" title="Compartilhamentos">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                  <span>{formatCount(engagement.shares)}</span>
                 </div>
               </div>
             </>

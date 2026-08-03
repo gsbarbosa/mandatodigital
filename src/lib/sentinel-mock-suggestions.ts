@@ -4,7 +4,6 @@ export type SentinelNetworkEngagement = {
   network: SentinelSocialNetwork;
   likes: number;
   comments: number;
-  shares: number;
 };
 
 /** Perfil com link verificável — origem cadastrada no Sentinela. */
@@ -47,7 +46,6 @@ export type SentinelEngagementMetrics = {
   scoreTrendPercent: number;
   likes: number;
   comments: number;
-  shares: number;
   postsAnalyzed: number;
   sources: SentinelSocialNetwork[];
   byNetwork: SentinelNetworkEngagement[];
@@ -103,7 +101,7 @@ export function sentinelPipelineBadgeLabel(pipeline: SentinelPipeline | undefine
 
 function sumNetworkMetric(
   rows: SentinelNetworkEngagement[],
-  key: keyof Pick<SentinelNetworkEngagement, "likes" | "comments" | "shares">,
+  key: keyof Pick<SentinelNetworkEngagement, "likes" | "comments">,
 ) {
   return rows.reduce((total, row) => total + row[key], 0);
 }
@@ -117,7 +115,6 @@ function buildEngagement(
     scoreTrendPercent: evidence.engagementTrendPercent,
     likes: sumNetworkMetric(evidence.byNetwork, "likes"),
     comments: sumNetworkMetric(evidence.byNetwork, "comments"),
-    shares: sumNetworkMetric(evidence.byNetwork, "shares"),
     postsAnalyzed: evidence.postsAnalyzed,
     sources: evidence.byNetwork.map((row) => row.network),
     byNetwork: evidence.byNetwork,
@@ -160,9 +157,9 @@ export const mockSentinelSuggestions: MockSentinelSuggestion[] = [
         periodDays: 7,
       },
       byNetwork: [
-        { network: "instagram", likes: 520, comments: 210, shares: 180 },
-        { network: "x", likes: 150, comments: 120, shares: 140 },
-        { network: "tiktok", likes: 120, comments: 66, shares: 100 },
+        { network: "instagram", likes: 520, comments: 210 },
+        { network: "x", likes: 150, comments: 120 },
+        { network: "tiktok", likes: 120, comments: 66 },
       ],
       actors: [
         {
@@ -198,9 +195,9 @@ export const mockSentinelSuggestions: MockSentinelSuggestion[] = [
         periodDays: 7,
       },
       byNetwork: [
-        { network: "x", likes: 580, comments: 280, shares: 410 },
-        { network: "tiktok", likes: 390, comments: 162, shares: 310 },
-        { network: "instagram", likes: 230, comments: 100, shares: 170 },
+        { network: "x", likes: 580, comments: 280 },
+        { network: "tiktok", likes: 390, comments: 162 },
+        { network: "instagram", likes: 230, comments: 100 },
       ],
       actors: [
         {
@@ -228,9 +225,9 @@ export const mockSentinelSuggestions: MockSentinelSuggestion[] = [
       postsAnalyzed: 198,
       engagementTrendPercent: 180,
       byNetwork: [
-        { network: "tiktok", likes: 1800, comments: 520, shares: 620 },
-        { network: "instagram", likes: 980, comments: 240, shares: 310 },
-        { network: "x", likes: 620, comments: 130, shares: 170 },
+        { network: "tiktok", likes: 1800, comments: 520 },
+        { network: "instagram", likes: 980, comments: 240 },
+        { network: "x", likes: 620, comments: 130 },
       ],
       actors: [
         {
@@ -259,8 +256,8 @@ export const mockSentinelSuggestions: MockSentinelSuggestion[] = [
         periodDays: 7,
       },
       byNetwork: [
-        { network: "x", likes: 510, comments: 128, shares: 190 },
-        { network: "instagram", likes: 380, comments: 86, shares: 115 },
+        { network: "x", likes: 510, comments: 128 },
+        { network: "instagram", likes: 380, comments: 86 },
       ],
       actors: [
         {
@@ -283,8 +280,8 @@ export const mockSentinelSuggestions: MockSentinelSuggestion[] = [
       postsAnalyzed: 89,
       engagementTrendPercent: 96,
       byNetwork: [
-        { network: "tiktok", likes: 360, comments: 72, shares: 58 },
-        { network: "instagram", likes: 260, comments: 46, shares: 36 },
+        { network: "tiktok", likes: 360, comments: 72 },
+        { network: "instagram", likes: 260, comments: 46 },
       ],
       actors: [
         {
@@ -374,7 +371,7 @@ export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggest
   }
 
   const networkLines = evidence.byNetwork.map((row) => {
-    return `${sentinelNetworkLabel(row.network)}: ${formatSentinelMetricShort(row.likes)} curtidas, ${formatSentinelMetricShort(row.comments)} comentarios, ${formatSentinelMetricShort(row.shares)} compartilhamentos`;
+    return `${sentinelNetworkLabel(row.network)}: ${formatSentinelMetricShort(row.likes)} curtidas, ${formatSentinelMetricShort(row.comments)} comentarios`;
   });
   if (networkLines.length) {
     parts.push(`Engajamento por rede: ${networkLines.join("; ")}`);

@@ -141,7 +141,6 @@ function buildSuggestionFromCluster(input: {
       scoreTrendPercent: Math.min(99, Math.max(0, (outletCount - 1) * 18)),
       likes: 0,
       comments: 0,
-      shares: 0,
       postsAnalyzed: articles.length,
       sources: [],
       byNetwork: [],
@@ -390,23 +389,44 @@ function isOppositionSuggestion(suggestion: MockSentinelSuggestion) {
   return (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "opposition");
 }
 
+/** Pautas de perfis de interesse (@) — por ator, não por tema de notícia. */
+function isInterestSuggestion(suggestion: MockSentinelSuggestion) {
+  return (suggestion.evidence.actors ?? []).some((actor) => actor.sourceList === "interest");
+}
+
 function isLowQualityNewsSuggestion(suggestion: MockSentinelSuggestion) {
-  if (isOppositionSuggestion(suggestion)) {
+  if (isOppositionSuggestion(suggestion) || isInterestSuggestion(suggestion)) {
     return false;
   }
   const title = suggestion.evidence.articles?.[0]?.title ?? suggestion.topic;
   return isLikelyJobListingTitle(title) || isWeakFakeNewsTitle(title);
 }
 
+/**
+ * Interesse e Adversários são monitoramento por perfil (@), não por tema de notícia — cada
+ * perfil já é a própria seção na tela. Ficam fora do teto "maxPerTheme" (pensado pra evitar
+ * um tema de notícia quente lotar o feed), senão um perfil ativo perde pautas mesmo com
+ * conteúdo disponível, e "Ver mais" fica sem nada pra mostrar porque o corte já aconteceu
+ * aqui no servidor.
+ */
 function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSuggestion[] {
   const byId = new Map<string, MockSentinelSuggestion>();
   const oppositionById = new Map<string, MockSentinelSuggestion>();
+  const interestById = new Map<string, MockSentinelSuggestion>();
 
   for (const suggestion of groups.flat()) {
     if (isOppositionSuggestion(suggestion)) {
       const existing = oppositionById.get(suggestion.id);
       if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
         oppositionById.set(suggestion.id, suggestion);
+      }
+      continue;
+    }
+
+    if (isInterestSuggestion(suggestion)) {
+      const existing = interestById.get(suggestion.id);
+      if (!existing || suggestion.relevanceScore > existing.relevanceScore) {
+        interestById.set(suggestion.id, suggestion);
       }
       continue;
     }
@@ -437,7 +457,11 @@ function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSu
     (left, right) => right.relevanceScore - left.relevanceScore,
   );
 
-  return [...coreSuggestions, ...oppositionSuggestions].sort(
+  const interestSuggestions = [...interestById.values()].sort(
+    (left, right) => right.relevanceScore - left.relevanceScore,
+  );
+
+  return [...coreSuggestions, ...oppositionSuggestions, ...interestSuggestions].sort(
     (left, right) => right.relevanceScore - left.relevanceScore,
   );
 }

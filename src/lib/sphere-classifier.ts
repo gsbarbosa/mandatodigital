@@ -4,8 +4,10 @@ import type {
 } from "./sentinel-mock-suggestions";
 import {
   getStatePortalHosts,
+  getUfName,
   isNationalPortalHost,
   isStatePortalHost,
+  normalizeUf,
 } from "./sentinel-portal-catalog";
 import {
   canonicalizeSentinelTheme,
@@ -23,9 +25,10 @@ import { normalizeSentinelText } from "./sentinel-text";
  * outlet must be inferred from `sourceName` (RSS <source>) or from the
  * " - Outlet" suffix Google News appends to titles.
  *
- * Prioridade: atores → municipal (cidades/portais) → portais nacional/estadual →
- * radar exclusivo → catálogo exclusivo → fallback nacional (temas do radar unificado
- * costumam existir nos dois catálogos; default antigo "estadual" esvaziava Nacional).
+ * Prioridade: atores → municipal (cidades/portais) → radar exclusivo → catálogo
+ * exclusivo → nome do estado do perfil no título (mesmo vindo de veículo nacional) →
+ * portais nacional/estadual → fallback nacional (temas do radar unificado costumam
+ * existir nos dois catálogos; default antigo "estadual" esvaziava Nacional).
  */
 export type MonitorSphere =
   | "federal"
@@ -33,6 +36,55 @@ export type MonitorSphere =
   | "municipal"
   | "interesse"
   | "adversarios";
+
+/**
+ * Nacional/estadual não apresentam matéria além do prazo abaixo — o argumento de
+ * recência do produto não se sustenta com pauta velha (ver conversa sobre notícia
+ * de 2024 aparecendo em Nacional). Estadual tem prazo mais largo que Nacional:
+ * cobertura regional é naturalmente mais rala (poucos portais por UF), e o corte de
+ * 90 dias esvaziava a esfera mesmo com matéria já corretamente classificada — Nacional
+ * raramente esbarra nesse teto (cobertura ampla), então mantém o prazo original.
+ * Municipal fica de fora dos dois: cobertura local já é escassa por si só (ver
+ * sentinel-municipal-fallback.ts), e o fallback geo-only existe justamente para não
+ * deixar a seção vazia.
+ */
+export const NATIONAL_MAX_AGE_DAYS = 90;
+export const ESTADUAL_MAX_AGE_DAYS = 240;
+
+/** Mais recente entre os artigos do cluster — uma matéria nova no meio de um cluster antigo já conta como atual. */
+function suggestionMostRecentPublishedAtMs(suggestion: MockSentinelSuggestion): number | null {
+  const articles = suggestion.evidence.articles ?? [];
+  let latestMs: number | null = null;
+
+  for (const article of articles) {
+    if (!article.publishedAt) {
+      continue;
+    }
+    const ms = new Date(article.publishedAt).getTime();
+    if (Number.isNaN(ms)) {
+      continue;
+    }
+    if (latestMs === null || ms > latestMs) {
+      latestMs = ms;
+    }
+  }
+
+  return latestMs;
+}
+
+/** Sem nenhuma data conhecida no cluster, não bloqueia — RSS de portal sem pubDate confiável não deve ser descartado às cegas. */
+export function isOlderThanSphereWindow(
+  suggestion: MockSentinelSuggestion,
+  maxAgeDays: number,
+  nowMs: number = Date.now(),
+): boolean {
+  const publishedMs = suggestionMostRecentPublishedAtMs(suggestion);
+  if (publishedMs === null) {
+    return false;
+  }
+  const ageDays = (nowMs - publishedMs) / (24 * 60 * 60 * 1000);
+  return ageDays > maxAgeDays;
+}
 
 export type ProfileRadarThemes = {
   federal?: string[];
@@ -191,6 +243,30 @@ function outletFromTitle(title: string): string | null {
   return outlet.length >= 3 ? outlet : null;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Título para exibição, sem o sufixo "- Fonte" que o Google News anexa: o card já mostra a
+ * fonte separadamente (rodapé "Fonte:"), então repetir no título é redundante.
+ * `knownOutlet` (ex.: `articleOutletLabel(article)`) permite remover sufixos curtos como
+ * "G1" que a heurística genérica (mínimo 3 caracteres) sozinha não capturaria.
+ */
+export function displayTitleWithoutOutlet(title: string, knownOutlet?: string | null): string {
+  const trimmedOutlet = knownOutlet?.trim();
+  if (trimmedOutlet) {
+    const knownOutletSuffix = new RegExp(`\\s*[-–—]\\s*${escapeRegExp(trimmedOutlet)}\\s*$`, "i");
+    if (knownOutletSuffix.test(title)) {
+      return title.replace(knownOutletSuffix, "").trim() || title;
+    }
+  }
+  if (!outletFromTitle(title)) {
+    return title;
+  }
+  return title.replace(/\s*[-–—]\s*[^-–—]{3,60}\s*$/, "").trim() || title;
+}
+
 type ArticleSourceHints = {
   /** Real outlet domain when the URL is not an aggregator link. */
   domain: string | null;
@@ -240,6 +316,37 @@ function matchesInterestSites(hints: ArticleSourceHints, interestDomains: string
     }
   }
   return false;
+}
+
+/** `phrase` (ex.: "Minas Gerais") aparece em `normalizedHaystack` como sequência de tokens
+ * inteiros — evita falso positivo por substring (ex.: "Pará" dentro de "Paraná"/"Paraíba"). */
+function matchesWholePhrase(normalizedHaystack: string, phrase: string): boolean {
+  const phraseTokens = normalizeSentinelText(phrase).split(" ").filter(Boolean);
+  if (phraseTokens.length === 0) {
+    return false;
+  }
+  const tokens = normalizedHaystack.split(" ").filter(Boolean);
+  for (let i = 0; i <= tokens.length - phraseTokens.length; i += 1) {
+    if (phraseTokens.every((token, offset) => tokens[i + offset] === token)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Sinal forte de que a matéria é sobre o estado do perfil, mesmo vinda de veículo nacional
+ * (ex.: usuário em MG, título da Jovem Pan que cita "Minas Gerais"). DF fica de fora:
+ * por ser a sede do governo federal, quase toda notícia federal cita "Distrito Federal"
+ * sem ser, de fato, pauta local do DF.
+ */
+function matchesProfileStateName(normalizedHaystack: string, profileState: string): boolean {
+  const uf = normalizeUf(profileState);
+  if (!uf || uf === "DF") {
+    return false;
+  }
+  const stateName = getUfName(uf);
+  return Boolean(stateName) && matchesWholePhrase(normalizedHaystack, stateName);
 }
 
 /** Display label for the article source (never the aggregator host). */
@@ -324,6 +431,14 @@ export function classifySuggestionSphere(
     return themeSphere;
   }
 
+  // Matéria de veículo nacional cujo título cita o estado do perfil (ex.: MG selecionado,
+  // Jovem Pan noticiando algo especificamente de Minas Gerais) — some do Nacional e passa
+  // a existir só no Estadual, para não duplicar a mesma pauta nos dois níveis. Só chega
+  // aqui quando o tema não é exclusivamente federal pelo catálogo (checagem acima).
+  if (matchesProfileStateName(haystack, profileState)) {
+    return "estadual";
+  }
+
   if (
     suggestion.pipeline === "portal" &&
     hintsList.some((hints) => hints.domain && isNationalPortalHost(hints.domain))
@@ -351,9 +466,9 @@ export function classifySuggestionSphere(
   return "federal";
 }
 
-/** Weighted engagement from the monitoring footer: likes + 2x comments + 3x shares. */
-export function weightedEngagement(likes: number, comments: number, shares: number): number {
-  return likes + 2 * comments + 3 * shares;
+/** Weighted engagement from the monitoring footer: likes + 2x comments. */
+export function weightedEngagement(likes: number, comments: number): number {
+  return likes + 2 * comments;
 }
 
 export function groupSuggestionsBySphere(
@@ -372,16 +487,23 @@ export function groupSuggestionsBySphere(
     adversarios: [],
   };
   for (const suggestion of suggestions) {
-    groups[
-      classifySuggestionSphere(
-        suggestion,
-        interestSites,
-        profileState,
-        customRadarThemes,
-        profileRadar,
-        municipalCities,
-      )
-    ].push(suggestion);
+    const sphere = classifySuggestionSphere(
+      suggestion,
+      interestSites,
+      profileState,
+      customRadarThemes,
+      profileRadar,
+      municipalCities,
+    );
+
+    if (sphere === "federal" && isOlderThanSphereWindow(suggestion, NATIONAL_MAX_AGE_DAYS)) {
+      continue;
+    }
+    if (sphere === "estadual" && isOlderThanSphereWindow(suggestion, ESTADUAL_MAX_AGE_DAYS)) {
+      continue;
+    }
+
+    groups[sphere].push(suggestion);
   }
   return groups;
 }

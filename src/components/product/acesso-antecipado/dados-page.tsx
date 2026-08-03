@@ -1001,10 +1001,10 @@ export function AcessoDadosPage() {
                   ⚠ Regra de Caducidade Eleitoral
                 </p>
                 <p className="text-xs text-[var(--distribuidor-text)] leading-relaxed">
-                  A adesão no botão abaixo protege a sua vaga estritamente até às{" "}
+                  A sua vaga está reservada estritamente até às{" "}
                   <strong>12h00 do dia 16 de Agosto</strong>. Caso o CNPJ de campanha não seja
-                  informado no painel até este horário limite, o acautelamento do seu Gêmeo Digital{" "}
-                  <u>expira instantaneamente</u> e a licença será liberada de forma automática para o
+                  informado no painel até esta data, a reserva{" "}
+                  <u>cai instantaneamente</u> e a licença será liberada automaticamente para o
                   Candidato #4 da Fila de Espera do seu Estado.
                 </p>
               </div>
@@ -1037,11 +1037,6 @@ export function AcessoDadosPage() {
               </button>
             </>
           ) : null}
-
-          <p className="mt-6 text-[10px] text-md-text-soft text-center">
-            Seus dados ficam gravados na conta (cadastro) e vinculados ao perfil do mandato.
-            A linguagem de “acesso antecipado” é só a oferta desta fase.
-          </p>
         </div>
       </div>
 

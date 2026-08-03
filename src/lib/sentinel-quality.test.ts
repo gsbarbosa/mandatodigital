@@ -34,7 +34,6 @@ function newsCard(overrides: Partial<MockSentinelSuggestion> = {}): MockSentinel
       scoreTrendPercent: 10,
       likes: 0,
       comments: 0,
-      shares: 0,
       postsAnalyzed: 2,
       sources: [],
       byNetwork: [],

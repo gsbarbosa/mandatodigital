@@ -349,7 +349,7 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
               </div>
               <p className="text-md-text-muted text-sm md:text-base leading-relaxed">
                 O &quot;tom de linguagem&quot; e o &quot;arquétipo&quot; são definidos para cada
-                notícia, viabilizando o posicionamento adequado para cada novo conteúdo gerado.
+                notícia/pauta, viabilizando o posicionamento adequado para cada novo conteúdo gerado.
               </p>
             </div>
           </div>

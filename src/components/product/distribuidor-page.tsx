@@ -10,13 +10,11 @@ import {
 } from "@/lib/distribution/channels";
 import {
   approveDemoPost,
-  connectDemoAccounts,
   getDemoConnections,
   isDistributionDemoMode,
   listDemoPosts,
   rejectDemoPost,
   retryDemoPost,
-  setDemoElectionDate,
   updateDemoPost,
   type DemoConnectionsSnapshot,
 } from "@/lib/distribution/demo-store";
@@ -98,7 +96,6 @@ export function DistribuidorPage() {
   const [selectedId, setSelectedId] = useState<string | null>(focusPostId);
   const [captionDraft, setCaptionDraft] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
-  const [electionDate, setElectionDate] = useState("");
   const [selectedChannels, setSelectedChannels] = useState<DistributionChannelId[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +146,6 @@ export function DistribuidorPage() {
       const nextConnections = getDemoConnections();
       setPosts(nextPosts);
       setConnections(nextConnections);
-      setElectionDate(nextConnections.electionDate ?? "");
       setSelectedId((current) => {
         if (focusPostId && nextPosts.some((post) => post.id === focusPostId)) {
           return focusPostId;
@@ -239,22 +235,6 @@ export function DistribuidorPage() {
     }
   }
 
-  function connectAccounts() {
-    runAction(
-      () => {
-        connectDemoAccounts();
-      },
-      "Contas de demonstração conectadas nas sete redes.",
-      "contas",
-    );
-  }
-
-  function saveElectionDate() {
-    runAction(() => {
-      setDemoElectionDate(electionDate.trim() ? electionDate.trim() : null);
-    }, "Data da eleição salva (blackout 72h antes / 24h depois).");
-  }
-
   function saveDraft() {
     if (!selected) {
       return;
@@ -318,16 +298,14 @@ export function DistribuidorPage() {
       <div className="relative z-10 mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <ProductPageHeader
           title="Publicador"
-          description="Revise o vídeo selado, escolha as redes, confirme Publicar ou Descartar e acompanhe o disparo coordenado — com janela de horário e blackout eleitoral."
+          description="Revise o vídeo, escolha as redes e acompanhe o disparo coordenado."
         />
 
         {demoMode ? (
           <div className="mb-6 rounded-xl border border-[var(--distribuidor-border)] bg-[var(--distribuidor-soft)] px-5 py-4">
             <p className="text-sm leading-relaxed text-[var(--distribuidor-text)]">
-              Pré-visualização do fluxo. A publicação real nas redes fica liberada a partir de{" "}
-              <strong>{CAMPAIGN_PUBLISH_UNLOCK_LABEL}</strong> (início do período de campanha). Até
-              lá, tudo aqui roda no navegador para você validar Publicar/Descartar, contas e
-              histórico.
+              Pré-visualização do fluxo. A publicação real nas redes sociais será liberada no dia{" "}
+              <strong>{CAMPAIGN_PUBLISH_UNLOCK_LABEL}</strong> (início do período de campanha).
             </p>
           </div>
         ) : null}
@@ -421,15 +399,15 @@ export function DistribuidorPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-md-text">Redes conectadas</h2>
-                  <p className="mt-1 max-w-xl text-sm text-md-text-soft">
-                    Conecte as sete redes do mandato. Nesta pré-visualização, o botão simula o
-                    vínculo OAuth sem sair do app.
+                  <p className="mt-1 text-sm text-md-text-soft">
+                    Conecte as suas redes sociais ao Mandato Digital para publicações
+                    diretamente do painel. As adaptações de conteúdo para cada rede é realizada
+                    automaticamente.
                   </p>
                 </div>
                 <button
                   type="button"
-                  disabled={busy}
-                  onClick={connectAccounts}
+                  disabled
                   className="rounded-xl bg-[var(--distribuidor)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--distribuidor-hover)] disabled:opacity-50"
                 >
                   {connectedCount === 7 ? "Reconectar contas" : "Conectar redes"}
@@ -464,29 +442,13 @@ export function DistribuidorPage() {
             </div>
 
             <div className="rounded-[1.75rem] border border-md-border bg-md-surface/40 p-5 md:p-6">
-              <h2 className="text-lg font-semibold text-md-text">Blackout eleitoral</h2>
+              <h2 className="text-lg font-semibold text-md-text">
+                Kill switch em conformidade com as resoluções do TSE
+              </h2>
               <p className="mt-1 text-sm text-md-text-soft">
-                Informe a data da eleição. Publicações ficam bloqueadas 72h antes e 24h depois.
+                Todas as publicações serão bloqueadas 72h antes e 24h depois do pleito eleitoral
+                — 04/10/2026.
               </p>
-              <div className="mt-4 flex flex-wrap items-end gap-3">
-                <label className="text-sm text-md-text-soft">
-                  Data
-                  <input
-                    type="date"
-                    value={electionDate}
-                    onChange={(event) => setElectionDate(event.target.value)}
-                    className="mt-1 block rounded-lg border border-md-border bg-md-surface-inset px-3 py-2 text-md-text"
-                  />
-                </label>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={saveElectionDate}
-                  className="rounded-xl border border-md-border px-4 py-2 text-sm text-md-text transition hover:border-md-border-strong disabled:opacity-50"
-                >
-                  Salvar
-                </button>
-              </div>
             </div>
           </section>
         ) : (
@@ -556,7 +518,7 @@ export function DistribuidorPage() {
                     href="/criativo"
                     className="mt-4 text-sm font-medium text-[var(--distribuidor-text)] underline-offset-2 hover:underline"
                   >
-                    Enviar um criativo selado
+                    Enviar um criativo
                   </Link>
                 </div>
               ) : (

@@ -277,7 +277,6 @@ async function buildSuggestionFromCluster(input: {
       scoreTrendPercent: searchTrend?.changePercent ?? Math.min(99, Math.max(0, (outletCount - 1) * 18)),
       likes: 0,
       comments: 0,
-      shares: 0,
       postsAnalyzed: articles.length,
       sources: [],
       byNetwork: [],

@@ -137,3 +137,31 @@ export function hasInterestRadar(profile: PoliticianProfile): boolean {
 export function hasAdversaryRadar(profile: PoliticianProfile): boolean {
   return profile.oppositionProfiles.some((row) => row.handle.trim());
 }
+
+/**
+ * Verdadeiro se houver qualquer configuração de monitoramento (radar) capaz de gerar pautas.
+ * Aceita tanto `PoliticianProfile` (servidor) quanto `ProfileFormState` (cliente) — só usa os
+ * campos comuns aos dois, sem depender do restante do perfil (nome, bio, avatar etc.).
+ */
+export function hasAnyMonitoringRadarConfigured(
+  profile: Pick<
+    PoliticianProfile,
+    | "sentinelThemes"
+    | "sentinelThemesFederal"
+    | "sentinelThemesEstadual"
+    | "customRadarThemes"
+    | "municipalCities"
+    | "interestSites"
+    | "interestProfiles"
+    | "oppositionProfiles"
+  >,
+): boolean {
+  return (
+    resolveInterestThemes(profile).length > 0 ||
+    profile.customRadarThemes.some((theme) => theme.trim()) ||
+    profile.municipalCities.some((city) => city.trim()) ||
+    profile.interestSites.some((site) => site.trim()) ||
+    profile.interestProfiles.some((row) => row.handle.trim()) ||
+    profile.oppositionProfiles.some((row) => row.handle.trim())
+  );
+}
