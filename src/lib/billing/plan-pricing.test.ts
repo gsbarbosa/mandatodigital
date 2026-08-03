@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   formatBrl,
   getPlanPricing,
+  isBillingSmokeTestEmail,
   parseBillingStatus,
+  resolveCheckoutPricing,
   subscriptionEndDateFromFirstDue,
 } from "./plan-pricing";
 
@@ -29,5 +31,16 @@ describe("plan-pricing", () => {
 
   it("endDate cobre 3 ciclos a partir do primeiro vencimento", () => {
     expect(subscriptionEndDateFromFirstDue("2026-08-10")).toBe("2026-10-10");
+  });
+
+  it("smoke test so para gsbarbosa180", () => {
+    expect(isBillingSmokeTestEmail("gsbarbosa180@gmail.com")).toBe(true);
+    expect(isBillingSmokeTestEmail("outro@email.com")).toBe(false);
+    expect(resolveCheckoutPricing("essencial", "gsbarbosa180@gmail.com")).toMatchObject({
+      installmentValue: 1,
+      installmentCount: 1,
+      smokeTest: true,
+    });
+    expect(resolveCheckoutPricing("essencial", "cliente@email.com").installmentValue).toBe(998);
   });
 });
