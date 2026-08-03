@@ -30,6 +30,7 @@ export async function updateSession(request: NextRequest) {
     pathname === "/login" ||
     pathname.startsWith("/auth/") ||
     pathname === "/api/heygen/webhooks" ||
+    pathname === "/api/billing/webhooks/asaas" ||
     pathname === "/api/auth/session" ||
     pathname === "/api/auth/clear-session" ||
     isMarketingRoute ||

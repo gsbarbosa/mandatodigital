@@ -30,6 +30,8 @@ export const COLLECTIONS = {
   userRegistrations: "userRegistrations",
   /** Créditos vitalícios da versão convidado (doc id = ownerUserId). */
   guestCredits: "guestCredits",
+  /** Eventos de webhook Asaas já processados (idempotência; doc id = event id). */
+  billingWebhookEvents: "billingWebhookEvents",
   /** Tasks do roadmap no painel de gestão (compartilhado). */
   adminRoadmapTasks: "adminRoadmapTasks",
   /** Overrides de API keys de provedores (criptografados; só Admin SDK). */

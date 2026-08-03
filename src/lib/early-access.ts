@@ -151,8 +151,8 @@ export const earlyAccessPlans: Array<{
   {
     id: "essencial",
     name: "Essencial",
-    priceLabel: "R$ 499",
-    originalPriceLabel: "De R$ 997",
+    priceLabel: "R$ 998",
+    originalPriceLabel: "De R$ 1.996",
     accent: "slate",
     features: [
       "Monitoramento ilimitado de redes sociais, portais, sites e blogs",
@@ -165,7 +165,7 @@ export const earlyAccessPlans: Array<{
     id: "avancado",
     name: "Avançado",
     priceLabel: "R$ 1.998",
-    originalPriceLabel: "De R$ 3.997",
+    originalPriceLabel: "De R$ 3.996",
     accent: "cyan",
     features: [
       "Todos os benefícios do plano Essencial.",
@@ -178,7 +178,7 @@ export const earlyAccessPlans: Array<{
     id: "elite",
     name: "Elite",
     priceLabel: "R$ 4.998",
-    originalPriceLabel: "De R$ 9.997",
+    originalPriceLabel: "De R$ 9.996",
     accent: "purple",
     features: [
       "Todos os benefícios do plano Avançado.",

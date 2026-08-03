@@ -27,6 +27,25 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
+## Pagamentos (Asaas · boleto)
+
+Cobrança do pacote campanha em **3 boletos** (Essencial / Avançado / Elite). Sem PIX/cartão neste MVP.
+
+1. Configure no `.env.local` (nunca no git): `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`.
+2. Cadastre secrets no App Hosting: `npm run firebase:secrets:apply` (ids `asaas-api-key`, `asaas-webhook-token`).
+3. No painel Asaas, crie webhook para `POST /api/billing/webhooks/asaas` com o mesmo token em `asaas-access-token`, eventos de pagamento confirmado/recebido.
+4. Fluxo no app: Planos → Gerar boleto → `/acesso-antecipado/pagamento`.
+
+### Ativar NFS-e (depois do painel Asaas)
+
+Emissão automática após pagamento confirmado (`invoiceSettings` na assinatura). Fica **off** até você habilitar.
+
+1. No Asaas: Notas fiscais → certificado/credenciais da prefeitura + RPS.
+2. Anote o serviço municipal (`municipalServiceId` **ou** código + nome) e a alíquota ISS.
+3. No webhook existente, inclua eventos de nota (`INVOICE_CREATED`, `INVOICE_AUTHORIZED`, `INVOICE_ERROR`, etc.).
+4. No `.env.local` / App Hosting: `ASAAS_NFS_ENABLED=true` + `ASAAS_NFS_ISS` + serviço municipal (ver `.env.example`).
+5. Só **novas** subscriptions passam a emitir; checkout de boleto não quebra se a config fiscal falhar.
+
 ## Documentacao
 
 - [Status de desenvolvimento (acompanhamento)](docs/status-desenvolvimento.md)

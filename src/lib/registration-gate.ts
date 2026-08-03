@@ -1,5 +1,6 @@
 export const REGISTRATION_REQUIRED_PATH = "/acesso-antecipado/dados";
 export const PLAN_SELECTION_PATH = "/acesso-antecipado/planos";
+export const BILLING_PAYMENT_PATH = "/acesso-antecipado/pagamento";
 
 /** Plano default do free trial (convidado) ao concluir dados pessoais. */
 export const FREE_TRIAL_DEFAULT_PLAN_ID = "essencial" as const;
@@ -10,7 +11,9 @@ export function isRegistrationAllowedPath(pathname: string) {
     pathname === REGISTRATION_REQUIRED_PATH ||
     pathname.startsWith(`${REGISTRATION_REQUIRED_PATH}/`) ||
     pathname === PLAN_SELECTION_PATH ||
-    pathname.startsWith(`${PLAN_SELECTION_PATH}/`)
+    pathname.startsWith(`${PLAN_SELECTION_PATH}/`) ||
+    pathname === BILLING_PAYMENT_PATH ||
+    pathname.startsWith(`${BILLING_PAYMENT_PATH}/`)
   );
 }
 
