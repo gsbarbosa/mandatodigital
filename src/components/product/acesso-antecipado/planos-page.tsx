@@ -290,7 +290,7 @@ export function AcessoPlanosPage() {
                           : isSaving
                             ? "Gerando boleto..."
                             : smokeTestAvailable
-                              ? "Gerar boleto teste (R$ 1,00)"
+                              ? "Gerar boleto teste (R$ 5,00)"
                               : "Gerar boleto (3 parcelas)"}
                     </button>
                   ) : (
@@ -316,7 +316,7 @@ export function AcessoPlanosPage() {
                     {isSaving
                       ? "Gerando boleto..."
                       : smokeTestAvailable
-                        ? "Assinar teste (R$ 1,00)"
+                        ? "Assinar teste (R$ 5,00)"
                         : "Assinar com boleto"}
                   </button>
                 ) : (
