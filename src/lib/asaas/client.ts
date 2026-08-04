@@ -117,6 +117,7 @@ export async function asaasCreateCustomer(input: {
   postalCode?: string;
   address?: string;
   addressNumber?: string;
+  complement?: string;
   province?: string;
   externalReference: string;
 }): Promise<AsaasCustomer> {
@@ -128,8 +129,53 @@ export async function asaasCreateCustomer(input: {
       cpfCnpj: input.cpfCnpj.replace(/\D/g, ""),
       phone: input.phone?.replace(/\D/g, "") || undefined,
       mobilePhone: input.mobilePhone?.replace(/\D/g, "") || undefined,
+      postalCode: input.postalCode?.replace(/\D/g, "") || undefined,
+      address: input.address?.trim() || undefined,
+      addressNumber: input.addressNumber?.trim() || undefined,
+      complement: input.complement?.trim() || undefined,
+      province: input.province?.trim() || undefined,
       externalReference: input.externalReference,
       notificationDisabled: false,
+    }),
+  });
+}
+
+export async function asaasUpdateCustomer(
+  customerId: string,
+  input: {
+    name?: string;
+    email?: string;
+    cpfCnpj?: string;
+    phone?: string;
+    mobilePhone?: string;
+    postalCode?: string;
+    address?: string;
+    addressNumber?: string;
+    complement?: string;
+    province?: string;
+    externalReference?: string;
+  },
+): Promise<AsaasCustomer> {
+  return asaasFetch<AsaasCustomer>(`/customers/${encodeURIComponent(customerId)}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...(input.name ? { name: input.name } : {}),
+      ...(input.email ? { email: input.email } : {}),
+      ...(input.cpfCnpj ? { cpfCnpj: input.cpfCnpj.replace(/\D/g, "") } : {}),
+      ...(input.phone ? { phone: input.phone.replace(/\D/g, "") } : {}),
+      ...(input.mobilePhone ? { mobilePhone: input.mobilePhone.replace(/\D/g, "") } : {}),
+      ...(input.postalCode
+        ? { postalCode: input.postalCode.replace(/\D/g, "") }
+        : {}),
+      ...(input.address?.trim() ? { address: input.address.trim() } : {}),
+      ...(input.addressNumber?.trim()
+        ? { addressNumber: input.addressNumber.trim() }
+        : {}),
+      ...(input.complement?.trim() ? { complement: input.complement.trim() } : {}),
+      ...(input.province?.trim() ? { province: input.province.trim() } : {}),
+      ...(input.externalReference
+        ? { externalReference: input.externalReference }
+        : {}),
     }),
   });
 }
@@ -144,17 +190,62 @@ export async function asaasFindCustomerByExternalReference(
   return list.data?.[0] ?? null;
 }
 
+export async function asaasFindCustomerById(
+  customerId: string,
+): Promise<AsaasCustomer | null> {
+  try {
+    return await asaasFetch<AsaasCustomer>(
+      `/customers/${encodeURIComponent(customerId)}`,
+      { method: "GET" },
+    );
+  } catch (error) {
+    if (error instanceof AsaasApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Garante customer no Asaas com endereço/documento atualizados (necessário p/ NFS-e).
+ * Se já existir (por id ou externalReference), faz PUT; senão cria.
+ */
 export async function asaasEnsureCustomer(input: {
   name: string;
   email: string;
   cpfCnpj: string;
   phone?: string;
+  mobilePhone?: string;
+  postalCode?: string;
+  address?: string;
+  addressNumber?: string;
+  complement?: string;
+  province?: string;
   externalReference: string;
+  existingCustomerId?: string | null;
 }): Promise<AsaasCustomer> {
-  const existing = await asaasFindCustomerByExternalReference(input.externalReference);
+  const existingById = input.existingCustomerId
+    ? await asaasFindCustomerById(input.existingCustomerId)
+    : null;
+  const existing =
+    existingById ?? (await asaasFindCustomerByExternalReference(input.externalReference));
+
   if (existing?.id) {
-    return existing;
+    return asaasUpdateCustomer(existing.id, {
+      name: input.name,
+      email: input.email,
+      cpfCnpj: input.cpfCnpj,
+      phone: input.phone,
+      mobilePhone: input.mobilePhone,
+      postalCode: input.postalCode,
+      address: input.address,
+      addressNumber: input.addressNumber,
+      complement: input.complement,
+      province: input.province,
+      externalReference: input.externalReference,
+    });
   }
+
   return asaasCreateCustomer(input);
 }
 

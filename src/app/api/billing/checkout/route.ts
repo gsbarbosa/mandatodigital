@@ -19,6 +19,7 @@ import {
   resolveCheckoutPricing,
   subscriptionEndDateFromFirstDue,
 } from "@/lib/billing/plan-pricing";
+import { resolveAsaasBillingCustomer } from "@/lib/billing/resolve-asaas-customer";
 import { appLog, appLogError } from "@/lib/observability/log";
 import {
   getUserRegistrationForOwner,
@@ -62,17 +63,27 @@ export async function POST(request: Request) {
       const pricing = resolveCheckoutPricing(body.planId, sessionEmail);
       const ownerUserId = registration.ownerUserId;
 
-      let customerId = registration.asaasCustomerId;
-      if (!customerId) {
-        const customer = await asaasEnsureCustomer({
-          name: registration.fullName,
-          email: registration.email || session.email || "",
-          cpfCnpj: registration.cpf,
-          phone: registration.phone,
-          externalReference: ownerUserId,
-        });
-        customerId = customer.id;
+      const resolved = await resolveAsaasBillingCustomer({
+        registration,
+        sessionEmail: session.email,
+      });
+      if (!resolved.ok) {
+        return NextResponse.json({ message: resolved.message }, { status: 400 });
       }
+
+      const customer = await asaasEnsureCustomer({
+        ...resolved.customer,
+        existingCustomerId: registration.asaasCustomerId,
+      });
+      const customerId = customer.id;
+
+      appLog("billing", "asaas_customer_synced", {
+        ownerUserId,
+        customerId,
+        documentKind: resolved.customer.documentKind,
+        addressSource: resolved.customer.addressSource,
+        postalCode: resolved.customer.postalCode,
+      });
 
       let subscriptionId = registration.asaasSubscriptionId;
       // Smoke R$5: se já houver assinatura de valor cheio, cria outra de teste.
@@ -116,28 +127,29 @@ export async function POST(request: Request) {
         });
         subscriptionId = subscription.id;
         createdSubscription = true;
+      }
 
-        if (isAsaasNfsEnabled()) {
-          const nfsSettings = buildAsaasNfsInvoiceSettings({
-            planLabel: pricing.smokeTest ? `${pricing.label} (teste)` : pricing.label,
-          });
-          if (!nfsSettings) {
-            appLog(
-              "billing",
-              "nfs_settings_skipped_incomplete_config",
-              { ownerUserId, subscriptionId },
-              "warn",
-            );
-          } else {
-            try {
-              await asaasCreateSubscriptionInvoiceSettings(subscriptionId, nfsSettings);
-              nfsConfigured = true;
-            } catch (error) {
-              appLogError("billing", "nfs_invoice_settings_failed", error, {
-                ownerUserId,
-                subscriptionId,
-              });
-            }
+      if (subscriptionId && isAsaasNfsEnabled()) {
+        const nfsSettings = buildAsaasNfsInvoiceSettings({
+          planLabel: pricing.smokeTest ? `${pricing.label} (teste)` : pricing.label,
+        });
+        if (!nfsSettings) {
+          appLog(
+            "billing",
+            "nfs_settings_skipped_incomplete_config",
+            { ownerUserId, subscriptionId },
+            "warn",
+          );
+        } else {
+          try {
+            await asaasCreateSubscriptionInvoiceSettings(subscriptionId, nfsSettings);
+            nfsConfigured = true;
+          } catch (error) {
+            appLogError("billing", "nfs_invoice_settings_failed", error, {
+              ownerUserId,
+              subscriptionId,
+              createdSubscription,
+            });
           }
         }
       }
@@ -190,6 +202,8 @@ export async function POST(request: Request) {
         nfsConfigured,
         subscriptionCreated: createdSubscription,
         smokeTest: pricing.smokeTest,
+        customerDocumentKind: resolved.customer.documentKind,
+        customerAddressSource: resolved.customer.addressSource,
       });
     });
   } catch (error) {
