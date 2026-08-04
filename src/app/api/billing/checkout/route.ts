@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       }
 
       let subscriptionId = registration.asaasSubscriptionId;
-      // Smoke R$1: se já houver assinatura de valor cheio, cria outra de teste.
+      // Smoke R$5: se já houver assinatura de valor cheio, cria outra de teste.
       if (subscriptionId && pricing.smokeTest) {
         try {
           const existingPayments = await asaasListSubscriptionPayments(subscriptionId);
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
           ? nextDueDate
           : subscriptionEndDateFromFirstDue(nextDueDate);
         const description = pricing.smokeTest
-          ? `TESTE NFS — Mandato Digital ${pricing.label} (R$ 1,00)`
+          ? `TESTE NFS — Mandato Digital ${pricing.label} (R$ 5,00)`
           : `Mandato Digital — ${pricing.label} (parcela 1/${pricing.installmentCount})`;
         const subscription = await asaasCreateBoletoSubscription({
           customerId,

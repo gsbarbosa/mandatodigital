@@ -47,9 +47,9 @@ export function getPlanPricing(planId: EarlyAccessPlanId): PlanPricing {
   return PLAN_PRICING[planId];
 }
 
-/** Conta interna: boleto de R$ 1,00 para smoke de pagamento + NFS-e. */
+/** Conta interna: boleto de R$ 5,00 (mínimo Asaas boleto) para smoke de pagamento + NFS-e. */
 export const BILLING_SMOKE_TEST_EMAILS = ["gsbarbosa180@gmail.com"] as const;
-export const BILLING_SMOKE_TEST_VALUE = 1;
+export const BILLING_SMOKE_TEST_VALUE = 5;
 
 export function isBillingSmokeTestEmail(email: string | null | undefined): boolean {
   const normalized = String(email ?? "")

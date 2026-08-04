@@ -37,7 +37,7 @@ describe("plan-pricing", () => {
     expect(isBillingSmokeTestEmail("gsbarbosa180@gmail.com")).toBe(true);
     expect(isBillingSmokeTestEmail("outro@email.com")).toBe(false);
     expect(resolveCheckoutPricing("essencial", "gsbarbosa180@gmail.com")).toMatchObject({
-      installmentValue: 1,
+      installmentValue: 5,
       installmentCount: 1,
       smokeTest: true,
     });
