@@ -52,6 +52,12 @@ export type UserRegistrationPersonalInput = {
   teamPhone: string;
 };
 
+/** Campos editáveis após o cadastro (CPF e nome ficam imutáveis). */
+export type UserRegistrationEditableInput = Omit<
+  UserRegistrationPersonalInput,
+  "fullName" | "cpf"
+>;
+
 /** Payload de conclusão do cadastro (dados + plano). */
 export type UserRegistrationCompleteInput = UserRegistrationPersonalInput & {
   planId: EarlyAccessPlanId;

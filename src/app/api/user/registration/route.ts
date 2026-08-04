@@ -16,7 +16,7 @@ import {
   getUserRegistrationForOwner,
   needsPlanSelection,
   toEarlyAccessReservationShape,
-  updateUserRegistrationTeamContact,
+  updateUserRegistrationEditableFields,
 } from "@/lib/user-registration-storage";
 
 const personalFields = {
@@ -51,9 +51,16 @@ const completeSchema = z.object({
   planId: z.enum(["essencial", "avancado", "elite"]).optional(),
 });
 
-const teamSchema = z.object({
-  teamEmail: z.string().trim().email().or(z.literal("")).default(""),
-  teamPhone: z.string().trim().default(""),
+/** Campos editáveis pós-cadastro (sem CPF e nome). */
+const editableSchema = z.object({
+  party: personalFields.party,
+  uf: personalFields.uf,
+  role: personalFields.role,
+  address: personalFields.address,
+  phone: personalFields.phone,
+  email: z.string().trim().email(),
+  teamEmail: personalFields.teamEmail,
+  teamPhone: personalFields.teamPhone,
 });
 
 const planSchema = z.object({
@@ -207,10 +214,10 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    return await apiRoute(async () => {
+    return await apiRoute(async (repository) => {
       const raw = await request.json();
 
-      if (raw && typeof raw === "object" && "planId" in raw && !("teamEmail" in raw)) {
+      if (raw && typeof raw === "object" && "planId" in raw && !("teamEmail" in raw) && !("party" in raw)) {
         const body = planSchema.parse(raw);
         const { registration: stored, seat } = await assignUserRegistrationPlan(body.planId);
         return NextResponse.json({
@@ -223,12 +230,37 @@ export async function PATCH(request: Request) {
         });
       }
 
-      const body = teamSchema.parse(raw);
-      const stored = await updateUserRegistrationTeamContact(body);
+      const body = editableSchema.parse(raw);
+      const personal = {
+        party: body.party,
+        uf: body.uf,
+        role: body.role,
+        address: body.address,
+        phone: digitsOnly(body.phone),
+        email: body.email,
+        teamEmail: body.teamEmail,
+        teamPhone: digitsOnly(body.teamPhone),
+      };
+
+      const stored = await updateUserRegistrationEditableFields(personal);
+
+      const dashboard = await repository.getDashboard();
+      const merged = buildDraftProfileInput(
+        {
+          fullName: stored.fullName,
+          role: personal.role,
+          uf: personal.uf,
+        },
+        personal.email,
+        dashboard.profile,
+      );
+      const profile = await repository.saveProfile(profileInputSchema.parse(merged));
+
       return NextResponse.json({
         registration: stored,
         reservation: toEarlyAccessReservationShape(stored),
         profileId: stored.profileId,
+        profile,
       });
     });
   } catch (error) {
