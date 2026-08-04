@@ -595,19 +595,45 @@ export function AcessoDadosPage() {
     }
   }
 
-  async function handleSaveTeamContact() {
+  async function handleSaveEditableFields() {
     if (!reservation) {
       return;
     }
 
-    setIsSaving(true);
     setFormError(null);
+    if (
+      !form.party ||
+      !form.uf ||
+      !form.role ||
+      !form.address.trim() ||
+      !form.phone.trim() ||
+      !form.email.trim()
+    ) {
+      setFormError("Preencha todos os campos obrigatórios (*) para salvar.");
+      return;
+    }
+    if (!isValidPhoneBr(form.phone)) {
+      setFormError("Telefone inválido — use DDD + número.");
+      return;
+    }
+    if (!isValidEmail(form.email)) {
+      setFormError("E-mail inválido.");
+      return;
+    }
+
+    setIsSaving(true);
     try {
       const response = await fetch("/api/user/registration", {
         method: "PATCH",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          party: form.party,
+          uf: form.uf,
+          role: form.role,
+          address: form.address.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
           teamEmail: form.teamEmail.trim(),
           teamPhone: form.teamPhone.trim(),
         }),
@@ -615,20 +641,39 @@ export function AcessoDadosPage() {
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
         reservation?: EarlyAccessReservation;
+        profile?: {
+          id: string;
+          fullName: string;
+          role: string;
+          state: string;
+          notificationEmail: string;
+        };
       } | null;
 
       if (!response.ok || !payload?.reservation) {
-        throw new Error(payload?.message || "Nao foi possivel atualizar o contato.");
+        throw new Error(payload?.message || "Nao foi possivel atualizar os dados.");
+      }
+
+      if (payload.profile) {
+        setProfileForm((current) => ({
+          ...current,
+          id: payload.profile?.id ?? current.id,
+          fullName: payload.profile?.fullName ?? current.fullName,
+          role: payload.profile?.role ?? current.role,
+          state: payload.profile?.state ?? current.state,
+          notificationEmail:
+            payload.profile?.notificationEmail ?? current.notificationEmail,
+        }));
       }
 
       updateEarlyAccess({ reservation: payload.reservation });
-      setTeamSavedMessage("Contato da equipe atualizado.");
+      setTeamSavedMessage("Dados atualizados.");
       window.setTimeout(() => setTeamSavedMessage(null), 3200);
     } catch (error) {
       setFormError(
         error instanceof Error
           ? error.message
-          : "Nao foi possivel atualizar o contato da equipe.",
+          : "Nao foi possivel atualizar os dados cadastrais.",
       );
     } finally {
       setIsSaving(false);
@@ -669,8 +714,8 @@ export function AcessoDadosPage() {
           <p className="mb-6 text-sm leading-relaxed text-md-text-soft">
             {isReserved
               ? isOnReserveQueue
-                ? "Você está na lista de reserva deste partido/UF. Se uma vaga antecipada liberar, avisaremos por e-mail. Somente o contato da equipe pode ser alterado."
-                : "Sua reserva está ativa. Somente o contato da equipe pode ser alterado."
+                ? "Você está na lista de reserva deste partido/UF. Se uma vaga antecipada liberar, avisaremos por e-mail. Nome e CPF não podem ser alterados."
+                : "Sua reserva está ativa. Você pode atualizar os dados — nome e CPF não podem ser alterados."
               : (
                 <>
                   Preencha os dados para liberar o acesso ao Mandato Digital.{" "}
@@ -812,7 +857,6 @@ export function AcessoDadosPage() {
               <select
                 className={inputClasses}
                 value={form.party}
-                disabled={isReserved}
                 onChange={(event) => setField("party", event.target.value)}
               >
                 <option value="" disabled>
@@ -865,7 +909,6 @@ export function AcessoDadosPage() {
                 <select
                   className={inputClasses}
                   value={form.uf}
-                  disabled={isReserved}
                   onChange={(event) => setField("uf", event.target.value)}
                 >
                   <option value="" disabled>
@@ -882,7 +925,6 @@ export function AcessoDadosPage() {
                 <FieldLabel required>Cargo Pretendido</FieldLabel>
                 <CargoSelect
                   value={form.role}
-                  disabled={isReserved}
                   onChange={(role) => setField("role", role)}
                 />
               </div>
@@ -893,7 +935,6 @@ export function AcessoDadosPage() {
               <input
                 className={inputClasses}
                 value={form.address}
-                disabled={isReserved}
                 placeholder="Rua, número, bairro, cidade - UF, CEP"
                 onChange={(event) => setField("address", event.target.value)}
               />
@@ -904,7 +945,6 @@ export function AcessoDadosPage() {
               <input
                 className={inputClasses}
                 value={form.phone}
-                disabled={isReserved}
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder="(00) 00000-0000"
@@ -923,7 +963,6 @@ export function AcessoDadosPage() {
                 }`}
                 type="email"
                 value={form.email}
-                disabled={isReserved}
                 autoComplete="email"
                 placeholder="seu@email.com"
                 onChange={(event) => handleEmailChange(event.target.value)}
@@ -969,15 +1008,23 @@ export function AcessoDadosPage() {
                 />
               </div>
             </div>
-            {isReserved ? (
-              <div className="mt-4 flex items-center gap-3">
+          </div>
+
+          {isReserved ? (
+            <>
+              {formError ? (
+                <p className="mt-4 text-sm text-red-400" role="alert">
+                  {formError}
+                </p>
+              ) : null}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => void handleSaveTeamContact()}
-                  disabled={isSaving}
-                  className="px-5 py-2 bg-md-surface-inset text-md-text border border-md-border rounded-lg text-sm font-medium hover:bg-md-overlay-hover transition-colors disabled:opacity-60"
+                  onClick={() => void handleSaveEditableFields()}
+                  disabled={isSaving || emailStatus === "invalid"}
+                  className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold rounded-lg text-sm transition-all disabled:opacity-60"
                 >
-                  {isSaving ? "Salvando..." : "Salvar contato da equipe"}
+                  {isSaving ? "Salvando..." : "Salvar alterações"}
                 </button>
                 {teamSavedMessage ? (
                   <span className="text-xs text-[var(--sentinela-text)]" role="status">
@@ -985,8 +1032,8 @@ export function AcessoDadosPage() {
                   </span>
                 ) : null}
               </div>
-            ) : null}
-          </div>
+            </>
+          ) : null}
 
           {!isReserved ? (
             <>

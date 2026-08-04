@@ -15,6 +15,7 @@ import type {
   SeatAssignment,
   UserRegistration,
   UserRegistrationCompleteInput,
+  UserRegistrationEditableInput,
   UserRegistrationPersonalInput,
   UserRegistrationStatus,
 } from "@/lib/user-registration-types";
@@ -499,10 +500,46 @@ export async function updateUserRegistrationTeamContact(input: {
     throw new Error("Cadastro incompleto. Preencha os dados pessoais primeiro.");
   }
 
+  return updateUserRegistrationEditableFields({
+    party: existing.party,
+    uf: existing.uf,
+    role: existing.role,
+    address: existing.address,
+    phone: existing.phone,
+    email: existing.email,
+    teamEmail: input.teamEmail,
+    teamPhone: input.teamPhone,
+  });
+}
+
+/**
+ * Atualiza campos editáveis do cadastro completo.
+ * Preserva fullName, cpf e status da vaga (partido/UF não reavaliam assento).
+ */
+export async function updateUserRegistrationEditableFields(
+  input: UserRegistrationEditableInput,
+): Promise<UserRegistration> {
+  const ownerUserId = resolveOwnerUserId();
+  const existing = await readRegistrationDoc(ownerUserId);
+  if (!existing || !isUserRegistrationComplete(existing)) {
+    throw new Error("Cadastro incompleto. Preencha os dados pessoais primeiro.");
+  }
+
+  const email = input.email.trim().toLowerCase();
+  if (!email) {
+    throw new Error("Informe um e-mail.");
+  }
+
   const updated: UserRegistration = {
     ...existing,
+    party: normalizePartyKey(input.party),
+    uf: normalizeUfKey(input.uf),
+    role: input.role.trim(),
+    address: input.address.trim(),
+    phone: input.phone.replace(/\D/g, ""),
+    email,
     teamEmail: input.teamEmail.trim(),
-    teamPhone: input.teamPhone.trim(),
+    teamPhone: input.teamPhone.replace(/\D/g, ""),
     updatedAt: nowIso(),
   };
 
