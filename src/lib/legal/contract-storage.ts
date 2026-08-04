@@ -58,6 +58,32 @@ export async function saveContractAcceptance(row: ContractAcceptanceRow) {
   await col(COLLECTIONS.contractAcceptances).doc(row.id).set(row);
 }
 
+/** Último aceite de contrato do owner (CNPJ/endereço de campanha). */
+export async function getLatestContractAcceptanceForOwner(
+  ownerUserId: string,
+): Promise<ContractAcceptanceRow | null> {
+  const uid = ownerUserId.trim();
+  if (!uid) {
+    return null;
+  }
+
+  const snap = await col(COLLECTIONS.contractAcceptances)
+    .where("ownerUserId", "==", uid)
+    .limit(25)
+    .get();
+
+  if (snap.empty) {
+    return null;
+  }
+
+  const rows = snap.docs
+    .map((doc) => doc.data() as ContractAcceptanceRow)
+    .filter((row) => row?.campaignCnpj)
+    .sort((a, b) => String(b.acceptedAt ?? "").localeCompare(String(a.acceptedAt ?? "")));
+
+  return rows[0] ?? null;
+}
+
 export function resolveContractOwnerUserId() {
   return getStorageOwnerUserId()?.trim() || "";
 }
