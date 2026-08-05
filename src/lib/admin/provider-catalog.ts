@@ -63,6 +63,8 @@ export type ProviderUsageSnapshot = {
   exhausted: boolean;
   unit: string;
   cycleEnd?: string | null;
+  /** quota = usado/limite. balance = saldo prepaid (wallet HeyGen). */
+  kind?: "quota" | "balance";
 };
 
 export type ProviderAccountStatus = {
