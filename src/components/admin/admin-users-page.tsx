@@ -54,9 +54,9 @@ function nfsBucketOf(user: AdminUserRow): NfsBucket {
 const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "all", label: "Todos" },
   { id: "active", label: "Pagos" },
-  { id: "pending_payment", label: "Aguardando boleto" },
+  { id: "pending_payment", label: "Aguardando pagamento" },
   { id: "trial", label: "Trial" },
-  { id: "past_due", label: "Em atraso" },
+  { id: "past_due", label: "Inadimplente" },
   { id: "nfs_authorized", label: "NFS ok" },
   { id: "nfs_error", label: "NFS erro" },
 ];
@@ -201,7 +201,16 @@ export function AdminUsersPage() {
                     {user.paidInstallments > 0 ? (
                       <p className="text-xs text-md-text-soft">{user.paidInstallments} parcela(s)</p>
                     ) : null}
-                    {user.pendingBoletoDueDate && user.billingStatus === "pending_payment" ? (
+                    {user.lastPaidAt ? (
+                      <p className="text-xs text-md-text-soft">pago {formatDate(user.lastPaidAt)}</p>
+                    ) : null}
+                    {user.billingFirstDueDate ? (
+                      <p className="text-xs text-md-text-soft">
+                        3x a partir de {user.billingFirstDueDate.split("-").reverse().join("/")}
+                      </p>
+                    ) : null}
+                    {user.pendingBoletoDueDate &&
+                    (user.billingStatus === "pending_payment" || user.billingStatus === "past_due") ? (
                       <p className="text-xs text-md-text-soft">vence {user.pendingBoletoDueDate}</p>
                     ) : null}
                   </td>

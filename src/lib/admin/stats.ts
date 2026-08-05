@@ -27,6 +27,7 @@ export async function listAdminUsers(limit = 100): Promise<AdminUserRow[]> {
       billingStatus: parseBillingStatus(data.billingStatus),
       billingMethod: parseBillingMethod(data.billingMethod),
       paidInstallments: Number.isFinite(paid) && paid > 0 ? Math.floor(paid) : 0,
+      lastPaidAt: data.lastPaidAt ? String(data.lastPaidAt) : null,
       pendingBoletoValue:
         data.pendingBoletoValue == null || data.pendingBoletoValue === ""
           ? null
@@ -39,6 +40,9 @@ export async function listAdminUsers(limit = 100): Promise<AdminUserRow[]> {
       lastNfsPdfUrl: data.lastNfsPdfUrl ? String(data.lastNfsPdfUrl) : null,
       asaasSubscriptionId: data.asaasSubscriptionId
         ? String(data.asaasSubscriptionId)
+        : null,
+      billingFirstDueDate: data.billingFirstDueDate
+        ? String(data.billingFirstDueDate).slice(0, 10)
         : null,
       createdAt: String(data.createdAt ?? ""),
       updatedAt: String(data.updatedAt ?? ""),

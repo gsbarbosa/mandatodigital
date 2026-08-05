@@ -2,23 +2,26 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import {
-  asaasCreateSubscription,
+  asaasCreatePayment,
   asaasCreateSubscriptionInvoiceSettings,
   asaasEnsureCustomer,
+  asaasGetPayment,
   asaasGetPixQrCode,
-  asaasListSubscriptionPayments,
+  listAsaasPackagePayments,
   pickPrimaryBoletoPayment,
   AsaasApiError,
+  type AsaasPayment,
 } from "@/lib/asaas/client";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
+import { hasOpenBillingPackage } from "@/lib/billing/billing-package";
 import { buildAsaasNfsInvoiceSettings, isAsaasNfsEnabled } from "@/lib/billing/nfs-config";
 import {
   asaasDatePlusDays,
+  buildInstallmentSchedule,
   formatBrl,
   resolveCheckoutPricing,
-  subscriptionEndDateFromFirstDue,
 } from "@/lib/billing/plan-pricing";
 import { resolveAsaasBillingCustomer } from "@/lib/billing/resolve-asaas-customer";
 import { appLog, appLogError } from "@/lib/observability/log";
@@ -51,10 +54,15 @@ export async function POST(request: Request) {
         );
       }
 
-      if (registration.billingStatus === "active") {
+      const sessionEmail = session.email || registration.email || "";
+      const pricing = resolveCheckoutPricing(body.planId, sessionEmail);
+      const ownerUserId = registration.ownerUserId;
+      const openPackage = hasOpenBillingPackage(registration);
+
+      if (openPackage && registration.billingStatus === "active") {
         return NextResponse.json(
           {
-            message: "Assinatura ja ativa.",
+            message: "Pacote ja ativo. Use a tela de pagamento para as parcelas restantes.",
             billingStatus: registration.billingStatus,
             planId: registration.planId,
           },
@@ -62,9 +70,17 @@ export async function POST(request: Request) {
         );
       }
 
-      const sessionEmail = session.email || registration.email || "";
-      const pricing = resolveCheckoutPricing(body.planId, sessionEmail);
-      const ownerUserId = registration.ownerUserId;
+      if (openPackage && !pricing.smokeTest) {
+        return NextResponse.json(
+          {
+            message:
+              "Ja existe um pacote pendente ou inadimplente. Conclua o pagamento das parcelas em aberto.",
+            billingStatus: registration.billingStatus,
+            planId: registration.planId,
+          },
+          { status: 409 },
+        );
+      }
 
       const resolved = await resolveAsaasBillingCustomer({
         registration,
@@ -89,80 +105,96 @@ export async function POST(request: Request) {
         method,
       });
 
-      let subscriptionId = registration.asaasSubscriptionId;
-      if (subscriptionId && registration.billingMethod && registration.billingMethod !== method) {
-        appLog("billing", "checkout_replacing_subscription_method", {
+      let installmentId = registration.asaasInstallmentId;
+      const legacySubscriptionId = installmentId ? null : registration.asaasSubscriptionId;
+      if (
+        installmentId &&
+        ((registration.billingMethod && registration.billingMethod !== method) ||
+          (registration.planId && registration.planId !== body.planId))
+      ) {
+        appLog("billing", "checkout_replacing_installment", {
           ownerUserId,
-          previousSubscriptionId: subscriptionId,
+          previousInstallmentId: installmentId,
           previousMethod: registration.billingMethod,
+          previousPlanId: registration.planId,
           method,
+          planId: body.planId,
         });
-        subscriptionId = null;
+        installmentId = null;
       }
-      // Smoke R$5: se já houver assinatura de valor cheio, cria outra de teste.
-      if (subscriptionId && pricing.smokeTest) {
+
+      if (installmentId && pricing.smokeTest) {
         try {
-          const existingPayments = await asaasListSubscriptionPayments(subscriptionId);
+          const existingPayments = await listAsaasPackagePayments({ installmentId });
           const primary = pickPrimaryBoletoPayment(existingPayments);
           const existingValue = primary?.value ?? null;
           if (existingValue != null && Math.abs(existingValue - pricing.installmentValue) > 0.009) {
-            appLog("billing", "smoke_test_replacing_subscription", {
-              ownerUserId,
-              previousSubscriptionId: subscriptionId,
-              previousValue: existingValue,
-            });
-            subscriptionId = null;
+            installmentId = null;
           }
         } catch {
-          subscriptionId = null;
+          installmentId = null;
         }
       }
 
-      let createdSubscription = false;
+      let createdPackage = false;
+      let createdPayment: AsaasPayment | null = null;
       let nfsConfigured = false;
-      if (!subscriptionId) {
-        const nextDueDate = asaasDatePlusDays(method === "pix" ? 0 : pricing.smokeTest ? 1 : 3);
-        const endDate = pricing.smokeTest
-          ? nextDueDate
-          : subscriptionEndDateFromFirstDue(nextDueDate);
+      const nextDueDate = asaasDatePlusDays(method === "pix" ? 0 : pricing.smokeTest ? 1 : 3);
+      if (!installmentId && !legacySubscriptionId) {
         const description = pricing.smokeTest
           ? `TESTE NFS — Mandato Digital ${pricing.label} (R$ 5,00)`
-          : `Mandato Digital — ${pricing.label} (parcela 1/${pricing.installmentCount})`;
-        const subscription = await asaasCreateSubscription({
+          : `Mandato Digital — ${pricing.label} (pacote campanha ${pricing.installmentCount}x)`;
+        const created = await asaasCreatePayment({
           customerId,
           billingType: method === "pix" ? "PIX" : "BOLETO",
-          value: pricing.installmentValue,
-          nextDueDate,
-          endDate,
+          dueDate: nextDueDate,
           description,
           externalReference: pricing.smokeTest
             ? `${ownerUserId}:${body.planId}:smoke:${method}`
             : `${ownerUserId}:${body.planId}:${method}`,
+          ...(pricing.installmentCount >= 2
+            ? {
+                installmentCount: pricing.installmentCount,
+                installmentValue: pricing.installmentValue,
+              }
+            : { value: pricing.installmentValue }),
         });
-        subscriptionId = subscription.id;
-        createdSubscription = true;
+        createdPayment = created;
+        installmentId = created.installment?.trim() || null;
+        createdPackage = true;
+        if (!installmentId && pricing.installmentCount >= 2 && created.id) {
+          for (let attempt = 0; attempt < 4 && !installmentId; attempt += 1) {
+            await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+            try {
+              createdPayment = await asaasGetPayment(created.id);
+              installmentId = createdPayment.installment?.trim() || null;
+            } catch {
+              // tenta de novo
+            }
+          }
+        }
+        if (!installmentId && pricing.installmentCount >= 2) {
+          appLog(
+            "billing",
+            "installment_id_missing_after_create",
+            { ownerUserId, paymentId: created.id, method },
+            "error",
+          );
+        }
       }
 
-      if (subscriptionId && isAsaasNfsEnabled()) {
+      if (legacySubscriptionId && isAsaasNfsEnabled()) {
         const nfsSettings = buildAsaasNfsInvoiceSettings({
           planLabel: pricing.smokeTest ? `${pricing.label} (teste)` : pricing.label,
         });
-        if (!nfsSettings) {
-          appLog(
-            "billing",
-            "nfs_settings_skipped_incomplete_config",
-            { ownerUserId, subscriptionId },
-            "warn",
-          );
-        } else {
+        if (nfsSettings) {
           try {
-            await asaasCreateSubscriptionInvoiceSettings(subscriptionId, nfsSettings);
+            await asaasCreateSubscriptionInvoiceSettings(legacySubscriptionId, nfsSettings);
             nfsConfigured = true;
           } catch (error) {
             appLogError("billing", "nfs_invoice_settings_failed", error, {
               ownerUserId,
-              subscriptionId,
-              createdSubscription,
+              subscriptionId: legacySubscriptionId,
             });
           }
         }
@@ -174,7 +206,18 @@ export async function POST(request: Request) {
       let pixExpiration: string | null = null;
 
       for (let attempt = 0; attempt < 5; attempt += 1) {
-        const payments = await asaasListSubscriptionPayments(subscriptionId);
+        let payments = await listAsaasPackagePayments({
+          installmentId,
+          subscriptionId: installmentId ? null : legacySubscriptionId,
+        });
+        if (!payments.length && createdPayment?.id) {
+          try {
+            createdPayment = await asaasGetPayment(createdPayment.id);
+          } catch {
+            // usa o payload da criação
+          }
+          payments = createdPayment ? [createdPayment] : [];
+        }
         payment = pickPrimaryBoletoPayment(payments);
         if (method === "pix" && payment?.id) {
           try {
@@ -202,13 +245,20 @@ export async function POST(request: Request) {
       const linha = method === "boleto" ? payment?.identificationField || null : null;
       const dueDate = payment?.dueDate || null;
       const value = payment?.value ?? pricing.installmentValue;
+      const billingFirstDueDate =
+        dueDate ||
+        (!createdPackage ? registration.billingFirstDueDate : null) ||
+        nextDueDate;
 
       const updated = await updateUserRegistrationBilling(ownerUserId, {
         planId: body.planId,
         billingStatus: "pending_payment",
         billingMethod: method,
         asaasCustomerId: customerId,
-        asaasSubscriptionId: subscriptionId,
+        asaasInstallmentId: installmentId,
+        asaasPrimaryPaymentId: payment?.id || createdPayment?.id || registration.asaasPrimaryPaymentId,
+        asaasSubscriptionId: installmentId ? null : legacySubscriptionId,
+        billingFirstDueDate,
         pendingBoletoUrl: boletoUrl,
         pendingBoletoLinhaDigitavel: linha,
         pendingBoletoDueDate: dueDate,
@@ -222,6 +272,8 @@ export async function POST(request: Request) {
         billingStatus: updated.billingStatus,
         billingMethod: method,
         planId: updated.planId,
+        billingFirstDueDate,
+        installments: buildInstallmentSchedule(billingFirstDueDate, pricing.installmentCount),
         installmentValue: pricing.installmentValue,
         installmentCount: pricing.installmentCount,
         campaignTotal: pricing.campaignTotal,
@@ -251,9 +303,9 @@ export async function POST(request: Request) {
               }
             : null,
         asaasCustomerId: customerId,
-        asaasSubscriptionId: subscriptionId,
+        asaasInstallmentId: installmentId,
         nfsConfigured,
-        subscriptionCreated: createdSubscription,
+        packageCreated: createdPackage,
         smokeTest: pricing.smokeTest,
         customerDocumentKind: resolved.customer.documentKind,
         customerAddressSource: resolved.customer.addressSource,
