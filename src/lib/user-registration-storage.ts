@@ -2,6 +2,7 @@ import type { DocumentData } from "firebase-admin/firestore";
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import type { EarlyAccessPlanId } from "@/lib/early-access-types";
+import { parseBillingMethod, type BillingMethod } from "@/lib/billing/billing-method";
 import { parseBillingStatus, type BillingStatus } from "@/lib/billing/plan-pricing";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
@@ -42,13 +43,18 @@ function parseStatus(value: unknown): UserRegistrationStatus {
 function emptyBillingFields() {
   return {
     billingStatus: "trial" as BillingStatus,
+    billingMethod: null as BillingMethod | null,
     asaasCustomerId: null as string | null,
     asaasSubscriptionId: null as string | null,
     pendingBoletoUrl: null as string | null,
     pendingBoletoLinhaDigitavel: null as string | null,
     pendingBoletoDueDate: null as string | null,
     pendingBoletoValue: null as number | null,
+    pendingPixPayload: null as string | null,
+    pendingPixQrImage: null as string | null,
+    pendingPixExpiration: null as string | null,
     paidInstallments: 0,
+    lastPaidPaymentId: null as string | null,
     lastNfsPdfUrl: null as string | null,
     lastNfsXmlUrl: null as string | null,
     lastNfsNumber: null as string | null,
@@ -60,6 +66,7 @@ function mapBillingFields(data: DocumentData) {
   const paid = Number(data.paidInstallments ?? 0);
   return {
     billingStatus: parseBillingStatus(data.billingStatus),
+    billingMethod: parseBillingMethod(data.billingMethod),
     asaasCustomerId: data.asaasCustomerId ? String(data.asaasCustomerId) : null,
     asaasSubscriptionId: data.asaasSubscriptionId
       ? String(data.asaasSubscriptionId)
@@ -75,7 +82,13 @@ function mapBillingFields(data: DocumentData) {
       data.pendingBoletoValue == null || data.pendingBoletoValue === ""
         ? null
         : Number(data.pendingBoletoValue),
+    pendingPixPayload: data.pendingPixPayload ? String(data.pendingPixPayload) : null,
+    pendingPixQrImage: data.pendingPixQrImage ? String(data.pendingPixQrImage) : null,
+    pendingPixExpiration: data.pendingPixExpiration
+      ? String(data.pendingPixExpiration)
+      : null,
     paidInstallments: Number.isFinite(paid) && paid > 0 ? Math.floor(paid) : 0,
+    lastPaidPaymentId: data.lastPaidPaymentId ? String(data.lastPaidPaymentId) : null,
     lastNfsPdfUrl: data.lastNfsPdfUrl ? String(data.lastNfsPdfUrl) : null,
     lastNfsXmlUrl: data.lastNfsXmlUrl ? String(data.lastNfsXmlUrl) : null,
     lastNfsNumber: data.lastNfsNumber ? String(data.lastNfsNumber) : null,
@@ -86,13 +99,18 @@ function mapBillingFields(data: DocumentData) {
 function billingFieldsFromRegistration(existing: UserRegistration) {
   return {
     billingStatus: existing.billingStatus,
+    billingMethod: existing.billingMethod,
     asaasCustomerId: existing.asaasCustomerId,
     asaasSubscriptionId: existing.asaasSubscriptionId,
     pendingBoletoUrl: existing.pendingBoletoUrl,
     pendingBoletoLinhaDigitavel: existing.pendingBoletoLinhaDigitavel,
     pendingBoletoDueDate: existing.pendingBoletoDueDate,
     pendingBoletoValue: existing.pendingBoletoValue,
+    pendingPixPayload: existing.pendingPixPayload,
+    pendingPixQrImage: existing.pendingPixQrImage,
+    pendingPixExpiration: existing.pendingPixExpiration,
     paidInstallments: existing.paidInstallments,
+    lastPaidPaymentId: existing.lastPaidPaymentId,
     lastNfsPdfUrl: existing.lastNfsPdfUrl,
     lastNfsXmlUrl: existing.lastNfsXmlUrl,
     lastNfsNumber: existing.lastNfsNumber,
@@ -579,13 +597,18 @@ export function toEarlyAccessReservationShape(row: UserRegistration) {
 
 export type UserBillingUpdate = Partial<{
   billingStatus: BillingStatus;
+  billingMethod: BillingMethod | null;
   asaasCustomerId: string | null;
   asaasSubscriptionId: string | null;
   pendingBoletoUrl: string | null;
   pendingBoletoLinhaDigitavel: string | null;
   pendingBoletoDueDate: string | null;
   pendingBoletoValue: number | null;
+  pendingPixPayload: string | null;
+  pendingPixQrImage: string | null;
+  pendingPixExpiration: string | null;
   paidInstallments: number;
+  lastPaidPaymentId: string | null;
   planId: EarlyAccessPlanId;
   lastNfsPdfUrl: string | null;
   lastNfsXmlUrl: string | null;

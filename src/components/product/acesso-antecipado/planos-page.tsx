@@ -110,7 +110,7 @@ export function AcessoPlanosPage() {
     router.push(`${REGISTRATION_REQUIRED_PATH}?plan=${planId}` as Route);
   }
 
-  async function handleCheckoutBoleto(planId: EarlyAccessPlanId) {
+  async function handleCheckout(planId: EarlyAccessPlanId, method: "pix" | "boleto" = "pix") {
     setErrorMessage(null);
     setCheckoutPlanId(planId);
     try {
@@ -143,20 +143,20 @@ export function AcessoPlanosPage() {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, method }),
       });
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
       } | null;
       if (!response.ok) {
-        throw new Error(payload?.message || "Nao foi possivel gerar o boleto.");
+        throw new Error(payload?.message || "Nao foi possivel gerar a cobranca.");
       }
 
       router.push(BILLING_PAYMENT_PATH as Route);
       router.refresh();
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel gerar o boleto.",
+        error instanceof Error ? error.message : "Nao foi possivel gerar a cobranca.",
       );
     } finally {
       setCheckoutPlanId(null);
@@ -164,7 +164,7 @@ export function AcessoPlanosPage() {
   }
 
   async function handleConfirmPlan(planId: EarlyAccessPlanId) {
-    await handleCheckoutBoleto(planId);
+    await handleCheckout(planId, "pix");
   }
 
   const choosingPlan = needsPlan && !selectedPlanId;
@@ -279,19 +279,19 @@ export function AcessoPlanosPage() {
                       onClick={() =>
                         billingPending
                           ? router.push(BILLING_PAYMENT_PATH as Route)
-                          : void handleCheckoutBoleto(plan.id)
+                          : void handleCheckout(plan.id, "pix")
                       }
                       className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 bg-gradient-to-r from-cyan-500 to-blue-600 text-md-text"
                     >
                       {billingActive
                         ? "Plano ativo"
                         : billingPending
-                          ? "Ver boleto pendente"
+                          ? "Ver cobrança pendente"
                           : isSaving
-                            ? "Gerando boleto..."
+                            ? "Gerando PIX..."
                             : smokeTestAvailable
-                              ? "Gerar boleto teste (R$ 5,00)"
-                              : "Gerar boleto (3 parcelas)"}
+                              ? "Pagar teste via PIX (R$ 5,00)"
+                              : "Pagar com PIX (3 parcelas)"}
                     </button>
                   ) : (
                     <button
@@ -314,10 +314,10 @@ export function AcessoPlanosPage() {
                     }`}
                   >
                     {isSaving
-                      ? "Gerando boleto..."
+                      ? "Gerando PIX..."
                       : smokeTestAvailable
-                        ? "Assinar teste (R$ 5,00)"
-                        : "Assinar com boleto"}
+                        ? "Assinar teste via PIX (R$ 5,00)"
+                        : "Assinar com PIX"}
                   </button>
                 ) : (
                   <button
@@ -332,8 +332,18 @@ export function AcessoPlanosPage() {
                     {plan.id === "essencial" ? "Reservar Desconto" : "Reservar Vaga VIP"}
                   </button>
                 )}
+                {isSelected && !billingActive && !billingPending ? (
+                  <button
+                    type="button"
+                    disabled={!hydrated || Boolean(checkoutPlanId)}
+                    onClick={() => void handleCheckout(plan.id, "boleto")}
+                    className="mt-2 w-full text-center text-[11px] font-medium text-md-text-soft hover:text-md-text hover:underline disabled:opacity-60"
+                  >
+                    Preferir boleto bancário
+                  </button>
+                ) : null}
                 <p className="text-[10px] text-md-text-soft text-center mt-3">
-                  Pagamento exclusivo por boleto (TSE). Pacote em 3 parcelas mensais.
+                  PIX instantâneo ou boleto (TSE). Pacote em 3 parcelas mensais.
                 </p>
               </div>
             );

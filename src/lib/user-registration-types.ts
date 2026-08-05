@@ -1,4 +1,5 @@
 import type { EarlyAccessPlanId } from "@/lib/early-access-types";
+import type { BillingMethod } from "@/lib/billing/billing-method";
 import type { BillingStatus } from "@/lib/billing/plan-pricing";
 
 export type UserRegistrationStatus = "incomplete" | "complete" | "reserve";
@@ -19,15 +20,21 @@ export type UserRegistration = {
   teamEmail: string;
   teamPhone: string;
   planId: EarlyAccessPlanId | "";
-  /** Cobrança Asaas (boleto 3x). Default trial = free trial / convidado. */
+  /** Cobrança Asaas (PIX ou boleto 3x). Default trial = free trial / convidado. */
   billingStatus: BillingStatus;
+  billingMethod: BillingMethod | null;
   asaasCustomerId: string | null;
   asaasSubscriptionId: string | null;
   pendingBoletoUrl: string | null;
   pendingBoletoLinhaDigitavel: string | null;
   pendingBoletoDueDate: string | null;
   pendingBoletoValue: number | null;
+  pendingPixPayload: string | null;
+  pendingPixQrImage: string | null;
+  pendingPixExpiration: string | null;
   paidInstallments: number;
+  /** Última cobrança Asaas já contabilizada (evita CONFIRMED+RECEIVED somarem 2x). */
+  lastPaidPaymentId: string | null;
   /** Última NFS-e autorizada (Asaas). */
   lastNfsPdfUrl: string | null;
   lastNfsXmlUrl: string | null;

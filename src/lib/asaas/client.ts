@@ -249,8 +249,9 @@ export async function asaasEnsureCustomer(input: {
   return asaasCreateCustomer(input);
 }
 
-export async function asaasCreateBoletoSubscription(input: {
+export async function asaasCreateSubscription(input: {
   customerId: string;
+  billingType: "BOLETO" | "PIX";
   value: number;
   nextDueDate: string;
   endDate: string;
@@ -261,7 +262,7 @@ export async function asaasCreateBoletoSubscription(input: {
     method: "POST",
     body: JSON.stringify({
       customer: input.customerId,
-      billingType: "BOLETO",
+      billingType: input.billingType,
       value: input.value,
       cycle: "MONTHLY",
       nextDueDate: input.nextDueDate,
@@ -269,6 +270,29 @@ export async function asaasCreateBoletoSubscription(input: {
       description: input.description,
       externalReference: input.externalReference,
     }),
+  });
+}
+
+export async function asaasCreateBoletoSubscription(input: {
+  customerId: string;
+  value: number;
+  nextDueDate: string;
+  endDate: string;
+  description: string;
+  externalReference: string;
+}): Promise<AsaasSubscription> {
+  return asaasCreateSubscription({ ...input, billingType: "BOLETO" });
+}
+
+export type AsaasPixQrCode = {
+  encodedImage?: string | null;
+  payload?: string | null;
+  expirationDate?: string | null;
+};
+
+export async function asaasGetPixQrCode(paymentId: string): Promise<AsaasPixQrCode> {
+  return asaasFetch<AsaasPixQrCode>(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`, {
+    method: "GET",
   });
 }
 

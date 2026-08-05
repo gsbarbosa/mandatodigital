@@ -10,12 +10,21 @@ import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 type BillingStatusPayload = {
   billingStatus?: string;
+  billingMethod?: "pix" | "boleto" | null;
   planId?: string | null;
   paidInstallments?: number;
   installmentCount?: number;
   boleto?: {
     url?: string | null;
     linhaDigitavel?: string | null;
+    dueDate?: string | null;
+    value?: number | null;
+    valueLabel?: string | null;
+  } | null;
+  pix?: {
+    payload?: string | null;
+    qrImage?: string | null;
+    expiration?: string | null;
     dueDate?: string | null;
     value?: number | null;
     valueLabel?: string | null;
@@ -28,6 +37,13 @@ type BillingStatusPayload = {
   } | null;
   message?: string;
 };
+
+function pixImageSrc(qrImage: string) {
+  if (qrImage.startsWith("data:")) {
+    return qrImage;
+  }
+  return `data:image/png;base64,${qrImage}`;
+}
 
 export function AcessoPagamentoPage() {
   const [loading, setLoading] = useState(true);
@@ -53,17 +69,13 @@ export function AcessoPagamentoPage() {
 
   useEffect(() => {
     void refresh();
-    const timer = window.setInterval(() => void refresh(), 20000);
+    const timer = window.setInterval(() => void refresh(), 12000);
     return () => window.clearInterval(timer);
   }, [refresh]);
 
-  async function copyLinha() {
-    const linha = data?.boleto?.linhaDigitavel?.trim();
-    if (!linha) {
-      return;
-    }
+  async function copyText(value: string) {
     try {
-      await navigator.clipboard.writeText(linha);
+      await navigator.clipboard.writeText(value);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -73,6 +85,8 @@ export function AcessoPagamentoPage() {
 
   const active = data?.billingStatus === "active";
   const pending = data?.billingStatus === "pending_payment" || data?.billingStatus === "past_due";
+  const isPix = data?.billingMethod === "pix" || Boolean(data?.pix);
+  const copyTarget = isPix ? data?.pix?.payload?.trim() : data?.boleto?.linhaDigitavel?.trim();
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center px-1 py-8">
@@ -82,18 +96,17 @@ export function AcessoPagamentoPage() {
         </div>
 
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--curador-border)] bg-[var(--curador-soft)] px-3 py-1 text-xs font-semibold text-[var(--curador-text)]">
-          Pagamento · Boleto
+          Pagamento · {isPix ? "PIX" : "Boleto"}
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-md-text">Cobrança do pacote</h1>
         <p className="mt-3 text-sm leading-relaxed text-md-text-muted">
-          Por conformidade TSE, neste momento aceitamos apenas boleto bancário. Após a compensação
-          do primeiro boleto, o plano pago é liberado automaticamente.
+          {isPix
+            ? "Pague com PIX (compensação em instantes). Após a confirmação, o plano pago é liberado automaticamente."
+            : "Por conformidade TSE, o boleto também está disponível. Após a compensação do primeiro boleto, o plano pago é liberado automaticamente."}
         </p>
 
-        {loading ? (
-          <p className="mt-6 text-sm text-md-text-muted">Carregando status…</p>
-        ) : null}
+        {loading ? <p className="mt-6 text-sm text-md-text-muted">Carregando status…</p> : null}
 
         {error ? (
           <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600" role="alert">
@@ -129,38 +142,56 @@ export function AcessoPagamentoPage() {
           </div>
         ) : null}
 
-        {pending && data?.boleto ? (
+        {pending && (data?.pix || data?.boleto) ? (
           <div className="mt-6 space-y-4">
             <p className="text-sm text-md-text">
-              Status: <strong>aguardando compensação</strong>
+              Status: <strong>aguardando pagamento</strong>
               {data.planId ? ` · plano ${data.planId}` : null}
             </p>
-            {data.boleto.valueLabel ? (
+            {(data.pix?.valueLabel || data.boleto?.valueLabel) ? (
               <p className="text-sm text-md-text-muted">
-                Valor: <strong className="text-md-text">{data.boleto.valueLabel}</strong>
-                {data.boleto.dueDate ? ` · vencimento ${data.boleto.dueDate}` : null}
+                Valor:{" "}
+                <strong className="text-md-text">
+                  {data.pix?.valueLabel || data.boleto?.valueLabel}
+                </strong>
+                {data.pix?.expiration
+                  ? ` · QR válido até ${data.pix.expiration}`
+                  : data.boleto?.dueDate
+                    ? ` · vencimento ${data.boleto.dueDate}`
+                    : null}
               </p>
             ) : null}
 
-            {data.boleto.linhaDigitavel ? (
+            {data.pix?.qrImage ? (
+              <div className="flex justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={pixImageSrc(data.pix.qrImage)}
+                  alt="QR Code PIX"
+                  className="h-52 w-52 rounded-xl border border-md-border bg-white p-2"
+                />
+              </div>
+            ) : null}
+
+            {copyTarget ? (
               <div>
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-md-text-soft">
-                  Linha digitável
+                  {isPix ? "PIX copia e cola" : "Linha digitável"}
                 </p>
                 <p className="break-all rounded-lg border border-md-border bg-md-surface-inset px-3 py-2 font-mono text-xs text-md-text">
-                  {data.boleto.linhaDigitavel}
+                  {copyTarget}
                 </p>
                 <button
                   type="button"
-                  onClick={() => void copyLinha()}
+                  onClick={() => void copyText(copyTarget)}
                   className="mt-2 text-sm font-semibold text-cyan-600 hover:underline"
                 >
-                  {copied ? "Copiado" : "Copiar linha digitável"}
+                  {copied ? "Copiado" : isPix ? "Copiar código PIX" : "Copiar linha digitável"}
                 </button>
               </div>
             ) : null}
 
-            {data.boleto.url ? (
+            {data.boleto?.url ? (
               <a
                 href={data.boleto.url}
                 target="_blank"
@@ -184,10 +215,10 @@ export function AcessoPagamentoPage() {
           </div>
         ) : null}
 
-        {!loading && !active && !data?.boleto ? (
+        {!loading && !active && !data?.pix && !data?.boleto ? (
           <div className="mt-6 space-y-3">
             <p className="text-sm text-md-text-muted">
-              Nenhum boleto pendente. Escolha um plano para gerar a cobrança.
+              Nenhuma cobrança pendente. Escolha um plano para gerar o PIX ou o boleto.
             </p>
             <Link
               href={PLAN_SELECTION_PATH as Route}
@@ -197,12 +228,6 @@ export function AcessoPagamentoPage() {
             </Link>
           </div>
         ) : null}
-
-        <p className="mt-6 text-center text-xs text-md-text-soft">
-          <Link href={PLAN_SELECTION_PATH as Route} className="underline-offset-2 hover:underline">
-            Voltar aos planos
-          </Link>
-        </p>
       </div>
     </div>
   );

@@ -242,6 +242,24 @@ async function handlePaymentEvent(
     return NextResponse.json({ ok: true, matched: false });
   }
 
+  if (registration.lastPaidPaymentId === paymentId) {
+    await markEventProcessed(eventRef, {
+      eventId,
+      event: eventName,
+      paymentId,
+      ownerUserId: registration.ownerUserId,
+      duplicatePayment: true,
+      paidInstallments: registration.paidInstallments || 0,
+    });
+    return NextResponse.json({
+      ok: true,
+      matched: true,
+      duplicatePayment: true,
+      billingStatus: "active",
+      paidInstallments: registration.paidInstallments || 0,
+    });
+  }
+
   const paidInstallments = Math.min(
     (registration.paidInstallments || 0) + 1,
     registration.planId ? getPlanPricing(registration.planId).installmentCount : 3,
@@ -250,10 +268,14 @@ async function handlePaymentEvent(
   await updateUserRegistrationBilling(registration.ownerUserId, {
     billingStatus: "active",
     paidInstallments,
+    lastPaidPaymentId: paymentId,
     pendingBoletoUrl: null,
     pendingBoletoLinhaDigitavel: null,
     pendingBoletoDueDate: null,
     pendingBoletoValue: null,
+    pendingPixPayload: null,
+    pendingPixQrImage: null,
+    pendingPixExpiration: null,
   });
 
   await markEventProcessed(eventRef, {
