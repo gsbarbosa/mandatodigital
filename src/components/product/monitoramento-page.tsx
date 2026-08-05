@@ -27,10 +27,7 @@ import {
   hasAnyMonitoringRadarConfigured,
   resolveSentinelThemeSpheres,
 } from "@/lib/sentinel-profile-themes";
-import {
-  isDevAccountModeEmail,
-  readDevAccountModeFromDocumentCookie,
-} from "@/lib/dev-account-mode";
+import { useAccountTier } from "@/components/product/use-account-tier";
 
 const INITIAL_VISIBLE = 3;
 const VISIBLE_STEP = 5;
@@ -89,7 +86,8 @@ function ThemeChips({ themes }: { themes: string[] }) {
 }
 
 export function MonitoramentoPage() {
-  const { profileForm, sessionUser } = useProductApp();
+  const { profileForm } = useProductApp();
+  const { isTrial, ready: accountReady } = useAccountTier();
   const { guideOpen, guideStepId, markStepDone } = useOnboarding();
   const [suggestions, setSuggestions] = useState<MockSentinelSuggestion[]>([]);
   const [meta, setMeta] = useState<SentinelSuggestionsMeta | null>(null);
@@ -133,13 +131,7 @@ export function MonitoramentoPage() {
     [profileForm],
   );
 
-  const isGuestUi = useMemo(() => {
-    const email = sessionUser?.email ?? "";
-    if (isDevAccountModeEmail(email)) {
-      return readDevAccountModeFromDocumentCookie() !== "premium";
-    }
-    return true;
-  }, [sessionUser?.email]);
+  const isGuestUi = !accountReady || isTrial;
 
   const loadSuggestions = useCallback(async () => {
     setIsLoading(true);

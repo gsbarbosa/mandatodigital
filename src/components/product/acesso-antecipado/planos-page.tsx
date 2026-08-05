@@ -44,6 +44,7 @@ export function AcessoPlanosPage() {
   const [checkoutPlanId, setCheckoutPlanId] = useState<EarlyAccessPlanId | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [billingStatus, setBillingStatus] = useState<string | null>(null);
+  const [hasRemainingInstallments, setHasRemainingInstallments] = useState(false);
   const [registeredPlanId, setRegisteredPlanId] = useState<EarlyAccessPlanId | null>(null);
   const [smokeTestAvailable, setSmokeTestAvailable] = useState(false);
   const selectedPlanId = earlyAccess.reservation?.planId ?? registeredPlanId;
@@ -79,9 +80,11 @@ export function AcessoPlanosPage() {
             billingStatus?: string;
             planId?: EarlyAccessPlanId | null;
             smokeTestAvailable?: boolean;
+            hasRemainingInstallments?: boolean;
           };
           if (!cancelled) {
             setBillingStatus(bill.billingStatus ?? null);
+            setHasRemainingInstallments(Boolean(bill.hasRemainingInstallments));
             setSmokeTestAvailable(Boolean(bill.smokeTestAvailable));
             if (
               bill.planId === "essencial" ||
@@ -148,6 +151,10 @@ export function AcessoPlanosPage() {
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
       } | null;
+      if (response.status === 409) {
+        router.push(BILLING_PAYMENT_PATH as Route);
+        return;
+      }
       if (!response.ok) {
         throw new Error(payload?.message || "Nao foi possivel gerar a cobranca.");
       }
@@ -209,9 +216,11 @@ export function AcessoPlanosPage() {
             const isRecommendedSlot = !selectedPlanId && plan.id === "avancado";
             const highlighted = isSelected || isRecommendedSlot;
             const isSaving = checkoutPlanId === plan.id;
-            const billingActive = billingStatus === "active";
+            const billingActive = billingStatus === "active" && !hasRemainingInstallments;
             const billingPending =
-              billingStatus === "pending_payment" || billingStatus === "past_due";
+              billingStatus === "pending_payment" ||
+              billingStatus === "past_due" ||
+              (billingStatus === "active" && hasRemainingInstallments);
 
             return (
               <div
@@ -286,7 +295,9 @@ export function AcessoPlanosPage() {
                       {billingActive
                         ? "Plano ativo"
                         : billingPending
-                          ? "Ver cobrança pendente"
+                          ? billingStatus === "active"
+                            ? "Ver parcelas restantes"
+                            : "Ver cobrança pendente"
                           : isSaving
                             ? "Gerando PIX..."
                             : smokeTestAvailable
@@ -343,7 +354,7 @@ export function AcessoPlanosPage() {
                   </button>
                 ) : null}
                 <p className="text-[10px] text-md-text-soft text-center mt-3">
-                  PIX instantâneo ou boleto (TSE). Pacote em 3 parcelas mensais.
+                  Pacote único em 3x (hoje, +1 mês, +2 meses). Não é assinatura mensal.
                 </p>
               </div>
             );

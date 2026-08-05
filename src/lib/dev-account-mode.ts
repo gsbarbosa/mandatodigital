@@ -1,17 +1,18 @@
-/** Contas internas com premium forçado (sem limites de convidado). */
+import type { AccountTier } from "@/lib/account-tier";
+
+/** Contas internas com acesso ao seletor de tipo de conta. */
 export const DEV_ACCOUNT_MODE_ALLOWLIST = [
   "gsbarbosa180@gmail.com",
   "tribeiro81@gmail.com",
 ] as const;
 
-/** Domínio de contas E2E/local — premium liberado para validar Sentinela com rank.
- *  Usa example.com (RFC 2606) — Firebase Auth aceita sem verificação de e-mail.
- */
+/** Domínio de contas E2E/local — Firebase Auth aceita sem verificação de e-mail. */
 export const E2E_ACCOUNT_EMAIL_DOMAIN = "example.com";
 
 export const DEV_ACCOUNT_MODE_COOKIE = "mandato-dev-account-mode";
 
-export type DevAccountMode = "guest" | "premium";
+/** Cookie/dev: guest = trial; os 3 pagos; premium legado = elite. */
+export type DevAccountMode = "guest" | "essencial" | "avancado" | "elite";
 
 export function normalizeAccountEmail(email: string | null | undefined) {
   return (email ?? "").trim().toLowerCase();
@@ -22,7 +23,7 @@ export function isE2eAccountEmail(email: string | null | undefined) {
   return normalized.startsWith("e2e.") && normalized.endsWith(`@${E2E_ACCOUNT_EMAIL_DOMAIN}`);
 }
 
-/** Sócios: sempre premium (não dependem do cookie convidado/premium). */
+/** Sócios: acesso ao seletor interno (default elite). */
 export function isForcePremiumAccountEmail(email: string | null | undefined) {
   const normalized = normalizeAccountEmail(email);
   return (DEV_ACCOUNT_MODE_ALLOWLIST as readonly string[]).includes(normalized);
@@ -36,7 +37,34 @@ export function isDevAccountModeEmail(email: string | null | undefined) {
 }
 
 export function parseDevAccountMode(value: string | null | undefined): DevAccountMode {
-  return value === "premium" ? "premium" : "guest";
+  const raw = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (raw === "essencial" || raw === "avancado" || raw === "elite") {
+    return raw;
+  }
+  if (raw === "premium") {
+    return "elite";
+  }
+  return "guest";
+}
+
+export function isPaidDevAccountMode(mode: DevAccountMode): boolean {
+  return mode !== "guest";
+}
+
+export function accountTierFromDevMode(mode: DevAccountMode): AccountTier {
+  if (mode === "guest") {
+    return "trial";
+  }
+  return mode;
+}
+
+export function devModeFromAccountTier(tier: AccountTier): DevAccountMode {
+  if (tier === "trial") {
+    return "guest";
+  }
+  return tier;
 }
 
 export function readDevAccountModeFromDocumentCookie(): DevAccountMode {

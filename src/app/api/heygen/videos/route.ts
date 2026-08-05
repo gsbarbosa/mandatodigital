@@ -4,14 +4,14 @@ import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript, countTranscriptWords } from "@/lib/avatar-video-script";
+import { resolveSessionAccountTier } from "@/lib/account-tier.server";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
   guestVideosExhaustedMessage,
   releaseGuestVideoQuota,
   tryConsumeGuestVideoQuota,
 } from "@/lib/guest-usage-storage";
-import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-limits";
-import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
+import { maxScriptWordsForTier, maxVideoSecondsLabelForTier } from "@/lib/plan-limits";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 import {
   formatHeyGenError,
@@ -169,13 +169,15 @@ export async function POST(request: Request) {
         guestQuota.release = () => releaseGuestVideoQuota(ownerUserId, generateMode);
       }
 
-      const registration = await getUserRegistrationForOwner().catch((error) => {
-        appLogError("heygen", "registration_lookup_failed", error, { profileId });
+      const account = await resolveSessionAccountTier().catch((error) => {
+        appLogError("heygen", "account_tier_lookup_failed", error, { profileId });
         return null;
       });
-      const planId = registration?.planId || null;
-      const maxScriptWords = maxScriptWordsForPlan(planId);
-      const durationLabel = maxVideoSecondsLabelForPlan(planId).replace(/^até\s+/i, "");
+      const maxScriptWords = maxScriptWordsForTier(account?.tier ?? "trial");
+      const durationLabel = maxVideoSecondsLabelForTier(account?.tier ?? "trial").replace(
+        /^até\s+/i,
+        "",
+      );
 
       if (explicitTranscript && countTranscriptWords(explicitTranscript) > maxScriptWords) {
         appLog(

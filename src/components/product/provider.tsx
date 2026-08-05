@@ -34,11 +34,7 @@ import {
   guestCaricatureQuota,
   MAX_GUEST_CARICATURES_PER_VARIANT,
 } from "@/lib/caricature-asset-variant";
-import {
-  isDevAccountModeEmail,
-  isForcePremiumAccountEmail,
-  readDevAccountModeFromDocumentCookie,
-} from "@/lib/dev-account-mode";
+import { useAccountTier } from "@/components/product/use-account-tier";
 import type { CaricatureVariant } from "@/lib/openai-caricature-prompts";
 import { sanitizeProviderFacingMessage } from "@/lib/curador-heygen-prefs";
 
@@ -127,6 +123,7 @@ export function ProductAppProvider({
   sessionUser?: SessionUser | null;
   children: ReactNode;
 }) {
+  const { isPaid: isPaidAccount, ready: accountReady } = useAccountTier();
   const [profile, setProfile] = useState(initialData.profile);
   const [profileForm, setProfileForm] = useState(() =>
     buildProfileState(initialData.profile),
@@ -568,11 +565,7 @@ export function ProductAppProvider({
     }
 
     const quota = guestCaricatureQuota({ assets: trainingAssets, variant });
-    const premiumClient =
-      isForcePremiumAccountEmail(sessionUser?.email) ||
-      (isDevAccountModeEmail(sessionUser?.email) &&
-        readDevAccountModeFromDocumentCookie() === "premium");
-    if (!premiumClient && quota.reached) {
+    if (accountReady && !isPaidAccount && quota.reached) {
       caricatureRegenInFlightRef.current[variant] = false;
       setCaricatureRegenJobs((current) => ({
         ...current,

@@ -56,6 +56,7 @@ export type AsaasPayment = {
   id: string;
   customer: string;
   subscription?: string | null;
+  installment?: string | null;
   status: string;
   value: number;
   dueDate: string;
@@ -254,7 +255,8 @@ export async function asaasCreateSubscription(input: {
   billingType: "BOLETO" | "PIX";
   value: number;
   nextDueDate: string;
-  endDate: string;
+  endDate?: string;
+  maxPayments: number;
   description: string;
   externalReference: string;
 }): Promise<AsaasSubscription> {
@@ -266,7 +268,8 @@ export async function asaasCreateSubscription(input: {
       value: input.value,
       cycle: "MONTHLY",
       nextDueDate: input.nextDueDate,
-      endDate: input.endDate,
+      maxPayments: input.maxPayments,
+      ...(input.endDate ? { endDate: input.endDate } : {}),
       description: input.description,
       externalReference: input.externalReference,
     }),
@@ -277,7 +280,8 @@ export async function asaasCreateBoletoSubscription(input: {
   customerId: string;
   value: number;
   nextDueDate: string;
-  endDate: string;
+  endDate?: string;
+  maxPayments: number;
   description: string;
   externalReference: string;
 }): Promise<AsaasSubscription> {
@@ -296,6 +300,35 @@ export async function asaasGetPixQrCode(paymentId: string): Promise<AsaasPixQrCo
   });
 }
 
+export async function asaasCreatePayment(input: {
+  customerId: string;
+  billingType: "BOLETO" | "PIX";
+  dueDate: string;
+  description: string;
+  externalReference: string;
+  value?: number;
+  installmentCount?: number;
+  installmentValue?: number;
+  totalValue?: number;
+}): Promise<AsaasPayment> {
+  return asaasFetch<AsaasPayment>("/payments", {
+    method: "POST",
+    body: JSON.stringify({
+      customer: input.customerId,
+      billingType: input.billingType,
+      dueDate: input.dueDate,
+      description: input.description,
+      externalReference: input.externalReference,
+      ...(input.installmentCount && input.installmentCount >= 2
+        ? {
+            installmentCount: input.installmentCount,
+            installmentValue: input.installmentValue,
+          }
+        : { value: input.value }),
+    }),
+  });
+}
+
 export async function asaasListSubscriptionPayments(
   subscriptionId: string,
 ): Promise<AsaasPayment[]> {
@@ -304,6 +337,30 @@ export async function asaasListSubscriptionPayments(
     { method: "GET", query: { limit: 20 } },
   );
   return list.data ?? [];
+}
+
+export async function asaasListInstallmentPayments(
+  installmentId: string,
+): Promise<AsaasPayment[]> {
+  const list = await asaasFetch<AsaasListResponse<AsaasPayment>>(
+    `/installments/${encodeURIComponent(installmentId)}/payments`,
+    { method: "GET", query: { limit: 20 } },
+  );
+  return list.data ?? [];
+}
+
+/** Pacote 3x (parcelamento) ou assinatura legado. */
+export async function listAsaasPackagePayments(input: {
+  installmentId?: string | null;
+  subscriptionId?: string | null;
+}): Promise<AsaasPayment[]> {
+  if (input.installmentId) {
+    return asaasListInstallmentPayments(input.installmentId);
+  }
+  if (input.subscriptionId) {
+    return asaasListSubscriptionPayments(input.subscriptionId);
+  }
+  return [];
 }
 
 export async function asaasGetPayment(paymentId: string): Promise<AsaasPayment> {
@@ -360,19 +417,59 @@ export async function asaasGetInvoice(invoiceId: string): Promise<AsaasInvoice> 
   });
 }
 
+/** Agenda NFS-e vinculada a uma cobrança avulsa/parcela. */
+export async function asaasScheduleInvoice(input: {
+  paymentId: string;
+  serviceDescription: string;
+  observations: string;
+  value: number;
+  effectiveDate: string;
+  municipalServiceId?: string;
+  municipalServiceCode?: string;
+  municipalServiceName?: string;
+  taxes: {
+    retainIss: boolean;
+    iss: number;
+    cofins: number;
+    csll: number;
+    inss: number;
+    ir: number;
+    pis: number;
+  };
+}): Promise<AsaasInvoice> {
+  return asaasFetch<AsaasInvoice>("/invoices", {
+    method: "POST",
+    body: JSON.stringify({
+      payment: input.paymentId,
+      serviceDescription: input.serviceDescription,
+      observations: input.observations,
+      value: input.value,
+      deductions: 0,
+      effectiveDate: input.effectiveDate,
+      ...(input.municipalServiceId ? { municipalServiceId: input.municipalServiceId } : {}),
+      ...(input.municipalServiceCode ? { municipalServiceCode: input.municipalServiceCode } : {}),
+      ...(input.municipalServiceName ? { municipalServiceName: input.municipalServiceName } : {}),
+      taxes: input.taxes,
+    }),
+  });
+}
+
+/** Próxima parcela em aberto (PENDING/OVERDUE), da mais próxima para a mais distante. */
+export function pickNextOpenPayment(payments: AsaasPayment[]): AsaasPayment | null {
+  return (
+    payments
+      .filter((p) => {
+        const status = p.status?.toUpperCase() ?? "";
+        return status === "PENDING" || status === "OVERDUE";
+      })
+      .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] ?? null
+  );
+}
+
 /** Preferência: boleto pendente mais próximo; senão o primeiro da lista. */
 export function pickPrimaryBoletoPayment(payments: AsaasPayment[]): AsaasPayment | null {
   if (!payments.length) {
     return null;
   }
-  const pending = payments
-    .filter((p) => {
-      const status = p.status?.toUpperCase() ?? "";
-      return status === "PENDING" || status === "OVERDUE";
-    })
-    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  if (pending[0]) {
-    return pending[0];
-  }
-  return [...payments].sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] ?? null;
+  return pickNextOpenPayment(payments) ?? [...payments].sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0] ?? null;
 }

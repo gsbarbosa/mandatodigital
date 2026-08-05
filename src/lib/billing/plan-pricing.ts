@@ -1,6 +1,6 @@
 import type { EarlyAccessPlanId } from "@/lib/early-access-types";
 
-/** Status de cobrança do pacote campanha (Asaas boleto). */
+/** Status de cobrança do pacote campanha (valor único em 3x). */
 export type BillingStatus =
   | "trial"
   | "pending_payment"
@@ -98,17 +98,51 @@ export function parseBillingStatus(value: unknown): BillingStatus {
   return "trial";
 }
 
-/** Data YYYY-MM-DD em America/Sao_Paulo + N dias. */
-export function asaasDatePlusDays(days: number, from = new Date()): string {
-  const d = new Date(from.getTime());
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
+export function asaasTodayInSaoPaulo(from = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(from);
 }
 
-/** endDate da assinatura para ~3 ciclos mensais a partir de nextDueDate. */
+/** Data YYYY-MM-DD em America/Sao_Paulo + N dias. */
+export function asaasDatePlusDays(days: number, from = new Date()): string {
+  const [year, month, day] = asaasTodayInSaoPaulo(from).split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+/** Soma meses civis sem pular para o mês seguinte em dias 29–31. */
+export function addCalendarMonths(ymd: string, months: number): string {
+  const [year, month, day] = ymd.split("-").map(Number);
+  const totalMonths = month - 1 + months;
+  const nextYear = year + Math.floor(totalMonths / 12);
+  const monthIndex = ((totalMonths % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(nextYear, monthIndex + 1, 0)).getUTCDate();
+  const clampedDay = Math.min(day, lastDay);
+  return `${nextYear}-${String(monthIndex + 1).padStart(2, "0")}-${String(clampedDay).padStart(2, "0")}`;
+}
+
+export type PlannedInstallment = {
+  number: number;
+  dueDate: string;
+};
+
+/** Agenda relativa: 1ª = firstDue, 2ª = +1 mês, 3ª = +2 meses. */
+export function buildInstallmentSchedule(
+  firstDueDate: string,
+  count = 3,
+): PlannedInstallment[] {
+  const safeCount = Math.max(1, count);
+  return Array.from({ length: safeCount }, (_, index) => ({
+    number: index + 1,
+    dueDate: addCalendarMonths(firstDueDate, index),
+  }));
+}
+
+/** Último vencimento do pacote 3x (1ª + 2 meses). */
 export function subscriptionEndDateFromFirstDue(nextDueDate: string): string {
-  const [y, m, day] = nextDueDate.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1, day));
-  d.setUTCMonth(d.getUTCMonth() + 2);
-  return d.toISOString().slice(0, 10);
+  return addCalendarMonths(nextDueDate, 2);
 }

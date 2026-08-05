@@ -1,16 +1,19 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
+import { ACCOUNT_TIER_LABELS } from "@/lib/account-tier";
+import { resolveSessionAccountTier } from "@/lib/account-tier.server";
 import {
   DEV_ACCOUNT_MODE_COOKIE,
+  accountTierFromDevMode,
   isDevAccountModeEmail,
   isForcePremiumAccountEmail,
   parseDevAccountMode,
   type DevAccountMode,
 } from "@/lib/dev-account-mode";
 import { resolveDevAccountMode } from "@/lib/dev-account-mode.server";
-import { cookies } from "next/headers";
 
 function modeCookieOptions(maxAge: number) {
   return {
@@ -30,9 +33,12 @@ export async function GET() {
     }
 
     const mode = await resolveDevAccountMode(user.email);
+    const resolved = await resolveSessionAccountTier(user.email);
     return NextResponse.json({
       allowed: true,
       mode,
+      tier: resolved.tier,
+      entitlements: resolved.entitlements,
       email: user.email,
       forcedPremium: isForcePremiumAccountEmail(user.email),
     });
@@ -49,21 +55,19 @@ export async function PUT(request: Request) {
       );
     }
 
-    if (isForcePremiumAccountEmail(user.email)) {
-      return NextResponse.json({
-        allowed: true,
-        mode: "premium" as DevAccountMode,
-        email: user.email,
-        forcedPremium: true,
-        message: "Contas de sócio ficam sempre em premium.",
-      });
-    }
-
     const body = (await request.json().catch(() => ({}))) as { mode?: string };
     const mode = parseDevAccountMode(body.mode);
     const cookieStore = await cookies();
     cookieStore.set(DEV_ACCOUNT_MODE_COOKIE, mode, modeCookieOptions(60 * 60 * 24 * 365));
 
-    return NextResponse.json({ allowed: true, mode, email: user.email, forcedPremium: false });
+    const tier = accountTierFromDevMode(mode);
+    return NextResponse.json({
+      allowed: true,
+      mode,
+      tier,
+      email: user.email,
+      forcedPremium: false,
+      message: `Modo ${ACCOUNT_TIER_LABELS[tier]} ativo.`,
+    });
   });
 }

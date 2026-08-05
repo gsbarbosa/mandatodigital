@@ -1,25 +1,22 @@
-/** Limites de duração/roteiro por plano pago (e essencial como default). */
+import { getEntitlements, parsePaidPlanId, type AccountTier } from "@/lib/account-tier";
 
-/** ~words for target duration (≈ 2.3 words/sec spoken BR). */
+/** Limites de duração/roteiro por plano pago (e essencial/trial como default). */
+
+export function maxScriptWordsForTier(tier: AccountTier): number {
+  return getEntitlements(tier).maxScriptWords;
+}
+
+export function maxVideoSecondsLabelForTier(tier: AccountTier): string {
+  return getEntitlements(tier).maxVideoSecondsLabel;
+}
+
+/** Compat: planId sem saber se a cobrança já está active. Prefira o tier. */
 export function maxScriptWordsForPlan(planId: string | null | undefined): number {
-  switch (planId) {
-    case "elite":
-      return 420; // ~3 min
-    case "avancado":
-      return 210; // ~90 s
-    case "essencial":
-    default:
-      return 140; // ~1 min
-  }
+  const paid = parsePaidPlanId(planId);
+  return getEntitlements(paid ?? "essencial").maxScriptWords;
 }
 
 export function maxVideoSecondsLabelForPlan(planId: string | null | undefined): string {
-  switch (planId) {
-    case "elite":
-      return "até 3 minutos";
-    case "avancado":
-      return "até 90 segundos";
-    default:
-      return "até 1 minuto";
-  }
+  const paid = parsePaidPlanId(planId);
+  return getEntitlements(paid ?? "essencial").maxVideoSecondsLabel;
 }
