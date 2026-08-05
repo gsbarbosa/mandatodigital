@@ -17,7 +17,7 @@ export const TSE_CAPTION_TAG =
 export const EXPORT_COMPLIANCE_CONSENT_VERSION = "export-liability-v3";
 
 export const EXPORT_COMPLIANCE_MESSAGE =
-  "Ao exportar este material para publicação, você assume a responsabilidade integral de incluir na legenda da rede social o aviso de uso de Inteligência Artificial, conforme exigido pela Resolução 23.732 do TSE. O vídeo já contém a marca d'água exigida por lei. Se você editar o arquivo offline (recorte, filtros, reencode), a marca d'água pode ser removida — cabe a você garantir a conformidade na publicação.";
+  "Ao exportar este material para publicação, você assume a responsabilidade integral de incluir na legenda da rede social o aviso de uso de Inteligência Artificial, conforme exigido pela Resolução TSE 23.610/19 e 23.755/26. O vídeo já contém a marca d'água exigida por lei. Se você editar o arquivo offline (recorte, filtros, reencode), a marca d'água pode ser removida — cabe a você garantir a conformidade na publicação.";
 
 export type CreativeAiMetadata = {
   aiGenerated: true;

@@ -13,7 +13,9 @@ const factCheckResponseSchema = z.object({
     .array(
       z.object({
         text: z.string(),
-        supported: z.boolean(),
+        verdict: z.enum(["supported", "contradicted", "unsupported"]),
+        attributesToThirdParty: z.boolean().optional().default(false),
+        contradictionDetail: z.string().optional(),
         sourceUrl: z.string().optional(),
       }),
     )
@@ -30,7 +32,12 @@ function buildPrompt(input: FactCheckInput, corpus: string) {
       "(jornalistas, autoridades, adversarios, cidadaos) sem suporte explicito nas fontes, ou que simule " +
       "contextos factuais nao verificados como se fossem reais. " +
       "Responda JSON: { verdict, confidence, summary, claims[], sources[] }. " +
-      "verdict=verified se claims centrais tem suporte; disputed se ha contradicoes materiais; inconclusive se fontes insuficientes.",
+      "verdict=verified se claims centrais tem suporte; disputed se ha contradicoes materiais; inconclusive se fontes insuficientes. " +
+      "Para cada item de claims[], defina verdict='contradicted' quando as fontes disserem algo diferente do " +
+      "afirmado no roteiro (preencha contradictionDetail com o que a fonte realmente diz, de forma curta e direta); " +
+      "verdict='unsupported' quando nenhuma fonte confirmar nem contradizer o trecho; verdict='supported' quando " +
+      "houver fonte explicita confirmando. Marque attributesToThirdParty=true quando o trecho atribuir fala, ato " +
+      "ou posicao a uma pessoa ou entidade terceira (mesmo que verdict seja supported).",
     user: [
       input.topic ? `Tema: ${input.topic}` : "",
       input.sentinelBriefing ? `Briefing Sentinela:\n${input.sentinelBriefing}` : "",

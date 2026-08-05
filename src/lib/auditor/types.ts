@@ -1,8 +1,14 @@
 export type FactCheckVerdict = "verified" | "disputed" | "inconclusive" | "skipped";
 
+export type FactCheckClaimVerdict = "supported" | "contradicted" | "unsupported";
+
 export type FactCheckClaim = {
   text: string;
-  supported: boolean;
+  verdict: FactCheckClaimVerdict;
+  /** true quando o trecho atribui fala, ato ou posicao a uma pessoa/entidade terceira. */
+  attributesToThirdParty?: boolean;
+  /** preenchido quando verdict === "contradicted": o que a fonte realmente diz. */
+  contradictionDetail?: string;
   sourceUrl?: string;
 };
 

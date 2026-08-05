@@ -8,7 +8,7 @@ export const complianceElectoral = {
   title: "Conformidade Eleitoral",
   cards: [
     {
-      title: "Resolução TSE 23.732",
+      title: "Resolução TSE 23.610/19 e 23.755/26",
       body: "Metadados claros e integrados que asseguram transparência sobre o uso de Inteligência Artificial. Todas as peças geradas pelo sistema rotulam os conteúdos rigorosamente conforme as exigências atuais da Justiça Eleitoral brasileira, blindando a campanha contra multas ou impugnações por uso indevido de tecnologia.",
     },
     {

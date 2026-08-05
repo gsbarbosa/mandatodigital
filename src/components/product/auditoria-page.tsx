@@ -11,9 +11,10 @@ import {
 import { parseJsonOrText } from "@/components/product/persona-shared";
 import { ProductPageHeader } from "@/components/product/product-page-header";
 
-type TabId = "acessos" | "volumes" | "agentes" | "logs";
+type TabId = "materialidade" | "acessos" | "volumes" | "agentes" | "logs";
 
 const TABS: Array<{ id: TabId; label: string }> = [
+  { id: "materialidade", label: "Materialidade" },
   { id: "acessos", label: "Acessos" },
   { id: "volumes", label: "Volumes" },
   { id: "agentes", label: "Agentes" },
@@ -181,12 +182,13 @@ export function AuditoriaPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-[51px] md:px-6 md:pt-[77px] lg:px-8">
       <ProductPageHeader
-        title="Auditoria"
+        title="Blindagem Documental"
+        descriptionClassName="mt-2 max-w-none text-sm leading-relaxed text-md-text-soft"
         description={
           <>
             <p>
-              Relatorios da sua conta: acessos, volumes de conteudo, operacao dos agentes e trilha
-              de acoes com User ID, IP e horario em America/Sao_Paulo.
+              Relatórios da sua conta: acessos, volumes de conteúdo e trilha de ações com User ID,
+              IP e horário.
             </p>
             <p className="mt-2 text-xs text-md-text-soft">{periodHint}</p>
           </>
@@ -217,6 +219,39 @@ export function AuditoriaPage() {
         <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
           {error}
         </p>
+      ) : null}
+
+      {tab === "materialidade" ? (
+        <section className="space-y-6">
+          <p className="max-w-2xl text-sm text-md-text-soft">
+            Consolida, com data, hora, IP e acao, os atos de campanha registrados nesta conta —
+            evidencia gerada no instante do fato, pronta para anexar a uma defesa ou a prestacao de
+            contas.
+          </p>
+
+          {isLoadingSummary ? (
+            <p className="text-sm text-md-text-soft">Carregando materialidade…</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <MetricCard
+                label="Dias ativos no periodo"
+                value={summary?.access.activeDays ?? 0}
+              />
+              <MetricCard
+                label="Checagens de fatos concluidas"
+                value={summary?.agents.factChecks ?? 0}
+                hint="antes da publicacao"
+              />
+            </div>
+          )}
+
+          <a
+            href="/api/audit/materiality-dossier"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--auditor-border)] bg-[var(--auditor-soft)] px-4 py-3 text-sm font-semibold text-[var(--auditor-text)] hover:opacity-90"
+          >
+            Baixar Dossie de Materialidade (PDF)
+          </a>
+        </section>
       ) : null}
 
       {tab === "acessos" ? (
