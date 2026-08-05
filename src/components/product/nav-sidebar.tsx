@@ -694,7 +694,7 @@ function NavSidebarPanel({
                 handleLinkNavigate();
               }}
             >
-              Alternar modo da conta
+              Tipo de conta (trial + 3 planos)
             </Link>
           ) : null}
         </div>
