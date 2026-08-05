@@ -1,7 +1,13 @@
 import { heygenGetUserMe } from "@/lib/heygen";
+import {
+  HEYGEN_DIGITAL_TWIN_VIDEO_RATE_PER_SECOND,
+  HEYGEN_PHOTO_IMAGE_VIDEO_RATE_PER_SECOND,
+} from "@/lib/heygen-pricing";
 
-export const HEYGEN_PHOTO_IMAGE_VIDEO_RATE_PER_SECOND = 0.05;
-export const HEYGEN_DIGITAL_TWIN_VIDEO_RATE_PER_SECOND = 0.0667;
+export {
+  HEYGEN_DIGITAL_TWIN_VIDEO_RATE_PER_SECOND,
+  HEYGEN_PHOTO_IMAGE_VIDEO_RATE_PER_SECOND,
+} from "@/lib/heygen-pricing";
 
 export function countTranscriptWords(text: string) {
   return text
