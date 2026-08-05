@@ -6,6 +6,7 @@ import {
   GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE,
   type GuestSentinelCredits,
 } from "@/lib/guest-limits";
+import { broadcastGuestSentinelCredits, onGuestSentinelCreditsUpdate } from "@/lib/guest-credits-bus";
 
 type CreditsResponse = {
   credits?: GuestSentinelCredits | null;
@@ -28,6 +29,7 @@ export function useGuestCreditsGate() {
       }
       const payload = (await response.json()) as CreditsResponse;
       setCredits(payload.credits ?? null);
+      broadcastGuestSentinelCredits(payload.credits ?? null);
     } catch {
       // Em falha de rede, mantém liberado.
     } finally {
@@ -38,6 +40,15 @@ export function useGuestCreditsGate() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Outra tela (ex.: monitoramento) pode zerar os créditos no meio da sessão —
+  // sincroniza sem esperar um novo fetch/reload.
+  useEffect(() => {
+    return onGuestSentinelCreditsUpdate((updated) => {
+      setCredits(updated);
+      setChecked(true);
+    });
+  }, []);
 
   const exhausted = Boolean(credits && credits.remaining <= 0);
 

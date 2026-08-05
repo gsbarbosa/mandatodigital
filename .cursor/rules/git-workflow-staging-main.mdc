@@ -1,0 +1,56 @@
+---
+description: Fluxo de Git obrigatorio — feature branch a partir de staging, nunca commit/push direto em staging ou main
+alwaysApply: true
+---
+
+## Git workflow (Mandato Digital)
+
+Fluxo obrigatório e não negociável para qualquer trabalho neste repositório (`gsbarbosa/mandatodigital`).
+
+### 1. Sempre parta de `staging` atualizada
+
+```bash
+git fetch origin
+git checkout staging
+git pull origin staging
+```
+
+### 2. Crie uma branch de feature específica a partir de `staging`
+
+```bash
+git checkout -b feat/<slug-curto-descritivo>
+```
+
+Exemplos: `feat/sentinela-filtros-esfera`, `feat/demo-roteiro-arquetipo`.
+
+### 3. Trabalhe SOMENTE nessa branch
+
+Commits, commits amend locais e push só acontecem na branch de feature.
+
+### 4. Suba a branch de feature para o remoto
+
+```bash
+git push -u origin HEAD
+```
+
+### 5. Avise o Gustavo (dono do repo)
+
+Diga que a branch está pronta para review/merge. Ele puxa, revisa, faz merge em `staging` e depois promove `staging` → `main`.
+
+### Proibições absolutas
+
+- **NUNCA** faça checkout/commit/push em `main` (nem "master").
+- **NUNCA** faça commit/push direto em `staging`.
+- **NUNCA** abra PR direto para `main`.
+- **NUNCA** mergeie sua feature em `staging` ou `main` sozinho.
+- **NUNCA** force-push em `staging` ou `main`.
+- Se precisar de algo de `staging` no meio do trabalho: rebase/merge **DE** `staging` **PARA** a sua feature branch — nunca o contrário.
+
+### Quem faz o quê
+
+- **Thiago**: cria e mantém só a branch `feat/...`; push da feature; avisa.
+- **Gustavo**: review, merge feature → `staging`, promoção `staging` → `main`, deploy via pipe.
+
+### Se Claude estiver tentado a "já subir pra main/staging"
+
+Pare. Empurre só a feature branch e diga: "branch pronta em `origin/feat/...` — aguardando merge do Gustavo".

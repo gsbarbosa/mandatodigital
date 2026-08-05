@@ -50,7 +50,7 @@ Há um checklist flutuante de onboarding no canto inferior direito enquanto o pr
 - Vídeos podem passar por jobs assíncronos (geração/selo/voz); o status aparece na própria tela do criativo.
 
 ### Compliance e segurança
-- Resolução TSE 23.732: conteúdos com IA devem ter metadados/rotulagem adequados.
+- Resolução TSE 23.610/2019 (redação da Res. TSE 23.755/2026): conteúdos com IA devem ter metadados/rotulagem adequados.
 - Apagão algorítmico de 72h: travas perto do pleito.
 - Gastos tipificados como serviço de software/comunicação política; NF atrelada ao CNPJ da campanha quando aplicável.
 - LGPD: isolamento por gabinete; não guardar dados pessoais de eleitores.

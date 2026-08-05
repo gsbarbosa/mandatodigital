@@ -19,6 +19,7 @@ import {
   needsDailySentinelRefresh,
   type GuestSentinelCredits,
 } from "@/lib/guest-limits";
+import { broadcastGuestSentinelCredits } from "@/lib/guest-credits-bus";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 import { groupSuggestionsBySphere, type MonitorSphere } from "@/lib/sphere-classifier";
@@ -93,6 +94,13 @@ export function MonitoramentoPage() {
   const [suggestions, setSuggestions] = useState<MockSentinelSuggestion[]>([]);
   const [meta, setMeta] = useState<SentinelSuggestionsMeta | null>(null);
   const [credits, setCredits] = useState<GuestSentinelCredits | null>(null);
+  const updateCredits = useCallback((next: GuestSentinelCredits | null | undefined) => {
+    if (!next) {
+      return;
+    }
+    setCredits(next);
+    broadcastGuestSentinelCredits(next);
+  }, []);
   const [loadMessage, setLoadMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -146,9 +154,7 @@ export function MonitoramentoPage() {
       }
       setSuggestions(payload.suggestions ?? []);
       setMeta(payload.meta ?? null);
-      if (payload.credits) {
-        setCredits(payload.credits);
-      }
+      updateCredits(payload.credits);
       if (!payload.suggestions?.length) {
         setLoadMessage(payload.meta?.emptyReason || "Nenhuma pauta capturada para o radar atual.");
       }
@@ -158,7 +164,7 @@ export function MonitoramentoPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [updateCredits]);
 
   const runDailyRefreshIfNeeded = useCallback(
     async (refreshedAt: string | null | undefined) => {
@@ -187,16 +193,12 @@ export function MonitoramentoPage() {
           return;
         }
         if (payload.skipped) {
-          if (payload.credits) {
-            setCredits(payload.credits);
-          }
+          updateCredits(payload.credits);
           return;
         }
         setSuggestions(payload.suggestions ?? []);
         setMeta(payload.meta ?? null);
-        if (payload.credits) {
-          setCredits(payload.credits);
-        }
+        updateCredits(payload.credits);
         const count = payload.suggestions?.length ?? 0;
         if (count > 0) {
           setRefreshMessage(`Pautas atualizadas automaticamente (${count}).`);
@@ -215,7 +217,7 @@ export function MonitoramentoPage() {
         setIsRefreshing(false);
       }
     },
-    [hasRadarConfigured],
+    [hasRadarConfigured, updateCredits],
   );
 
   useEffect(() => {
@@ -268,9 +270,7 @@ export function MonitoramentoPage() {
         body: JSON.stringify({ reason: "manual" }),
       });
       const payload = (await response.json()) as SuggestionsPayload;
-      if (payload.credits) {
-        setCredits(payload.credits);
-      }
+      updateCredits(payload.credits);
       if (!response.ok) {
         throw new Error(payload.message || "Não foi possível atualizar as pautas.");
       }

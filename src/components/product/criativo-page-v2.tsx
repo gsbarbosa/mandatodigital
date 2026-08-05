@@ -98,6 +98,9 @@ import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-l
 import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 
+const FREE_PROMPT_RESPONSIBILITY_CONSENT_TEXT =
+  "Confirmo que não atribuí falas, atos ou posições não confirmadas a outras pessoas neste texto, e que assumo total responsabilidade pelo conteúdo, já que este modo não passa pela checagem automática do Auditor.";
+
 const CRIATIVO_PANEL_CLASS =
   "rounded-[1.75rem] border border-md-border bg-gradient-to-b from-md-surface/50 to-md-slate-900/20 backdrop-blur-xl p-6 md:p-8 shadow-xl mb-8";
 const CRIATIVO_LABEL_CLASS = "block text-sm font-semibold text-md-text mb-2";
@@ -178,6 +181,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [freePrompt, setFreePrompt] = useState<string>("");
+  const [freePromptResponsibilityConsent, setFreePromptResponsibilityConsent] = useState(false);
   const [useFreePromptAsTranscript, setUseFreePromptAsTranscript] = useState(
     mode === "independente",
   );
@@ -202,9 +206,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     markScriptEditedAfterApproval,
     resetFactCheckState,
     approveWithFactCheck,
+    extraSources,
+    addExtraSource,
+    unsupportedAttributionClaims,
+    contradictedClaims,
   } = useScriptFactCheck();
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
+  const [sourceUrlDraft, setSourceUrlDraft] = useState("");
   const autoPollStartedRef = useRef(false);
   const twinPollActiveRef = useRef(false);
   const autoSyncTwinOnLoadRef = useRef(false);
@@ -463,6 +472,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     if (scriptEditedAfterApproval && !scriptEditConsent) {
       return {
         reason: "Confirme o termo de responsabilidade após editar o roteiro aprovado.",
+      };
+    }
+    if (useFreePromptAsTranscript && !freePromptResponsibilityConsent) {
+      return {
+        reason: "Confirme a responsabilidade pelo conteúdo do prompt livre antes de produzir.",
       };
     }
     return null;
@@ -862,7 +876,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     }
   }
 
-  async function handleApproveScript() {
+  async function handleApproveScript(sourcesOverride?: string[]) {
     setScriptError(null);
     const draft = scriptDraft.trim();
     if (!draft) {
@@ -885,6 +899,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       topic: creativeForm.topic.trim(),
       suggestion: sentinelSuggestion,
       useFreePrompt: useFreePromptAsTranscript,
+      extraSources: sourcesOverride ?? extraSources,
     });
 
     if (!factCheck.ok) {
@@ -893,6 +908,15 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     }
 
     setScriptApproved(true);
+  }
+
+  async function handleAddSourceAndRevalidate() {
+    const url = sourceUrlDraft.trim();
+    if (!url) return;
+    const nextSources = extraSources.includes(url) ? extraSources : [...extraSources, url];
+    addExtraSource(url);
+    setSourceUrlDraft("");
+    await handleApproveScript(nextSources);
   }
 
   function selectCaricatureForVideo(assetId: string, previewUrl?: string | null) {
@@ -1646,6 +1670,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           mode === "independente"
             ? "Escreva o que deseja falar antes de criar o conteúdo."
             : "Escreva o roteiro completo antes de gerar o conteúdo.",
+        );
+      }
+      if (useFreePromptAsTranscript && !freePromptResponsibilityConsent) {
+        throw new Error(
+          "Confirme a responsabilidade pelo conteúdo do prompt livre antes de produzir.",
         );
       }
       if (!useFreePromptAsTranscript && !scriptApproved) {
@@ -2498,7 +2527,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                 <textarea
                   className={`${CRIATIVO_INPUT_CLASS} mt-3`}
                   value={freePrompt}
-                  onChange={(event) => setFreePrompt(event.target.value)}
+                  onChange={(event) => {
+                    setFreePrompt(event.target.value);
+                    setFreePromptResponsibilityConsent(false);
+                  }}
                   rows={5}
                   placeholder="Escreva aqui a mensagem que deseja que seu avatar fale..."
                 />
@@ -2521,6 +2553,28 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     <strong>Dica de Performance:</strong> publicações virais tendem a ter entre 15
                     e 30 segundos.
                   </span>
+                </div>
+                <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-md-border-soft">
+                  <label className="persona-checkbox !items-start cursor-pointer">
+                    <input
+                      id="free-prompt-responsibility-consent"
+                      type="checkbox"
+                      checked={freePromptResponsibilityConsent}
+                      onChange={(event) =>
+                        setFreePromptResponsibilityConsent(event.target.checked)
+                      }
+                      className="w-4 h-4 mt-0.5 shrink-0 accent-cyan-500"
+                    />
+                    <span className="text-xs leading-relaxed">
+                      {FREE_PROMPT_RESPONSIBILITY_CONSENT_TEXT}{" "}
+                      <Link
+                        href="/compliance"
+                        className="text-[var(--curador-text)] no-underline hover:underline"
+                      >
+                        Ver Compliance TSE
+                      </Link>
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -2624,6 +2678,59 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     Validador: {factCheckResult.verdict} ({factCheckResult.confidence}%) —{" "}
                     {factCheckResult.summary}
                   </p>
+                ) : null}
+                {unsupportedAttributionClaims.length > 0 ? (
+                  <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-md-border-soft">
+                    <p className={`${CRIATIVO_HELPER_CLASS} mb-3 w-full`}>
+                      <strong>Precisamos de uma fonte.</strong> Estes trechos atribuem fala, ato
+                      ou posição a outra pessoa sem uma matéria que confirme:
+                    </p>
+                    <ul className="mb-3 w-full list-disc pl-5 space-y-1">
+                      {unsupportedAttributionClaims.map((claim) => (
+                        <li key={claim.text} className={CRIATIVO_HELPER_CLASS}>
+                          &quot;{claim.text}&quot;
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
+                      <input
+                        type="url"
+                        className={`${CRIATIVO_INPUT_CLASS} flex-1`}
+                        placeholder="Cole aqui o link da matéria que corrobora a afirmação"
+                        value={sourceUrlDraft}
+                        onChange={(event) => setSourceUrlDraft(event.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className={CRIATIVO_PRIMARY_BTN_CLASS}
+                        onClick={() => void handleAddSourceAndRevalidate()}
+                        disabled={!sourceUrlDraft.trim() || isFactChecking}
+                      >
+                        {isFactChecking ? "Validando fatos..." : "Adicionar fonte e revalidar"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                {contradictedClaims.length > 0 ? (
+                  <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-md-border-soft">
+                    <p className={`${CRIATIVO_HELPER_CLASS} mb-3 w-full`}>
+                      <strong>O roteiro diverge das fontes.</strong> Corrija estes trechos no
+                      roteiro acima antes de aprovar novamente:
+                    </p>
+                    <ul className="w-full list-disc pl-5 space-y-2">
+                      {contradictedClaims.map((claim) => (
+                        <li key={claim.text} className={CRIATIVO_HELPER_CLASS}>
+                          Seu roteiro diz: &quot;{claim.text}&quot;
+                          {claim.contradictionDetail ? (
+                            <>
+                              {" "}
+                              — a fonte diz: &quot;{claim.contradictionDetail}&quot;
+                            </>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
                 {manualReviewConsentRequired ? (
                   <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-md-border-soft">

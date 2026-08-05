@@ -13,6 +13,8 @@
     "sentinel:quality-gate": "npx vite-node --config vitest.config.ts scripts/sentinel-quality-gate.ts",
     "sentinel:quality-municipal": "npx vite-node --config vitest.config.ts scripts/sentinel-quality-municipal.ts",
     "sentinel:refresh-local": "npx vite-node --config vitest.config.ts scripts/sentinel-refresh-local.ts",
+    "materiality:sample": "npx vite-node --config vitest.config.ts scripts/generate-materiality-dossier-sample.ts",
+    "materiality:demo": "npx vite-node --config vitest.config.ts scripts/generate-materiality-dossier-demo.ts",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:bootstrap": "playwright test --project=bootstrap-e2e",

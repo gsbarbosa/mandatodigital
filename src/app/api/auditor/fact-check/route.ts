@@ -13,6 +13,7 @@ const bodySchema = z.object({
   suggestionId: z.string().optional(),
   topic: z.string().optional(),
   useFreePrompt: z.boolean().optional(),
+  extraSources: z.array(z.string().url()).max(4).optional(),
 });
 
 export async function POST(request: Request) {
@@ -59,10 +60,18 @@ export async function POST(request: Request) {
         suggestion = await getSentinelSuggestionById(profile, body.suggestionId);
       }
 
+      const extraSources = body.extraSources ?? [];
+      // Fontes coladas pelo usuario entram primeiro para nao serem cortadas pelo
+      // limite de 4 artigos do fetchArticlesCorpus quando a sugestao ja tem varias.
+      const articles = [
+        ...extraSources.map((url) => ({ title: "Fonte informada pelo usuario", url })),
+        ...(suggestion?.evidence.articles ?? []),
+      ];
+
       const result = await runFactCheck({
         script: body.script,
         topic: body.topic ?? suggestion?.topic,
-        articles: suggestion?.evidence.articles ?? [],
+        articles,
         sentinelBriefing: suggestion ? buildSentinelBriefingForCriativo(suggestion) : undefined,
       });
 
@@ -78,6 +87,7 @@ export async function POST(request: Request) {
           suggestionId: body.suggestionId ?? null,
           verdict: result.verdict,
           confidence: result.confidence,
+          extraSourceCount: extraSources.length,
         },
       });
 

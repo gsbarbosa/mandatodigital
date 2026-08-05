@@ -13,6 +13,8 @@ type ProductPageHeaderProps = {
   actions?: ReactNode;
   className?: string;
   titleClassName?: string;
+  /** Substitui integralmente as classes padrão da descrição (ex.: remover max-w-2xl). */
+  descriptionClassName?: string;
   id?: string;
   "data-onboarding-anchor"?: string;
 };
@@ -24,6 +26,7 @@ export function ProductPageHeader({
   actions,
   className = "",
   titleClassName = "",
+  descriptionClassName,
   id,
   "data-onboarding-anchor": onboardingAnchor,
 }: ProductPageHeaderProps) {
@@ -41,7 +44,9 @@ export function ProductPageHeader({
     >
       <div className="min-w-0">
         <h1 className={`${TITLE_CLASS} ${titleClassName}`.trim()}>{title}</h1>
-        {description ? <div className={DESCRIPTION_CLASS}>{description}</div> : null}
+        {description ? (
+          <div className={descriptionClassName ?? DESCRIPTION_CLASS}>{description}</div>
+        ) : null}
       </div>
       {actions}
     </header>

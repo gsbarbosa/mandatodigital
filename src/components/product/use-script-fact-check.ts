@@ -19,7 +19,25 @@ export function useScriptFactCheck() {
   const [scriptEditConsent, setScriptEditConsent] = useState(false);
   const [manualReviewConsentRequired, setManualReviewConsentRequired] = useState(false);
   const [manualReviewConsent, setManualReviewConsent] = useState(false);
+  const [extraSources, setExtraSources] = useState<string[]>([]);
   const wasApprovedRef = useRef(false);
+
+  const unsupportedAttributionClaims = (factCheckResult?.claims ?? []).filter(
+    (claim) => claim.attributesToThirdParty && claim.verdict === "unsupported",
+  );
+  const contradictedClaims = (factCheckResult?.claims ?? []).filter(
+    (claim) => claim.verdict === "contradicted",
+  );
+
+  const addExtraSource = useCallback((url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    setExtraSources((current) => (current.includes(trimmed) ? current : [...current, trimmed]));
+  }, []);
+
+  const removeExtraSource = useCallback((url: string) => {
+    setExtraSources((current) => current.filter((item) => item !== url));
+  }, []);
 
   const markScriptEditedAfterApproval = useCallback(() => {
     if (wasApprovedRef.current) {
@@ -34,6 +52,7 @@ export function useScriptFactCheck() {
     setScriptEditConsent(false);
     setManualReviewConsentRequired(false);
     setManualReviewConsent(false);
+    setExtraSources([]);
     wasApprovedRef.current = false;
   }, []);
 
@@ -43,6 +62,9 @@ export function useScriptFactCheck() {
       topic?: string;
       suggestion: MockSentinelSuggestion | null;
       useFreePrompt: boolean;
+      /** Fontes adicionais coladas pelo usuario nesta tentativa (evita depender do
+       *  estado interno `extraSources`, que so atualiza no proximo render). */
+      extraSources?: string[];
     }): Promise<{ ok: boolean; message?: string }> => {
       setIsFactChecking(true);
 
@@ -55,6 +77,7 @@ export function useScriptFactCheck() {
             topic: input.topic,
             suggestionId: input.suggestion?.id,
             useFreePrompt: input.useFreePrompt,
+            extraSources: input.extraSources ?? [],
           }),
         });
 
@@ -122,5 +145,10 @@ export function useScriptFactCheck() {
     markScriptEditedAfterApproval,
     resetFactCheckState,
     approveWithFactCheck,
+    extraSources,
+    addExtraSource,
+    removeExtraSource,
+    unsupportedAttributionClaims,
+    contradictedClaims,
   };
 }
