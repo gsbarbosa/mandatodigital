@@ -88,6 +88,43 @@ function buildEvents(): SyntheticEvent[] {
     if (d % 11 === 0) {
       events.push({ date: dateAt(d, 17, 25), action: "Job de voz", ip: pick(IPS, d), isAct: false });
     }
+
+    // Monitoramento: acesso quase todo dia util, algumas pautas visualizadas por
+    // acesso, atualizacao do radar no mesmo ritmo do acesso, config salva raramente.
+    const monitoringViews = isWeekend ? (d % 3 === 0 ? 1 : 0) : 1;
+    for (let i = 0; i < monitoringViews; i += 1) {
+      events.push({
+        date: dateAt(d, 8, 30 + i * 2),
+        action: "Acesso ao Monitoramento",
+        ip: pick(IPS, d),
+        isAct: true,
+      });
+    }
+    const signalViewCount = monitoringViews > 0 ? 1 + (d % 3) : 0;
+    for (let i = 0; i < signalViewCount; i += 1) {
+      events.push({
+        date: dateAt(d, 9, 5 + i * 4),
+        action: "Visualizacao de pauta monitorada",
+        ip: pick(IPS, d),
+        isAct: true,
+      });
+    }
+    if (monitoringViews > 0) {
+      events.push({
+        date: dateAt(d, 8, 5),
+        action: "Atualizacao do radar de monitoramento",
+        ip: pick(IPS, d),
+        isAct: true,
+      });
+    }
+    if (d % 21 === 0) {
+      events.push({
+        date: dateAt(d, 8, 0),
+        action: "Configuracao de monitoramento salva",
+        ip: pick(IPS, d),
+        isAct: true,
+      });
+    }
   }
 
   events.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -190,6 +227,40 @@ function buildAgents(acts: MaterialityActRow[], events: SyntheticEvent[]): Audit
   };
 }
 
+function buildMonitoring(events: SyntheticEvent[]): AuditSummary["monitoring"] {
+  const views = events.filter((event) => event.action === "Acesso ao Monitoramento");
+  const signalViews = events.filter((event) => event.action === "Visualizacao de pauta monitorada");
+  const refreshes = events.filter((event) => event.action === "Atualizacao do radar de monitoramento");
+  const configSaves = events.filter((event) => event.action === "Configuracao de monitoramento salva");
+
+  const dayKeys = new Set(views.map((event) => event.date.toISOString().slice(0, 10)));
+  const byDay = new Map<string, number>();
+  for (const event of [...views, ...signalViews]) {
+    const dayKey = event.date.toISOString().slice(0, 10);
+    byDay.set(dayKey, (byDay.get(dayKey) ?? 0) + 1);
+  }
+  const viewsByDay = [...byDay.entries()]
+    .map(([day, count]) => ({ day, count }))
+    .sort((a, b) => a.day.localeCompare(b.day));
+
+  // events chega ordenado do mais novo para o mais antigo (ver sort no fim de buildEvents).
+  const manualRefreshes = Math.round(refreshes.length * 0.35);
+
+  return {
+    monitoringDays: dayKeys.size,
+    viewEvents: views.length,
+    signalViews: signalViews.length,
+    viewsByDay,
+    refreshes: refreshes.length,
+    manualRefreshes,
+    dailyRefreshes: refreshes.length - manualRefreshes,
+    configSaves: configSaves.length,
+    lastConfigSave: configSaves[0]
+      ? { timestamp: configSaves[0].date.toISOString(), timestampLocal: formatAuditTimestampLocal(configSaves[0].date) }
+      : null,
+  };
+}
+
 async function main() {
   const outputPath = process.argv[2] || path.join(os.tmpdir(), "dossie-materialidade-demo-advogados.pdf");
 
@@ -216,6 +287,7 @@ async function main() {
     access: buildAccess(events),
     volumes: buildVolumes(acts),
     agents: buildAgents(acts, events),
+    monitoring: buildMonitoring(events),
   };
 
   const fromLabel = formatDateLabel(dateAt(PERIOD_DAYS - 1, 12, 0));

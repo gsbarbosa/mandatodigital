@@ -16,7 +16,9 @@ import {
 } from "@/lib/sentinel-rss";
 import {
   isMunicipalGeoFallbackSuggestion,
+  isMunicipalPortalFallbackSuggestion,
   promoteMunicipalGeoFallback,
+  promoteMunicipalPortalFallback,
 } from "@/lib/sentinel-municipal-fallback";
 import { buildSentinelQualityReport, estimateSentinelLlmCost } from "@/lib/sentinel-quality";
 import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
@@ -769,12 +771,22 @@ export async function getSentinelSuggestions(
   });
 
   // Depois do rank: se municipal ficou sem temas do radar, amplia com notícias locais.
-  const municipalFallbackResult = promoteMunicipalGeoFallback({
+  const geoFallbackResult = promoteMunicipalGeoFallback({
     profile,
     articles: articlesBundle.articles,
     suggestions: qualityRank.suggestions,
   });
-  const suggestions = municipalFallbackResult.suggestions;
+
+  // Se o usuário cadastrou portal(is) próprio(s) e nenhum card municipal cita de fato a
+  // cidade dele (provável "achismo" da busca ampla), troca pelo aviso + o que há de mais
+  // recente no(s) portal(is) cadastrado(s).
+  const portalFallbackResult = promoteMunicipalPortalFallback({
+    profile,
+    articles: articlesBundle.articles,
+    suggestions: geoFallbackResult.suggestions,
+  });
+  const suggestions = portalFallbackResult.suggestions;
+  const municipalFallbackMeta = portalFallbackResult.meta ?? geoFallbackResult.meta;
 
   const oppositionUnavailableReason = buildOppositionUnavailableMeta(profile);
   const v2Enabled = isSentinelV2PipelinesEnabled();
@@ -819,7 +831,7 @@ export async function getSentinelSuggestions(
           : "Nenhuma materia recente encontrada para os temas e portais configurados."
         : undefined,
     oppositionUnavailableReason,
-    municipalFallback: municipalFallbackResult.meta,
+    municipalFallback: municipalFallbackMeta,
   };
 
   if (fetchLooksBroken) {
@@ -890,8 +902,9 @@ export function filterSuggestionsForProfile(
     // O tema exibido no card precisa ser um tema ativo do radar.
     // matchedThemes sozinho não basta: expansão órfã pode rotular "Cameras Corporais"
     // e ainda assim cruzar um tema fiscal por falso positivo de sinônimo.
-    // Exceção: fallback municipal geo-only ("Radar local") — só esfera municipal.
-    if (isMunicipalGeoFallbackSuggestion(suggestion)) {
+    // Exceção: fallback municipal geo-only ("Radar local") ou portal cadastrado sem
+    // match de tema ("Fonte cadastrada") — só esfera municipal.
+    if (isMunicipalGeoFallbackSuggestion(suggestion) || isMunicipalPortalFallbackSuggestion(suggestion)) {
       return true;
     }
 

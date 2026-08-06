@@ -388,7 +388,9 @@ export function classifySuggestionSphere(
   // Ampliação municipal quando o radar não achou os temas na cidade.
   if (
     suggestion.pipeline === "geo-fallback" ||
-    suggestion.themeLabel.trim() === "Radar local"
+    suggestion.pipeline === "portal-fallback" ||
+    suggestion.themeLabel.trim() === "Radar local" ||
+    suggestion.themeLabel.trim() === "Fonte cadastrada"
   ) {
     return "municipal";
   }

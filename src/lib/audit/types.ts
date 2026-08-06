@@ -13,6 +13,10 @@ export const AUDIT_ACTIONS = [
   "fact_check_bypass_free_prompt",
   "contract_acceptance",
   "manual_export",
+  "monitoring_view",
+  "monitoring_signal_view",
+  "monitoring_refresh",
+  "monitoring_config_save",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -78,6 +82,18 @@ export type AuditAgentsSummary = {
   factCheckBypasses: number;
 };
 
+export type AuditMonitoringSummary = {
+  monitoringDays: number;
+  viewEvents: number;
+  signalViews: number;
+  viewsByDay: Array<{ day: string; count: number }>;
+  refreshes: number;
+  manualRefreshes: number;
+  dailyRefreshes: number;
+  configSaves: number;
+  lastConfigSave: { timestamp: string; timestampLocal: string } | null;
+};
+
 export type AuditSummary = {
   from: string;
   to: string;
@@ -85,6 +101,7 @@ export type AuditSummary = {
   access: AuditAccessSummary;
   volumes: AuditVolumesSummary;
   agents: AuditAgentsSummary;
+  monitoring: AuditMonitoringSummary;
 };
 
 export function isAuditAction(value: string): value is AuditAction {

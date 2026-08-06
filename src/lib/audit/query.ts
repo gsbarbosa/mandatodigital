@@ -8,6 +8,7 @@ import {
   type AuditAgentsSummary,
   type AuditEvent,
   type AuditLogListItem,
+  type AuditMonitoringSummary,
   type AuditSummary,
   type AuditVolumesSummary,
 } from "@/lib/audit/types";
@@ -169,6 +170,37 @@ export function buildAgentsSummaryFromJobs(
     jobsByTypeStatus,
     factChecks,
     factCheckBypasses,
+  };
+}
+
+export function buildMonitoringSummary(events: AuditEvent[]): AuditMonitoringSummary {
+  function byAction(action: string) {
+    return events.filter((event) => (event.action || event.eventType) === action);
+  }
+
+  const views = byAction("monitoring_view");
+  const signalViews = byAction("monitoring_signal_view");
+  const refreshes = byAction("monitoring_refresh");
+  const configSaves = byAction("monitoring_config_save");
+
+  const manualRefreshes = refreshes.filter((event) => event.payload?.reason === "manual").length;
+  const dailyRefreshes = refreshes.filter((event) => event.payload?.reason === "daily").length;
+
+  // events chega ordenado do mais novo para o mais antigo (ver fetchAuditLogsByOwner).
+  const lastConfigSave = configSaves[0]
+    ? { timestamp: configSaves[0].timestamp, timestampLocal: configSaves[0].timestampLocal }
+    : null;
+
+  return {
+    monitoringDays: countEventsByDay(views).length,
+    viewEvents: views.length,
+    signalViews: signalViews.length,
+    viewsByDay: countEventsByDay([...views, ...signalViews]),
+    refreshes: refreshes.length,
+    manualRefreshes,
+    dailyRefreshes,
+    configSaves: configSaves.length,
+    lastConfigSave,
   };
 }
 
@@ -410,5 +442,6 @@ export async function buildAuditSummary(input: {
       ...auditVolumes,
     },
     agents: buildAgentsSummaryFromJobs(jobs, factChecks, factCheckBypasses),
+    monitoring: buildMonitoringSummary(events),
   };
 }

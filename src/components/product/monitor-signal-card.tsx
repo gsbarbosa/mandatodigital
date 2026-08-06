@@ -194,6 +194,12 @@ export function MonitorSignalCard({
   const article = primarySignalArticle(suggestion);
   const actor = primarySignalActor(suggestion);
   const isNewsCard = Boolean(article) && !oppositionCard;
+  // A "Fonte: X" já linka a matéria principal — só vale abrir a gaveta quando
+  // sobra mais alguma coisa além dela.
+  const otherArticlesCount = Math.max(0, (suggestion.evidence.articles?.length ?? 0) - 1);
+  // "Verificar notícia" só existe pra mostrar uma matéria de apoio ao post — sem
+  // nenhuma encontrada, o botão não levaria a lugar nenhum.
+  const hasSupportingArticle = (suggestion.evidence.articles?.length ?? 0) > 0;
   const publishedAt = article?.publishedAt ?? actor?.publishedAt;
   const dateLabel = formatSignalDate(publishedAt);
   const dateParts = formatSignalDateParts(publishedAt);
@@ -296,14 +302,16 @@ export function MonitorSignalCard({
                     {articleOutletLabel(article)}
                   </a>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onOpenEvidence?.(suggestion)}
-                  className="flex items-center gap-1 text-[var(--sentinela-text)] bg-[var(--sentinela-soft)] px-2 py-0.5 rounded border border-[var(--sentinela-border)] cursor-pointer hover:opacity-90 transition-colors"
-                >
-                  <CheckBadgeIcon />
-                  Ver fontes
-                </button>
+                {otherArticlesCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenEvidence?.(suggestion)}
+                    className="flex items-center gap-1 text-[var(--sentinela-text)] bg-[var(--sentinela-soft)] px-2 py-0.5 rounded border border-[var(--sentinela-border)] cursor-pointer hover:opacity-90 transition-colors"
+                  >
+                    <CheckBadgeIcon />
+                    Ver outras {otherArticlesCount} fontes
+                  </button>
+                ) : null}
               </div>
             </>
           ) : (
@@ -328,14 +336,16 @@ export function MonitorSignalCard({
                     Link do post
                   </a>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={() => onOpenEvidence?.(suggestion)}
-                  className="flex items-center gap-1 text-md-text-soft bg-md-overlay-subtle px-2 py-0.5 rounded border border-md-border cursor-pointer hover:text-md-text transition-colors"
-                >
-                  <SearchIcon />
-                  Verificar notícia
-                </button>
+                {hasSupportingArticle ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenEvidence?.(suggestion)}
+                    className="flex items-center gap-1 text-md-text-soft bg-md-overlay-subtle px-2 py-0.5 rounded border border-md-border cursor-pointer hover:text-md-text transition-colors"
+                  >
+                    <SearchIcon />
+                    Verificar notícia
+                  </button>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-5 mt-2 pt-3 border-t border-md-border/50 text-xs text-md-text-soft">
@@ -383,6 +393,9 @@ export function SignalEvidenceDrawer({
   const articles = suggestion.evidence.articles ?? [];
   const actors = suggestion.evidence.actors ?? [];
   const trend = suggestion.evidence.searchTrend;
+  // Post de rede social (Interesse/Adversários) x cluster de notícias (Nacional/
+  // Estadual/Municipal) — o motivo de existir dessa gaveta é diferente em cada caso.
+  const isSocialEvidence = actors.length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -410,8 +423,19 @@ export function SignalEvidenceDrawer({
         </div>
 
         <p className="text-xs text-md-text-soft mb-6">
-          A verificação lista as fontes reais capturadas pelo monitoramento. O fact-check por IA do
-          conteúdo acontece na aprovação do roteiro, antes da produção do vídeo.
+          {isSocialEvidence ? (
+            <>
+              Esse post não é, em si, uma notícia — por isso buscamos uma matéria relacionada pra
+              você confirmar o assunto antes de usar. A checagem por IA do conteúdo acontece
+              depois, na aprovação do roteiro, antes da produção do vídeo.
+            </>
+          ) : (
+            <>
+              Encontramos {articles.length} {articles.length === 1 ? "matéria" : "matérias"} sobre
+              esse assunto nas fontes monitoradas. A checagem por IA do conteúdo acontece depois,
+              na aprovação do roteiro, antes da produção do vídeo.
+            </>
+          )}
         </p>
 
         {articles.length ? (

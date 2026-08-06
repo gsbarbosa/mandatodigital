@@ -1043,11 +1043,14 @@ export function scoreSentinelArticle(
 
   const normalizedTitle = normalizeSentinelText(article.title);
 
-  if (profile.city.trim()) {
-    const city = normalizeSentinelText(profile.city);
-    if (city.length >= 3 && normalizedTitle.includes(city)) {
-      score += 20;
-    }
+  const monitoredCities = profile.municipalCities.map((city) => city.trim()).filter(Boolean);
+  if (
+    monitoredCities.some((city) => {
+      const normalizedCity = normalizeSentinelText(city);
+      return normalizedCity.length >= 3 && normalizedTitle.includes(normalizedCity);
+    })
+  ) {
+    score += 20;
   }
 
   // A sigla como substring gerava falso positivo em qualquer palavra que a contivesse

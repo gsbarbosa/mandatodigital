@@ -292,6 +292,13 @@ export function MonitoramentoPage() {
     }
   }
 
+  const notifySignalView = useCallback((suggestion: MockSentinelSuggestion) => {
+    void fetch(`/api/sentinel/suggestions/${suggestion.id}/view`, {
+      method: "POST",
+      keepalive: true,
+    }).catch(() => undefined);
+  }, []);
+
   const grouped = useMemo(() => {
     const themeSpheres = resolveSentinelThemeSpheres(profileForm);
     const groups = groupSuggestionsBySphere(
@@ -522,18 +529,33 @@ export function MonitoramentoPage() {
                 >
                   <p className="text-sm leading-relaxed text-md-text">
                     <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                      Cobertura municipal ampliada:{" "}
+                      {municipalFallback.reason === "portal_no_theme_match"
+                        ? "Site cadastrado sem os temas selecionados: "
+                        : "Cobertura municipal ampliada: "}
                     </span>
-                    Não encontramos reportagens recentes na(s) sua(s) Cidade(s) nos temas que você
-                    selecionou
-                    {municipalFallback.themesMissed.length
-                      ? ` (${municipalFallback.themesMissed.slice(0, 4).join(", ")}${municipalFallback.themesMissed.length > 4 ? "…" : ""})`
-                      : ""}
-                    . Listamos o que há de atual na cidade
-                    {municipalFallback.promotedCount
-                      ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
-                      : ""}
-                    .
+                    {municipalFallback.reason === "portal_no_theme_match" ? (
+                      <>
+                        Não encontramos os temas que você selecionou no(s) site(s) que você
+                        cadastrou para o município. Mostramos as notícias mais recentes de lá
+                        {municipalFallback.promotedCount
+                          ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
+                          : ""}
+                        .
+                      </>
+                    ) : (
+                      <>
+                        Não encontramos reportagens recentes na(s) sua(s) Cidade(s) nos temas que
+                        você selecionou
+                        {municipalFallback.themesMissed.length
+                          ? ` (${municipalFallback.themesMissed.slice(0, 4).join(", ")}${municipalFallback.themesMissed.length > 4 ? "…" : ""})`
+                          : ""}
+                        . Listamos o que há de atual na cidade
+                        {municipalFallback.promotedCount
+                          ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
+                          : ""}
+                        .
+                      </>
+                    )}
                   </p>
                   {municipalFallback.foundTopics.length ? (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-md-text-soft">
@@ -554,7 +576,10 @@ export function MonitoramentoPage() {
                       key={suggestion.id}
                       suggestion={suggestion}
                       oppositionCard={sphere === "adversarios"}
-                      onOpenEvidence={setEvidenceSuggestion}
+                      onOpenEvidence={(suggestion) => {
+                        setEvidenceSuggestion(suggestion);
+                        notifySignalView(suggestion);
+                      }}
                       pautarOnboardingAnchor={
                         guideOpen &&
                         guideStepId === "pautas-pautar" &&

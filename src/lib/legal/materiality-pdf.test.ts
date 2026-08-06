@@ -41,6 +41,20 @@ function baseSummary(): AuditSummary {
       factChecks: 2,
       factCheckBypasses: 0,
     },
+    monitoring: {
+      monitoringDays: 4,
+      viewEvents: 6,
+      signalViews: 9,
+      viewsByDay: [{ day: "2026-07-31", count: 5 }],
+      refreshes: 3,
+      manualRefreshes: 2,
+      dailyRefreshes: 1,
+      configSaves: 1,
+      lastConfigSave: {
+        timestamp: "2026-07-30T12:00:00.000Z",
+        timestampLocal: "30/07/2026, 09:00:00 (America/Sao_Paulo)",
+      },
+    },
   };
 }
 

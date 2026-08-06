@@ -39,6 +39,10 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   fact_check_bypass_free_prompt: "Fact-check ignorado (prompt livre)",
   contract_acceptance: "Aceite de contrato",
   manual_export: "Exportacao manual",
+  monitoring_view: "Acesso ao Monitoramento",
+  monitoring_signal_view: "Visualizacao de pauta monitorada",
+  monitoring_refresh: "Atualizacao do radar de monitoramento",
+  monitoring_config_save: "Configuracao de monitoramento salva",
 };
 
 export function auditActionLabel(action: string) {

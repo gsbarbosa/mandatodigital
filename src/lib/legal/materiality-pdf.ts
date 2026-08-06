@@ -408,9 +408,22 @@ function drawBarList(
 }
 
 function materialidadeStats(input: MaterialityDossierInput): Stat[] {
+  const m = input.summary.monitoring;
   return [
-    { value: String(input.summary.access.activeDays), label: "Dias ativos no periodo", sub: `${input.fromLabel} a ${input.toLabel}` },
-    { value: String(input.summary.agents.factChecks), label: "Checagens de fatos concluidas", sub: "antes da publicacao" },
+    { value: String(m.monitoringDays), label: "Dias com acesso ao Monitoramento" },
+    { value: String(m.signalViews), label: "Pautas visualizadas" },
+    {
+      value: String(m.refreshes),
+      label: "Atualizacoes do radar",
+      sub: `${m.manualRefreshes} manuais, ${m.dailyRefreshes} automaticas`,
+    },
+    {
+      value: String(m.configSaves),
+      label: "Configuracoes de radar salvas",
+      sub: m.lastConfigSave
+        ? `Ultima: ${m.lastConfigSave.timestampLocal.replace(/\s*\(America\/Sao_Paulo\)\s*$/, "")}`
+        : undefined,
+    },
   ];
 }
 
@@ -532,8 +545,9 @@ export async function renderMaterialityDossierPdf(
       {
         section: SECTION_MATERIALIDADE,
         description:
-          "Atos de campanha proprios — geracao, edicao e aprovacao de conteudo — registrados com " +
-            "data, hora, IP e usuario no instante do ato.",
+          "Atos de campanha proprios — geracao, edicao e aprovacao de conteudo, alem do uso do " +
+            "radar de Monitoramento de Noticias/Pautas (acessos, pautas visualizadas, atualizacoes " +
+            "e configuracoes salvas) — registrados com data, hora, IP e usuario no instante do ato.",
       },
       {
         section: SECTION_VOLUMES,
