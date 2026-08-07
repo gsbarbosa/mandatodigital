@@ -20,6 +20,7 @@ import {
   isBillingSmokeTestEmail,
   resolveCheckoutPricing,
 } from "@/lib/billing/plan-pricing";
+import { resolvePaymentAccess } from "@/lib/billing/payment-access";
 import {
   getUserRegistrationForOwner,
   updateUserRegistrationBilling,
@@ -58,6 +59,7 @@ export async function GET() {
         boleto: null,
         pix: null,
         nfs: null,
+        access: resolvePaymentAccess({ billingStatus: "trial", installments: [] }),
         hasRemainingInstallments: false,
         smokeTestAvailable: isBillingSmokeTestEmail(session.email),
       });
@@ -158,6 +160,10 @@ export async function GET() {
       installmentCount,
       payments: asaasPayments,
     });
+    const access = resolvePaymentAccess({
+      billingStatus: registration.billingStatus,
+      installments,
+    });
 
     return NextResponse.json({
       billingStatus: registration.billingStatus,
@@ -170,6 +176,7 @@ export async function GET() {
       installmentCount,
       installmentValue: pricing?.installmentValue ?? null,
       campaignTotal: pricing?.campaignTotal ?? null,
+      access,
       boleto:
         method !== "pix" &&
         (registration.pendingBoletoUrl || registration.pendingBoletoLinhaDigitavel)

@@ -4,7 +4,7 @@ Acompanhamento das tarefas **de produto/sistema** extraídas de `RoadMapAte_05_A
 Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, etc.) ficam de fora.
 
 **Fonte:** `RoadMapAte_05_Ago.txt`  
-**Última atualização:** 2026-07-21 (domínio canônico + site institucional no ar)  
+**Última atualização:** 2026-08-07 (travas de pagamento + Meus pagamentos + e-mail NF)  
 **Relacionados:** [status-desenvolvimento.md](status-desenvolvimento.md) · [Compliance_Prioridades.txt](Compliance_Prioridades.txt) · [painel-gestao.md](painel-gestao.md)
 
 ### Legenda — Status
@@ -59,12 +59,12 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 
 | Task | Status | Validado por Thiago | Observação |
 |------|--------|---------------------|------------|
-| Preencher contrato/dossiê + e-mail no aceite | inprogress | pendente | `POST /api/contract/accept` gera PDFs + e-mail; NF ainda não |
-| Emitir 3 boletos (3 parcelas) de uma vez no aceite | todo | pendente | Só copy na UI |
-| Conciliação bancária → bloquear plataforma se inadimplente | todo | pendente | Só texto contratual |
-| Menu “Meus pagamentos” + alerta 5 dias antes do vencimento | todo | pendente | Fora do nav |
-| Travas/cadeados por ausência de pagamento / data | todo | pendente | Não existe |
-| Teste de volumetria HeyGen (+ provedor alternativo) | todo | pendente | Não documentado |
+| Preencher contrato/dossiê + e-mail no aceite | inprogress | pendente | `POST /api/contract/accept` gera PDFs + e-mail; NF no aceite ainda não (e-mail NF pós-autorização Asaas) |
+| Emitir 3 boletos (3 parcelas) de uma vez no aceite | todo | pendente | Só copy na UI; cobrança em Planos → checkout |
+| Conciliação bancária → bloquear plataforma se inadimplente | done | pendente | Overlay + cadeados quando `past_due`/`pending_payment`; exceção Meus pagamentos/CNPJ |
+| Menu “Meus pagamentos” + alerta 5 dias antes do vencimento | done | pendente | Item no Acesso antecipado + banner D-5 |
+| Travas/cadeados por ausência de pagamento / data | done | pendente | Cadeados no nav + overlay; alerta por data |
+| Teste de volumetria HeyGen (+ provedor alternativo) | todo | pendente | Não documentado; nim.video ausente |
 | Agente Distribuidor | done | pendente | UI + APIs + worker; flags off ate smoke Ayrshare |
 | Materialidade — dados salvos e estruturados (agora) | done | pendente | `auditLog` + `/auditoria` (auth, vídeos, jobs, contrato, treino, suporte) |
 | Materialidade self-service (relatórios + prints + export) | todo | pendente | Meta sugerida ≥ 10/Set |

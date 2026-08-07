@@ -70,6 +70,7 @@ function emptyBillingFields() {
     lastNfsXmlUrl: null as string | null,
     lastNfsNumber: null as string | null,
     lastNfsStatus: null as string | null,
+    lastNfsEmailSentFor: null as string | null,
     scheduledNfsPaymentIds: [] as string[],
   };
 }
@@ -113,6 +114,9 @@ function mapBillingFields(data: DocumentData) {
     lastNfsXmlUrl: data.lastNfsXmlUrl ? String(data.lastNfsXmlUrl) : null,
     lastNfsNumber: data.lastNfsNumber ? String(data.lastNfsNumber) : null,
     lastNfsStatus: data.lastNfsStatus ? String(data.lastNfsStatus) : null,
+    lastNfsEmailSentFor: data.lastNfsEmailSentFor
+      ? String(data.lastNfsEmailSentFor)
+      : null,
     scheduledNfsPaymentIds: parseStringIdList(data.scheduledNfsPaymentIds),
   };
 }
@@ -140,6 +144,7 @@ function billingFieldsFromRegistration(existing: UserRegistration) {
     lastNfsXmlUrl: existing.lastNfsXmlUrl,
     lastNfsNumber: existing.lastNfsNumber,
     lastNfsStatus: existing.lastNfsStatus,
+    lastNfsEmailSentFor: existing.lastNfsEmailSentFor,
     scheduledNfsPaymentIds: existing.scheduledNfsPaymentIds,
   };
 }
@@ -644,6 +649,7 @@ export type UserBillingUpdate = Partial<{
   lastNfsXmlUrl: string | null;
   lastNfsNumber: string | null;
   lastNfsStatus: string | null;
+  lastNfsEmailSentFor: string | null;
   scheduledNfsPaymentIds: string[];
 }>;
 

@@ -48,6 +48,8 @@ export type UserRegistration = {
   lastNfsXmlUrl: string | null;
   lastNfsNumber: string | null;
   lastNfsStatus: string | null;
+  /** Número/id da NFS já enviada por e-mail (idempotência). */
+  lastNfsEmailSentFor: string | null;
   /** Parcelas já agendadas para NFS-e (idempotência no parcelamento). */
   scheduledNfsPaymentIds: string[];
   createdAt: string;
