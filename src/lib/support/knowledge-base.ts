@@ -21,6 +21,7 @@ Ajuda o candidato a monitorar pautas, criar conteúdo alinhado à persona, gerar
 - Compliance TSE (/compliance): conformidade eleitoral e materiais.
 - Auditoria (/auditoria): trilha de ações e checagens.
 - Cadastro / planos: /acesso-antecipado/dados, /acesso-antecipado/planos, /acesso-antecipado/cnpj.
+- Meus pagamentos: /acesso-antecipado/pagamento.
 
 ## Agentes do ecossistema
 1. Sentinela — identifica pautas quentes do dia (sites, blogs, redes, temas e adversários). Entrega pautas quentes e gatilhos para conteúdo.

@@ -2,52 +2,56 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useEffect, useState } from "react";
 
 import { BILLING_PAYMENT_PATH } from "@/lib/registration-gate";
+import { usePaymentAccess } from "./use-payment-access";
 
-/** Aviso discreto quando há cobrança aguardando pagamento. */
+function formatDueDate(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) {
+    return value;
+  }
+  return `${day}/${month}/${year}`;
+}
+
+/** Banner de cobrança: bloqueio / alerta D-5 antes do vencimento. */
 export function BillingPendingBanner() {
-  const [pending, setPending] = useState(false);
+  const { blocked, dueSoon, daysUntilNextDue, nextDueDate, loaded } = usePaymentAccess();
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const response = await fetch("/api/billing/status", { credentials: "same-origin" });
-        if (!response.ok) {
-          return;
-        }
-        const payload = (await response.json()) as {
-          billingStatus?: string;
-          hasRemainingInstallments?: boolean;
-        };
-        if (!cancelled) {
-          setPending(
-            payload.billingStatus === "pending_payment" ||
-              payload.billingStatus === "past_due" ||
-              Boolean(payload.hasRemainingInstallments),
-          );
-        }
-      } catch {
-        // ignore
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (!pending) {
+  if (!loaded || (!blocked && !dueSoon)) {
     return null;
   }
 
+  if (blocked) {
+    return (
+      <div className="border-b border-red-500/30 bg-red-500/10 px-4 py-2 text-center text-xs text-red-900 dark:text-red-200">
+        Pagamento pendente ou em atraso — o uso da plataforma está limitado.{" "}
+        <Link
+          href={BILLING_PAYMENT_PATH as Route}
+          className="font-semibold underline-offset-2 hover:underline"
+        >
+          Meus pagamentos
+        </Link>
+      </div>
+    );
+  }
+
+  const daysLabel =
+    daysUntilNextDue === 0
+      ? "vence hoje"
+      : daysUntilNextDue === 1
+        ? "vence amanhã"
+        : `vence em ${daysUntilNextDue} dias`;
+
   return (
     <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-800 dark:text-amber-200">
-      Há parcela do pacote em aberto.{" "}
-      <Link href={BILLING_PAYMENT_PATH as Route} className="font-semibold underline-offset-2 hover:underline">
-        Ver cobrança
+      Boleto {daysLabel}
+      {nextDueDate ? ` (${formatDueDate(nextDueDate)})` : ""}.{" "}
+      <Link
+        href={BILLING_PAYMENT_PATH as Route}
+        className="font-semibold underline-offset-2 hover:underline"
+      >
+        Ver Meus pagamentos
       </Link>
     </div>
   );
