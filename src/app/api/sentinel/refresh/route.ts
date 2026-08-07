@@ -194,6 +194,13 @@ export async function POST(request: Request) {
       credits = consumed.credits;
       if (!consumed.ok) {
         // Corrida rara: outro request esgotou no meio — ainda devolvemos o resultado.
+        // Auditoria grava mesmo assim: a varredura rodou e o dossiê precisa contar.
+        recordAuditEventFireAndForget({
+          request,
+          action: "monitoring_refresh",
+          profileId: dashboard.profile.id ?? null,
+          payload: { reason, suggestionCount: result.suggestions.length, sourceFailed },
+        });
         return NextResponse.json({
           ...result,
           reason,

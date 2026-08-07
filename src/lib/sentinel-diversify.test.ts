@@ -150,4 +150,19 @@ describe("ensureMinimumSphereRepresentation", () => {
     // função não deve travar nem inventar candidato.
     expect(result).toHaveLength(1);
   });
+
+  it("re-promove do pool pré-rank quando o rank esvaziou a esfera (ordem do pipeline)", () => {
+    // Simula: quality rank dropou o único federal; selected = só municipal.
+    // allCandidates = pool pré-rank ainda tem o federal — precisa voltar.
+    const local = suggestion("local", "Polícia Civil prende suspeito em Crato", 90);
+    const national = suggestion("national", "Congresso debate valorização da carreira policial", 40);
+
+    const result = ensureMinimumSphereRepresentation({
+      selected: [local],
+      allCandidates: [local, national],
+      profile,
+    });
+
+    expect(result.map((item) => item.id)).toEqual(["local", "national"]);
+  });
 });

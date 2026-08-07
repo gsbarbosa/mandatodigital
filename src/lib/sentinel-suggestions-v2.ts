@@ -25,7 +25,6 @@ import {
 import {
   resolveMaxPerTheme,
   finalizeSuggestionFeed,
-  ensureMinimumSphereRepresentation,
 } from "@/lib/sentinel-diversify";
 import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
@@ -287,7 +286,7 @@ async function buildSuggestionFromCluster(input: {
   };
 }
 
-function mergeSuggestionsById(suggestions: MockSentinelSuggestion[], profile: PoliticianProfile) {
+function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
   const byId = new Map<string, MockSentinelSuggestion>();
 
   for (const suggestion of suggestions) {
@@ -308,15 +307,12 @@ function mergeSuggestionsById(suggestions: MockSentinelSuggestion[], profile: Po
   const distinctThemes = new Set(
     allCandidates.map((item) => item.themeLabel.trim()).filter(Boolean),
   ).size;
-  const diversified = finalizeSuggestionFeed(allCandidates, {
+  // ensureMinimumSphereRepresentation roda depois do quality rank em
+  // getSentinelSuggestions — senão o LLM pode dropar a pauta promovida.
+  return finalizeSuggestionFeed(allCandidates, {
     maxTotal: MAX_SUGGESTIONS,
     maxPerTheme: resolveMaxPerTheme(distinctThemes),
     maxPerPipeline: 10,
-  });
-  return ensureMinimumSphereRepresentation({
-    selected: diversified,
-    allCandidates,
-    profile,
   });
 }
 
@@ -419,7 +415,7 @@ export async function buildV2SuggestionsFromArticles(
   }
 
   return {
-    suggestions: mergeSuggestionsById(suggestions, profile),
+    suggestions: mergeSuggestionsById(suggestions),
     themeVerificationStats,
   };
 }

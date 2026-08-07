@@ -141,6 +141,17 @@ export async function PUT(request: Request) {
             if (consumeOnSuccess && !sourceFailed) {
               await tryConsumeGuestSentinelCredit(ownerUserId);
             }
+            recordAuditEventFireAndForget({
+              request,
+              ownerUserId,
+              action: "monitoring_refresh",
+              profileId: profile.id,
+              payload: {
+                reason: "radar_config_save",
+                suggestionCount: result.suggestions.length,
+                sourceFailed,
+              },
+            });
           })().catch(() => undefined);
         }
       }

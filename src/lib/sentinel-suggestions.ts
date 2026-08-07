@@ -297,12 +297,11 @@ export async function buildSuggestionsFromArticles(
     maxPerPipeline: 10,
   });
 
+  // ensureMinimumSphereRepresentation roda depois do quality rank em
+  // getSentinelSuggestions — senão o LLM pode dropar a pauta promovida
+  // e a esfera volta vazia na tela.
   return {
-    suggestions: ensureMinimumSphereRepresentation({
-      selected: diversifiedSuggestions,
-      allCandidates: suggestions,
-      profile,
-    }),
+    suggestions: diversifiedSuggestions,
     themeVerificationStats,
   };
 }
@@ -358,7 +357,7 @@ async function hydrateCachedOppositionSuggestions(
     return cached;
   }
 
-  const suggestions = mergeSuggestions(profile, cached.suggestions, oppositionSuggestions);
+  const suggestions = mergeSuggestions(cached.suggestions, oppositionSuggestions);
   const meta: SentinelSuggestionsMeta = {
     ...cached.meta,
     oppositionUnavailableReason: undefined,
@@ -421,7 +420,6 @@ function isLowQualityNewsSuggestion(suggestion: MockSentinelSuggestion) {
  * aqui no servidor.
  */
 function mergeSuggestions(
-  profile: PoliticianProfile,
   ...groups: MockSentinelSuggestion[][]
 ): MockSentinelSuggestion[] {
   const byId = new Map<string, MockSentinelSuggestion>();
@@ -461,15 +459,11 @@ function mergeSuggestions(
   const distinctThemes = new Set(
     allCoreCandidates.map((item) => item.themeLabel.trim()).filter(Boolean),
   ).size;
-  const diversifiedCore = finalizeSuggestionFeed(allCoreCandidates, {
+  // Garantia de esfera fica para depois do quality rank (getSentinelSuggestions).
+  const coreSuggestions = finalizeSuggestionFeed(allCoreCandidates, {
     maxTotal: MAX_SUGGESTIONS,
     maxPerTheme: resolveMaxPerTheme(distinctThemes),
     maxPerPipeline: 10,
-  });
-  const coreSuggestions = ensureMinimumSphereRepresentation({
-    selected: diversifiedCore,
-    allCandidates: allCoreCandidates,
-    profile,
   });
 
   const oppositionSuggestions = [...oppositionById.values()].sort(
@@ -779,7 +773,7 @@ export async function getSentinelSuggestions(
   ]);
   const suggestionsFiltered = filterSuggestionsForProfile(
     profile,
-    mergeSuggestions(profile, articleSuggestions, socialSuggestions, oppositionSuggestions),
+    mergeSuggestions(articleSuggestions, socialSuggestions, oppositionSuggestions),
   );
 
   const qualityRank = await applySentinelQualityRank(suggestionsFiltered, {
@@ -787,11 +781,19 @@ export async function getSentinelSuggestions(
     enabled: qualityRankEnabled,
   });
 
+  // Depois do rank: repõe ao menos 1 pauta por esfera. allCandidates = pool pré-rank
+  // para poder re-promover o que o LLM dropou e evitar seção vazia na tela.
+  const sphereGuaranteed = ensureMinimumSphereRepresentation({
+    selected: qualityRank.suggestions,
+    allCandidates: suggestionsFiltered,
+    profile,
+  });
+
   // Depois do rank: se municipal ficou sem temas do radar, amplia com notícias locais.
   const geoFallbackResult = promoteMunicipalGeoFallback({
     profile,
     articles: articlesBundle.articles,
-    suggestions: qualityRank.suggestions,
+    suggestions: sphereGuaranteed,
   });
 
   // Se o usuário cadastrou portal(is) próprio(s) e nenhum card municipal cita de fato a
