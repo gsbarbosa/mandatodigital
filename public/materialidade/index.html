@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mandato Digital — Dossiê de Materialidade (demo)</title>
+<meta name="description" content="Modelo ilustrativo do Dossiê de Auditoria e Comprovação de Materialidade — evidência de atos de campanha para advogados e órgãos de controle.">
+<style>
+  :root {
+    --ink: #14171f;
+    --ink-soft: #4b5160;
+    --ink-faint: #848c9c;
+    --line: #dde1e8;
+    --hairline: #eef0f4;
+    --paper: #ffffff;
+    --bg: #f4f6f9;
+    --brand: #1d4ed8;
+    --brand-soft: #e8effe;
+    --sample: #b45309;
+    --sample-soft: #fdf1dd;
+    --acessos: #1d4ed8;
+    --materialidade: #b3261e;
+    --volumes: #0f766e;
+    --agentes: #6d28d9;
+    --logs: #475569;
+    --zebra: #f6f7f9;
+    --radius: 12px;
+    --shadow: 0 10px 30px -18px rgba(20,23,31,.35);
+    --font: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
+  }
+  a { color: inherit; }
+  .topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: 920px; margin: 0 auto; padding: 12px 18px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    text-decoration: none; font-weight: 700; font-size: 13px; letter-spacing: .02em;
+  }
+  .brand .mark { width: 14px; height: 14px; border-radius: 3px; background: var(--brand); flex: 0 0 auto; }
+  .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border-radius: 999px; padding: 9px 14px; font-size: 13px; font-weight: 650;
+    text-decoration: none; border: 1px solid transparent; white-space: nowrap;
+  }
+  .btn-primary { background: var(--ink); color: #fff; }
+  .btn-ghost { background: var(--paper); border-color: var(--line); color: var(--ink); }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 20px 18px 72px; }
+  .doc {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 28px 24px 36px;
+  }
+  @media (min-width: 720px) { .doc { padding: 40px 44px 48px; } }
+  .masthead { display: flex; align-items: center; gap: 10px; }
+  .masthead .mark { width: 12px; height: 12px; border-radius: 2px; background: var(--brand); }
+  .masthead strong { font-size: 13px; letter-spacing: .04em; }
+  .rule { height: 2px; background: var(--brand); margin: 12px 0 8px; border: 0; }
+  .subhead {
+    font-size: 11px; letter-spacing: .12em; color: var(--ink-faint);
+    text-transform: uppercase; margin: 0 0 16px;
+  }
+  .sample-badge {
+    display: inline-flex; align-items: center;
+    background: var(--sample-soft); color: var(--sample);
+    border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 700;
+    margin-bottom: 22px;
+  }
+  .meta {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px;
+    padding: 16px 0 8px; border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+    margin-bottom: 28px;
+  }
+  @media (min-width: 720px) { .meta { grid-template-columns: repeat(4, 1fr); } }
+  .meta .label { font-size: 10px; letter-spacing: .08em; color: var(--ink-faint); text-transform: uppercase; margin-bottom: 4px; }
+  .meta .value { font-size: 14px; font-weight: 700; }
+  h1 { font-size: clamp(22px, 4vw, 28px); margin: 0 0 8px; letter-spacing: -.02em; }
+  .lead { color: var(--ink-soft); font-size: 14px; margin: 0 0 22px; max-width: 62ch; }
+  .toc { display: grid; gap: 0; }
+  .toc-item {
+    display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start;
+    padding: 14px 0; border-top: 1px solid var(--hairline); text-decoration: none;
+  }
+  .toc-item:first-child { border-top: 0; }
+  .badge {
+    width: 32px; height: 32px; border-radius: 999px; color: #fff;
+    display: grid; place-items: center; font-weight: 700; font-size: 14px;
+  }
+  .toc-item h3 { margin: 2px 0 4px; font-size: 15px; }
+  .toc-item p { margin: 0; color: var(--ink-soft); font-size: 13px; }
+  section.block { margin-top: 40px; scroll-margin-top: 72px; }
+  .section-head {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .section-head h2 { margin: 0; font-size: 18px; }
+  .section-head .sub { color: var(--ink-faint); font-size: 13px; font-weight: 500; }
+  .tiles {
+    display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 18px;
+  }
+  @media (min-width: 560px) { .tiles { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 860px) { .tiles.cols-3 { grid-template-columns: repeat(3, 1fr); } .tiles.cols-4 { grid-template-columns: repeat(4, 1fr); } }
+  .tile {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent, var(--brand)) 6%, #fff), #fff);
+  }
+  .tile .num { font-size: 28px; font-weight: 750; letter-spacing: -.03em; line-height: 1.1; color: var(--accent, var(--brand)); }
+  .tile .lbl { margin-top: 6px; font-size: 12px; color: var(--ink-soft); }
+  .tile .sub { margin-top: 2px; font-size: 11px; color: var(--ink-faint); }
+  .chart {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px;
+  }
+  .chart h4 { margin: 0 0 12px; font-size: 13px; color: var(--ink-soft); font-weight: 650; }
+  .bars {
+    display: flex; align-items: flex-end; gap: 2px; height: 88px; overflow-x: auto;
+    padding-bottom: 4px; -webkit-overflow-scrolling: touch;
+  }
+  .bar {
+    flex: 0 0 8px; border-radius: 3px 3px 1px 1px; background: color-mix(in srgb, var(--accent) 75%, #fff);
+    min-height: 3px;
+  }
+  .chart-note { margin-top: 8px; font-size: 11px; color: var(--ink-faint); }
+  .table-wrap {
+    border: 1px solid var(--line); border-radius: 12px; overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 560px; }
+  th {
+    text-align: left; font-size: 10px; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-faint); background: var(--zebra); padding: 10px 12px; border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  tr:nth-child(even) td { background: #fbfcfd; }
+  td.mono, th.mono { font-family: var(--mono); font-size: 11.5px; }
+  .muted { color: var(--ink-soft); }
+  .footnote {
+    margin-top: 10px; font-size: 12px; color: var(--ink-faint);
+  }
+  .close-box {
+    margin-top: 18px; border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+    background: #fafbfd;
+  }
+  .hash {
+    display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; margin-top: 14px;
+  }
+  .hash .k { font-size: 10px; letter-spacing: .08em; color: var(--ink-faint); text-transform: uppercase; }
+  .hash .v { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+  .foot {
+    margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--hairline);
+    font-size: 11.5px; color: var(--ink-faint); text-align: center;
+  }
+  .sticky-dl {
+    position: fixed; right: 14px; bottom: 14px; z-index: 50;
+    box-shadow: 0 12px 28px -12px rgba(0,0,0,.45);
+  }
+  @media (max-width: 520px) {
+    .top-actions .btn-ghost { display: none; }
+    .bar { flex-basis: 6px; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/" aria-label="Mandato Digital — início"><span class="mark"></span>MANDATO DIGITAL</a>
+    <div class="top-actions">
+      <a class="btn btn-ghost" href="#topicos">Índice</a>
+      <a class="btn btn-primary" href="/materialidade/dossie-materialidade-demo-advogados.pdf" download>Baixar PDF</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <article class="doc">
+    <div class="masthead"><span class="mark"></span><strong>MANDATO DIGITAL</strong></div>
+    <hr class="rule">
+    <p class="subhead">Dossiê de Auditoria e Comprovação de Materialidade</p>
+    <div class="sample-badge">MODELO — DADOS ILUSTRATIVOS PARA DEMONSTRAÇÃO</div>
+
+    <div class="meta">
+      <div><div class="label">Titular</div><div class="value">Ana Beatriz Souza</div></div>
+      <div><div class="label">Partido / UF</div><div class="value">PSD/PE</div></div>
+      <div><div class="label">Cargo</div><div class="value">Candidata a Vereadora</div></div>
+      <div><div class="label">Período</div><div class="value">07/05/2026 — 04/08/2026</div></div>
+    </div>
+
+    <h1 id="topicos">Tópicos abordados neste dossiê</h1>
+    <p class="lead">Cada tópico abaixo tem o detalhamento completo, sem cortes, nas páginas seguintes — e no PDF original para advogados e órgãos de controle.</p>
+
+    <nav class="toc" aria-label="Índice do dossiê">
+      <a class="toc-item" href="#acessos"><span class="badge" style="background:var(--acessos)">1</span><div><h3>Acessos</h3><p>Histórico de sessões: quantos logins, em quais dias, e data/hora/IP da última sessão.</p></div></a>
+      <a class="toc-item" href="#materialidade"><span class="badge" style="background:var(--materialidade)">2</span><div><h3>Materialidade</h3><p>Atos de campanha próprios — geração, edição e aprovação de conteúdo — registrados com data, hora, IP e usuário no instante do ato.</p></div></a>
+      <a class="toc-item" href="#volumes"><span class="badge" style="background:var(--volumes)">3</span><div><h3>Volumes</h3><p>Quantidade de pautas, textos gerados, projetos criativos e vídeos produzidos no período.</p></div></a>
+      <a class="toc-item" href="#agentes"><span class="badge" style="background:var(--agentes)">4</span><div><h3>Agentes</h3><p>Execução dos agentes automatizados: jobs concluídos, jobs falhos e checagens de fatos realizadas antes da publicação.</p></div></a>
+      <a class="toc-item" href="#logs"><span class="badge" style="background:var(--logs)">5</span><div><h3>Logs</h3><p>Trilha bruta e completa de todos os eventos registrados na conta — o registro técnico subjacente às demais seções.</p></div></a>
+    </nav>
+
+    <section class="block" id="acessos">
+      <div class="section-head">
+        <span class="badge" style="background:var(--acessos)">1</span>
+        <div><h2>Acessos</h2><div class="sub">sessões e ações por dia (completo)</div></div>
+      </div>
+      <div class="tiles cols-3">
+        <div class="tile" style="--accent:var(--acessos)"><div class="num">134</div><div class="lbl">Logins no período</div></div>
+        <div class="tile" style="--accent:var(--acessos)"><div class="num">70</div><div class="lbl">Dias ativos</div></div>
+        <div class="tile" style="--accent:var(--acessos)"><div class="num" style="font-size:18px;padding-top:6px">04/08/2026, 05:12</div><div class="lbl">Última sessão</div><div class="sub">IP 191.32.44.10</div></div>
+      </div>
+      <div class="chart" style="--accent:var(--acessos)">
+        <h4>Logins por dia</h4>
+        <div class="bars" id="login-bars" aria-label="Gráfico de logins por dia"></div>
+        <div class="chart-note">70 dias com login — role horizontal no mobile para ver o período inteiro.</div>
+      </div>
+      <div class="chart" style="--accent:var(--acessos)">
+        <h4>Ações por dia</h4>
+        <div class="bars" id="action-bars" aria-label="Gráfico de ações por dia"></div>
+      </div>
+    </section>
+
+    <section class="block" id="materialidade">
+      <div class="section-head">
+        <span class="badge" style="background:var(--materialidade)">2</span>
+        <div><h2>Materialidade</h2><div class="sub">atos de campanha (completo)</div></div>
+      </div>
+      <div class="tiles cols-3">
+        <div class="tile" style="--accent:var(--materialidade)"><div class="num">70</div><div class="lbl">Dias ativos no período</div><div class="sub">07/05/2026 a 04/08/2026</div></div>
+        <div class="tile" style="--accent:var(--materialidade)"><div class="num">28</div><div class="lbl">Checagens de fatos concluídas</div><div class="sub">antes da publicação</div></div>
+        <div class="tile" style="--accent:var(--materialidade)"><div class="num">112</div><div class="lbl">Atos registrados</div><div class="sub">geração, criativo, vídeo, fact-check…</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data / hora</th><th>Ação registrada</th><th>IP</th></tr></thead>
+          <tbody id="acts-body"></tbody>
+        </table>
+      </div>
+      <p class="footnote">Amostra das ações mais recentes. A trilha integral está no PDF (sem cortes).</p>
+    </section>
+
+    <section class="block" id="volumes">
+      <div class="section-head">
+        <span class="badge" style="background:var(--volumes)">3</span>
+        <div><h2>Volumes</h2><div class="sub">produção de conteúdo (completo)</div></div>
+      </div>
+      <div class="tiles cols-4">
+        <div class="tile" style="--accent:var(--volumes)"><div class="num">13</div><div class="lbl">Pautas (content requests)</div></div>
+        <div class="tile" style="--accent:var(--volumes)"><div class="num">38</div><div class="lbl">Textos gerados</div></div>
+        <div class="tile" style="--accent:var(--volumes)"><div class="num">29</div><div class="lbl">Projetos criativos</div></div>
+        <div class="tile" style="--accent:var(--volumes)"><div class="num">17</div><div class="lbl">Criativos com vídeo</div></div>
+      </div>
+      <div class="tiles cols-3">
+        <div class="tile" style="--accent:var(--volumes)"><div class="num">38</div><div class="lbl">Eventos de geração</div></div>
+        <div class="tile" style="--accent:var(--volumes)"><div class="num">17</div><div class="lbl">Eventos de vídeo</div></div>
+      </div>
+    </section>
+
+    <section class="block" id="agentes">
+      <div class="section-head">
+        <span class="badge" style="background:var(--agentes)">4</span>
+        <div><h2>Agentes</h2><div class="sub">jobs automatizados (completo)</div></div>
+      </div>
+      <div class="tiles cols-4">
+        <div class="tile" style="--accent:var(--agentes)"><div class="num">64</div><div class="lbl">Jobs totais</div></div>
+        <div class="tile" style="--accent:var(--agentes)"><div class="num">60</div><div class="lbl">Jobs concluídos</div></div>
+        <div class="tile" style="--accent:var(--agentes)"><div class="num">4</div><div class="lbl">Jobs falhos</div></div>
+        <div class="tile" style="--accent:var(--agentes)"><div class="num">28</div><div class="lbl">Fact-checks</div><div class="sub">4 bypass (prompt livre)</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Status</th><th>Qtd</th><th>Latência média</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">video_render</td><td>succeeded</td><td>16</td><td>46s</td></tr>
+            <tr><td class="mono">video_render</td><td>failed</td><td>1</td><td>52s</td></tr>
+            <tr><td class="mono">script_fact_check</td><td>succeeded</td><td>25</td><td>6s</td></tr>
+            <tr><td class="mono">script_fact_check</td><td>failed</td><td>3</td><td>7s</td></tr>
+            <tr><td class="mono">voice_job</td><td>succeeded</td><td>9</td><td>15s</td></tr>
+            <tr><td class="mono">seal_job</td><td>succeeded</td><td>10</td><td>4s</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block" id="logs">
+      <div class="section-head">
+        <span class="badge" style="background:var(--logs)">5</span>
+        <div><h2>Logs</h2><div class="sub">trilha completa de eventos (completo)</div></div>
+      </div>
+      <div class="tiles cols-3">
+        <div class="tile" style="--accent:var(--logs)"><div class="num">265</div><div class="lbl">Eventos registrados no período</div></div>
+        <div class="tile" style="--accent:var(--logs)"><div class="num" style="font-size:20px;padding-top:8px">Login</div><div class="lbl">Ação mais frequente</div><div class="sub">134 ocorrências</div></div>
+        <div class="tile" style="--accent:var(--logs)"><div class="num" style="font-size:16px;padding-top:10px">07/05 — 04/08</div><div class="lbl">Período coberto</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data / hora</th><th>Ação</th><th>IP</th><th>Usuário</th><th>Detalhe</th></tr></thead>
+          <tbody id="logs-body"></tbody>
+        </table>
+      </div>
+      <p class="footnote">Amostra dos eventos mais recentes. Os 265 registros estão no PDF, sem cortes.</p>
+    </section>
+
+    <section class="block" id="encerramento">
+      <div class="section-head">
+        <span class="badge" style="background:var(--brand)">✓</span>
+        <div><h2>Encerramento e base legal</h2></div>
+      </div>
+      <div class="close-box">
+        <p class="muted" style="margin:0;font-size:14px">
+          Este documento não substitui a prestação de contas ao TSE/SPCE nem certifica resultado eleitoral.
+          Serve como evidência de atos de campanha e da comprovação de materialidade perante órgãos de controle.
+          Os dados deste documento refletem a integralidade dos registros no período selecionado, sem cortes.
+        </p>
+        <div class="hash">
+          <div><div class="k">Hash de integridade</div><div class="v">bfe31a7e1547a64d</div></div>
+        </div>
+        <p class="footnote" style="margin-top:14px;margin-bottom:0">
+          Gerado automaticamente pela plataforma Mandato Digital em 04/08/2026, 20:16:59 (America/Sao_Paulo).
+        </p>
+      </div>
+    </section>
+
+    <p class="foot">Mandato Digital — Dossiê de Auditoria — modelo comercial ilustrativo · EATEASY SERVIÇOS DIGITAIS LTDA — CNPJ 48.142.514/0001-08</p>
+  </article>
+</main>
+
+<a class="btn btn-primary sticky-dl" href="/materialidade/dossie-materialidade-demo-advogados.pdf" download>PDF completo</a>
+
+<script>
+  const DATA = {"logins": [{"day": "2026-05-07", "count": 3}, {"day": "2026-05-08", "count": 2}, {"day": "2026-05-11", "count": 2}, {"day": "2026-05-12", "count": 1}, {"day": "2026-05-13", "count": 3}, {"day": "2026-05-14", "count": 2}, {"day": "2026-05-15", "count": 1}, {"day": "2026-05-16", "count": 1}, {"day": "2026-05-18", "count": 1}, {"day": "2026-05-19", "count": 3}, {"day": "2026-05-20", "count": 2}, {"day": "2026-05-21", "count": 1}, {"day": "2026-05-22", "count": 3}, {"day": "2026-05-24", "count": 1}, {"day": "2026-05-25", "count": 3}, {"day": "2026-05-26", "count": 2}, {"day": "2026-05-27", "count": 1}, {"day": "2026-05-28", "count": 3}, {"day": "2026-05-29", "count": 2}, {"day": "2026-06-01", "count": 2}, {"day": "2026-06-02", "count": 1}, {"day": "2026-06-03", "count": 3}, {"day": "2026-06-04", "count": 2}, {"day": "2026-06-05", "count": 1}, {"day": "2026-06-08", "count": 1}, {"day": "2026-06-09", "count": 3}, {"day": "2026-06-10", "count": 2}, {"day": "2026-06-11", "count": 1}, {"day": "2026-06-12", "count": 3}, {"day": "2026-06-13", "count": 1}, {"day": "2026-06-15", "count": 3}, {"day": "2026-06-16", "count": 2}, {"day": "2026-06-17", "count": 1}, {"day": "2026-06-18", "count": 3}, {"day": "2026-06-19", "count": 2}, {"day": "2026-06-21", "count": 1}, {"day": "2026-06-22", "count": 2}, {"day": "2026-06-23", "count": 1}, {"day": "2026-06-24", "count": 3}, {"day": "2026-06-25", "count": 2}, {"day": "2026-06-26", "count": 1}, {"day": "2026-06-29", "count": 1}, {"day": "2026-06-30", "count": 3}, {"day": "2026-07-01", "count": 2}, {"day": "2026-07-02", "count": 1}, {"day": "2026-07-03", "count": 3}, {"day": "2026-07-06", "count": 3}, {"day": "2026-07-07", "count": 2}, {"day": "2026-07-08", "count": 1}, {"day": "2026-07-09", "count": 3}, {"day": "2026-07-10", "count": 2}, {"day": "2026-07-11", "count": 1}, {"day": "2026-07-13", "count": 2}, {"day": "2026-07-14", "count": 1}, {"day": "2026-07-15", "count": 3}, {"day": "2026-07-16", "count": 2}, {"day": "2026-07-17", "count": 1}, {"day": "2026-07-19", "count": 1}, {"day": "2026-07-20", "count": 1}, {"day": "2026-07-21", "count": 3}, {"day": "2026-07-22", "count": 2}, {"day": "2026-07-23", "count": 1}, {"day": "2026-07-24", "count": 3}, {"day": "2026-07-27", "count": 3}, {"day": "2026-07-28", "count": 2}, {"day": "2026-07-29", "count": 1}, {"day": "2026-07-30", "count": 3}, {"day": "2026-07-31", "count": 2}, {"day": "2026-08-03", "count": 2}, {"day": "2026-08-04", "count": 1}], "actions": [{"day": "2026-05-07", "count": 1}, {"day": "2026-05-08", "count": 3}, {"day": "2026-05-11", "count": 1}, {"day": "2026-05-12", "count": 3}, {"day": "2026-05-13", "count": 1}, {"day": "2026-05-14", "count": 2}, {"day": "2026-05-15", "count": 2}, {"day": "2026-05-16", "count": 1}, {"day": "2026-05-18", "count": 3}, {"day": "2026-05-19", "count": 2}, {"day": "2026-05-20", "count": 2}, {"day": "2026-05-21", "count": 1}, {"day": "2026-05-22", "count": 2}, {"day": "2026-05-24", "count": 1}, {"day": "2026-05-25", "count": 1}, {"day": "2026-05-26", "count": 2}, {"day": "2026-05-27", "count": 1}, {"day": "2026-05-28", "count": 2}, {"day": "2026-05-29", "count": 1}, {"day": "2026-05-30", "count": 1}, {"day": "2026-05-31", "count": 1}, {"day": "2026-06-01", "count": 2}, {"day": "2026-06-02", "count": 2}, {"day": "2026-06-03", "count": 2}, {"day": "2026-06-04", "count": 1}, {"day": "2026-06-05", "count": 3}, {"day": "2026-06-08", "count": 1}, {"day": "2026-06-09", "count": 2}, {"day": "2026-06-10", "count": 2}, {"day": "2026-06-11", "count": 4}, {"day": "2026-06-12", "count": 1}, {"day": "2026-06-15", "count": 2}, {"day": "2026-06-16", "count": 1}, {"day": "2026-06-17", "count": 3}, {"day": "2026-06-18", "count": 1}, {"day": "2026-06-19", "count": 2}, {"day": "2026-06-20", "count": 2}, {"day": "2026-06-21", "count": 1}, {"day": "2026-06-22", "count": 1}, {"day": "2026-06-23", "count": 3}, {"day": "2026-06-24", "count": 1}, {"day": "2026-06-25", "count": 2}, {"day": "2026-06-26", "count": 1}, {"day": "2026-06-29", "count": 4}, {"day": "2026-06-30", "count": 1}, {"day": "2026-07-01", "count": 2}, {"day": "2026-07-02", "count": 2}, {"day": "2026-07-03", "count": 2}, {"day": "2026-07-05", "count": 1}, {"day": "2026-07-06", "count": 1}, {"day": "2026-07-07", "count": 2}, {"day": "2026-07-08", "count": 2}, {"day": "2026-07-09", "count": 2}, {"day": "2026-07-10", "count": 1}, {"day": "2026-07-13", "count": 3}, {"day": "2026-07-14", "count": 1}, {"day": "2026-07-15", "count": 2}, {"day": "2026-07-16", "count": 1}, {"day": "2026-07-17", "count": 4}, {"day": "2026-07-20", "count": 1}, {"day": "2026-07-21", "count": 2}, {"day": "2026-07-22", "count": 1}, {"day": "2026-07-23", "count": 3}, {"day": "2026-07-24", "count": 2}, {"day": "2026-07-25", "count": 1}, {"day": "2026-07-26", "count": 1}, {"day": "2026-07-27", "count": 2}, {"day": "2026-07-28", "count": 1}, {"day": "2026-07-29", "count": 3}, {"day": "2026-07-30", "count": 1}, {"day": "2026-07-31", "count": 2}, {"day": "2026-08-03", "count": 1}, {"day": "2026-08-04", "count": 5}], "acts": [{"ts": "04/08/2026, 13:42:40", "action": "Geracao de conteudo", "ip": "191.32.44.10"}, {"ts": "04/08/2026, 10:31:40", "action": "Geracao de conteudo", "ip": "191.32.44.10"}, {"ts": "04/08/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.10"}, {"ts": "03/08/2026, 07:20:40", "action": "Criativo criado", "ip": "191.32.44.187"}, {"ts": "31/07/2026, 10:31:40", "action": "Fact-check", "ip": "191.32.44.187"}, {"ts": "31/07/2026, 07:20:40", "action": "Criativo criado", "ip": "191.32.44.187"}, {"ts": "30/07/2026, 07:20:40", "action": "Geracao de video", "ip": "179.108.22.63"}, {"ts": "29/07/2026, 13:42:40", "action": "Criativo criado", "ip": "191.32.44.10"}, {"ts": "29/07/2026, 10:31:40", "action": "Criativo criado", "ip": "191.32.44.10"}, {"ts": "29/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.10"}, {"ts": "28/07/2026, 07:20:40", "action": "Fact-check", "ip": "191.32.44.187"}, {"ts": "27/07/2026, 10:31:40", "action": "Geracao de conteudo", "ip": "179.108.22.63"}, {"ts": "27/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "179.108.22.63"}, {"ts": "25/07/2026, 07:20:40", "action": "Fact-check", "ip": "191.32.44.187"}, {"ts": "24/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "179.108.22.63"}, {"ts": "23/07/2026, 13:42:40", "action": "Fact-check", "ip": "191.32.44.10"}, {"ts": "23/07/2026, 10:31:40", "action": "Fact-check", "ip": "191.32.44.10"}, {"ts": "23/07/2026, 07:20:40", "action": "Criativo criado", "ip": "191.32.44.10"}, {"ts": "22/07/2026, 07:20:40", "action": "Geracao de video", "ip": "191.32.44.187"}, {"ts": "21/07/2026, 10:31:40", "action": "Criativo criado", "ip": "179.108.22.63"}, {"ts": "21/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "179.108.22.63"}, {"ts": "20/07/2026, 07:20:40", "action": "Fact-check", "ip": "191.32.44.10"}, {"ts": "17/07/2026, 13:42:40", "action": "Geracao de conteudo", "ip": "191.32.44.10"}, {"ts": "17/07/2026, 10:31:40", "action": "Geracao de video", "ip": "191.32.44.10"}, {"ts": "17/07/2026, 07:20:40", "action": "Fact-check", "ip": "191.32.44.10"}, {"ts": "16/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.187"}, {"ts": "15/07/2026, 10:31:40", "action": "Fact-check", "ip": "179.108.22.63"}, {"ts": "15/07/2026, 07:20:40", "action": "Criativo criado", "ip": "179.108.22.63"}, {"ts": "14/07/2026, 07:20:40", "action": "Geracao de video", "ip": "191.32.44.10"}, {"ts": "13/07/2026, 10:31:40", "action": "Criativo criado", "ip": "191.32.44.187"}, {"ts": "13/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.187"}, {"ts": "10/07/2026, 07:20:40", "action": "Criativo criado", "ip": "191.32.44.187"}, {"ts": "09/07/2026, 10:31:40", "action": "Geracao de video", "ip": "179.108.22.63"}, {"ts": "09/07/2026, 07:20:40", "action": "Fact-check", "ip": "179.108.22.63"}, {"ts": "08/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.10"}, {"ts": "07/07/2026, 10:31:40", "action": "Fact-check", "ip": "191.32.44.187"}, {"ts": "07/07/2026, 07:20:40", "action": "Criativo criado", "ip": "191.32.44.187"}, {"ts": "06/07/2026, 07:20:40", "action": "Geracao de video", "ip": "179.108.22.63"}, {"ts": "05/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.10"}, {"ts": "03/07/2026, 10:31:40", "action": "Geracao de conteudo", "ip": "179.108.22.63"}], "logs": [{"ts": "04/08/2026, 14:25:00", "action": "Job de voz", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":265}"}, {"ts": "04/08/2026, 13:42:40", "action": "Geracao de conteudo", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":264}"}, {"ts": "04/08/2026, 13:05:00", "action": "Job de selagem", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":263}"}, {"ts": "04/08/2026, 10:31:40", "action": "Geracao de conteudo", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":262}"}, {"ts": "04/08/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":261}"}, {"ts": "04/08/2026, 05:12:00", "action": "Login", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":260}"}, {"ts": "03/08/2026, 10:21:00", "action": "Login", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":259}"}, {"ts": "03/08/2026, 07:20:40", "action": "Criativo criado", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":258}"}, {"ts": "03/08/2026, 05:12:00", "action": "Login", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":257}"}, {"ts": "31/07/2026, 10:31:40", "action": "Fact-check", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":256}"}, {"ts": "31/07/2026, 10:21:00", "action": "Login", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":255}"}, {"ts": "31/07/2026, 07:20:40", "action": "Criativo criado", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":254}"}, {"ts": "31/07/2026, 05:12:00", "action": "Login", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":253}"}, {"ts": "30/07/2026, 15:30:00", "action": "Login", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":252}"}, {"ts": "30/07/2026, 10:21:00", "action": "Login", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":251}"}, {"ts": "30/07/2026, 07:20:40", "action": "Geracao de video", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":250}"}, {"ts": "30/07/2026, 05:12:00", "action": "Login", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":249}"}, {"ts": "29/07/2026, 13:42:40", "action": "Criativo criado", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":248}"}, {"ts": "29/07/2026, 10:31:40", "action": "Criativo criado", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":247}"}, {"ts": "29/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":246}"}, {"ts": "29/07/2026, 05:12:00", "action": "Login", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":245}"}, {"ts": "28/07/2026, 10:21:00", "action": "Login", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":244}"}, {"ts": "28/07/2026, 07:20:40", "action": "Fact-check", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":243}"}, {"ts": "28/07/2026, 05:12:00", "action": "Login", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":242}"}, {"ts": "27/07/2026, 15:30:00", "action": "Login", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":241}"}, {"ts": "27/07/2026, 10:31:40", "action": "Geracao de conteudo", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":240}"}, {"ts": "27/07/2026, 10:21:00", "action": "Login", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":239}"}, {"ts": "27/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":238}"}, {"ts": "27/07/2026, 05:12:00", "action": "Login", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":237}"}, {"ts": "26/07/2026, 13:05:00", "action": "Job de selagem", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":236}"}, {"ts": "25/07/2026, 07:20:40", "action": "Fact-check", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":235}"}, {"ts": "24/07/2026, 15:30:00", "action": "Login", "ip": "191.32.44.187", "user": "demo0001", "detail": "{\"seq\":234}"}, {"ts": "24/07/2026, 14:25:00", "action": "Job de voz", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":233}"}, {"ts": "24/07/2026, 10:21:00", "action": "Login", "ip": "191.32.44.10", "user": "demo0001", "detail": "{\"seq\":232}"}, {"ts": "24/07/2026, 07:20:40", "action": "Geracao de conteudo", "ip": "179.108.22.63", "user": "demo0001", "detail": "{\"seq\":231}"}]};
+
+  function renderBars(el, rows) {
+    if (!el || !rows.length) return;
+    const max = Math.max(...rows.map((r) => r.count), 1);
+    el.innerHTML = rows.map((r) => {
+      const h = Math.max(3, Math.round((r.count / max) * 84));
+      return `<div class="bar" style="height:${h}px" title="${r.day}: ${r.count}"></div>`;
+    }).join("");
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  }
+
+  renderBars(document.getElementById("login-bars"), DATA.logins);
+  renderBars(document.getElementById("action-bars"), DATA.actions);
+
+  document.getElementById("acts-body").innerHTML = DATA.acts.map((r) =>
+    `<tr><td class="mono">${esc(r.ts)}</td><td>${esc(r.action)}</td><td class="mono">${esc(r.ip)}</td></tr>`
+  ).join("");
+
+  document.getElementById("logs-body").innerHTML = DATA.logs.map((r) =>
+    `<tr><td class="mono">${esc(r.ts)}</td><td>${esc(r.action)}</td><td class="mono">${esc(r.ip)}</td><td class="mono">${esc(r.user)}</td><td class="mono muted">${esc(r.detail)}</td></tr>`
+  ).join("");
+</script>
+</body>
+</html>

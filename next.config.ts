@@ -49,9 +49,11 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      // Landing estática em public/vozdelas (HTML pronto, fora do MarketingShell).
+      // Landings estáticas em public/ (HTML pronto, fora do MarketingShell).
       { source: "/vozdelas", destination: "/vozdelas/index.html" },
       { source: "/vozdelas/", destination: "/vozdelas/index.html" },
+      { source: "/materialidade", destination: "/materialidade/index.html" },
+      { source: "/materialidade/", destination: "/materialidade/index.html" },
     ];
   },
 };
