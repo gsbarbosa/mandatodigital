@@ -26,6 +26,7 @@ import { appLog, startTimer } from "@/lib/observability/log";
 import {
   resolveMaxPerTheme,
   finalizeSuggestionFeed,
+  ensureMinimumSphereRepresentation,
 } from "@/lib/sentinel-diversify";
 import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
@@ -69,7 +70,9 @@ type ReadCacheOptions = {
   allowStale?: boolean;
 };
 const MAX_SUGGESTIONS = 20;
-const MAX_ARTICLES_PER_SUGGESTION = 4;
+// Teto alto só pra não deixar um cluster viral crescer sem limite — a gaveta de
+// evidências mostra 4 de cara e o resto atrás do "Ver mais".
+const MAX_ARTICLES_PER_SUGGESTION = 30;
 
 type SentinelCacheEntry = {
   suggestions: MockSentinelSuggestion[];
@@ -288,11 +291,17 @@ export async function buildSuggestionsFromArticles(
     );
   }
 
+  const diversifiedSuggestions = finalizeSuggestionFeed(suggestions, {
+    maxTotal: MAX_SUGGESTIONS,
+    maxPerTheme: resolveMaxPerTheme(interestThemes.length),
+    maxPerPipeline: 10,
+  });
+
   return {
-    suggestions: finalizeSuggestionFeed(suggestions, {
-      maxTotal: MAX_SUGGESTIONS,
-      maxPerTheme: resolveMaxPerTheme(interestThemes.length),
-      maxPerPipeline: 10,
+    suggestions: ensureMinimumSphereRepresentation({
+      selected: diversifiedSuggestions,
+      allCandidates: suggestions,
+      profile,
     }),
     themeVerificationStats,
   };
@@ -349,7 +358,7 @@ async function hydrateCachedOppositionSuggestions(
     return cached;
   }
 
-  const suggestions = mergeSuggestions(cached.suggestions, oppositionSuggestions);
+  const suggestions = mergeSuggestions(profile, cached.suggestions, oppositionSuggestions);
   const meta: SentinelSuggestionsMeta = {
     ...cached.meta,
     oppositionUnavailableReason: undefined,
@@ -411,7 +420,10 @@ function isLowQualityNewsSuggestion(suggestion: MockSentinelSuggestion) {
  * conteúdo disponível, e "Ver mais" fica sem nada pra mostrar porque o corte já aconteceu
  * aqui no servidor.
  */
-function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSuggestion[] {
+function mergeSuggestions(
+  profile: PoliticianProfile,
+  ...groups: MockSentinelSuggestion[][]
+): MockSentinelSuggestion[] {
   const byId = new Map<string, MockSentinelSuggestion>();
   const oppositionById = new Map<string, MockSentinelSuggestion>();
   const interestById = new Map<string, MockSentinelSuggestion>();
@@ -443,17 +455,22 @@ function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSu
     }
   }
 
-  const distinctThemes = new Set(
-    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
-  ).size;
-  const coreSuggestions = finalizeSuggestionFeed(
-    [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
-    {
-      maxTotal: MAX_SUGGESTIONS,
-      maxPerTheme: resolveMaxPerTheme(distinctThemes),
-      maxPerPipeline: 10,
-    },
+  const allCoreCandidates = [...byId.values()].sort(
+    (left, right) => right.relevanceScore - left.relevanceScore,
   );
+  const distinctThemes = new Set(
+    allCoreCandidates.map((item) => item.themeLabel.trim()).filter(Boolean),
+  ).size;
+  const diversifiedCore = finalizeSuggestionFeed(allCoreCandidates, {
+    maxTotal: MAX_SUGGESTIONS,
+    maxPerTheme: resolveMaxPerTheme(distinctThemes),
+    maxPerPipeline: 10,
+  });
+  const coreSuggestions = ensureMinimumSphereRepresentation({
+    selected: diversifiedCore,
+    allCandidates: allCoreCandidates,
+    profile,
+  });
 
   const oppositionSuggestions = [...oppositionById.values()].sort(
     (left, right) => right.relevanceScore - left.relevanceScore,
@@ -762,7 +779,7 @@ export async function getSentinelSuggestions(
   ]);
   const suggestionsFiltered = filterSuggestionsForProfile(
     profile,
-    mergeSuggestions(articleSuggestions, socialSuggestions, oppositionSuggestions),
+    mergeSuggestions(profile, articleSuggestions, socialSuggestions, oppositionSuggestions),
   );
 
   const qualityRank = await applySentinelQualityRank(suggestionsFiltered, {

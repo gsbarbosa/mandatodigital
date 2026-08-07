@@ -340,6 +340,140 @@ describe("sentinel-rss", () => {
     expect(buildStoryClusterKey("Campinas reforça segurança pública")).toBeTruthy();
   });
 
+  it("nao agrupa materias diferentes so por repetirem o nome do tema", () => {
+    const clusters = clusterScoredArticles([
+      {
+        article: {
+          title: "Autora compara sistema prisional do Brasil com Noruega",
+          link: "https://example.com/a",
+          pubDate: null,
+          publishedAt: null,
+          sourceName: "VEJA",
+        },
+        themeLabel: "Sistema Prisional",
+        matchedThemes: ["Sistema Prisional"],
+        sourceList: "interest",
+        relevanceScore: 0,
+      },
+      {
+        article: {
+          title: "Flávio engana ao propor criar 500 mil vagas no sistema prisional",
+          link: "https://example.com/b",
+          pubDate: null,
+          publishedAt: null,
+          sourceName: "Brasil 247",
+        },
+        themeLabel: "Sistema Prisional",
+        matchedThemes: ["Sistema Prisional"],
+        sourceList: "interest",
+        relevanceScore: 0,
+      },
+    ]);
+
+    expect(clusters).toHaveLength(2);
+  });
+
+  it("agrupa a mesma materia mesmo com o veiculo colado no titulo bruto", () => {
+    const clusters = clusterScoredArticles([
+      {
+        article: {
+          title:
+            "Polícia Civil prende mulher na Rodoviária de Crato com 4 Kg de drogas que trazia de Sobral - Portal Miséria",
+          link: "https://example.com/a",
+          pubDate: null,
+          publishedAt: null,
+          sourceName: "Portal Miséria",
+        },
+        themeLabel: "Valorização Policial",
+        matchedThemes: ["Valorização Policial"],
+        sourceList: "interest",
+        relevanceScore: 0,
+      },
+      {
+        article: {
+          title: "Polícia Civil faz operação contra o Comando Vermelho na Bahia e no Ceará - CNN Brasil",
+          link: "https://example.com/b",
+          pubDate: null,
+          publishedAt: null,
+          sourceName: "CNN Brasil",
+        },
+        themeLabel: "Valorização Policial",
+        matchedThemes: ["Valorização Policial"],
+        sourceList: "interest",
+        relevanceScore: 0,
+      },
+    ]);
+
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0]).toHaveLength(2);
+  });
+
+  it("nao agrupa fatos diferentes so por citarem a mesma instituicao recorrente", () => {
+    function article(title: string, source: string) {
+      return {
+        article: {
+          title,
+          link: `https://example.com/${title.slice(0, 10)}`,
+          pubDate: null,
+          publishedAt: null,
+          sourceName: source,
+        },
+        themeLabel: "Valorização Policial",
+        matchedThemes: ["Valorização Policial"],
+        sourceList: "interest" as const,
+        relevanceScore: 0,
+      };
+    }
+
+    // O corte automático só ativa com lote de 15+ (ver BATCH_COMMON_WORDS_MIN_TITLES)
+    // — por isso 15 fatos diferentes aqui, não só os 7 originais.
+    const clusters = clusterScoredArticles([
+      article(
+        "Polícia Civil prende mulher na Rodoviária de Crato com 4 Kg de drogas que trazia de Sobral",
+        "Portal Miséria",
+      ),
+      article("Minas Gerais tem o menor salário da Polícia Civil do Brasil", "Diário do Comércio"),
+      article(
+        "Polícia Civil prende suspeito de tráfico internacional e lavagem de dinheiro no Recife",
+        "CBN Recife",
+      ),
+      article(
+        "Polícia Civil desarticula laboratório cladestino em Fortaleza; quatro são presos",
+        "Portal Miséria",
+      ),
+      article("Polícia Civil captura integrantes de facção paulista no Ceará", "CN7"),
+      article(
+        "Mais de 20 membros do Comando Vermelho são presos em operação da Polícia Civil",
+        "G1",
+      ),
+      article("Concursos Polícia Civil 2026: veja ranking do salário de delegado", "Qconcursos"),
+      article("Polícia Civil recupera veículo roubado em Juazeiro do Norte", "Diário do Nordeste"),
+      article("Polícia Civil resgata vítima de sequestro em Quixadá", "O POVO"),
+      article("Polícia Civil apreende arma de fogo em Iguatu", "G1"),
+      article("Polícia Civil investiga homicídio em Canindé", "Ceará Agora"),
+      article("Polícia Civil prende foragido da justiça em Itapipoca", "Diário do Nordeste"),
+      article("Polícia Civil desmantela quadrilha de estelionato em Maracanaú", "O POVO"),
+      article("Polícia Civil localiza pessoa desaparecida em Aquiraz", "G1"),
+      article("Polícia Civil autua motorista embriagado em Caucaia", "Ceará Agora"),
+    ]);
+
+    // 15 fatos diferentes, mesma instituição em quase todo título → 15 clusters, não 1.
+    expect(clusters).toHaveLength(15);
+
+    // Mas uma paráfrase real da mesma prisão (mesmo local, mesma quantidade) continua colapsando.
+    const dupClusters = clusterScoredArticles([
+      article(
+        "Polícia Civil prende mulher na Rodoviária de Crato com 4 Kg de drogas que trazia de Sobral",
+        "Portal Miséria",
+      ),
+      article(
+        "Mulher é presa na Rodoviária de Crato com 4 kg de drogas, diz Polícia Civil",
+        "G1",
+      ),
+    ]);
+    expect(dupClusters).toHaveLength(1);
+  });
+
   it("conta veiculos distintos no cluster", () => {
     const outlets = countUniqueOutlets([
       {

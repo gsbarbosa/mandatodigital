@@ -161,7 +161,7 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
                 <img
                   src={previewSrc}
                   alt={`Avatar ${tipo.label}`}
-                  className="w-full h-full object-cover btn-transition group-hover:scale-105"
+                  className="w-full h-full object-cover object-top btn-transition group-hover:scale-105"
                   decoding="async"
                   fetchPriority="high"
                   onError={() => setPreviewFailed(true)}

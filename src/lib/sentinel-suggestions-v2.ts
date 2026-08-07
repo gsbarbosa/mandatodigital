@@ -25,6 +25,7 @@ import {
 import {
   resolveMaxPerTheme,
   finalizeSuggestionFeed,
+  ensureMinimumSphereRepresentation,
 } from "@/lib/sentinel-diversify";
 import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
@@ -36,7 +37,9 @@ import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
 import type { PoliticianProfile } from "@/lib/types";
 
 const MAX_SUGGESTIONS = 20;
-const MAX_ARTICLES_PER_SUGGESTION = 4;
+// Teto alto só pra não deixar um cluster viral crescer sem limite — a gaveta de
+// evidências mostra 4 de cara e o resto atrás do "Ver mais".
+const MAX_ARTICLES_PER_SUGGESTION = 30;
 
 type V2BuildContext = {
   profileId: string;
@@ -284,7 +287,7 @@ async function buildSuggestionFromCluster(input: {
   };
 }
 
-function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
+function mergeSuggestionsById(suggestions: MockSentinelSuggestion[], profile: PoliticianProfile) {
   const byId = new Map<string, MockSentinelSuggestion>();
 
   for (const suggestion of suggestions) {
@@ -301,13 +304,19 @@ function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
     }
   }
 
+  const allCandidates = [...byId.values()];
   const distinctThemes = new Set(
-    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
+    allCandidates.map((item) => item.themeLabel.trim()).filter(Boolean),
   ).size;
-  return finalizeSuggestionFeed([...byId.values()], {
+  const diversified = finalizeSuggestionFeed(allCandidates, {
     maxTotal: MAX_SUGGESTIONS,
     maxPerTheme: resolveMaxPerTheme(distinctThemes),
     maxPerPipeline: 10,
+  });
+  return ensureMinimumSphereRepresentation({
+    selected: diversified,
+    allCandidates,
+    profile,
   });
 }
 
@@ -410,7 +419,7 @@ export async function buildV2SuggestionsFromArticles(
   }
 
   return {
-    suggestions: mergeSuggestionsById(suggestions),
+    suggestions: mergeSuggestionsById(suggestions, profile),
     themeVerificationStats,
   };
 }
