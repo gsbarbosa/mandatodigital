@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mandato Digital - Chapas Femininas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            color: #0A1F30;
+            -webkit-font-smoothing: antialiased;
+        }
+        .brand-green { color: #00B06B; }
+        .bg-brand-green { background-color: #00B06B; }
+        .brand-dark { color: #0A1F30; }
+        .bg-brand-dark { background-color: #0A1F30; }
+        .card-shadow { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); }
+        .pill-gray { background-color: #F1F5F9; }
+    </style>
+</head>
+<body class="p-5 md:p-10 max-w-xl mx-auto bg-white">
+    <!-- Header -->
+    <header class="flex flex-col items-center sm:flex-row sm:justify-between mb-10 gap-6">
+        <a href="/" class="flex items-center gap-2 no-underline text-inherit" aria-label="Mandato Digital — início">
+            <div class="w-9 h-9 flex items-center justify-center bg-[#0A1F30] rounded-md">
+                <div class="w-1.5 h-6 bg-[#00B06B] mr-0.5 rounded-sm"></div>
+                <div class="w-1.5 h-4 bg-[#00B06B] rounded-sm"></div>
+            </div>
+            <span class="font-bold text-2xl tracking-tight">Mandato <span class="brand-green">Digital</span></span>
+        </a>
+        <div class="pill-gray px-4 py-1.5 rounded-full text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+            Chapas Femininas · Eleições 2026
+        </div>
+    </header>
+
+    <!-- Main Title -->
+    <main>
+        <h1 class="text-3xl font-extrabold leading-[1.1] mb-6 text-center sm:text-left">
+            Votos de verdade. <span class="brand-green">Prova de verdade.</span>
+        </h1>
+        <p class="text-gray-600 text-[13px] leading-relaxed mb-10 text-center sm:text-left">
+            Como o Mandato Digital apoia a chapa feminina do partido — de um lado, uma plataforma que ajuda cada candidata a buscar votos de verdade; de outro, um registro documentado de cada candidatura, pronto para comprovar atividade real se for questionada.
+        </p>
+
+        <!-- Cards -->
+        <div class="space-y-8 mb-12">
+            <!-- Frente 1 -->
+            <div class="border border-gray-100 rounded-[24px] p-7 card-shadow relative overflow-hidden bg-white">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-brand-green"></div>
+                <div class="bg-brand-green w-12 h-12 rounded-xl flex items-center justify-center mb-5 shadow-lg shadow-green-100">
+                    <i data-lucide="volume-2" class="text-white w-6 h-6"></i>
+                </div>
+                <p class="text-[10px] font-bold tracking-[0.15em] text-brand-green uppercase mb-2">Frente 1 — Campanha</p>
+                <h2 class="text-2xl font-bold mb-5">Votos de verdade</h2>
+                <ul class="space-y-4 text-[13px] leading-relaxed">
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-green mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Monitoramento 24h</span> das pautas na base eleitoral de cada candidata — nacional, estadual, municipal e adversários.</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-green mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Produção de conteúdo em escala:</span> várias peças por dia, sem depender de equipe grande.</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-green mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Qualidade de estúdio, sem gravação:</span> vídeo com a voz e a imagem da própria candidata, sempre sob autorização dela, com conteúdo focado na base eleitoral dela.</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-green mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Do fato ao feed em minutos</span> — não em dias.</p>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Frente 2 -->
+            <div class="border border-gray-100 rounded-[24px] p-7 card-shadow relative overflow-hidden bg-white">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-brand-dark"></div>
+                <div class="bg-brand-dark w-12 h-12 rounded-xl flex items-center justify-center mb-5 shadow-lg shadow-blue-900/10">
+                    <i data-lucide="shield-check" class="text-white w-6 h-6"></i>
+                </div>
+                <p class="text-[10px] font-bold tracking-[0.15em] text-brand-dark uppercase mb-2">Frente 2 — Comprovação</p>
+                <h2 class="text-2xl font-bold mb-5">Prova de verdade</h2>
+                <ul class="space-y-4 text-[13px] leading-relaxed">
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-dark mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Cada ação registrada</span> com data, hora, IP e aprovação pessoal da candidata.</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-dark mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Blindagem contra candidatura fictícia:</span> a Justiça Eleitoral já cassou chapas inteiras por fraude na cota. <span class="text-gray-400 text-[11px] block mt-1">(Lei 9.504/97, art. 10 §3º; TSE, ex. Jacobina/BA, 2022)</span></p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-dark mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Dossiê de materialidade</span> disponível sob demanda, com trilha de auditoria completa. <a href="/materialidade" class="brand-green underline underline-offset-2">Ver modelo</a>.</p>
+                    </li>
+                    <li class="flex gap-4">
+                        <span class="w-2 h-2 rounded-full bg-brand-dark mt-1.5 shrink-0"></span>
+                        <p><span class="font-bold">Protege os mandatos já eleitos</span> na chapa — não só a candidata.</p>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Flow -->
+        <div class="mb-16 bg-gray-50/50 rounded-[32px] p-8 border border-gray-50">
+            <h3 class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase text-center mb-10">Como as duas frentes viram uma coisa só</h3>
+            <div class="flex flex-col gap-8 items-center relative">
+                <!-- Step 1 -->
+                <div class="text-center z-10">
+                    <div class="w-16 h-16 bg-white border-2 border-brand-green rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                        <i data-lucide="play" class="brand-green fill-brand-green w-6 h-6"></i>
+                    </div>
+                    <p class="font-bold text-sm mb-1">Campanha ativa</p>
+                    <p class="text-[11px] text-gray-500">vídeo, post ou roteiro gerado</p>
+                </div>
+                
+                <i data-lucide="arrow-down" class="text-gray-200 w-6 h-6"></i>
+                
+                <!-- Step 2 -->
+                <div class="text-center z-10">
+                    <div class="w-16 h-16 bg-white border-2 border-brand-dark rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm">
+                        <i data-lucide="file-text" class="brand-dark w-6 h-6"></i>
+                    </div>
+                    <p class="font-bold text-sm mb-1">Log registrado</p>
+                    <p class="text-[11px] text-gray-500">usuário, IP, data e hora</p>
+                </div>
+
+                <i data-lucide="arrow-down" class="text-gray-200 w-6 h-6"></i>
+
+                <!-- Step 3 -->
+                <div class="text-center z-10">
+                    <div class="w-16 h-16 bg-white border-2 border-brand-dark rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+                        <i data-lucide="smartphone" class="brand-dark w-6 h-6"></i>
+                    </div>
+                    <p class="font-bold text-sm mb-1">Dossiê pronto</p>
+                    <p class="text-[11px] text-gray-500">materialidade da candidatura, sob demanda</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Badges -->
+        <div class="grid grid-cols-1 gap-3 mb-16">
+            <div class="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center shrink-0">
+                    <i data-lucide="shield" class="brand-green w-4 h-4"></i>
+                </div>
+                <span class="text-[11px] font-bold uppercase tracking-wider">100% em conformidade com o TSE</span>
+            </div>
+            <div class="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center shrink-0">
+                    <i data-lucide="user-check" class="brand-green w-4 h-4"></i>
+                </div>
+                <span class="text-[11px] font-bold uppercase tracking-wider">Aprovação humana obrigatória</span>
+            </div>
+            <div class="flex items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <div class="w-8 h-8 bg-green-50 rounded-full flex items-center justify-center shrink-0">
+                    <i data-lucide="monitor" class="brand-green w-4 h-4"></i>
+                </div>
+                <span class="text-[11px] font-bold uppercase tracking-wider">Marca d'água queimada no arquivo</span>
+            </div>
+        </div>
+
+        <!-- Slogan -->
+        <div class="text-center mb-16 px-4">
+            <p class="text-xl font-bold leading-tight italic">
+                "O vácuo informacional é fatal. <span class="brand-green">A chapa que documenta protege o mandato inteiro."</span>
+            </p>
+            <div class="w-12 h-1.5 bg-brand-green mx-auto mt-6 rounded-full"></div>
+        </div>
+
+        <!-- Pricing CTA -->
+        <div class="bg-[#0A1F30] rounded-[32px] p-8 text-white mb-12 shadow-xl shadow-blue-900/20 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-brand-green/10 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+            <p class="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-6">Plano individual sugerido por candidata</p>
+            <div class="flex flex-col gap-8">
+                <div>
+                    <h4 class="text-3xl font-extrabold mb-1">3x de R$ 1.998</h4>
+                    <p class="text-[13px] text-gray-400 font-medium">(Avançado) · todo o período eleitoral</p>
+                    <p class="text-[11px] text-gray-500 mt-4 leading-relaxed italic">Sem cobrança até a candidata testar a plataforma e aprovar.</p>
+                </div>
+                <a href="/planos" class="bg-[#00B06B] hover:bg-[#00965b] active:scale-[0.98] transition-all text-[#0A1F30] font-extrabold py-4 px-8 rounded-2xl text-center text-sm shadow-lg shadow-green-500/20">
+                    Ver serviços e pacotes
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-[9px] text-gray-400 text-center leading-relaxed pb-10 border-t border-gray-50 pt-8 px-4">
+        Documento de apresentação comercial da plataforma Mandato Digital — não substitui a prestação de contas ao TSE/SPCE nem certifica resultado eleitoral. <br class="hidden sm:block"> 
+        <span class="font-bold">EATEASY SERVIÇOS DIGITAIS LTDA — CNPJ 48.142.514/0001-08</span>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

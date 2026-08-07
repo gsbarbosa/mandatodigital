@@ -54,6 +54,8 @@ const nextConfig: NextConfig = {
       { source: "/vozdelas/", destination: "/vozdelas/index.html" },
       { source: "/materialidade", destination: "/materialidade/index.html" },
       { source: "/materialidade/", destination: "/materialidade/index.html" },
+      { source: "/chapas-femininas", destination: "/chapas-femininas/index.html" },
+      { source: "/chapas-femininas/", destination: "/chapas-femininas/index.html" },
     ];
   },
 };
