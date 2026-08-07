@@ -13,6 +13,7 @@ import {
 } from "@/lib/billing/asaas-payment-sync";
 import { ensureNfsScheduledForPaidPayments } from "@/lib/billing/ensure-nfs";
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
+import { sendNfsAuthorizedEmail } from "@/lib/legal/email";
 import { appLog, appLogError } from "@/lib/observability/log";
 import {
   findRegistrationByAsaasCustomerId,
@@ -166,13 +167,52 @@ async function handleInvoiceEvent(
   const authorized =
     eventName.includes("AUTHORIZED") || status === "AUTHORIZED" || Boolean(invoice?.pdfUrl);
 
+  const pdfUrl = invoice?.pdfUrl || body.invoice?.pdfUrl || null;
+  const xmlUrl = invoice?.xmlUrl || body.invoice?.xmlUrl || null;
+  const nfsNumber = invoice?.number || body.invoice?.number || null;
+  const emailKey = String(nfsNumber || invoiceId).trim();
+
   if (authorized) {
     await updateUserRegistrationBilling(registration.ownerUserId, {
-      lastNfsPdfUrl: invoice?.pdfUrl || body.invoice?.pdfUrl || null,
-      lastNfsXmlUrl: invoice?.xmlUrl || body.invoice?.xmlUrl || null,
-      lastNfsNumber: invoice?.number || body.invoice?.number || null,
+      lastNfsPdfUrl: pdfUrl,
+      lastNfsXmlUrl: xmlUrl,
+      lastNfsNumber: nfsNumber,
       lastNfsStatus: "authorized",
     });
+
+    if (
+      pdfUrl &&
+      registration.email &&
+      emailKey &&
+      registration.lastNfsEmailSentFor !== emailKey
+    ) {
+      try {
+        const mail = await sendNfsAuthorizedEmail({
+          to: registration.email,
+          campaignName: registration.fullName || registration.email,
+          nfsNumber,
+          pdfUrl,
+          xmlUrl,
+        });
+        if (mail.sent) {
+          await updateUserRegistrationBilling(registration.ownerUserId, {
+            lastNfsEmailSentFor: emailKey,
+          });
+        } else {
+          appLog(
+            "billing",
+            "nfs_email_skipped",
+            { ownerUserId: registration.ownerUserId, invoiceId, reason: mail.reason },
+            "warn",
+          );
+        }
+      } catch (error) {
+        appLogError("billing", "nfs_email_failed", error, {
+          ownerUserId: registration.ownerUserId,
+          invoiceId,
+        });
+      }
+    }
   } else {
     await updateUserRegistrationBilling(registration.ownerUserId, {
       lastNfsStatus: status.toLowerCase() || "scheduled",
