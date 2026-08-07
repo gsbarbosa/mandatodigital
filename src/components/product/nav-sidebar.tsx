@@ -10,8 +10,11 @@ import { AppearanceToggle } from "@/components/appearance-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
+import { isPaymentLockAllowedPath } from "@/lib/billing/payment-access";
+import { BILLING_PAYMENT_PATH } from "@/lib/registration-gate";
 import { useEarlyAccess } from "@/lib/early-access";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
+import { usePaymentAccess } from "./use-payment-access";
 import { useOnboarding } from "./onboarding-provider";
 import {
   AcessoAntecipadoIcon,
@@ -83,6 +86,24 @@ function CloseIcon({ className }: { className?: string }) {
       aria-hidden="true"
     >
       <path d="M18 6L6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function NavLockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
 }
@@ -240,9 +261,13 @@ type ChildRow = {
   onboardingAnchor?: string;
   icon?: NavIcon;
   actionDot?: boolean;
+  locked?: boolean;
 };
 
-function childCardClassName(active: boolean) {
+function childCardClassName(active: boolean, locked?: boolean) {
+  if (locked) {
+    return "flex min-w-0 flex-1 cursor-not-allowed items-center gap-1.5 rounded-lg border border-md-border bg-md-surface/20 px-3 py-2 text-[13px] text-md-text-soft/55 no-underline opacity-60";
+  }
   return `flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] no-underline transition-colors ${
     active
       ? "border-[var(--curador-border)] bg-[var(--curador-soft)] text-[var(--curador-text)]"
@@ -259,17 +284,20 @@ function ChildTimeline({ rows }: { rows: ChildRow[] }) {
     <ul className="mt-2 mb-1 space-y-1.5">
       {rows.map((row, index) => {
         const active = row.active;
+        const locked = Boolean(row.locked);
         const isLast = index === rows.length - 1;
         const content = (
           <>
             {row.highlighted ? <OnbHighlightDot /> : null}
             {row.icon ? (
               <row.icon
-                className={`h-3.5 w-3.5 shrink-0 ${active ? "text-[var(--curador-text)]" : "text-md-text-soft"}`}
+                className={`h-3.5 w-3.5 shrink-0 ${active && !locked ? "text-[var(--curador-text)]" : "text-md-text-soft"}`}
               />
             ) : null}
             <span className="truncate">{row.label}</span>
-            {row.actionDot ? (
+            {locked ? (
+              <NavLockIcon className="ml-auto h-3.5 w-3.5 shrink-0 text-md-text-soft" />
+            ) : row.actionDot ? (
               <span
                 className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-pulse"
                 title="Ação Requerida"
@@ -283,12 +311,18 @@ function ChildTimeline({ rows }: { rows: ChildRow[] }) {
             <div className="flex w-3 shrink-0 flex-col items-center">
               <span
                 className={`mt-3.5 h-2 w-2 shrink-0 rounded-full border-2 ${
-                  active ? "border-[var(--curador-text)] bg-[var(--curador-text)]" : "border-md-border-hover bg-md-app-bg"
+                  active && !locked
+                    ? "border-[var(--curador-text)] bg-[var(--curador-text)]"
+                    : "border-md-border-hover bg-md-app-bg"
                 }`}
               />
               {!isLast ? <span className="mt-0.5 w-px flex-1 bg-md-border" /> : null}
             </div>
-            {row.isHashLink ? (
+            {locked ? (
+              <span className={childCardClassName(active, true)} title="Disponível após regularizar o pagamento">
+                {content}
+              </span>
+            ) : row.isHashLink ? (
               <a href={row.href} onClick={row.onHashClick} className={childCardClassName(active)}>
                 {content}
               </a>
@@ -335,10 +369,22 @@ function NavSidebarPanel({
     setExpandedBlock((current) => (current === label ? null : label));
   }, []);
 
+  const [earlyAccess] = useEarlyAccess();
+  const [emailMenuOpen, setEmailMenuOpen] = useState(false);
+  const cnpjPending = !earlyAccess.cnpj;
+  const { exhausted: guestCreditsExhausted } = useGuestCreditsGate();
+  const { blocked: paymentBlocked, dueSoon } = usePaymentAccess();
+  const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
+
   // Navegar para outra seção recolhe o que estiver aberto (e expande a nova, se aplicável).
+  // Com trava de pagamento, mantém Acesso antecipado aberto (Meus pagamentos / CNPJ).
   useEffect(() => {
+    if (paymentBlocked) {
+      setExpandedBlock(EARLY_ACCESS_LABEL);
+      return;
+    }
     setExpandedBlock(activeBlockLabel(pathname));
-  }, [pathname]);
+  }, [pathname, paymentBlocked]);
 
   const syncActiveHash = useCallback(() => {
     setActiveHash(window.location.hash);
@@ -398,15 +444,14 @@ function NavSidebarPanel({
     }
   }, [sidebarTarget]);
 
-  const [earlyAccess] = useEarlyAccess();
-  const [emailMenuOpen, setEmailMenuOpen] = useState(false);
-  const cnpjPending = !earlyAccess.cnpj;
-  const { exhausted: guestCreditsExhausted } = useGuestCreditsGate();
-  const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
-
   const earlyAccessChildren: NavChild[] = [
     { label: "Dados Pessoais", href: "/acesso-antecipado/dados" },
     { label: "Planos e Preços", href: "/acesso-antecipado/planos" },
+    {
+      label: "Meus pagamentos",
+      href: BILLING_PAYMENT_PATH,
+      showActionDot: paymentBlocked || dueSoon,
+    },
     {
       label: "Informar CNPJ até 16/Ago",
       href: "/acesso-antecipado/cnpj",
@@ -421,6 +466,10 @@ function NavSidebarPanel({
     onNavigate?.();
   }
 
+  function isNavHrefLocked(href: string) {
+    return paymentBlocked && !isPaymentLockAllowedPath(navHrefPath(href));
+  }
+
   function renderSingle(item: NavChild & { icon: NavIcon }) {
     const itemActive = isChildActive(pathname, item.href, activeHash, pendingMonitorHash);
     const singleHl =
@@ -428,6 +477,22 @@ function NavSidebarPanel({
       (item.href === "/criativo" || item.href.startsWith("/criativo"));
     const Icon = item.icon;
     const active = itemActive;
+    const locked = isNavHrefLocked(item.href);
+
+    if (locked) {
+      return (
+        <span
+          key={item.href}
+          className={`${rowClassName(false)} cursor-not-allowed opacity-55`}
+          title="Disponível após regularizar o pagamento"
+          aria-disabled="true"
+        >
+          <Icon className={rowIconClassName(false)} />
+          <span className={rowLabelClassName(false)}>{item.label}</span>
+          <NavLockIcon className="ml-auto h-4 w-4 shrink-0 text-md-text-soft" />
+        </span>
+      );
+    }
 
     return (
       <Link
@@ -489,24 +554,37 @@ function NavSidebarPanel({
           const temasConfigHl = sidebarTarget === "temas-config";
           const expanded = expandedBlock === block.label;
           const Icon = block.icon;
+          const blockLocked = isNavHrefLocked(block.href);
 
           return (
             <div key={block.label} className="rounded-xl">
-              <div className={rowClassName(blockActive)}>
-                <Link
-                  href={block.href as Route}
-                  className="flex min-w-0 flex-1 items-center gap-3 no-underline"
-                  data-onboarding-anchor={
-                    block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
-                  }
-                  onClick={handleLinkNavigate}
-                >
-                  <Icon className={rowIconClassName(blockActive)} />
-                  <span className={rowLabelClassName(blockActive)}>
-                    {blockHl ? <OnbHighlightDot /> : null}
-                    {block.label}
+              <div className={`${rowClassName(blockActive && !blockLocked)}${blockLocked ? " opacity-55" : ""}`}>
+                {blockLocked ? (
+                  <span
+                    className="flex min-w-0 flex-1 cursor-not-allowed items-center gap-3"
+                    title="Disponível após regularizar o pagamento"
+                    aria-disabled="true"
+                  >
+                    <Icon className={rowIconClassName(false)} />
+                    <span className={rowLabelClassName(false)}>{block.label}</span>
+                    <NavLockIcon className="ml-auto h-4 w-4 shrink-0 text-md-text-soft" />
                   </span>
-                </Link>
+                ) : (
+                  <Link
+                    href={block.href as Route}
+                    className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+                    data-onboarding-anchor={
+                      block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
+                    }
+                    onClick={handleLinkNavigate}
+                  >
+                    <Icon className={rowIconClassName(blockActive)} />
+                    <span className={rowLabelClassName(blockActive)}>
+                      {blockHl ? <OnbHighlightDot /> : null}
+                      {block.label}
+                    </span>
+                  </Link>
+                )}
                 {block.children?.length ? (
                   <button
                     type="button"
@@ -541,6 +619,7 @@ function NavSidebarPanel({
                         (sidebarTarget === "avatar-config" &&
                           child.href === "/avatares/foto-real/treinar");
                       const isHashLink = child.href.includes("#");
+                      const locked = isNavHrefLocked(child.href);
 
                       return {
                         key: child.href + child.label,
@@ -549,12 +628,14 @@ function NavSidebarPanel({
                         active: childActive,
                         highlighted: childHl,
                         isHashLink,
-                        onHashClick: isHashLink
-                          ? (event: React.MouseEvent) => {
-                              event.preventDefault();
-                              navigateToMonitorSection(child.href);
-                            }
-                          : undefined,
+                        locked,
+                        onHashClick:
+                          !locked && isHashLink
+                            ? (event: React.MouseEvent) => {
+                                event.preventDefault();
+                                navigateToMonitorSection(child.href);
+                              }
+                            : undefined,
                         onboardingAnchor:
                           child.href === "/monitoramento/temas"
                             ? "temas-config"
@@ -625,6 +706,7 @@ function NavSidebarPanel({
                   href: child.href,
                   active: isChildActive(pathname, child.href, activeHash, pendingMonitorHash),
                   actionDot: child.showActionDot,
+                  locked: isNavHrefLocked(child.href),
                 }))}
               />
             </div>
@@ -694,7 +776,7 @@ function NavSidebarPanel({
                 handleLinkNavigate();
               }}
             >
-              Alternar modo da conta
+              Tipo de conta (trial + 3 planos)
             </Link>
           ) : null}
         </div>

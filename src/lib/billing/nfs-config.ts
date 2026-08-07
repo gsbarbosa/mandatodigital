@@ -76,7 +76,7 @@ export function buildAsaasNfsInvoiceSettings(input: {
 
   const settings: AsaasNfsInvoiceSettings = {
     serviceDescription: `Mandato Digital — pacote campanha (${input.planLabel})`,
-    observations: "Pacote campanha — faturamento em 3 parcelas via boleto.",
+    observations: "Pacote campanha único — valor dividido em 3 parcelas (hoje, +1 mês e +2 meses).",
     effectiveDatePeriod: "ON_PAYMENT_CONFIRMATION",
     receivedOnly: true,
     updatePayment: false,
@@ -99,4 +99,40 @@ export function buildAsaasNfsInvoiceSettings(input: {
   }
 
   return settings;
+}
+
+export type AsaasScheduleInvoiceInput = {
+  paymentId: string;
+  serviceDescription: string;
+  observations: string;
+  value: number;
+  effectiveDate: string;
+  municipalServiceId?: string;
+  municipalServiceCode?: string;
+  municipalServiceName?: string;
+  taxes: AsaasNfsTaxes;
+};
+
+/** Payload para agendar NFS-e de uma parcela paga (parcelamento). */
+export function buildAsaasScheduleInvoiceInput(input: {
+  planLabel: string;
+  paymentId: string;
+  value: number;
+  effectiveDate: string;
+}): AsaasScheduleInvoiceInput | null {
+  const settings = buildAsaasNfsInvoiceSettings({ planLabel: input.planLabel });
+  if (!settings) {
+    return null;
+  }
+  return {
+    paymentId: input.paymentId,
+    serviceDescription: settings.serviceDescription,
+    observations: settings.observations || settings.serviceDescription,
+    value: input.value,
+    effectiveDate: input.effectiveDate,
+    municipalServiceId: settings.municipalServiceId,
+    municipalServiceCode: settings.municipalServiceCode,
+    municipalServiceName: settings.municipalServiceName,
+    taxes: settings.taxes,
+  };
 }

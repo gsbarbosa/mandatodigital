@@ -7,14 +7,14 @@ import {
   buildAvatarVideoTranscript,
   type CuradorVideoContext,
 } from "@/lib/avatar-video-script";
-import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-limits";
+import { resolveSessionAccountTier } from "@/lib/account-tier.server";
+import { maxScriptWordsForTier, maxVideoSecondsLabelForTier } from "@/lib/plan-limits";
 import type { SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
-import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 import type { PoliticianProfile } from "@/lib/types";
 
 /** "até 90 segundos" -> "90 segundos" (copy do prompt já usa "duracao maxima de"). */
-function bareDurationLabel(planId: string | null | undefined) {
-  return maxVideoSecondsLabelForPlan(planId).replace(/^até\s+/i, "");
+function bareDurationLabel(tierLabel: string) {
+  return tierLabel.replace(/^até\s+/i, "");
 }
 
 function mergeProfileWithCuradorContext(
@@ -61,8 +61,9 @@ export async function POST(request: Request) {
         dashboard.profile,
         body.curadorContext,
       );
-      const registration = await getUserRegistrationForOwner().catch(() => null);
-      const maxWords = maxScriptWordsForPlan(registration?.planId || null);
+      const account = await resolveSessionAccountTier();
+      const maxWords = maxScriptWordsForTier(account.tier);
+      const durationLabel = bareDurationLabel(maxVideoSecondsLabelForTier(account.tier));
 
       // Texto completo das matérias (não só título) para o roteiro nascer com base factual
       // real, não só inferindo do título — o mesmo fetch já usado no fact-check pós-aprovação.
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
         profile,
         curadorContext,
         maxWords,
-        durationLabel: bareDurationLabel(registration?.planId || null),
+        durationLabel,
       });
 
       return NextResponse.json({ transcript }, { status: 200 });

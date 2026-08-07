@@ -2,6 +2,7 @@ import type { DocumentData } from "firebase-admin/firestore";
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import type { EarlyAccessPlanId } from "@/lib/early-access-types";
+import { parseBillingMethod, type BillingMethod } from "@/lib/billing/billing-method";
 import { parseBillingStatus, type BillingStatus } from "@/lib/billing/plan-pricing";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 import {
@@ -39,20 +40,38 @@ function parseStatus(value: unknown): UserRegistrationStatus {
   return "incomplete";
 }
 
+function parseStringIdList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return [...new Set(value.map((item) => String(item ?? "").trim()).filter(Boolean))];
+}
+
 function emptyBillingFields() {
   return {
     billingStatus: "trial" as BillingStatus,
+    billingMethod: null as BillingMethod | null,
     asaasCustomerId: null as string | null,
     asaasSubscriptionId: null as string | null,
+    asaasInstallmentId: null as string | null,
+    asaasPrimaryPaymentId: null as string | null,
+    billingFirstDueDate: null as string | null,
     pendingBoletoUrl: null as string | null,
     pendingBoletoLinhaDigitavel: null as string | null,
     pendingBoletoDueDate: null as string | null,
     pendingBoletoValue: null as number | null,
+    pendingPixPayload: null as string | null,
+    pendingPixQrImage: null as string | null,
+    pendingPixExpiration: null as string | null,
     paidInstallments: 0,
+    lastPaidPaymentId: null as string | null,
+    lastPaidAt: null as string | null,
     lastNfsPdfUrl: null as string | null,
     lastNfsXmlUrl: null as string | null,
     lastNfsNumber: null as string | null,
     lastNfsStatus: null as string | null,
+    lastNfsEmailSentFor: null as string | null,
+    scheduledNfsPaymentIds: [] as string[],
   };
 }
 
@@ -60,9 +79,17 @@ function mapBillingFields(data: DocumentData) {
   const paid = Number(data.paidInstallments ?? 0);
   return {
     billingStatus: parseBillingStatus(data.billingStatus),
+    billingMethod: parseBillingMethod(data.billingMethod),
     asaasCustomerId: data.asaasCustomerId ? String(data.asaasCustomerId) : null,
     asaasSubscriptionId: data.asaasSubscriptionId
       ? String(data.asaasSubscriptionId)
+      : null,
+    asaasInstallmentId: data.asaasInstallmentId ? String(data.asaasInstallmentId) : null,
+    asaasPrimaryPaymentId: data.asaasPrimaryPaymentId
+      ? String(data.asaasPrimaryPaymentId)
+      : null,
+    billingFirstDueDate: data.billingFirstDueDate
+      ? String(data.billingFirstDueDate).slice(0, 10)
       : null,
     pendingBoletoUrl: data.pendingBoletoUrl ? String(data.pendingBoletoUrl) : null,
     pendingBoletoLinhaDigitavel: data.pendingBoletoLinhaDigitavel
@@ -75,28 +102,50 @@ function mapBillingFields(data: DocumentData) {
       data.pendingBoletoValue == null || data.pendingBoletoValue === ""
         ? null
         : Number(data.pendingBoletoValue),
+    pendingPixPayload: data.pendingPixPayload ? String(data.pendingPixPayload) : null,
+    pendingPixQrImage: data.pendingPixQrImage ? String(data.pendingPixQrImage) : null,
+    pendingPixExpiration: data.pendingPixExpiration
+      ? String(data.pendingPixExpiration)
+      : null,
     paidInstallments: Number.isFinite(paid) && paid > 0 ? Math.floor(paid) : 0,
+    lastPaidPaymentId: data.lastPaidPaymentId ? String(data.lastPaidPaymentId) : null,
+    lastPaidAt: data.lastPaidAt ? String(data.lastPaidAt) : null,
     lastNfsPdfUrl: data.lastNfsPdfUrl ? String(data.lastNfsPdfUrl) : null,
     lastNfsXmlUrl: data.lastNfsXmlUrl ? String(data.lastNfsXmlUrl) : null,
     lastNfsNumber: data.lastNfsNumber ? String(data.lastNfsNumber) : null,
     lastNfsStatus: data.lastNfsStatus ? String(data.lastNfsStatus) : null,
+    lastNfsEmailSentFor: data.lastNfsEmailSentFor
+      ? String(data.lastNfsEmailSentFor)
+      : null,
+    scheduledNfsPaymentIds: parseStringIdList(data.scheduledNfsPaymentIds),
   };
 }
 
 function billingFieldsFromRegistration(existing: UserRegistration) {
   return {
     billingStatus: existing.billingStatus,
+    billingMethod: existing.billingMethod,
     asaasCustomerId: existing.asaasCustomerId,
     asaasSubscriptionId: existing.asaasSubscriptionId,
+    asaasInstallmentId: existing.asaasInstallmentId,
+    asaasPrimaryPaymentId: existing.asaasPrimaryPaymentId,
+    billingFirstDueDate: existing.billingFirstDueDate,
     pendingBoletoUrl: existing.pendingBoletoUrl,
     pendingBoletoLinhaDigitavel: existing.pendingBoletoLinhaDigitavel,
     pendingBoletoDueDate: existing.pendingBoletoDueDate,
     pendingBoletoValue: existing.pendingBoletoValue,
+    pendingPixPayload: existing.pendingPixPayload,
+    pendingPixQrImage: existing.pendingPixQrImage,
+    pendingPixExpiration: existing.pendingPixExpiration,
     paidInstallments: existing.paidInstallments,
+    lastPaidPaymentId: existing.lastPaidPaymentId,
+    lastPaidAt: existing.lastPaidAt,
     lastNfsPdfUrl: existing.lastNfsPdfUrl,
     lastNfsXmlUrl: existing.lastNfsXmlUrl,
     lastNfsNumber: existing.lastNfsNumber,
     lastNfsStatus: existing.lastNfsStatus,
+    lastNfsEmailSentFor: existing.lastNfsEmailSentFor,
+    scheduledNfsPaymentIds: existing.scheduledNfsPaymentIds,
   };
 }
 
@@ -579,18 +628,29 @@ export function toEarlyAccessReservationShape(row: UserRegistration) {
 
 export type UserBillingUpdate = Partial<{
   billingStatus: BillingStatus;
+  billingMethod: BillingMethod | null;
   asaasCustomerId: string | null;
   asaasSubscriptionId: string | null;
+  asaasInstallmentId: string | null;
+  asaasPrimaryPaymentId: string | null;
+  billingFirstDueDate: string | null;
   pendingBoletoUrl: string | null;
   pendingBoletoLinhaDigitavel: string | null;
   pendingBoletoDueDate: string | null;
   pendingBoletoValue: number | null;
+  pendingPixPayload: string | null;
+  pendingPixQrImage: string | null;
+  pendingPixExpiration: string | null;
   paidInstallments: number;
+  lastPaidPaymentId: string | null;
+  lastPaidAt: string | null;
   planId: EarlyAccessPlanId;
   lastNfsPdfUrl: string | null;
   lastNfsXmlUrl: string | null;
   lastNfsNumber: string | null;
   lastNfsStatus: string | null;
+  lastNfsEmailSentFor: string | null;
+  scheduledNfsPaymentIds: string[];
 }>;
 
 export async function updateUserRegistrationBilling(

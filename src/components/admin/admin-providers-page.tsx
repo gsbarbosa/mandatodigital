@@ -8,10 +8,16 @@ import {
   type EditableProviderId,
   type ProviderAccountStatus,
   type ProviderKeyPublic,
+  type ProviderUsageSnapshot,
   PROVIDER_ENV_KEYS,
   PROVIDER_MAX_KEYS,
   isPoolProviderId,
 } from "@/lib/admin/provider-catalog";
+import {
+  HeyGenProviderInsights,
+  heygenStatusBadge,
+  readHeyGenWalletHealth,
+} from "@/components/admin/heygen-provider-insights";
 
 const STATUS_STYLE: Record<string, string> = {
   configured: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
@@ -51,7 +57,7 @@ const EDITABLE_META: Record<
   heygen: {
     name: "HeyGen",
     description: "Avatares e vídeo. Pool de keys com failover se a wallet zerar.",
-    docsUrl: "https://app.heygen.com/settings",
+    docsUrl: "https://app.heygen.com/settings?nav=API",
     placeholder: "heygen api key…",
   },
   elevenlabs: {
@@ -98,6 +104,15 @@ const ACCOUNT_LABELS: Record<string, string> = {
   autoReloadAmountUsd: "Reload amount (USD)",
   addOnCredits: "Add-on credits",
   walletCurrency: "Moeda wallet",
+  walletRemainingUsd: "Saldo wallet (USD)",
+  walletHealth: "Saúde wallet",
+  estPhotoVideoSeconds: "Autonomia foto (s)",
+  estTwinVideoSeconds: "Autonomia gêmeo (s)",
+  subscriptionPlan: "Plano subscription",
+  premiumCreditsRemaining: "Créditos premium",
+  premiumCreditsResetsAt: "Reset créditos premium",
+  subscriptionIncludedCredits: "Créditos inclusos",
+  subscriptionRemainingCredits: "Créditos restantes (sub)",
   spendingCurrentUsd: "Gasto atual (USD)",
   spendingCapUsd: "Cap (USD)",
   modelsVisible: "Modelos visíveis",
@@ -134,6 +149,49 @@ function formatAccountEntries(account: Record<string, string | number | boolean 
               : "não"
             : String(value),
     }));
+}
+
+function ProviderUsageMeter({ usage }: { usage: ProviderUsageSnapshot }) {
+  if (usage.kind === "balance") {
+    return (
+      <div className="mt-2 space-y-2 text-md-text-muted">
+        <p className="text-2xl font-semibold tabular-nums text-md-text">
+          {formatUsageValue(usage.remaining, usage.unit)}
+        </p>
+        <p className="text-xs text-md-text-soft">
+          Saldo prepaid da API — sem cota mensal usada/limite.
+          {usage.exhausted ? " Wallet zerada." : ""}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2 text-md-text-muted">
+      <p>
+        {formatUsageValue(usage.used, usage.unit)} / {formatUsageValue(usage.limit, usage.unit)}
+        <span className="ml-2 text-md-text-soft">({usage.percentUsed.toFixed(0)}%)</span>
+      </p>
+      <div className="h-2 overflow-hidden rounded-full bg-md-slate-800">
+        <div
+          className={`h-full rounded-full ${
+            usage.exhausted
+              ? "bg-rose-500"
+              : usage.percentUsed > 80
+                ? "bg-amber-400"
+                : "bg-emerald-400"
+          }`}
+          style={{ width: `${Math.min(100, Math.max(usage.percentUsed, usage.exhausted ? 100 : 0))}%` }}
+        />
+      </div>
+      <p className="text-xs text-md-text-soft">
+        Restante {formatUsageValue(usage.remaining, usage.unit)}
+        {usage.cycleEnd
+          ? ` · ciclo até ${new Date(usage.cycleEnd).toLocaleDateString("pt-BR")}`
+          : null}
+      </p>
+    </div>
+  );
 }
 
 function EditableProviderCard({ providerId }: { providerId: EditableProviderId }) {
@@ -270,6 +328,13 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
     providerId === "openai"
       ? `${PROVIDER_ENV_KEYS.openai.join(" / ")} (+ OPENAI_ADMIN_KEY p/ custos)`
       : PROVIDER_ENV_KEYS[providerId].join(" / ");
+  const heygenBadge =
+    providerId === "heygen"
+      ? heygenStatusBadge({
+          ok: Boolean(status?.ok),
+          health: readHeyGenWalletHealth(account),
+        })
+      : null;
 
   return (
     <article className="rounded-2xl border border-cyan-800/40 bg-md-surface/60 px-5 py-4">
@@ -280,14 +345,22 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
         </div>
         <span
           className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${
-            status?.ok
-              ? usage?.exhausted
-                ? STATUS_STYLE.missing
-                : STATUS_STYLE.configured
-              : STATUS_STYLE.optional
+            heygenBadge
+              ? heygenBadge.className
+              : status?.ok
+                ? usage?.exhausted
+                  ? STATUS_STYLE.missing
+                  : STATUS_STYLE.configured
+                : STATUS_STYLE.optional
           }`}
         >
-          {status?.ok ? (usage?.exhausted ? "Cota esgotada" : "Configurado") : "Sem key / erro"}
+          {heygenBadge
+            ? heygenBadge.label
+            : status?.ok
+              ? usage?.exhausted
+                ? "Cota esgotada"
+                : "Configurado"
+              : "Sem key / erro"}
         </span>
       </div>
 
@@ -302,70 +375,62 @@ function EditableProviderCard({ providerId }: { providerId: EditableProviderId }
         </p>
       ) : null}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-md-border bg-md-bg/50 px-3 py-3 text-sm">
-          <p className="text-xs uppercase tracking-wide text-md-text-soft">Conta / key</p>
-          {account ? (
-            <ul className="mt-2 space-y-1 text-md-text-muted">
-              {formatAccountEntries(account).map((row) => (
-                <li key={row.label}>
-                  <span className="text-md-text-soft">{row.label}:</span> {row.value}
-                </li>
-              ))}
-              <li>
-                <span className="text-md-text-soft">Key:</span> {status?.tokenHint ?? "—"} (
-                {status?.tokenSource ?? "none"})
-              </li>
-              {typeof status?.socialEnabled === "boolean" ? (
+      {providerId === "heygen" ? (
+        !status ? (
+          <p className="mt-4 text-sm text-md-text-soft">Carregando…</p>
+        ) : status.error && !account ? (
+          <p className="mt-4 text-sm text-md-text-soft">{status.error}</p>
+        ) : (
+          <HeyGenProviderInsights
+            account={account ?? null}
+            usage={usage ?? null}
+            tokenHint={status.tokenHint}
+            tokenSource={status.tokenSource}
+          />
+        )
+      ) : (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-md-border bg-md-bg/50 px-3 py-3 text-sm">
+            <p className="text-xs uppercase tracking-wide text-md-text-soft">Conta / key</p>
+            {account ? (
+              <ul className="mt-2 space-y-1 text-md-text-muted">
+                {formatAccountEntries(account).map((row) => (
+                  <li key={row.label}>
+                    <span className="text-md-text-soft">{row.label}:</span> {row.value}
+                  </li>
+                ))}
                 <li>
-                  <span className="text-md-text-soft">Social flag:</span>{" "}
-                  {status.socialEnabled ? "ligada" : "desligada"}
+                  <span className="text-md-text-soft">Key:</span> {status?.tokenHint ?? "—"} (
+                  {status?.tokenSource ?? "none"})
                 </li>
-              ) : null}
-            </ul>
-          ) : (
-            <p className="mt-2 text-md-text-soft">{status?.error || "Carregando…"}</p>
-          )}
-        </div>
+                {typeof status?.socialEnabled === "boolean" ? (
+                  <li>
+                    <span className="text-md-text-soft">Social flag:</span>{" "}
+                    {status.socialEnabled ? "ligada" : "desligada"}
+                  </li>
+                ) : null}
+              </ul>
+            ) : (
+              <p className="mt-2 text-md-text-soft">{status?.error || "Carregando…"}</p>
+            )}
+          </div>
 
-        <div className="rounded-xl border border-md-border bg-md-bg/50 px-3 py-3 text-sm">
-          <p className="text-xs uppercase tracking-wide text-md-text-soft">
-            {usage?.label || "Uso / cota"}
-          </p>
-          {usage ? (
-            <div className="mt-2 space-y-2 text-md-text-muted">
-              <p>
-                {formatUsageValue(usage.used, usage.unit)} / {formatUsageValue(usage.limit, usage.unit)}
-                <span className="ml-2 text-md-text-soft">({usage.percentUsed.toFixed(0)}%)</span>
-              </p>
-              <div className="h-2 overflow-hidden rounded-full bg-md-slate-800">
-                <div
-                  className={`h-full rounded-full ${
-                    usage.exhausted
-                      ? "bg-rose-500"
-                      : usage.percentUsed > 80
-                        ? "bg-amber-400"
-                        : "bg-emerald-400"
-                  }`}
-                  style={{ width: `${Math.min(100, Math.max(usage.percentUsed, usage.exhausted ? 100 : 0))}%` }}
-                />
-              </div>
-              <p className="text-xs text-md-text-soft">
-                Restante {formatUsageValue(usage.remaining, usage.unit)}
-                {usage.cycleEnd
-                  ? ` · ciclo até ${new Date(usage.cycleEnd).toLocaleDateString("pt-BR")}`
-                  : null}
-              </p>
-            </div>
-          ) : (
-            <p className="mt-2 text-md-text-soft">
-              {status?.ok
-                ? "Sem métrica de cota nesta API (key validada)."
-                : "Sem dados de uso."}
+          <div className="rounded-xl border border-md-border bg-md-bg/50 px-3 py-3 text-sm">
+            <p className="text-xs uppercase tracking-wide text-md-text-soft">
+              {usage?.label || "Uso / cota"}
             </p>
-          )}
+            {usage ? (
+              <ProviderUsageMeter usage={usage} />
+            ) : (
+              <p className="mt-2 text-md-text-soft">
+                {status?.ok
+                  ? "Sem métrica de cota nesta API (key validada)."
+                  : "Sem dados de uso."}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mt-4 border-t border-md-border pt-4">
         {poolEnabled ? (

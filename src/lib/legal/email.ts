@@ -5,13 +5,7 @@ export type ContractEmailAttachment = {
   content: Buffer;
 };
 
-export async function sendContractAcceptanceEmail(input: {
-  to: string;
-  campaignName: string;
-  planName: string;
-  acceptanceId: string;
-  attachments: ContractEmailAttachment[];
-}) {
+async function resolveResendClient() {
   let apiKey = process.env.RESEND_API_KEY?.trim() || "";
   try {
     const { resolveProviderApiKey } = await import("@/lib/admin/provider-secrets");
@@ -26,20 +20,38 @@ export async function sendContractAcceptanceEmail(input: {
   const internalCopy = process.env.EMAIL_INTERNAL_COPY?.trim();
 
   if (!apiKey || !from) {
+    return null;
+  }
+
+  return {
+    resend: new Resend(apiKey),
+    from,
+    internalCopy: internalCopy || null,
+  };
+}
+
+export async function sendContractAcceptanceEmail(input: {
+  to: string;
+  campaignName: string;
+  planName: string;
+  acceptanceId: string;
+  attachments: ContractEmailAttachment[];
+}) {
+  const client = await resolveResendClient();
+  if (!client) {
     return {
       sent: false as const,
       reason: "RESEND_API_KEY ou EMAIL_FROM nao configurados.",
     };
   }
 
-  const resend = new Resend(apiKey);
   const toList = [input.to];
-  if (internalCopy) {
-    toList.push(internalCopy);
+  if (client.internalCopy) {
+    toList.push(client.internalCopy);
   }
 
-  const { error } = await resend.emails.send({
-    from,
+  const { error } = await client.resend.emails.send({
+    from: client.from,
     to: toList,
     subject: `Mandato Digital — Contrato e Dossiê (${input.acceptanceId.slice(0, 8)})`,
     text: [
@@ -62,6 +74,89 @@ export async function sendContractAcceptanceEmail(input: {
 
   if (error) {
     throw new Error(error.message || "Falha ao enviar e-mail transacional.");
+  }
+
+  return { sent: true as const };
+}
+
+export async function sendNfsAuthorizedEmail(input: {
+  to: string;
+  campaignName: string;
+  nfsNumber: string | null;
+  pdfUrl: string;
+  xmlUrl?: string | null;
+}) {
+  const client = await resolveResendClient();
+  if (!client) {
+    return {
+      sent: false as const,
+      reason: "RESEND_API_KEY ou EMAIL_FROM nao configurados.",
+    };
+  }
+
+  const attachments: ContractEmailAttachment[] = [];
+  const numberSlug = (input.nfsNumber || "nfs").replace(/[^\w.-]+/g, "_");
+
+  try {
+    const pdfResponse = await fetch(input.pdfUrl, { cache: "no-store" });
+    if (pdfResponse.ok) {
+      attachments.push({
+        filename: `nota-fiscal-${numberSlug}.pdf`,
+        content: Buffer.from(await pdfResponse.arrayBuffer()),
+      });
+    }
+  } catch {
+    // Segue com link se download falhar.
+  }
+
+  if (input.xmlUrl) {
+    try {
+      const xmlResponse = await fetch(input.xmlUrl, { cache: "no-store" });
+      if (xmlResponse.ok) {
+        attachments.push({
+          filename: `nota-fiscal-${numberSlug}.xml`,
+          content: Buffer.from(await xmlResponse.arrayBuffer()),
+        });
+      }
+    } catch {
+      // opcional
+    }
+  }
+
+  const toList = [input.to];
+  if (client.internalCopy) {
+    toList.push(client.internalCopy);
+  }
+
+  const nfsLabel = input.nfsNumber?.trim() || "autorizada";
+  const { error } = await client.resend.emails.send({
+    from: client.from,
+    to: toList,
+    subject: `Mandato Digital — Nota Fiscal (${nfsLabel})`,
+    text: [
+      `Olá, ${input.campaignName}.`,
+      "",
+      "Segue a Nota Fiscal de Serviço referente à liquidação do pagamento.",
+      input.nfsNumber ? `Número: ${input.nfsNumber}` : null,
+      "",
+      attachments.length ? "O PDF está em anexo." : `PDF: ${input.pdfUrl}`,
+      input.xmlUrl && !attachments.some((a) => a.filename.endsWith(".xml"))
+        ? `XML: ${input.xmlUrl}`
+        : null,
+      "",
+      "Atenciosamente,",
+      "Equipe Mandato Digital / EatEasy",
+    ]
+      .filter((line): line is string => line != null)
+      .join("\n"),
+    attachments: attachments.map((item) => ({
+      filename: item.filename,
+      content: item.content,
+    })),
+  });
+
+  if (error) {
+    throw new Error(error.message || "Falha ao enviar e-mail da Nota Fiscal.");
   }
 
   return { sent: true as const };

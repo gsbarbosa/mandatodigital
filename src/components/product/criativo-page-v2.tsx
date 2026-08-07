@@ -94,8 +94,7 @@ import {
   GUEST_MAX_VIDEOS_PER_AVATAR,
   guestVideosExhaustedMessage,
 } from "@/lib/guest-limits";
-import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-limits";
-import { useDevAccountMode } from "@/components/product/use-dev-account-mode";
+import { useAccountTier } from "@/components/product/use-account-tier";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 
 const FREE_PROMPT_RESPONSIBILITY_CONSENT_TEXT =
@@ -227,33 +226,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     saveProfile,
     isSavingProfile,
     trainingAssets,
-    sessionUser,
   } = useProductApp();
-  const { isPremium } = useDevAccountMode(sessionUser?.email);
-
-  // Teto de palavras do roteiro conforme o plano (Essencial 140 / Avancado 210 / Elite 420).
-  // Default Essencial ate a resposta chegar, para nao liberar mais do que o plano confirmado.
-  const [scriptPlanId, setScriptPlanId] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/user/registration", { credentials: "same-origin" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { registration?: { planId?: string | null } } | null) => {
-        if (!cancelled) {
-          setScriptPlanId(payload?.registration?.planId ?? null);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setScriptPlanId(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  const scriptWordLimit = maxScriptWordsForPlan(scriptPlanId);
-  const scriptDurationLabel = maxVideoSecondsLabelForPlan(scriptPlanId);
+  const { entitlements, isPremium } = useAccountTier();
+  const scriptWordLimit = entitlements.maxScriptWords;
+  const scriptDurationLabel = entitlements.maxVideoSecondsLabel;
 
   const assetReferenceId = profile?.id ?? profileForm.id ?? null;
   const visibleTrainingAssets = useMemo(

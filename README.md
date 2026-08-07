@@ -27,14 +27,14 @@ npm run dev
 
 Abra `http://localhost:3000`.
 
-## Pagamentos (Asaas · boleto)
+## Pagamentos (Asaas · PIX + boleto)
 
-Cobrança do pacote campanha em **3 boletos** (Essencial / Avançado / Elite). Sem PIX/cartão neste MVP.
+Cobrança do pacote campanha em **3 parcelas mensais** (Essencial / Avançado / Elite). Checkout padrão é **PIX**; boleto continua disponível.
 
 1. Configure no `.env.local` (nunca no git): `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`.
 2. Cadastre secrets no App Hosting: `npm run firebase:secrets:apply` (ids `asaas-api-key`, `asaas-webhook-token`).
-3. No painel Asaas, crie webhook para `POST /api/billing/webhooks/asaas` com o mesmo token em `asaas-access-token`, eventos de pagamento confirmado/recebido.
-4. Fluxo no app: Planos → Gerar boleto → `/acesso-antecipado/pagamento`.
+3. No painel Asaas: ative PIX (chave da conta) e webhook para `POST /api/billing/webhooks/asaas` com o mesmo token em `asaas-access-token` (pagamento + nota).
+4. Fluxo no app: Planos → Pagar com PIX → `/acesso-antecipado/pagamento`.
 
 ### Ativar NFS-e (depois do painel Asaas)
 

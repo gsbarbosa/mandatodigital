@@ -7,6 +7,7 @@ import { useProductApp } from "./provider";
 import { HeygenDevKeyPanel, useHeygenDevPanelReveal } from "./heygen-dev-key-panel";
 import { BillingPendingBanner } from "./billing-pending-banner";
 import { NavSidebar } from "./nav-sidebar";
+import { PaymentAccessLock } from "./payment-access-lock";
 import { OnboardingChecklist } from "./onboarding-checklist";
 import { OnboardingCoachmark } from "./onboarding-coachmark";
 import { OnboardingModals } from "./onboarding-modals";
@@ -85,6 +86,7 @@ export function ProductShell({ children }: { children: ReactNode }) {
         )}
 
         {children}
+        <PaymentAccessLock />
       </main>
     </div>
   );
