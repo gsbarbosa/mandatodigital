@@ -14,6 +14,12 @@ import {
   MARKETING_NAV,
 } from "@/lib/marketing/shared";
 
+function navClassName(active: boolean, subtle: boolean) {
+  if (active) return "bg-emerald-500/15 text-[var(--sentinela-text)]";
+  if (subtle) return "text-md-text-muted/80 hover:bg-md-overlay-hover hover:text-md-text-soft";
+  return "text-md-text-soft hover:bg-md-overlay-hover hover:text-md-text";
+}
+
 export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -35,16 +41,17 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
               item.href === "/"
                 ? pathname === "/"
                 : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const subtle = "staticHtml" in item && item.staticHtml;
+            const className = `rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${navClassName(active, subtle)}`;
+            if (subtle) {
+              return (
+                <a key={item.href} href={item.href} className={className}>
+                  {item.label}
+                </a>
+              );
+            }
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${
-                  active
-                    ? "bg-emerald-500/15 text-[var(--sentinela-text)]"
-                    : "text-md-text-soft hover:bg-md-overlay-hover hover:text-md-text"
-                }`}
-              >
+              <Link key={item.href} href={item.href} className={className}>
                 {item.label}
               </Link>
             );
@@ -93,16 +100,32 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
         >
           <AppearanceToggle className="mb-3 w-full" />
           <nav className="flex flex-col gap-1" aria-label="Mobile">
-            {MARKETING_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-md-text no-underline hover:bg-md-overlay-hover"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {MARKETING_NAV.map((item) => {
+              const className =
+                "rounded-lg px-3 py-2.5 text-sm font-medium text-md-text no-underline hover:bg-md-overlay-hover";
+              if ("staticHtml" in item && item.staticHtml) {
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={className}
+                  >
+                    {item.label}
+                  </a>
+                );
+              }
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={className}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
             {isAuthenticated ? (
               <Link
                 href={APP_HOME_PATH}

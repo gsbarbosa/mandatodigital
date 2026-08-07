@@ -16,6 +16,11 @@ export const MARKETING_NAV = [
   { href: "/ecossistema" as Route, label: "Ecossistema" },
   { href: "/conformidade" as Route, label: "Compliance" },
   { href: "/planos" as Route, label: "Planos" },
+  /**
+   * Landing HTML estática (public/vozdelas) — full page load, sem App Router.
+   * `href` tipado como string pra não exigir rota RSC.
+   */
+  { href: "/vozdelas", label: "Voz Delas", staticHtml: true as const },
 ] as const;
 
 /** Dados institucionais do rodapé (briefing comercial). */

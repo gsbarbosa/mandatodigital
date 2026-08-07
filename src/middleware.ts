@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // `geo/` são as bases estáticas de UF/municípios em public/ — assets, não rotas.
-    "/((?!_next/static|_next/image|favicon.ico|geo/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // `geo/` e `vozdelas/` são estáticos em public/ — assets, não rotas de app.
+    "/((?!_next/static|_next/image|favicon.ico|geo/|vozdelas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2|html)$).*)",
   ],
 };

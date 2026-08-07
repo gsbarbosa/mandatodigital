@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mandato Digital — Provas em detalhe</title>
+<style>
+  @font-face { font-family: 'Jakarta'; font-weight: 500; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-500.woff2') format('woff2'); }
+  @font-face { font-family: 'Jakarta'; font-weight: 600; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-600.woff2') format('woff2'); }
+  @font-face { font-family: 'Jakarta'; font-weight: 700; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-700.woff2') format('woff2'); }
+  @font-face { font-family: 'Jakarta'; font-weight: 800; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-800.woff2') format('woff2'); }
+
+  :root {
+    --ink: #0A2540;
+    --ink-soft: #3C5068;
+    --paper: #F5F8FC;
+    --paper-raised: #FFFFFF;
+    --line: rgba(10,37,64,0.12);
+    --line-soft: rgba(10,37,64,0.07);
+    --accent: #00B86B;
+    --accent-ink: #04231A;
+    --accent-soft: rgba(0,184,107,0.12);
+    --risk: #B23A2E;
+    --risk-soft: rgba(178,58,46,0.09);
+    --risk-line: rgba(178,58,46,0.22);
+    --shadow: 0 24px 60px -20px rgba(10,37,64,0.28);
+    --radius-lg: 20px;
+  }
+  :root[data-theme="dark"] {
+    --ink: #EEF3F9; --ink-soft: #A9BAD0; --paper: #08111F; --paper-raised: #0F1D30;
+    --line: rgba(238,243,249,0.14); --line-soft: rgba(238,243,249,0.08);
+    --accent: #21D689; --accent-ink: #04170F; --accent-soft: rgba(33,214,137,0.14);
+    --risk: #FF8A73; --risk-soft: rgba(255,138,115,0.1); --risk-line: rgba(255,138,115,0.28);
+    --shadow: 0 24px 60px -18px rgba(0,0,0,0.55);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #EEF3F9; --ink-soft: #A9BAD0; --paper: #08111F; --paper-raised: #0F1D30;
+      --line: rgba(238,243,249,0.14); --line-soft: rgba(238,243,249,0.08);
+      --accent: #21D689; --accent-ink: #04170F; --accent-soft: rgba(33,214,137,0.14);
+      --risk: #FF8A73; --risk-soft: rgba(255,138,115,0.1); --risk-line: rgba(255,138,115,0.28);
+      --shadow: 0 24px 60px -18px rgba(0,0,0,0.55);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: 'Jakarta', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  .wrap-narrow { max-width: 760px; margin: 0 auto; padding: 0 28px; }
+  @media (max-width: 720px) { .wrap, .wrap-narrow { padding: 0 20px; } }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-soft);
+  }
+  header.site .bar { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  a.brand { text-decoration: none; color: inherit; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; letter-spacing: -0.2px; }
+  .brand .mark path:first-child, .brand .mark path:nth-child(2), .brand .mark path:nth-child(3) { fill: var(--ink); }
+  .brand .word-digital { color: var(--accent); }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 13.5px; text-decoration: none; color: var(--ink-soft);
+    padding: 10px 16px; border-radius: 999px; border: 1px solid var(--line); transition: color .15s ease, border-color .15s ease;
+  }
+  .back-link:hover { color: var(--ink); border-color: var(--ink); }
+  .back-link svg { width: 15px; height: 15px; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase;
+    color: var(--accent-ink); background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    padding: 7px 14px; border-radius: 999px;
+  }
+  :root[data-theme="dark"] .eyebrow { color: var(--accent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .eyebrow { color: var(--accent); } }
+
+  .intro { padding: 60px 0 20px; }
+  .intro h1 { font-size: clamp(32px, 4.6vw, 48px); font-weight: 800; letter-spacing: -1.2px; margin: 18px 0 14px; text-wrap: balance; }
+  .intro p { font-size: 16.5px; line-height: 1.6; color: var(--ink-soft); max-width: 56ch; margin: 0; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 10px; padding: 28px 0 64px; }
+  .toc a {
+    font-size: 12.5px; font-weight: 700; text-decoration: none; color: var(--ink-soft);
+    border: 1px solid var(--line); padding: 8px 14px; border-radius: 999px; transition: color .15s ease, border-color .15s ease;
+  }
+  .toc a:hover { color: var(--ink); border-color: var(--ink); }
+
+  .block { padding: 64px 0; border-top: 1px solid var(--line-soft); scroll-margin-top: 84px; }
+  .block:first-of-type { border-top: none; }
+  .pair-tag {
+    display: inline-flex; align-items: center; gap: 7px; width: fit-content;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+    color: var(--accent-ink); background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    padding: 5px 11px; border-radius: 999px; margin-bottom: 14px;
+  }
+  :root[data-theme="dark"] .pair-tag { color: var(--accent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pair-tag { color: var(--accent); } }
+  .block h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; letter-spacing: -0.7px; margin: 0 0 14px; text-wrap: balance; }
+  .block p.body { font-size: 15.5px; line-height: 1.65; color: var(--ink-soft); max-width: 64ch; margin: 0 0 32px; }
+
+  .detail-shot {
+    border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line);
+    box-shadow: var(--shadow); max-width: 1000px;
+  }
+  .detail-shot img { width: 100%; height: auto; display: block; }
+  .shot-caption { margin-top: 12px; font-size: 12.5px; color: var(--ink-soft); }
+
+  footer { border-top: 1px solid var(--line-soft); padding: 40px 0 56px; }
+  .foot-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .foot-legal { font-size: 11.5px; line-height: 1.6; color: var(--ink-soft); max-width: 640px; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap bar">
+    <a class="brand" href="/" aria-label="Mandato Digital — início">
+      <svg class="mark" width="26" height="26" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 44V4L10 10V44H0z"/><path d="M13 44V16L23 9.5V44H13z"/><path d="M26 44V6.5L37 -1V44H26z" transform="translate(0,1)"/>
+        <path fill="#00B86B" d="M38.5 9H46A17 19 0 0 1 46 47H38.5V39.5H43.5A10 11 0 0 0 43.5 16.5H38.5V9Z"/>
+      </svg>
+      <span>Mandato<span class="word-digital"> Digital</span></span>
+    </a>
+    <a class="back-link" href="/vozdelas/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Voltar</a>
+  </div>
+</header>
+
+<section class="intro">
+  <div class="wrap">
+    <span class="eyebrow">Por dentro da plataforma</span>
+    <h1>Cada solução, na tela real.</h1>
+    <p>Sem mockup, sem ilustração — os prints abaixo são capturas reais da plataforma Mandato Digital, logada, em tamanho legível. Um flagrante de cada solução por trás das seis dores mapeadas na página anterior.</p>
+  </div>
+  <div class="wrap toc">
+    <a href="#recursos">Recursos</a>
+    <a href="#tempo">Tempo</a>
+    <a href="#legitimidade">Legitimidade</a>
+    <a href="#seguranca">Segurança</a>
+    <a href="#alcance">Alcance</a>
+    <a href="#credibilidade">Credibilidade</a>
+  </div>
+</section>
+
+<section id="recursos" class="block">
+  <div class="wrap">
+    <span class="pair-tag">Recursos</span>
+    <h2>Qualidade de estúdio, sem equipe de gravação</h2>
+    <p class="body">Três formatos de avatar nascem do mesmo treino: Gêmeo Digital para o compromisso, Caricato para a conversa leve, Mascote 3D para o que ainda não existe em campanha nenhuma. Todos com a sua voz e o seu rosto — sem estúdio, sem diária de filmagem, sem editor. Você escolhe a pauta, aprova o roteiro, e o vídeo sai pronto pra publicar.</p>
+    <div class="detail-shot reveal"><img src="/vozdelas/assets/images/print-avatares.png" alt="Tela real da plataforma: menu de avatares com Gêmeo Digital, Caricato e Mascote 3D"></div>
+    <p class="shot-caption">Tela real, já logada — menu de Avatares.</p>
+  </div>
+</section>
+
+<section id="tempo" class="block">
+  <div class="wrap">
+    <span class="pair-tag">Tempo</span>
+    <h2>Monitoramento que não dorme</h2>
+    <p class="body">O sistema já leu o Brasil, o seu estado, a sua cidade, os seus temas de interesse e os seus adversários antes de você acordar. Cada notícia chega classificada por esfera — Nacional, Estadual, Municipal, Interesse e Adversários — com fonte, data e um botão só: Pautar. É a diferença entre começar o dia com a tela em branco e começar com a pauta pronta.</p>
+    <div class="detail-shot reveal"><img src="/vozdelas/assets/images/print-monitoramento.png" alt="Tela real da plataforma: monitoramento de pautas com notícias nacionais e estaduais"></div>
+    <p class="shot-caption">Tela real, já logada — Monitoramento de Pautas, com matérias do dia.</p>
+  </div>
+</section>
+
+<section id="legitimidade" class="block">
+  <div class="wrap">
+    <span class="pair-tag">Legitimidade</span>
+    <h2>Prova documentada de candidatura ativa</h2>
+    <p class="body">Mesmo a configuração do seu monitoramento — o estado, os municípios da sua base, os temas que você escolheu acompanhar — fica registrada com data e hora, compondo o histórico de que a candidatura sempre foi real e ativa. É o mesmo tipo de registro que já evitou cassação de chapa inteira por fraude na cota de gênero em outras candidaturas (Lei 9.504/97, art. 10 §3º; TSE, caso Jacobina/BA, 2022).</p>
+    <div class="detail-shot reveal"><img src="/vozdelas/assets/images/print-territorio.png" alt="Tela real da plataforma: configuração de monitoramento por estado e município"></div>
+    <p class="shot-caption">Tela real, já logada — configuração de Estado e Município.</p>
+  </div>
+</section>
+
+<section id="seguranca" class="block">
+  <div class="wrap">
+    <span class="pair-tag">Segurança</span>
+    <h2>Sua identidade, sob o seu controle</h2>
+    <p class="body">Posicionamento ideológico, tom de linguagem, glossário de expressões pessoais — tudo calibrado por você, e usado em cada roteiro gerado, pra sempre soar como você. O treino do avatar segue a mesma lógica: só começa com a autorização da própria titular. Deepfake é crime; avatar declarado é ferramenta — a palavra final é sempre sua.</p>
+    <div class="detail-shot reveal"><img src="/vozdelas/assets/images/print-persona.png" alt="Tela real da plataforma: calibragem de posicionamento ideológico e glossário pessoal"></div>
+    <p class="shot-caption">Tela real, já logada — Calibragem de Persona.</p>
+  </div>
+</section>
+
+<section id="alcance" class="block">
+  <div class="wrap">
+    <span class="pair-tag">Alcance</span>
+    <h2>Publicação em até 7 redes, ao mesmo tempo</h2>
+    <p class="body">O mesmo roteiro aprovado vira post nativo pra Instagram, TikTok, X, YouTube, Threads, LinkedIn e Facebook — cada um com o corte e o formato certo, sem trabalho manual rede por rede. E até o início oficial da propaganda eleitoral (16/08), o Publicador já fica disponível em modo pré-visualização: você organiza a fila e conecta as redes com antecedência.</p>
+    <div class="detail-shot reveal"><img src="/vozdelas/assets/images/print-distribuidor.png" alt="Tela real da plataforma: Publicador em modo pré-visualização"></div>
+    <p class="shot-caption">Tela real, já logada — Publicador.</p>
+  </div>
+</section>
+
+<section id="credibilidade" class="block">
+  <div class="wrap">
+    <span class="pair-tag">Credibilidade</span>
+    <h2>Checagem de fatos antes de ir ao ar</h2>
+    <p class="body">Todo roteiro aprovado passa pelo Agente Auditor, que confere cada afirmação contra a notícia de origem e as matérias capturadas pelo monitoramento. Informação contestada é bloqueada antes de virar vídeo — e nenhum vídeo é produzido sem a sua aprovação explícita do roteiro.</p>
+    <div class="detail-shot reveal"><img src="/vozdelas/assets/images/print-compliance.png" alt="Tela real da plataforma: checagem de fatos e aprovação humana obrigatória"></div>
+    <p class="shot-caption">Tela real, já logada — Compliance TSE.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <div class="brand">
+      <svg class="mark" width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 44V4L10 10V44H0z"/><path d="M13 44V16L23 9.5V44H13z"/><path d="M26 44V6.5L37 -1V44H26z" transform="translate(0,1)"/>
+        <path fill="#00B86B" d="M38.5 9H46A17 19 0 0 1 46 47H38.5V39.5H43.5A10 11 0 0 0 43.5 16.5H38.5V9Z"/>
+      </svg>
+      <span>Mandato<span class="word-digital"> Digital</span></span>
+    </div>
+    <p class="foot-legal">Página de apresentação comercial da plataforma Mandato Digital — não substitui a prestação de contas ao TSE/SPCE nem certifica resultado eleitoral. EATEASY SERVIÇOS DIGITAIS LTDA — CNPJ 48.142.514/0001-08.</p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('in'); io.unobserve(entry.target); }
+      });
+    }, { threshold: 0.1 });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
+
+</body>
+</html>
