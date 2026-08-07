@@ -22,12 +22,22 @@ import {
 import { broadcastGuestSentinelCredits } from "@/lib/guest-credits-bus";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
-import { groupSuggestionsBySphere, type MonitorSphere } from "@/lib/sphere-classifier";
+import {
+  ESTADUAL_MAX_AGE_DAYS,
+  NATIONAL_MAX_AGE_DAYS,
+  groupSuggestionsBySphere,
+  type MonitorSphere,
+} from "@/lib/sphere-classifier";
 import {
   hasAnyMonitoringRadarConfigured,
   resolveSentinelThemeSpheres,
 } from "@/lib/sentinel-profile-themes";
 import { useAccountTier } from "@/components/product/use-account-tier";
+import {
+  estadualThemeGroups,
+  federalThemeGroups,
+  type SphereThemeGroup,
+} from "@/lib/sphere-theme-catalog";
 
 const INITIAL_VISIBLE = 3;
 const VISIBLE_STEP = 5;
@@ -284,6 +294,13 @@ export function MonitoramentoPage() {
     }
   }
 
+  const notifySignalView = useCallback((suggestion: MockSentinelSuggestion) => {
+    void fetch(`/api/sentinel/suggestions/${suggestion.id}/view`, {
+      method: "POST",
+      keepalive: true,
+    }).catch(() => undefined);
+  }, []);
+
   const grouped = useMemo(() => {
     const themeSpheres = resolveSentinelThemeSpheres(profileForm);
     const groups = groupSuggestionsBySphere(
@@ -352,6 +369,45 @@ export function MonitoramentoPage() {
   const interestSitesLabel = profileForm.interestSites.filter(Boolean).join(", ");
   const municipalCitiesLabel = profileForm.municipalCities.filter(Boolean).join(", ");
 
+  /**
+   * Acha, no catálogo de temas (mesmo grupo/assunto do que já foi selecionado),
+   * um tema "irmão" que o usuário ainda não marcou — pra sugerir de forma
+   * relevante pro nicho de cada conta, em vez de cravar um exemplo fixo
+   * (ex.: "Segurança Pública") que não faria sentido pra quem monitora outro
+   * assunto. Os catálogos listam o termo mais abrangente do grupo primeiro,
+   * então "o primeiro item ainda não selecionado" tende a ser o mais amplo
+   * disponível — e, se esse já estiver marcado, cai naturalmente pra opções
+   * mais específicas do mesmo grupo.
+   */
+  function findRelatedUnselectedTheme(
+    selectedThemes: string[],
+    groups: readonly SphereThemeGroup[],
+  ): string | null {
+    const selected = new Set(
+      selectedThemes.map((theme) => theme.trim().toLowerCase()).filter(Boolean),
+    );
+    if (selected.size === 0) {
+      return null;
+    }
+
+    const rankedGroups = groups
+      .map((group) => ({
+        group,
+        overlap: group.options.filter((option) => selected.has(option.trim().toLowerCase()))
+          .length,
+      }))
+      .filter((entry) => entry.overlap > 0)
+      .sort((a, b) => b.overlap - a.overlap);
+
+    for (const { group } of rankedGroups) {
+      const candidate = group.options.find((option) => !selected.has(option.trim().toLowerCase()));
+      if (candidate) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
   function emptyMessageForSphere(sphere: MonitorSphere): string {
     if (sphere === "municipal") {
       const hasCities = profileForm.municipalCities.some((city) => city.trim());
@@ -371,7 +427,44 @@ export function MonitoramentoPage() {
       }
       return "Configure perfis @ de interesse no radar de temas.";
     }
+    if (sphere === "adversarios") {
+      return "Nenhuma pauta identificada nos perfis selecionados.";
+    }
+    if (sphere === "federal") {
+      const themes = profileForm.sentinelThemesFederal.filter((theme) => theme.trim());
+      if (themes.length) {
+        const themesLabel = themes.slice(0, 4).join(", ") + (themes.length > 4 ? "…" : "");
+        const suggestion = findRelatedUnselectedTheme(themes, federalThemeGroups);
+        const suggestionText = suggestion
+          ? ` Para garantir pauta na esfera Nacional, considere adicionar um tema mais amplo, como '${suggestion}'.`
+          : " Para garantir pauta na esfera Nacional, considere adicionar um tema mais amplo ao radar.";
+        return `Os temas selecionados (${themesLabel}) não tiveram pauta Nacional recente (últimos ${NATIONAL_MAX_AGE_DAYS} dias).${suggestionText}`;
+      }
+      return `Nenhuma pauta encontrada nesta esfera com os temas selecionados nos últimos ${NATIONAL_MAX_AGE_DAYS} dias.`;
+    }
+    if (sphere === "estadual") {
+      const themes = profileForm.sentinelThemesEstadual.filter((theme) => theme.trim());
+      if (themes.length) {
+        const themesLabel = themes.slice(0, 4).join(", ") + (themes.length > 4 ? "…" : "");
+        const suggestion = findRelatedUnselectedTheme(themes, estadualThemeGroups);
+        const suggestionText = suggestion
+          ? ` Para garantir pauta na esfera Estadual, considere adicionar um tema menos amplo, como '${suggestion}'.`
+          : " Para garantir pauta na esfera Estadual, considere adicionar um tema menos amplo ao radar.";
+        return `Os temas selecionados (${themesLabel}) não tiveram pauta Estadual recente (últimos ${ESTADUAL_MAX_AGE_DAYS} dias).${suggestionText}`;
+      }
+      return `Nenhuma pauta encontrada nesta esfera com os temas selecionados nos últimos ${ESTADUAL_MAX_AGE_DAYS} dias.`;
+    }
     return "Nenhuma pauta nesta esfera ainda.";
+  }
+
+  function emptyLinkLabelForSphere(sphere: MonitorSphere): string {
+    if (sphere === "adversarios") {
+      return "Defina novos perfis de adversários.";
+    }
+    if (sphere === "federal" || sphere === "estadual") {
+      return "Altere os temas para encontrar pautas.";
+    }
+    return "Configurar temas";
   }
 
   const firstPautarSuggestionId = useMemo(() => {
@@ -402,7 +495,7 @@ export function MonitoramentoPage() {
 
       <ProductPageHeader
         title="Monitoramento de Pautas"
-        description="Defina pautas, assuntos, temas para monitoramento e criação de conteúdo com seu avatar."
+        description="Selecione uma pauta para a criação de conteúdo com um dos seus três avatares."
         actions={
           <div
             data-onboarding-anchor="pautas-radar"
@@ -428,12 +521,15 @@ export function MonitoramentoPage() {
               <span className="text-center text-[10px] leading-snug text-[var(--distribuidor-text)]">
                 {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}
               </span>
-            ) : (
+            ) : credits ? (
+              // credits só vem preenchido pra conta de convidado com limite real
+              // (ver /api/sentinel/credits) — sócio/assinante em dia recebe
+              // `credits: null` do servidor, e nesse caso não existe crédito
+              // nenhum pra "consumir", então não mostra nada aqui.
               <span className="text-center text-[10px] leading-snug text-md-text-soft">
-                Atualizações antecipadas consomem créditos (
-                {credits ? `${credits.remaining} restantes` : "1 de 5"}).
+                Atualizações antecipadas consomem créditos ({credits.remaining} restantes).
               </span>
-            )}
+            ) : null}
           </div>
         }
       />
@@ -449,7 +545,7 @@ export function MonitoramentoPage() {
 
         {isLoading && !isRefreshing ? (
           <div
-            className="flex flex-col items-center justify-center gap-4 rounded-xl border border-md-border bg-md-surface px-5 py-8 text-center shadow-sm"
+            className="flex items-center justify-center gap-3 rounded-xl border border-md-border bg-md-surface px-5 py-6 text-center shadow-sm"
             role="status"
           >
             <span
@@ -458,8 +554,6 @@ export function MonitoramentoPage() {
             />
             <p className="text-sm leading-relaxed text-md-text-muted">
               Carregando pautas do monitoramento…
-              <br />
-              A primeira busca pode levar até 2 minutos enquanto consultamos portais e redes.
             </p>
           </div>
         ) : null}
@@ -514,18 +608,33 @@ export function MonitoramentoPage() {
                 >
                   <p className="text-sm leading-relaxed text-md-text">
                     <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                      Cobertura municipal ampliada:{" "}
+                      {municipalFallback.reason === "portal_no_theme_match"
+                        ? "Site cadastrado sem os temas selecionados: "
+                        : "Cobertura municipal ampliada: "}
                     </span>
-                    Não encontramos reportagens recentes na(s) sua(s) Cidade(s) nos temas que você
-                    selecionou
-                    {municipalFallback.themesMissed.length
-                      ? ` (${municipalFallback.themesMissed.slice(0, 4).join(", ")}${municipalFallback.themesMissed.length > 4 ? "…" : ""})`
-                      : ""}
-                    . Listamos o que há de atual na cidade
-                    {municipalFallback.promotedCount
-                      ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
-                      : ""}
-                    .
+                    {municipalFallback.reason === "portal_no_theme_match" ? (
+                      <>
+                        Não encontramos os temas que você selecionou no(s) site(s) que você
+                        cadastrou para o município. Mostramos as notícias mais recentes de lá
+                        {municipalFallback.promotedCount
+                          ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
+                          : ""}
+                        .
+                      </>
+                    ) : (
+                      <>
+                        Não encontramos reportagens recentes na(s) sua(s) Cidade(s) nos temas que
+                        você selecionou
+                        {municipalFallback.themesMissed.length
+                          ? ` (${municipalFallback.themesMissed.slice(0, 4).join(", ")}${municipalFallback.themesMissed.length > 4 ? "…" : ""})`
+                          : ""}
+                        . Listamos o que há de atual na cidade
+                        {municipalFallback.promotedCount
+                          ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
+                          : ""}
+                        .
+                      </>
+                    )}
                   </p>
                   {municipalFallback.foundTopics.length ? (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-md-text-soft">
@@ -546,7 +655,10 @@ export function MonitoramentoPage() {
                       key={suggestion.id}
                       suggestion={suggestion}
                       oppositionCard={sphere === "adversarios"}
-                      onOpenEvidence={setEvidenceSuggestion}
+                      onOpenEvidence={(suggestion) => {
+                        setEvidenceSuggestion(suggestion);
+                        notifySignalView(suggestion);
+                      }}
                       pautarOnboardingAnchor={
                         guideOpen &&
                         guideStepId === "pautas-pautar" &&
@@ -586,14 +698,18 @@ export function MonitoramentoPage() {
                       ? "Não encontramos reportagens locais recentes nos temas selecionados nem outras notícias do município nesta rodada."
                       : emptyMessageForSphere(sphere)}
                   </p>
-                  {sphere !== "adversarios" ? (
-                    <Link
-                      href="/monitoramento/temas"
-                      className="mt-3 inline-block text-sm font-medium text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80"
-                    >
-                      Configurar temas
-                    </Link>
-                  ) : null}
+                  <Link
+                    href={
+                      sphere === "adversarios"
+                        ? "/monitoramento/temas#adversarios"
+                        : sphere === "federal" || sphere === "estadual"
+                          ? "/monitoramento/temas#temas"
+                          : "/monitoramento/temas"
+                    }
+                    className="mt-3 inline-block text-sm font-medium text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80"
+                  >
+                    {emptyLinkLabelForSphere(sphere)}
+                  </Link>
                 </div>
               ) : null}
             </section>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { apiRoute } from "@/lib/auth/api-route";
 import { handleRouteError } from "@/lib/api";
 import { getSessionUser } from "@/lib/auth/session";
@@ -96,6 +97,26 @@ export async function PUT(request: Request) {
       const radarChanged =
         Boolean(profile.id) && buildRadarThemesSignature(profile) !== previousSignature;
 
+      // countGuestThemeSave só é enviado pela página "Configurar Monitoramento"
+      // (redefinir-temas-page.tsx) — Criativo e Curador também chamam saveProfile()
+      // em autosave silencioso e não devem contar como config de monitoramento.
+      if (radarChanged && profile.id && countGuestThemeSave) {
+        recordAuditEventFireAndForget({
+          request,
+          ownerUserId,
+          action: "monitoring_config_save",
+          profileId: profile.id,
+          payload: {
+            state: profile.state,
+            themesCount: profile.sentinelThemesFederal?.length ?? 0,
+            citiesCount: profile.municipalCities?.length ?? 0,
+            portalsCount: profile.interestSites?.length ?? 0,
+            interestProfilesCount: profile.interestProfiles?.length ?? 0,
+            oppositionProfilesCount: profile.oppositionProfiles?.length ?? 0,
+          },
+        });
+      }
+
       let sentinelRefreshSkipped = false;
       let sentinelRefreshMessage: string | null = null;
       let credits = premium ? null : await getGuestSentinelCredits(ownerUserId);
@@ -120,6 +141,17 @@ export async function PUT(request: Request) {
             if (consumeOnSuccess && !sourceFailed) {
               await tryConsumeGuestSentinelCredit(ownerUserId);
             }
+            recordAuditEventFireAndForget({
+              request,
+              ownerUserId,
+              action: "monitoring_refresh",
+              profileId: profile.id,
+              payload: {
+                reason: "radar_config_save",
+                suggestionCount: result.suggestions.length,
+                sourceFailed,
+              },
+            });
           })().catch(() => undefined);
         }
       }

@@ -40,15 +40,18 @@ export type MonitorSphere =
 /**
  * Nacional/estadual não apresentam matéria além do prazo abaixo — o argumento de
  * recência do produto não se sustenta com pauta velha (ver conversa sobre notícia
- * de 2024 aparecendo em Nacional). Estadual tem prazo mais largo que Nacional:
- * cobertura regional é naturalmente mais rala (poucos portais por UF), e o corte de
- * 90 dias esvaziava a esfera mesmo com matéria já corretamente classificada — Nacional
- * raramente esbarra nesse teto (cobertura ampla), então mantém o prazo original.
+ * de 2024 aparecendo em Nacional). Nacional usava 90 dias (mais apertado, na
+ * suposição de que cobertura nacional é ampla o bastante pra nunca esbarrar nesse
+ * teto) — na prática, contas com radar bem local só encontram, em nível nacional,
+ * conteúdo institucional/de estudo sobre o tema (não notícia do dia), que não é
+ * raro passar de 90 dias sem deixar de ser válido. Igualado ao teto do Estadual
+ * (240 dias) — ainda bem mais apertado que o caso de "notícia de 2024" que
+ * motivou o corte, então não reabre o problema original.
  * Municipal fica de fora dos dois: cobertura local já é escassa por si só (ver
  * sentinel-municipal-fallback.ts), e o fallback geo-only existe justamente para não
  * deixar a seção vazia.
  */
-export const NATIONAL_MAX_AGE_DAYS = 90;
+export const NATIONAL_MAX_AGE_DAYS = 240;
 export const ESTADUAL_MAX_AGE_DAYS = 240;
 
 /** Mais recente entre os artigos do cluster — uma matéria nova no meio de um cluster antigo já conta como atual. */
@@ -388,7 +391,9 @@ export function classifySuggestionSphere(
   // Ampliação municipal quando o radar não achou os temas na cidade.
   if (
     suggestion.pipeline === "geo-fallback" ||
-    suggestion.themeLabel.trim() === "Radar local"
+    suggestion.pipeline === "portal-fallback" ||
+    suggestion.themeLabel.trim() === "Radar local" ||
+    suggestion.themeLabel.trim() === "Fonte cadastrada"
   ) {
     return "municipal";
   }

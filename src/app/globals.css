@@ -500,6 +500,7 @@ textarea.persona-input-control {
   margin: 0 auto 0.75rem;
   border-radius: 10px;
   border: 1px solid #334155;
+  object-position: top;
 }
 
 .persona-production-track {
@@ -1704,6 +1705,7 @@ textarea.persona-input-control {
   margin: 0;
   border-radius: 0;
   object-fit: cover;
+  object-position: top;
   aspect-ratio: auto;
 }
 

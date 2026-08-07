@@ -38,6 +38,10 @@ const ACT_ACTIONS = new Set([
   "creative_project_create",
   "video_generate",
   "script_fact_check",
+  "monitoring_view",
+  "monitoring_signal_view",
+  "monitoring_refresh",
+  "monitoring_config_save",
 ]);
 
 function loadEnvLocal() {
@@ -159,6 +163,66 @@ function mockLogs(count: number): MaterialityLogRow[] {
   });
 }
 
+function mockMonitoring(): AuditSummary["monitoring"] {
+  const viewsByDay = Array.from({ length: 14 }, (_, i) => ({ day: dayKey(13 - i), count: 1 + (i % 3) }));
+  return {
+    monitoringDays: 12,
+    viewEvents: 28,
+    signalViews: 41,
+    viewsByDay,
+    refreshes: 15,
+    manualRefreshes: 6,
+    dailyRefreshes: 9,
+    configSaves: 2,
+    lastConfigSave: {
+      timestamp: new Date().toISOString(),
+      timestampLocal: formatAuditTimestampLocal(new Date()),
+    },
+  };
+}
+
+function hasMonitoringActivity(m: AuditSummary["monitoring"]) {
+  return m.viewEvents > 0 || m.signalViews > 0 || m.refreshes > 0 || m.configSaves > 0;
+}
+
+/** Gera atos/logs mocados batendo exatamente com os totais de mockMonitoring(), para o
+ * cabecalho da secao Materialidade nunca divergir da tabela detalhada quando o
+ * monitoramento mocado for usado (a conta real ainda nao tem atividade nessa aba). */
+function mockMonitoringActs(m: AuditSummary["monitoring"]): {
+  acts: MaterialityActRow[];
+  logs: MaterialityLogRow[];
+} {
+  const rows: Array<{ date: Date; label: string }> = [];
+  function pushN(count: number, label: string, hourBase: number) {
+    for (let i = 0; i < count; i += 1) {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() - (i % 14));
+      date.setUTCHours(hourBase + (i % 6), 10 + (i % 40), 0, 0);
+      rows.push({ date, label });
+    }
+  }
+  pushN(m.viewEvents, "Acesso ao Monitoramento", 8);
+  pushN(m.signalViews, "Visualizacao de pauta monitorada", 9);
+  pushN(m.refreshes, "Atualizacao do radar de monitoramento", 7);
+  pushN(m.configSaves, "Configuracao de monitoramento salva", 11);
+  rows.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  return {
+    acts: rows.map((row) => ({
+      timestampLocal: formatAuditTimestampLocal(row.date),
+      label: row.label,
+      ip: "191.32.44.10",
+    })),
+    logs: rows.map((row, i) => ({
+      timestampLocal: formatAuditTimestampLocal(row.date),
+      action: row.label,
+      ip: "191.32.44.10",
+      ownerUserIdShort: "modelo01",
+      detail: `{"exemplo":${i}}`,
+    })),
+  };
+}
+
 function sumVolumes(v: AuditSummary["volumes"]) {
   return (
     v.contentRequests +
@@ -209,6 +273,7 @@ async function main() {
       summaryReal.agents.jobsTotal > 0 || summaryReal.agents.factChecks > 0
         ? summaryReal.agents
         : mockAgents(),
+    monitoring: hasMonitoringActivity(summaryReal.monitoring) ? summaryReal.monitoring : mockMonitoring(),
   };
 
   const actsReal: MaterialityActRow[] = sortedReal
@@ -218,7 +283,7 @@ async function main() {
       label: auditActionLabel(event.action || event.eventType),
       ip: event.ip,
     }));
-  const acts = actsReal.length > 0 ? actsReal : mockActs(14);
+  const baseActs = actsReal.length > 0 ? actsReal : mockActs(14);
 
   const logsReal: MaterialityLogRow[] = sortedReal.map((event) => ({
     timestampLocal: event.timestampLocal,
@@ -227,7 +292,15 @@ async function main() {
     ownerUserIdShort: "modelo01",
     detail: JSON.stringify(event.payload).slice(0, 90),
   }));
-  const logs = logsReal.length > 0 ? logsReal : mockLogs(20);
+  const baseLogs = logsReal.length > 0 ? logsReal : mockLogs(20);
+
+  // Se o monitoramento do resumo veio mocado (conta real sem atividade nessa aba),
+  // injeta atos/logs mocados equivalentes para o cabecalho bater com a tabela.
+  const monitoringMock = hasMonitoringActivity(summaryReal.monitoring)
+    ? null
+    : mockMonitoringActs(summary.monitoring);
+  const acts = monitoringMock ? [...baseActs, ...monitoringMock.acts] : baseActs;
+  const logs = monitoringMock ? [...baseLogs, ...monitoringMock.logs] : baseLogs;
 
   const pdf = await renderMaterialityDossierPdf({
     fullName: FICTITIOUS.fullName,

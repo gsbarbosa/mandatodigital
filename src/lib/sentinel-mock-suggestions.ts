@@ -57,7 +57,8 @@ export type SentinelPipeline =
   | "semantic"
   | "social"
   | "legacy"
-  | "geo-fallback";
+  | "geo-fallback"
+  | "portal-fallback";
 
 /** Sinal do Sentinela com dados de alta confiabilidade (scraping + config + Trends). */
 export type MockSentinelSuggestion = {

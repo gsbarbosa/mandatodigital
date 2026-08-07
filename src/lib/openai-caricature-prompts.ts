@@ -12,7 +12,10 @@ export const CARICATURE_EDITORIAL_PROMPT =
   "sympathetic and likeable presence, without losing the editorial caricature style. " +
   "Match the eye color as closely as possible to the eye color seen in the input image. " +
   "Bold clean outlines, warm colors, neutral simple background, front-facing bust, " +
-  "suitable as a talking avatar. No text, no logos, no weapons, no extra people.";
+  "suitable as a talking avatar. Frame the shot with generous headroom: the entire head, " +
+  "hair and ears must be fully visible and clearly inside the image, with visible empty " +
+  "space above the hair — never let the top of the head touch or go past the top edge of " +
+  "the square canvas. No text, no logos, no weapons, no extra people.";
 
 export const CARICATURE_MASCOT_3D_PROMPT =
   "A high-quality 3D render of a charming and friendly stylized mascot, based on the facial features " +
@@ -24,8 +27,11 @@ export const CARICATURE_MASCOT_3D_PROMPT =
   "forms and vibrant but soothing colors. The material should appear tactile and soft, like matte " +
   "vinyl or plush fabric. The mascot is posed in a welcoming manner, perhaps waving gently, with a " +
   "warm and inviting glow. The background is a gently blurred, bright, and cheerful abstract studio " +
-  "setting with soft bokeh. No text, no logos, no weapons, no extra people. Eye color must match the " +
-  "reference photo — this takes priority over any default color choice.";
+  "setting with soft bokeh. Frame the shot with generous headroom: the entire head, including hair " +
+  "and ears, must be fully visible and clearly inside the image, with visible empty space above the " +
+  "head — never let the top of the head touch or go past the top edge of the square canvas. No text, " +
+  "no logos, no weapons, no extra people. Eye color must match the reference photo — this takes " +
+  "priority over any default color choice.";
 
 export function resolveCaricaturePrompt(input: {
   variant?: CaricatureVariant;

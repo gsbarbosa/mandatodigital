@@ -1,7 +1,7 @@
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 
 export type SentinelMunicipalFallbackMeta = {
-  reason: "themes_missed" | "few_local";
+  reason: "themes_missed" | "few_local" | "portal_no_theme_match";
   /** Temas do radar sem card municipal temático. */
   themesMissed: string[];
   /** Tópicos/títulos promovidos no fallback geo. */

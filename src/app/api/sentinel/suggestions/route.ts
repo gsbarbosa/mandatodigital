@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
@@ -7,7 +8,7 @@ import { getGuestSentinelCredits } from "@/lib/guest-credits-storage";
 import { getSentinelSuggestions } from "@/lib/sentinel-suggestions";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 
-export async function GET() {
+export async function GET(request: Request) {
   return apiRoute(async (repository) => {
     const dashboard = await repository.getDashboard();
 
@@ -27,6 +28,13 @@ export async function GET() {
     const credits = premium
       ? null
       : await getGuestSentinelCredits(getStorageOwnerUserId()?.trim() || "anonymous");
+
+    recordAuditEventFireAndForget({
+      request,
+      action: "monitoring_view",
+      profileId: dashboard.profile.id ?? null,
+      payload: { suggestionCount: result.suggestions.length },
+    });
 
     return NextResponse.json({
       ...result,

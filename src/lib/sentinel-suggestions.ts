@@ -16,7 +16,9 @@ import {
 } from "@/lib/sentinel-rss";
 import {
   isMunicipalGeoFallbackSuggestion,
+  isMunicipalPortalFallbackSuggestion,
   promoteMunicipalGeoFallback,
+  promoteMunicipalPortalFallback,
 } from "@/lib/sentinel-municipal-fallback";
 import { buildSentinelQualityReport, estimateSentinelLlmCost } from "@/lib/sentinel-quality";
 import { applySentinelQualityRank } from "@/lib/sentinel-quality-rank";
@@ -24,6 +26,7 @@ import { appLog, startTimer } from "@/lib/observability/log";
 import {
   resolveMaxPerTheme,
   finalizeSuggestionFeed,
+  ensureMinimumSphereRepresentation,
 } from "@/lib/sentinel-diversify";
 import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
@@ -67,7 +70,9 @@ type ReadCacheOptions = {
   allowStale?: boolean;
 };
 const MAX_SUGGESTIONS = 20;
-const MAX_ARTICLES_PER_SUGGESTION = 4;
+// Teto alto só pra não deixar um cluster viral crescer sem limite — a gaveta de
+// evidências mostra 4 de cara e o resto atrás do "Ver mais".
+const MAX_ARTICLES_PER_SUGGESTION = 30;
 
 type SentinelCacheEntry = {
   suggestions: MockSentinelSuggestion[];
@@ -286,12 +291,17 @@ export async function buildSuggestionsFromArticles(
     );
   }
 
+  const diversifiedSuggestions = finalizeSuggestionFeed(suggestions, {
+    maxTotal: MAX_SUGGESTIONS,
+    maxPerTheme: resolveMaxPerTheme(interestThemes.length),
+    maxPerPipeline: 10,
+  });
+
+  // ensureMinimumSphereRepresentation roda depois do quality rank em
+  // getSentinelSuggestions — senão o LLM pode dropar a pauta promovida
+  // e a esfera volta vazia na tela.
   return {
-    suggestions: finalizeSuggestionFeed(suggestions, {
-      maxTotal: MAX_SUGGESTIONS,
-      maxPerTheme: resolveMaxPerTheme(interestThemes.length),
-      maxPerPipeline: 10,
-    }),
+    suggestions: diversifiedSuggestions,
     themeVerificationStats,
   };
 }
@@ -409,7 +419,9 @@ function isLowQualityNewsSuggestion(suggestion: MockSentinelSuggestion) {
  * conteúdo disponível, e "Ver mais" fica sem nada pra mostrar porque o corte já aconteceu
  * aqui no servidor.
  */
-function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSuggestion[] {
+function mergeSuggestions(
+  ...groups: MockSentinelSuggestion[][]
+): MockSentinelSuggestion[] {
   const byId = new Map<string, MockSentinelSuggestion>();
   const oppositionById = new Map<string, MockSentinelSuggestion>();
   const interestById = new Map<string, MockSentinelSuggestion>();
@@ -441,17 +453,18 @@ function mergeSuggestions(...groups: MockSentinelSuggestion[][]): MockSentinelSu
     }
   }
 
-  const distinctThemes = new Set(
-    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
-  ).size;
-  const coreSuggestions = finalizeSuggestionFeed(
-    [...byId.values()].sort((left, right) => right.relevanceScore - left.relevanceScore),
-    {
-      maxTotal: MAX_SUGGESTIONS,
-      maxPerTheme: resolveMaxPerTheme(distinctThemes),
-      maxPerPipeline: 10,
-    },
+  const allCoreCandidates = [...byId.values()].sort(
+    (left, right) => right.relevanceScore - left.relevanceScore,
   );
+  const distinctThemes = new Set(
+    allCoreCandidates.map((item) => item.themeLabel.trim()).filter(Boolean),
+  ).size;
+  // Garantia de esfera fica para depois do quality rank (getSentinelSuggestions).
+  const coreSuggestions = finalizeSuggestionFeed(allCoreCandidates, {
+    maxTotal: MAX_SUGGESTIONS,
+    maxPerTheme: resolveMaxPerTheme(distinctThemes),
+    maxPerPipeline: 10,
+  });
 
   const oppositionSuggestions = [...oppositionById.values()].sort(
     (left, right) => right.relevanceScore - left.relevanceScore,
@@ -768,13 +781,31 @@ export async function getSentinelSuggestions(
     enabled: qualityRankEnabled,
   });
 
+  // Depois do rank: repõe ao menos 1 pauta por esfera. allCandidates = pool pré-rank
+  // para poder re-promover o que o LLM dropou e evitar seção vazia na tela.
+  const sphereGuaranteed = ensureMinimumSphereRepresentation({
+    selected: qualityRank.suggestions,
+    allCandidates: suggestionsFiltered,
+    profile,
+  });
+
   // Depois do rank: se municipal ficou sem temas do radar, amplia com notícias locais.
-  const municipalFallbackResult = promoteMunicipalGeoFallback({
+  const geoFallbackResult = promoteMunicipalGeoFallback({
     profile,
     articles: articlesBundle.articles,
-    suggestions: qualityRank.suggestions,
+    suggestions: sphereGuaranteed,
   });
-  const suggestions = municipalFallbackResult.suggestions;
+
+  // Se o usuário cadastrou portal(is) próprio(s) e nenhum card municipal cita de fato a
+  // cidade dele (provável "achismo" da busca ampla), troca pelo aviso + o que há de mais
+  // recente no(s) portal(is) cadastrado(s).
+  const portalFallbackResult = promoteMunicipalPortalFallback({
+    profile,
+    articles: articlesBundle.articles,
+    suggestions: geoFallbackResult.suggestions,
+  });
+  const suggestions = portalFallbackResult.suggestions;
+  const municipalFallbackMeta = portalFallbackResult.meta ?? geoFallbackResult.meta;
 
   const oppositionUnavailableReason = buildOppositionUnavailableMeta(profile);
   const v2Enabled = isSentinelV2PipelinesEnabled();
@@ -819,7 +850,7 @@ export async function getSentinelSuggestions(
           : "Nenhuma materia recente encontrada para os temas e portais configurados."
         : undefined,
     oppositionUnavailableReason,
-    municipalFallback: municipalFallbackResult.meta,
+    municipalFallback: municipalFallbackMeta,
   };
 
   if (fetchLooksBroken) {
@@ -890,8 +921,9 @@ export function filterSuggestionsForProfile(
     // O tema exibido no card precisa ser um tema ativo do radar.
     // matchedThemes sozinho não basta: expansão órfã pode rotular "Cameras Corporais"
     // e ainda assim cruzar um tema fiscal por falso positivo de sinônimo.
-    // Exceção: fallback municipal geo-only ("Radar local") — só esfera municipal.
-    if (isMunicipalGeoFallbackSuggestion(suggestion)) {
+    // Exceção: fallback municipal geo-only ("Radar local") ou portal cadastrado sem
+    // match de tema ("Fonte cadastrada") — só esfera municipal.
+    if (isMunicipalGeoFallbackSuggestion(suggestion) || isMunicipalPortalFallbackSuggestion(suggestion)) {
       return true;
     }
 

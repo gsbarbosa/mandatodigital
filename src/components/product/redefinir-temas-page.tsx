@@ -304,7 +304,6 @@ export function RedefinirTemasPage() {
   const { markRadarSaved, guideOpen: onboardingGuideOpen } = useOnboarding();
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [limitMessage, setLimitMessage] = useState<string | null>(null);
-  const [showMonitoramentoPrompt, setShowMonitoramentoPrompt] = useState(false);
   const [guestNoteDismissed, setGuestNoteDismissed] = useState(false);
 
   // Temas, municípios e portais regionais têm teto fixo independente do plano —
@@ -419,11 +418,11 @@ export function RedefinirTemasPage() {
       markRadarSaved();
       if (result?.sentinelRefreshSkipped && result.sentinelRefreshMessage) {
         setSaveMessage(result.sentinelRefreshMessage);
-        setShowMonitoramentoPrompt(false);
-      } else {
+      } else if (!onboardingGuideOpen) {
         // Durante o onboarding guiado, o próprio tip leva para o próximo passo
-        // (bridge "Temas configurados!") — este prompt manual só faz sentido fora dele.
-        setShowMonitoramentoPrompt(!onboardingGuideOpen);
+        // (bridge "Temas configurados!") — o redirecionamento manual só faz
+        // sentido fora dele.
+        router.push("/monitoramento");
       }
     } catch {
       // Erro exibido pelo provider (banner global).
@@ -753,50 +752,10 @@ export function RedefinirTemasPage() {
             }
             className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text font-semibold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(6,182,212,0.2)] disabled:opacity-50"
           >
-            {isSavingProfile ? "Salvando radar..." : "Salvar radar"}
+            {isSavingProfile ? "Salvando..." : "Salvar e avançar"}
           </button>
         </div>
       </div>
-
-      {showMonitoramentoPrompt ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <button
-            type="button"
-            aria-label="Fechar"
-            className="absolute inset-0 bg-md-bg/75 backdrop-blur-[2px]"
-            onClick={() => setShowMonitoramentoPrompt(false)}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="monitoramento-prompt-title"
-            data-testid="monitoramento-prompt"
-            className="relative bg-md-surface border border-md-border rounded-2xl p-8 max-w-md w-full shadow-2xl"
-          >
-            <h3 id="monitoramento-prompt-title" className="text-lg font-bold text-md-text mb-6">
-              Gostaria de ir para o Monitoramento de Pautas?
-            </h3>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                data-testid="monitoramento-prompt-nao"
-                onClick={() => setShowMonitoramentoPrompt(false)}
-                className="px-5 py-2.5 rounded-lg border border-md-border text-md-text-muted text-sm font-medium hover:bg-md-overlay-hover transition-colors"
-              >
-                Não
-              </button>
-              <button
-                type="button"
-                data-testid="monitoramento-prompt-sim"
-                onClick={() => router.push("/monitoramento")}
-                className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text text-sm font-semibold transition-all"
-              >
-                Sim
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

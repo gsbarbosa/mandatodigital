@@ -18,6 +18,10 @@ const ACT_ACTIONS = new Set([
   "creative_project_create",
   "video_generate",
   "script_fact_check",
+  "monitoring_view",
+  "monitoring_signal_view",
+  "monitoring_refresh",
+  "monitoring_config_save",
 ]);
 
 function defaultFromIso() {
