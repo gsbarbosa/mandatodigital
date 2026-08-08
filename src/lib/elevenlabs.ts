@@ -361,20 +361,54 @@ export async function elevenLabsPurgeEphemeralVoices(options?: { limit?: number 
   return { scanned: targets.length, deleted };
 }
 
+export type ElevenLabsVoiceSettings = {
+  stability: number;
+  similarity_boost: number;
+  style: number;
+  use_speaker_boost: boolean;
+};
+
 export type ElevenLabsTtsInput = {
   voiceId: string;
   text: string;
   modelId?: string;
   languageCode?: string;
+  voiceSettings?: Partial<ElevenLabsVoiceSettings>;
 };
 
 /** Defaults afinados para clone IVC + discurso político (PT). */
-const DEFAULT_VOICE_SETTINGS = {
+export const DEFAULT_VOICE_SETTINGS: ElevenLabsVoiceSettings = {
   stability: 0.45,
   similarity_boost: 0.8,
   style: 0.15,
   use_speaker_boost: true,
 };
+
+function mergeVoiceSettings(
+  override?: Partial<ElevenLabsVoiceSettings>,
+): ElevenLabsVoiceSettings {
+  if (!override) {
+    return { ...DEFAULT_VOICE_SETTINGS };
+  }
+  return {
+    stability:
+      typeof override.stability === "number"
+        ? override.stability
+        : DEFAULT_VOICE_SETTINGS.stability,
+    similarity_boost:
+      typeof override.similarity_boost === "number"
+        ? override.similarity_boost
+        : DEFAULT_VOICE_SETTINGS.similarity_boost,
+    style:
+      typeof override.style === "number"
+        ? override.style
+        : DEFAULT_VOICE_SETTINGS.style,
+    use_speaker_boost:
+      typeof override.use_speaker_boost === "boolean"
+        ? override.use_speaker_boost
+        : DEFAULT_VOICE_SETTINGS.use_speaker_boost,
+  };
+}
 
 /** TTS — POST /v1/text-to-speech/{voice_id} → buffer MP3. */
 export async function elevenLabsTextToSpeech(input: ElevenLabsTtsInput) {
@@ -396,7 +430,7 @@ export async function elevenLabsTextToSpeech(input: ElevenLabsTtsInput) {
   const body: Record<string, unknown> = {
     text,
     model_id: modelId,
-    voice_settings: DEFAULT_VOICE_SETTINGS,
+    voice_settings: mergeVoiceSettings(input.voiceSettings),
     apply_text_normalization: "auto",
   };
   // language_code é suportado no v3; multilingual_v2 ignora.

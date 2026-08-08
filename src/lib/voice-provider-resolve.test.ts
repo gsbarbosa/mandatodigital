@@ -314,4 +314,45 @@ describe("resolveVideoSpeechForGeneration", () => {
     expect(tts).not.toHaveBeenCalled();
     expect(heygenResolve).toHaveBeenCalledOnce();
   });
+
+  it("path elevenlabs_audio persistente: nao apaga a voice", async () => {
+    getProvider.mockReturnValue("elevenlabs_audio");
+    voiceExists.mockResolvedValue(true);
+    tts.mockResolvedValue(Buffer.from("mp3"));
+    storeTts.mockResolvedValue({
+      audioUrl: "https://cdn.example/tts.mp3",
+      storagePath: "compliance/tts/temp/x.mp3",
+    });
+
+    const result = await resolveVideoSpeechForGeneration({
+      transcript: "Ola mundo",
+      avatarName: "Maria",
+      voiceAudioAssetId: "deadbeef-1",
+      voiceAudioUrl: "https://example.com/sample.mp3",
+      requestedElevenLabsVoiceId: "el-persist",
+      persistVoice: true,
+      voiceSettings: {
+        stability: 0.72,
+        similarity_boost: 0.85,
+        style: 0.05,
+        use_speaker_boost: true,
+      },
+      mediaId: "job-persist",
+    });
+
+    expect(result).toEqual({
+      provider: "elevenlabs_audio",
+      elevenLabsVoiceId: "el-persist",
+      audioUrl: "https://cdn.example/tts.mp3",
+      storagePath: "compliance/tts/temp/x.mp3",
+      voiceDeleted: false,
+    });
+    expect(deleteVoice).not.toHaveBeenCalled();
+    expect(tts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        voiceId: "el-persist",
+        voiceSettings: expect.objectContaining({ stability: 0.72 }),
+      }),
+    );
+  });
 });

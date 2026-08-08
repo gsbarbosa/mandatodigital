@@ -20,6 +20,8 @@ export const COLLECTIONS = {
   asyncJobs: "asyncJobs",
   /** MP3 TTS temporário aguardando render HeyGen (doc id = heygenVideoId). */
   ttsAudioPending: "ttsAudioPending",
+  /** Seleção de voz ElevenLabs + prévias TTS (doc id = profileId). */
+  profileVoiceSelections: "profileVoiceSelections",
   /** Contas sociais conectadas (Ayrshare) por perfil político. */
   socialConnections: "socialConnections",
   /** Pacotes de publicação do Distribuidor. */

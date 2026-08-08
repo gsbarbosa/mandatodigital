@@ -11,6 +11,7 @@ import {
   isElevenLabsCustomVoiceLimitError,
   isElevenLabsIvcSubscriptionError,
   type ElevenLabsVoiceListItem,
+  type ElevenLabsVoiceSettings,
 } from "@/lib/elevenlabs";
 import { getHeyGenVoiceProvider } from "@/lib/feature-flags";
 import {
@@ -31,6 +32,22 @@ export function buildElevenLabsCloneVoiceName(
     return `${base} (IVC)`;
   }
   return `${base} (${shortId})`;
+}
+
+/**
+ * Nome de clone persistente (prévia escolhida).
+ * Não casa com isEphemeralElevenLabsVoiceName — purge de órfãos não apaga.
+ */
+export function buildElevenLabsPersistentVoiceName(
+  avatarName: string,
+  voiceAudioAssetId: string,
+) {
+  const base = avatarName.trim() || "Avatar";
+  const shortId = voiceAudioAssetId.trim().slice(0, 8).toLowerCase();
+  if (!shortId) {
+    return `${base} (voz)`;
+  }
+  return `${base} (voz-${shortId})`;
 }
 
 function normalizeVoiceName(name: string) {
@@ -182,7 +199,9 @@ async function deleteEphemeralVoiceBestEffort(voiceId: string) {
 
 /**
  * Resolve fala para Create Video:
- * - elevenlabs_audio: IVC efêmero + TTS → URL pública MP3 → delete voice
+ * - elevenlabs_audio: IVC + TTS → URL pública MP3
+ *   · Com voz ativa (prévia escolhida): reusa voice_id persistente e NÃO apaga
+ *   · Sem seleção: IVC efêmero + delete (comportamento legado)
  * - heygen_clone: path legado (voice_id + script)
  *
  * Se o plano ElevenLabs não incluir IVC, faz fallback automático para heygen_clone.
@@ -196,6 +215,9 @@ export async function resolveVideoSpeechForGeneration(input: {
   requestedHeygenVoiceId?: string | null;
   requestedElevenLabsVoiceId?: string | null;
   mediaId: string;
+  /** Quando true, mantém o clone ElevenLabs (prévia escolhida). */
+  persistVoice?: boolean;
+  voiceSettings?: Partial<ElevenLabsVoiceSettings> | null;
   /** Checkpoint de retry: MP3 já gerado — não reclona. */
   existingAudioUrl?: string | null;
   existingStoragePath?: string | null;
@@ -208,6 +230,7 @@ export async function resolveVideoSpeechForGeneration(input: {
     transcriptChars: input.transcript.length,
     mediaId: input.mediaId,
     hasExistingAudio: Boolean(input.existingAudioUrl?.trim()),
+    persistVoice: Boolean(input.persistVoice),
   });
 
   if (provider === "elevenlabs_audio") {
@@ -228,10 +251,16 @@ export async function resolveVideoSpeechForGeneration(input: {
 
     try {
       const speech = await withElevenLabsIvcSlot(async () => {
-        const voiceName = buildElevenLabsCloneVoiceName(
-          input.avatarName,
-          input.voiceAudioAssetId,
-        );
+        const persistVoice = Boolean(input.persistVoice);
+        const voiceName = persistVoice
+          ? buildElevenLabsPersistentVoiceName(
+              input.avatarName,
+              input.voiceAudioAssetId,
+            )
+          : buildElevenLabsCloneVoiceName(
+              input.avatarName,
+              input.voiceAudioAssetId,
+            );
         const resolved = await resolveElevenLabsVoiceId({
           requestedVoiceId: input.requestedElevenLabsVoiceId,
           voiceName,
@@ -240,14 +269,16 @@ export async function resolveVideoSpeechForGeneration(input: {
         const mp3 = await elevenLabsTextToSpeech({
           voiceId: resolved.voiceId,
           text: input.transcript,
+          voiceSettings: input.voiceSettings ?? undefined,
         });
         const stored = await storeElevenLabsTtsAudio({
           mediaId: input.mediaId,
           buffer: mp3,
         });
 
-        // Slot liberado assim que o MP3 está no bucket (HeyGen só precisa do audio_url).
-        const voiceDeleted = await deleteEphemeralVoiceBestEffort(resolved.voiceId);
+        const voiceDeleted = persistVoice
+          ? false
+          : await deleteEphemeralVoiceBestEffort(resolved.voiceId);
 
         return {
           provider: "elevenlabs_audio" as const,
