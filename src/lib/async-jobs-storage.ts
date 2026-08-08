@@ -164,6 +164,33 @@ export async function completeAsyncJob(
   return mapRow(snap.id, { ...snap.data()!, ...patch });
 }
 
+/** Checkpoint parcial (ex.: audioUrl após TTS, antes do create HeyGen). */
+export async function patchAsyncJobResult(
+  id: string,
+  partialResult: Record<string, unknown>,
+): Promise<AsyncJobRow> {
+  const now = nowIso();
+  const ref = col(COLLECTIONS.asyncJobs).doc(id);
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    throw new Error(`Job ${id} nao encontrado.`);
+  }
+
+  const current = mapRow(snap.id, snap.data()!);
+  const result = {
+    ...current.result,
+    ...partialResult,
+  };
+  const patch = {
+    result,
+    updatedAt: now,
+  };
+
+  await ref.update(patch);
+  return { ...current, ...patch };
+}
+
 export async function failAsyncJob(
   id: string,
   errorMessage: string,

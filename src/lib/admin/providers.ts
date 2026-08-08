@@ -87,7 +87,7 @@ export function listAdminProviders(): AdminProvider[] {
       id: "elevenlabs",
       name: "ElevenLabs",
       category: "voice",
-      description: "Clone IVC + TTS (path audio_url no HeyGen).",
+      description: "Clone IVC efêmero + TTS (path audio_url no HeyGen).",
       docsUrl: "https://elevenlabs.io/docs",
       envKeys: ["ELEVENLABS_API_KEY"],
       status: statusFor(["ELEVENLABS_API_KEY"], false),
