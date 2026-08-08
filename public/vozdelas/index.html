@@ -140,17 +140,15 @@
   .btn-primary svg { width: 16px; height: 16px; }
   .hero-note { font-size: 13px; color: var(--ink-soft); }
 
-  /* hero media row — photo left, stats hugging its right edge */
-  .hero-media-row { display: flex; align-items: center; gap: 40px; flex-wrap: wrap; }
-  @media (max-width: 900px) { .hero-media-row { flex-direction: column; align-items: flex-start; gap: 28px; } }
-  .hero-stats-side { display: flex; flex-direction: column; gap: 26px; flex: none; }
+  /* hero media column — photo full-width (matches title width), stats row below it */
+  .hero-media-row { display: flex; flex-direction: column; gap: 28px; }
+  .hero-stats-side { display: flex; flex-direction: row; gap: 32px; flex-wrap: wrap; justify-content: space-between; }
   .hero-stat b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
   .hero-stat span { font-size: 13.5px; color: var(--ink-soft); }
 
-  /* hero visual — supplied photo, left-aligned, 33% smaller than the original layout */
-  .hero-visual { position: relative; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 2000 / 1485; width: 42%; flex: none; }
-  @media (max-width: 900px) { .hero-visual { width: 100%; } }
-  .hero-visual img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: left center; }
+  /* hero visual — supplied photo, stretched to the same width as the hero title */
+  .hero-visual { position: relative; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 1698 / 926; width: 100%; }
+  .hero-visual img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
 
   /* ---------- section shell ---------- */
   section { padding: 88px 0; }
@@ -332,7 +330,7 @@
     <p class="hero-subtitle">Qualidade de estúdio sem equipe de gravação. Monitoramento que não dorme. E prova documentada de cada real investido — pra você e pra quem paga a conta.</p>
     <div class="hero-media-row">
       <div class="hero-visual">
-        <img src="/vozdelas/assets/images/hero.webp" alt="Candidata segurando um tablet com a plataforma aberta, com um banner ao fundo anunciando a primeira plataforma de campanha dedicada a mulheres" />
+        <img src="/vozdelas/assets/images/hero.png" alt="Candidata segurando um tablet com a plataforma aberta, com um banner ao fundo anunciando a primeira plataforma de campanha dedicada a mulheres" />
       </div>
       <div class="hero-stats-side">
         <div class="hero-stat"><b>3</b><span>tipos de avatar, sua voz e seu rosto</span></div>
