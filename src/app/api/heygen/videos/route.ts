@@ -34,6 +34,7 @@ import {
   resolveHeyGenVoiceWithRetryForImageVideo,
   resolveVideoSpeechForGeneration,
 } from "@/lib/voice-provider-resolve";
+import { registerTtsAudioPendingCleanup } from "@/lib/elevenlabs-tts-storage";
 import { isAsyncVoiceEnabled, isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
 import { getSessionUser } from "@/lib/auth/session";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
@@ -391,6 +392,13 @@ export async function POST(request: Request) {
             resolution: "1080p",
             callbackUrl,
           });
+          if (speech.storagePath) {
+            await registerTtsAudioPendingCleanup({
+              videoId: result.videoId,
+              storagePath: speech.storagePath,
+              audioUrl: speech.audioUrl,
+            });
+          }
           auditVideoEvent(request, dashboard.profile?.id, {
             videoId: result.videoId,
             generateMode,
@@ -581,6 +589,13 @@ export async function POST(request: Request) {
               callbackUrl,
               engine,
             });
+            if (speech.storagePath) {
+              await registerTtsAudioPendingCleanup({
+                videoId: result.videoId,
+                storagePath: speech.storagePath,
+                audioUrl: speech.audioUrl,
+              });
+            }
             auditVideoEvent(request, dashboard.profile?.id, {
               videoId: result.videoId,
               generateMode: "avatar",
@@ -714,6 +729,13 @@ export async function POST(request: Request) {
             resolution: "1080p",
             callbackUrl,
           });
+          if (speech.storagePath) {
+            await registerTtsAudioPendingCleanup({
+              videoId: fallbackResult.videoId,
+              storagePath: speech.storagePath,
+              audioUrl: speech.audioUrl,
+            });
+          }
           auditVideoEvent(request, dashboard.profile?.id, {
             videoId: fallbackResult.videoId,
             providerMode: "image_fallback",

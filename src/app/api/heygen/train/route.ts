@@ -12,15 +12,11 @@ import {
   heygenListAvatarLooks,
 } from "@/lib/heygen";
 import { resolveHeyGenAvatarConsentLink } from "@/lib/heygen-consent-resolve";
+import { isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
 import {
   buildHeyGenCloneVoiceName,
   resolveHeyGenClonedVoiceId,
 } from "@/lib/heygen-voice-resolve";
-import { isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
-import {
-  buildElevenLabsCloneVoiceName,
-  resolveElevenLabsVoiceId,
-} from "@/lib/voice-provider-resolve";
 import {
   resolveAvatarTrainingName,
   resolveDigitalTwinTrainingPhase,
@@ -295,11 +291,8 @@ export async function POST(request: Request) {
       }
 
       if (isElevenLabsAudioVoiceProvider()) {
-        elevenLabsVoiceId = await resolveElevenLabsVoiceId({
-          requestedVoiceId: elevenLabsVoiceId || undefined,
-          voiceName: buildElevenLabsCloneVoiceName(avatarName, voiceAudioAsset.id),
-          audioUrl: voiceAudioUrl,
-        });
+        // IVC efêmero: clone só na geração do vídeo (não consome slot no treino).
+        elevenLabsVoiceId = "";
         voiceId = "";
       } else {
         voiceId = await resolveHeyGenClonedVoiceId({

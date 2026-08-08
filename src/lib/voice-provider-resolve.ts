@@ -1,10 +1,14 @@
 import { storeElevenLabsTtsAudio } from "@/lib/elevenlabs-tts-storage";
+import { withElevenLabsIvcSlot } from "@/lib/elevenlabs-ivc-lock";
 import {
   elevenLabsCloneVoice,
+  elevenLabsDeleteVoice,
   elevenLabsListVoices,
+  elevenLabsPurgeEphemeralVoices,
   elevenLabsTextToSpeech,
   elevenLabsVoiceExists,
   formatElevenLabsError,
+  isElevenLabsCustomVoiceLimitError,
   isElevenLabsIvcSubscriptionError,
   type ElevenLabsVoiceListItem,
 } from "@/lib/elevenlabs";
@@ -69,7 +73,7 @@ export async function resolveElevenLabsVoiceId(input: {
         source: "requested",
         durationMs: elapsed(),
       });
-      return voiceId;
+      return { voiceId, created: false as const };
     }
     voiceId = "";
   }
@@ -85,7 +89,7 @@ export async function resolveElevenLabsVoiceId(input: {
           source: "list_by_name",
           durationMs: elapsed(),
         });
-        return reusable;
+        return { voiceId: reusable, created: false as const };
       }
     } catch (error) {
       appLogError("voice", "elevenlabs_list_voices_failed", error);
@@ -93,14 +97,36 @@ export async function resolveElevenLabsVoiceId(input: {
   }
 
   appLog("voice", "elevenlabs_clone_started");
-  const cloned = await elevenLabsCloneVoice({
-    voiceName: input.voiceName,
-    audioUrl: input.audioUrl,
-  });
-  appLog("voice", "elevenlabs_clone_completed", {
-    durationMs: elapsed(),
-  });
-  return cloned.voiceId;
+  const cloneOnce = async () =>
+    elevenLabsCloneVoice({
+      voiceName: input.voiceName,
+      audioUrl: input.audioUrl,
+    });
+
+  try {
+    const cloned = await cloneOnce();
+    appLog("voice", "elevenlabs_clone_completed", {
+      durationMs: elapsed(),
+    });
+    return { voiceId: cloned.voiceId, created: true as const };
+  } catch (error) {
+    if (!isElevenLabsCustomVoiceLimitError(error)) {
+      throw error;
+    }
+    appLog(
+      "voice",
+      "elevenlabs_custom_voice_limit",
+      { action: "purge_ephemeral_and_retry" },
+      "warn",
+    );
+    await elevenLabsPurgeEphemeralVoices({ limit: 10 });
+    const cloned = await cloneOnce();
+    appLog("voice", "elevenlabs_clone_completed", {
+      durationMs: elapsed(),
+      afterPurge: true,
+    });
+    return { voiceId: cloned.voiceId, created: true as const };
+  }
 }
 
 export type ResolvedVideoSpeech =
@@ -111,8 +137,11 @@ export type ResolvedVideoSpeech =
     }
   | {
       provider: "elevenlabs_audio";
-      elevenLabsVoiceId: string;
+      /** Null quando a voice efêmera já foi apagada após o TTS. */
+      elevenLabsVoiceId: string | null;
       audioUrl: string;
+      storagePath: string;
+      voiceDeleted: boolean;
     };
 
 async function resolveHeyGenSpeech(input: {
@@ -138,12 +167,26 @@ async function resolveHeyGenSpeech(input: {
   };
 }
 
+async function deleteEphemeralVoiceBestEffort(voiceId: string) {
+  try {
+    const result = await elevenLabsDeleteVoice(voiceId);
+    appLog("voice", "elevenlabs_voice_deleted", {
+      alreadyGone: result.alreadyGone,
+    });
+    return true;
+  } catch (error) {
+    appLogError("voice", "elevenlabs_voice_delete_failed", error);
+    return false;
+  }
+}
+
 /**
  * Resolve fala para Create Video:
- * - elevenlabs_audio: IVC + TTS → URL pública MP3
+ * - elevenlabs_audio: IVC efêmero + TTS → URL pública MP3 → delete voice
  * - heygen_clone: path legado (voice_id + script)
  *
  * Se o plano ElevenLabs não incluir IVC, faz fallback automático para heygen_clone.
+ * Se `existingAudioUrl` estiver setado (retry), pula IVC/TTS.
  */
 export async function resolveVideoSpeechForGeneration(input: {
   transcript: string;
@@ -153,6 +196,9 @@ export async function resolveVideoSpeechForGeneration(input: {
   requestedHeygenVoiceId?: string | null;
   requestedElevenLabsVoiceId?: string | null;
   mediaId: string;
+  /** Checkpoint de retry: MP3 já gerado — não reclona. */
+  existingAudioUrl?: string | null;
+  existingStoragePath?: string | null;
 }): Promise<ResolvedVideoSpeech> {
   const provider = getHeyGenVoiceProvider();
   const elapsed = startTimer();
@@ -161,38 +207,73 @@ export async function resolveVideoSpeechForGeneration(input: {
     voiceAudioAssetId: input.voiceAudioAssetId,
     transcriptChars: input.transcript.length,
     mediaId: input.mediaId,
+    hasExistingAudio: Boolean(input.existingAudioUrl?.trim()),
   });
 
   if (provider === "elevenlabs_audio") {
-    try {
-      const voiceName = buildElevenLabsCloneVoiceName(
-        input.avatarName,
-        input.voiceAudioAssetId,
-      );
-      const elevenLabsVoiceId = await resolveElevenLabsVoiceId({
-        requestedVoiceId: input.requestedElevenLabsVoiceId,
-        voiceName,
-        audioUrl: input.voiceAudioUrl,
-      });
-      const mp3 = await elevenLabsTextToSpeech({
-        voiceId: elevenLabsVoiceId,
-        text: input.transcript,
-      });
-      const stored = await storeElevenLabsTtsAudio({
+    const existingUrl = input.existingAudioUrl?.trim() || "";
+    if (existingUrl) {
+      appLog("voice", "speech_resolve_reused_checkpoint", {
         mediaId: input.mediaId,
-        buffer: mp3,
-      });
-      appLog("voice", "speech_resolve_completed", {
-        provider: "elevenlabs_audio",
-        voiceAudioAssetId: input.voiceAudioAssetId,
-        mediaId: input.mediaId,
-        mp3Bytes: mp3.byteLength,
         durationMs: elapsed(),
       });
       return {
         provider: "elevenlabs_audio",
-        elevenLabsVoiceId,
-        audioUrl: stored.audioUrl,
+        elevenLabsVoiceId: null,
+        audioUrl: existingUrl,
+        storagePath: input.existingStoragePath?.trim() || "",
+        voiceDeleted: true,
+      };
+    }
+
+    try {
+      const speech = await withElevenLabsIvcSlot(async () => {
+        const voiceName = buildElevenLabsCloneVoiceName(
+          input.avatarName,
+          input.voiceAudioAssetId,
+        );
+        const resolved = await resolveElevenLabsVoiceId({
+          requestedVoiceId: input.requestedElevenLabsVoiceId,
+          voiceName,
+          audioUrl: input.voiceAudioUrl,
+        });
+        const mp3 = await elevenLabsTextToSpeech({
+          voiceId: resolved.voiceId,
+          text: input.transcript,
+        });
+        const stored = await storeElevenLabsTtsAudio({
+          mediaId: input.mediaId,
+          buffer: mp3,
+        });
+
+        // Slot liberado assim que o MP3 está no bucket (HeyGen só precisa do audio_url).
+        const voiceDeleted = await deleteEphemeralVoiceBestEffort(resolved.voiceId);
+
+        return {
+          provider: "elevenlabs_audio" as const,
+          elevenLabsVoiceId: voiceDeleted ? null : resolved.voiceId,
+          audioUrl: stored.audioUrl,
+          storagePath: stored.storagePath,
+          voiceDeleted,
+          mp3Bytes: mp3.byteLength,
+        };
+      });
+
+      appLog("voice", "speech_resolve_completed", {
+        provider: "elevenlabs_audio",
+        voiceAudioAssetId: input.voiceAudioAssetId,
+        mediaId: input.mediaId,
+        mp3Bytes: speech.mp3Bytes,
+        voiceDeleted: speech.voiceDeleted,
+        durationMs: elapsed(),
+      });
+
+      return {
+        provider: "elevenlabs_audio",
+        elevenLabsVoiceId: speech.elevenLabsVoiceId,
+        audioUrl: speech.audioUrl,
+        storagePath: speech.storagePath,
+        voiceDeleted: speech.voiceDeleted,
       };
     } catch (error) {
       if (!isElevenLabsIvcSubscriptionError(error)) {

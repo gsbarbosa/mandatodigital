@@ -52,6 +52,16 @@ export function isElevenLabsIvcSubscriptionError(error: unknown) {
   );
 }
 
+/** Teto de custom voices (ex.: 10/10 no Starter) — típico com clones órfãos. */
+export function isElevenLabsCustomVoiceLimitError(error: unknown) {
+  const message = formatElevenLabsError(error).toLowerCase();
+  return (
+    message.includes("maximum amount of custom voices") ||
+    message.includes("custom voice limit") ||
+    (message.includes("custom voices") && message.includes("upgrade your subscription"))
+  );
+}
+
 type ElevenLabsErrorBody = {
   detail?:
     | { status?: string; message?: string }
@@ -226,6 +236,37 @@ export async function elevenLabsCloneVoice(input: ElevenLabsCloneVoiceInput) {
   };
 }
 
+/** Remove custom voice — libera slot da cota (IVC efêmero). */
+export async function elevenLabsDeleteVoice(voiceId: string) {
+  const id = voiceId.trim();
+  if (!id) {
+    return { alreadyGone: true as const };
+  }
+
+  try {
+    await elevenLabsFetch(`/v1/voices/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    });
+    return { alreadyGone: false as const };
+  } catch (error) {
+    const message = formatElevenLabsError(error).toLowerCase();
+    const status =
+      error && typeof error === "object" && "status" in error
+        ? Number((error as { status?: number }).status)
+        : 0;
+    if (
+      status === 404 ||
+      message.includes("not found") ||
+      message.includes("does not exist") ||
+      message.includes("voice_does_not_exist")
+    ) {
+      return { alreadyGone: true as const };
+    }
+    throw error;
+  }
+}
+
 export async function elevenLabsGetVoice(voiceId: string) {
   const id = voiceId.trim();
   const response = await elevenLabsFetch(`/v1/voices/${encodeURIComponent(id)}`, {
@@ -287,6 +328,37 @@ export async function elevenLabsVoiceExists(voiceId: string) {
     }
     throw error;
   }
+}
+
+/** Nomes gerados por buildElevenLabsCloneVoiceName: "Avatar (deadbeef)". */
+export function isEphemeralElevenLabsVoiceName(name: string) {
+  return /\([0-9a-f]{8}\)\s*$/i.test(name.trim());
+}
+
+/**
+ * Apaga clones IVC efêmeros órfãos (padrão de nome do Mandato).
+ * Usado como recuperação quando a cota 10/10 ainda tem restos.
+ */
+export async function elevenLabsPurgeEphemeralVoices(options?: { limit?: number }) {
+  const limit = Math.max(1, Math.min(options?.limit ?? 10, 30));
+  const voices = await elevenLabsListVoices();
+  const targets = voices.filter((voice) => {
+    const id = voice.voice_id?.trim();
+    const name = String(voice.name ?? "");
+    return Boolean(id) && isEphemeralElevenLabsVoiceName(name);
+  });
+
+  let deleted = 0;
+  for (const voice of targets.slice(0, limit)) {
+    const id = voice.voice_id!.trim();
+    try {
+      await elevenLabsDeleteVoice(id);
+      deleted += 1;
+    } catch {
+      // segue tentando os demais
+    }
+  }
+  return { scanned: targets.length, deleted };
 }
 
 export type ElevenLabsTtsInput = {

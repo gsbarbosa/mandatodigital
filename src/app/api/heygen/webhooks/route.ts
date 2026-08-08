@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { appLog } from "@/lib/observability/log";
+import { cleanupTtsAudioForVideo } from "@/lib/elevenlabs-tts-storage";
+import { appLog, appLogError } from "@/lib/observability/log";
 
-// Webhook opcional (HeyGen): neste MVP o Curador-v2 faz polling.
+// Webhook opcional (HeyGen): neste MVP o Curador-v2 faz polling; cleanup de TTS também roda no GET status.
 export async function POST(request: Request) {
   const body = await request.text();
   let eventType: string | null = null;
@@ -34,6 +35,31 @@ export async function POST(request: Request) {
     status,
     bodyBytes: body.length,
   });
+
+  const terminal =
+    status === "completed" ||
+    status === "failed" ||
+    Boolean(eventType?.toLowerCase().includes("success")) ||
+    Boolean(eventType?.toLowerCase().includes("fail"));
+
+  if (videoId && terminal) {
+    void cleanupTtsAudioForVideo(videoId)
+      .then((result) => {
+        if (result.deleted) {
+          appLog("voice", "tts_audio_cleaned", {
+            videoId,
+            storagePath: result.storagePath,
+            source: "webhook",
+          });
+        }
+      })
+      .catch((error) => {
+        appLogError("voice", "tts_audio_cleanup_failed", error, {
+          videoId,
+          source: "webhook",
+        });
+      });
+  }
 
   return NextResponse.json({ ok: true, received: Boolean(body) });
 }
