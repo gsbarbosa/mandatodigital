@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -38,6 +39,7 @@ import {
   federalThemeGroups,
   type SphereThemeGroup,
 } from "@/lib/sphere-theme-catalog";
+import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 const INITIAL_VISIBLE = 3;
 const VISIBLE_STEP = 5;
@@ -519,7 +521,10 @@ export function MonitoramentoPage() {
             <span className="text-center text-xs text-md-text-soft">Próx atualização às 08:00h</span>
             {creditsExhausted ? (
               <span className="text-center text-[10px] leading-snug text-[var(--distribuidor-text)]">
-                {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}
+                {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}{" "}
+                <Link href={PLAN_SELECTION_PATH as Route} className="underline underline-offset-2">
+                  Ver planos e preços
+                </Link>
               </span>
             ) : credits ? (
               // credits só vem preenchido pra conta de convidado com limite real

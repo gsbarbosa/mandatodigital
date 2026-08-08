@@ -145,9 +145,11 @@ describe("sentinel-profile-themes", () => {
 
   it("migra lista unica priorizando estadual para temas sobrepostos (legado)", () => {
     expect(listOverlappingSentinelThemes()).toContain("Contratos Públicos");
-    const migrated = migrateFlatSentinelThemes(["Contratos Públicos", "Vacinação"]);
+    // "Fundão Eleitoral" só existe no catálogo federal — bom exemplo de tema não-sobreposto.
+    expect(listOverlappingSentinelThemes()).not.toContain("Fundão Eleitoral");
+    const migrated = migrateFlatSentinelThemes(["Contratos Públicos", "Fundão Eleitoral"]);
     expect(migrated.estadual).toEqual(["Contratos Públicos"]);
-    expect(migrated.federal).toEqual(["Vacinação"]);
+    expect(migrated.federal).toEqual(["Fundão Eleitoral"]);
   });
 
   it("perfil legado sem campos por esfera vira lista unificada", () => {

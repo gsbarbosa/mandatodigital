@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { APP_HOME_PATH } from "@/lib/app-home";
+import { useEarlyAccess } from "@/lib/early-access";
 import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 type InstallmentRow = {
@@ -76,10 +77,12 @@ function installmentStatusLabel(status: InstallmentRow["status"]) {
 }
 
 export function AcessoPagamentoPage() {
+  const [earlyAccess] = useEarlyAccess();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<BillingStatusPayload | null>(null);
   const [copied, setCopied] = useState(false);
+  const cnpjSigned = Boolean(earlyAccess.cnpj);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -134,9 +137,19 @@ export function AcessoPagamentoPage() {
         <h1 className="text-2xl font-bold tracking-tight text-md-text">Meus pagamentos</h1>
         <p className="mt-3 text-sm leading-relaxed text-md-text-muted">
           {isPix
-            ? "Pacote único em 3 PIX (hoje, +1 mês e +2 meses). A 1ª parcela libera o plano; se atrasar qualquer uma — inclusive a última — a conta fica inadimplente."
-            : "Pacote único em 3 boletos (hoje+3 dias, +1 mês e +2 meses). A 1ª parcela libera o plano; se atrasar qualquer uma — inclusive a última — a conta fica inadimplente."}
+            ? "Pacote único em 3 PIX (vencimento hoje + 10/Setembro + 20/Setembro). A 1ª parcela libera o plano; o atraso em qualquer parcela — inclusive a última — deixa a conta inadimplente."
+            : "Pacote único em 3 boletos (vencimento hoje + 10/Setembro + 20/Setembro). A 1ª parcela libera o plano; o atraso em qualquer parcela — inclusive a última — deixa a conta inadimplente."}
         </p>
+
+        {!cnpjSigned ? (
+          <p className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            Para emitir sua nota fiscal e o contrato de prestação de serviços, é preciso informar
+            o CNPJ da campanha.{" "}
+            <Link href={"/acesso-antecipado/cnpj" as Route} className="font-semibold underline underline-offset-2">
+              Informar CNPJ
+            </Link>
+          </p>
+        ) : null}
 
         {loading ? <p className="mt-6 text-sm text-md-text-muted">Carregando status…</p> : null}
 
