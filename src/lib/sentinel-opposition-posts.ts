@@ -8,6 +8,7 @@ import {
 } from "@/lib/sentinel-instagram-posts";
 import type {
   MockSentinelSuggestion,
+  SentinelSocialNetwork,
   SentinelVerifiedActor,
 } from "@/lib/sentinel-mock-suggestions";
 import { fetchGoogleNewsQuery } from "@/lib/sentinel-rss";
@@ -120,6 +121,17 @@ function isInstagramProfile(row: SocialHandle) {
   return network.includes("instagram") || network === "ig";
 }
 
+function normalizeActorNetwork(network: string): SentinelSocialNetwork {
+  const value = network.trim().toLowerCase();
+  if (value.includes("tiktok")) {
+    return "tiktok";
+  }
+  if (value.includes("twitter") || value === "x" || value.includes("x /")) {
+    return "x";
+  }
+  return "instagram";
+}
+
 function publishedAtMs(suggestion: MockSentinelSuggestion): number {
   const raw = suggestion.evidence.actors?.[0]?.publishedAt;
   if (!raw) {
@@ -200,7 +212,8 @@ async function buildOppositionNewsFallbacks(
       continue;
     }
 
-    const queries = [`"@${handle}"`, `${handle} Instagram`, `${handle} ${geo}`.trim()]
+    const network = normalizeActorNetwork(row.network);
+    const queries = [`"@${handle}"`, `${handle} ${row.network.trim()}`, `${handle} ${geo}`.trim()]
       .filter((query) => query.replace(/\s/g, "").length >= 3)
       .slice(0, 2);
     const batches = await Promise.all(queries.map((query) => fetchGoogleNewsQuery(query)));
@@ -217,7 +230,7 @@ async function buildOppositionNewsFallbacks(
       const relevanceScore = 42;
       const actor: SentinelVerifiedActor = {
         handle,
-        network: "instagram",
+        network,
         postUrl: item.link,
         profileLabel: row.network,
         sourceList: "opposition",
@@ -235,7 +248,7 @@ async function buildOppositionNewsFallbacks(
           postsAnalyzed: 1,
           outletCount: 1,
           engagementTrendPercent: 0,
-          byNetwork: [{ network: "instagram", likes: 0, comments: 0 }],
+          byNetwork: [{ network, likes: 0, comments: 0 }],
           actors: [actor],
           articles: [
             {
@@ -252,36 +265,47 @@ async function buildOppositionNewsFallbacks(
           likes: 0,
           comments: 0,
           postsAnalyzed: 1,
-          sources: ["instagram"],
-          byNetwork: [{ network: "instagram", likes: 0, comments: 0 }],
+          sources: [network],
+          byNetwork: [{ network, likes: 0, comments: 0 }],
         },
       });
     }
   }
 
-  return sortByEngagementThenRecency(suggestions).slice(0, MAX_OPPOSITION_SUGGESTIONS);
+  return suggestions;
 }
 
 export async function buildOppositionPostSuggestions(
   profile: PoliticianProfile,
 ): Promise<MockSentinelSuggestion[]> {
-  const fromApify = await buildInstagramProfilePostSuggestions({
-    profiles: profile.oppositionProfiles,
-    sourceList: "opposition",
-    maxSuggestions: MAX_OPPOSITION_SUGGESTIONS,
-  });
-  if (fromApify.length) {
-    return fromApify;
-  }
-
-  const rows = profile.oppositionProfiles.filter(
-    (row) => row.handle.trim() && isInstagramProfile(row),
-  );
+  const rows = profile.oppositionProfiles.filter((row) => row.handle.trim());
   if (!rows.length) {
     return [];
   }
 
-  return buildOppositionNewsFallbacks(profile, rows);
+  const instagramRows = rows.filter(isInstagramProfile);
+  const otherRows = rows.filter((row) => !isInstagramProfile(row));
+
+  const fromApify = instagramRows.length
+    ? await buildInstagramProfilePostSuggestions({
+        profiles: instagramRows,
+        sourceList: "opposition",
+        maxSuggestions: MAX_OPPOSITION_SUGGESTIONS,
+      })
+    : [];
+
+  // Sem posts do Apify (cota esgotada / erro), cai no Google News pelo @ pros perfis do Instagram também.
+  const instagramNeedingFallback = fromApify.length ? [] : instagramRows;
+  const newsRows = [...otherRows, ...instagramNeedingFallback];
+
+  const newsFallbacks = newsRows.length
+    ? await buildOppositionNewsFallbacks(profile, newsRows)
+    : [];
+
+  return sortByEngagementThenRecency([...fromApify, ...newsFallbacks]).slice(
+    0,
+    MAX_OPPOSITION_SUGGESTIONS,
+  );
 }
 
 export async function buildInterestPostSuggestions(

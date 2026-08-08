@@ -21,6 +21,7 @@ import {
   writeCuradorHeygenPrefs,
 } from "@/lib/curador-heygen-prefs";
 import { GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE } from "@/lib/guest-limits";
+import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 function ArrowIcon({ className }: { className?: string }) {
   return (
@@ -224,7 +225,10 @@ export function AvatarHubPage({ tipo }: { tipo: AvatarTipo }) {
                 <p className="text-center text-xs text-md-text-soft leading-relaxed">
                   {creditsBlocked ? (
                     <span className="text-[var(--distribuidor-text)]">
-                      {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}
+                      {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}{" "}
+                      <Link href={PLAN_SELECTION_PATH as Route} className="underline underline-offset-2">
+                        Ver planos e preços
+                      </Link>
                     </span>
                   ) : caricatureQuota && !isPremium ? (
                     guestQuotaReached ? (

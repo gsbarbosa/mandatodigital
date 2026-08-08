@@ -1,5 +1,7 @@
 "use client";
 
+import type { Route } from "next";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -36,6 +38,7 @@ import {
   interestThemeGroups,
   type SphereThemeGroup,
 } from "@/lib/sphere-theme-catalog";
+import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 /** Teto prático no premium (UI + schema); convidado usa os MAX_* do catálogo. */
 const PREMIUM_SELECTION_CAP = 50;
@@ -432,7 +435,12 @@ export function RedefinirTemasPage() {
   const planNote = limitMessage ? (
     <span className="text-amber-400">{limitMessage}</span>
   ) : creditsExhausted && !isPremium ? (
-    <span className="text-amber-400">{GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}</span>
+    <span className="text-amber-400">
+      {GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE}{" "}
+      <Link href={PLAN_SELECTION_PATH as Route} className="underline underline-offset-2">
+        Ver planos e preços
+      </Link>
+    </span>
   ) : saveMessage ? (
     <span className="text-[var(--sentinela-text)]" role="status">
       {saveMessage}

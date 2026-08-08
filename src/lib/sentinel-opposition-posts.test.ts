@@ -3,6 +3,28 @@ import { describe, expect, it, vi } from "vitest";
 import { buildOppositionPostSuggestions } from "./sentinel-opposition-posts";
 import type { PoliticianProfile } from "./types";
 
+vi.mock("./sentinel-rss", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./sentinel-rss")>();
+
+  return {
+    ...actual,
+    fetchGoogleNewsQuery: vi.fn(async (query: string) => {
+      if (query.includes("tiktokador")) {
+        return [
+          {
+            title: "TikTokador critica projeto na camara",
+            link: "https://noticias.exemplo.com/tiktokador-critica",
+            pubDate: "2026-07-10T09:00:00.000Z",
+            publishedAt: new Date("2026-07-10T09:00:00.000Z"),
+            sourceName: "Exemplo News",
+          },
+        ];
+      }
+      return [];
+    }),
+  };
+});
+
 vi.mock("./sentinel-instagram-posts", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./sentinel-instagram-posts")>();
 
@@ -102,5 +124,35 @@ describe("sentinel-opposition-posts", () => {
     expect(suggestions.every((item) => item.evidence.actors?.[0]?.postUrl.includes("instagram.com/p/"))).toBe(
       true,
     );
+  });
+
+  it("usa fallback de Google News pra perfis de TikTok/X sem scraper dedicado", async () => {
+    const profile: PoliticianProfile = {
+      ...baseProfile,
+      oppositionProfiles: [
+        { handle: "@kimkataguiri", network: "Instagram" },
+        { handle: "@tiktokador", network: "TikTok" },
+        { handle: "@xador", network: "Twitter/X" },
+      ],
+    };
+
+    const suggestions = await buildOppositionPostSuggestions(profile);
+
+    const tiktokSuggestion = suggestions.find((item) =>
+      item.evidence.actors?.[0]?.handle === "tiktokador",
+    );
+    expect(tiktokSuggestion).toBeDefined();
+    expect(tiktokSuggestion?.evidence.actors?.[0]?.network).toBe("tiktok");
+    expect(tiktokSuggestion?.evidence.articles?.[0]?.url).toBe(
+      "https://noticias.exemplo.com/tiktokador-critica",
+    );
+
+    // @xador não teve nenhuma menção no mock do Google News, então não gera pauta — mas não quebra o fluxo.
+    expect(suggestions.some((item) => item.evidence.actors?.[0]?.handle === "xador")).toBe(false);
+
+    // Perfil do Instagram continua vindo normalmente pelo Apify.
+    expect(
+      suggestions.some((item) => item.evidence.actors?.[0]?.handle === "kimkataguiri"),
+    ).toBe(true);
   });
 });
