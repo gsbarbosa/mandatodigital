@@ -354,7 +354,9 @@ export function AcessoPlanosPage() {
                     {plan.id === "essencial" ? "Reservar Desconto" : "Reservar Vaga VIP"}
                   </button>
                 )}
-                {isSelected && !billingActive && !billingPending ? (
+                {!billingActive &&
+                !billingPending &&
+                (isSelected || selectedPlanId === "essencial") ? (
                   <button
                     type="button"
                     disabled={!hydrated || Boolean(checkoutPlanId)}
@@ -365,7 +367,7 @@ export function AcessoPlanosPage() {
                   </button>
                 ) : null}
                 <p className="text-[10px] text-md-text-soft text-center mt-3">
-                  Pacote único em 3x (vencimento hoje + 10/Setembro + 20/Setembro). Não é assinatura mensal.
+                  Pacote único em 3x (hoje, +1 mês, +2 meses). Não é assinatura mensal.
                 </p>
               </div>
             );

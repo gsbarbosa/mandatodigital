@@ -828,7 +828,7 @@ export function AcessoDadosPage() {
             </div>
           ) : !isReserved ? (
             <div className="mb-6 rounded-xl border border-md-border bg-md-bg/40 px-4 py-3.5 text-sm text-md-text-soft">
-              Depois de salvar seus dados, e testar a plataforma, você escolhe o plano com o
+              Depois de salvar seus dados e testar a plataforma, você escolhe o plano com o
               comparativo completo do que está incluso.
             </div>
           ) : reservation?.planId ? (

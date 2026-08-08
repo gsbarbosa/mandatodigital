@@ -137,8 +137,8 @@ export function AcessoPagamentoPage() {
         <h1 className="text-2xl font-bold tracking-tight text-md-text">Meus pagamentos</h1>
         <p className="mt-3 text-sm leading-relaxed text-md-text-muted">
           {isPix
-            ? "Pacote único em 3 PIX (vencimento hoje + 10/Setembro + 20/Setembro). A 1ª parcela libera o plano; o atraso em qualquer parcela — inclusive a última — deixa a conta inadimplente."
-            : "Pacote único em 3 boletos (vencimento hoje + 10/Setembro + 20/Setembro). A 1ª parcela libera o plano; o atraso em qualquer parcela — inclusive a última — deixa a conta inadimplente."}
+            ? "Pacote único em 3 PIX (hoje, +1 mês e +2 meses). A 1ª parcela libera o plano; se atrasar qualquer uma — inclusive a última — a conta fica inadimplente."
+            : "Pacote único em 3 boletos (hoje+3 dias, +1 mês e +2 meses). A 1ª parcela libera o plano; se atrasar qualquer uma — inclusive a última — a conta fica inadimplente."}
         </p>
 
         {!cnpjSigned ? (
