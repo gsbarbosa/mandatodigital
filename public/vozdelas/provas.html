@@ -90,9 +90,9 @@
 
   .intro { padding: 60px 0 20px; }
   .intro h1 { font-size: clamp(32px, 4.6vw, 48px); font-weight: 800; letter-spacing: -1.2px; margin: 18px 0 14px; text-wrap: balance; }
-  .intro p { font-size: 16.5px; line-height: 1.6; color: var(--ink-soft); max-width: 56ch; margin: 0; }
+  .intro p { font-size: 16.5px; line-height: 1.6; color: var(--ink-soft); max-width: 1000px; margin: 0; }
 
-  .toc { display: flex; flex-wrap: wrap; gap: 10px; padding: 28px 0 64px; }
+  .toc { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 28px 0 64px; }
   .toc a {
     font-size: 12.5px; font-weight: 700; text-decoration: none; color: var(--ink-soft);
     border: 1px solid var(--line); padding: 8px 14px; border-radius: 999px; transition: color .15s ease, border-color .15s ease;
@@ -111,7 +111,7 @@
   :root[data-theme="dark"] .pair-tag { color: var(--accent); }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pair-tag { color: var(--accent); } }
   .block h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 800; letter-spacing: -0.7px; margin: 0 0 14px; text-wrap: balance; }
-  .block p.body { font-size: 15.5px; line-height: 1.65; color: var(--ink-soft); max-width: 64ch; margin: 0 0 32px; }
+  .block p.body { font-size: 15.5px; line-height: 1.65; color: var(--ink-soft); max-width: 1000px; margin: 0 0 32px; }
 
   .detail-shot {
     border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line);
