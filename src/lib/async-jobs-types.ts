@@ -41,6 +41,14 @@ export type VoiceTtsPayload = {
   voiceAudioUrl: string;
   requestedElevenLabsVoiceId?: string;
   requestedHeygenVoiceId?: string;
+  /** Clone ElevenLabs persistente (prévia escolhida) — não apagar após TTS. */
+  persistVoice?: boolean;
+  voiceSettings?: {
+    stability?: number;
+    similarity_boost?: number;
+    style?: number;
+    use_speaker_boost?: boolean;
+  };
   /** Quando true, após TTS cria vídeo HeyGen (image path). */
   createVideo?: {
     generateMode: "caricature" | "photo_real";

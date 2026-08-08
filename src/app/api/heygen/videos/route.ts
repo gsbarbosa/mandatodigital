@@ -44,6 +44,7 @@ import {
 } from "@/lib/async-jobs-enqueue";
 import type { ProfileTrainingAsset } from "@/lib/types";
 import { appLog, appLogError, startTimer } from "@/lib/observability/log";
+import { resolvePersistedVoiceForGeneration } from "@/lib/voice-preview";
 
 export const maxDuration = 300;
 
@@ -287,6 +288,20 @@ export async function POST(request: Request) {
           : undefined;
         const imageUrl = await getTrainingAssetPublicUrl(imageAsset, appBaseUrl);
         const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, appBaseUrl);
+        const voicePrefs = profileId
+          ? await resolvePersistedVoiceForGeneration({
+              profileId,
+              voiceAudioAssetId: voiceAudioAsset.id,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId,
+            })
+          : {
+              persistVoice: false,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId ?? null,
+              voiceSettings: null,
+              selectedPreviewId: null,
+            };
+        const resolvedElevenLabsVoiceId =
+          voicePrefs.requestedElevenLabsVoiceId ?? undefined;
         const avatarName = resolveAvatarTrainingName({
           fullName: dashboard.profile?.fullName,
           role: dashboard.profile?.role,
@@ -323,8 +338,10 @@ export async function POST(request: Request) {
                 avatarName,
                 voiceAudioAssetId: voiceAudioAsset.id,
                 voiceAudioUrl,
-                requestedElevenLabsVoiceId: elevenLabsVoiceId,
+                requestedElevenLabsVoiceId: resolvedElevenLabsVoiceId,
                 requestedHeygenVoiceId: voiceId,
+                persistVoice: voicePrefs.persistVoice,
+                voiceSettings: voicePrefs.voiceSettings ?? undefined,
                 createVideo: {
                   generateMode,
                   imageUrl,
@@ -378,7 +395,9 @@ export async function POST(request: Request) {
           voiceAudioAssetId: voiceAudioAsset.id,
           voiceAudioUrl,
           requestedHeygenVoiceId: voiceId,
-          requestedElevenLabsVoiceId: elevenLabsVoiceId,
+          requestedElevenLabsVoiceId: resolvedElevenLabsVoiceId,
+          persistVoice: voicePrefs.persistVoice,
+          voiceSettings: voicePrefs.voiceSettings,
           mediaId: `image-${Date.now()}`,
         });
 
@@ -564,6 +583,18 @@ export async function POST(request: Request) {
             voiceAudioAssetId: twinVoiceAsset.id,
             avatarImageAssetId: requestedAvatarImageAssetId,
           });
+          const twinVoicePrefs = profileId
+            ? await resolvePersistedVoiceForGeneration({
+                profileId,
+                voiceAudioAssetId: twinVoiceAsset.id,
+                requestedElevenLabsVoiceId: elevenLabsVoiceId,
+              })
+            : {
+                persistVoice: false,
+                requestedElevenLabsVoiceId: elevenLabsVoiceId ?? null,
+                voiceSettings: null,
+                selectedPreviewId: null,
+              };
 
           const speech = await resolveVideoSpeechForGeneration({
             transcript,
@@ -575,7 +606,10 @@ export async function POST(request: Request) {
             voiceAudioAssetId: twinVoiceAsset.id,
             voiceAudioUrl: await getTrainingAssetPublicUrl(twinVoiceAsset, appBaseUrl),
             requestedHeygenVoiceId: voiceId,
-            requestedElevenLabsVoiceId: elevenLabsVoiceId,
+            requestedElevenLabsVoiceId:
+              twinVoicePrefs.requestedElevenLabsVoiceId ?? undefined,
+            persistVoice: twinVoicePrefs.persistVoice,
+            voiceSettings: twinVoicePrefs.voiceSettings,
             mediaId: `avatar-${avatarId}`,
           });
 
@@ -704,6 +738,18 @@ export async function POST(request: Request) {
         const imageUrlBase = resolveAppBaseUrl(request);
         const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
         const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, imageUrlBase);
+        const fallbackVoicePrefs = profileId
+          ? await resolvePersistedVoiceForGeneration({
+              profileId,
+              voiceAudioAssetId: voiceAudioAsset.id,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId,
+            })
+          : {
+              persistVoice: false,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId ?? null,
+              voiceSettings: null,
+              selectedPreviewId: null,
+            };
         const avatarName = resolveAvatarTrainingName({
           fullName: dashboard.profile?.fullName,
           role: dashboard.profile?.role,
@@ -716,7 +762,10 @@ export async function POST(request: Request) {
           voiceAudioAssetId: voiceAudioAsset.id,
           voiceAudioUrl,
           requestedHeygenVoiceId: voiceId,
-          requestedElevenLabsVoiceId: elevenLabsVoiceId,
+          requestedElevenLabsVoiceId:
+            fallbackVoicePrefs.requestedElevenLabsVoiceId ?? undefined,
+          persistVoice: fallbackVoicePrefs.persistVoice,
+          voiceSettings: fallbackVoicePrefs.voiceSettings,
           mediaId: `fallback-${Date.now()}`,
         });
 

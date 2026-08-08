@@ -126,6 +126,8 @@ export async function processVoiceJob(jobId: string) {
       voiceAudioUrl: String(payload.voiceAudioUrl ?? ""),
       requestedElevenLabsVoiceId: payload.requestedElevenLabsVoiceId,
       requestedHeygenVoiceId: payload.requestedHeygenVoiceId,
+      persistVoice: Boolean(payload.persistVoice),
+      voiceSettings: payload.voiceSettings ?? null,
       mediaId: jobId,
       existingAudioUrl: checkpointAudioUrl || null,
       existingStoragePath: checkpointStoragePath || null,
