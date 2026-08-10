@@ -182,22 +182,20 @@ export function AvatarVoicePreviewPicker({
             a que mais se parece com você — ela será usada em todos os vídeos.
           </p>
         </div>
-        <button
-          type="button"
-          disabled={!consentAccepted || generating || loading || !profileId}
-          onClick={() => void handleGenerate()}
-          className={`shrink-0 inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-            !consentAccepted || generating || loading || !profileId
-              ? "cursor-not-allowed border-md-border opacity-50 text-md-text-soft"
-              : "border-purple-500/40 bg-purple-500/15 text-purple-200 hover:bg-purple-500/25"
-          }`}
-        >
-          {generating
-            ? "Gerando prévias..."
-            : hasPreviews && !staleAsset
-              ? "Gerar novamente"
-              : "Gerar prévias"}
-        </button>
+        {!hasPreviews || staleAsset ? (
+          <button
+            type="button"
+            disabled={!consentAccepted || generating || loading || !profileId}
+            onClick={() => void handleGenerate()}
+            className={`shrink-0 inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+              !consentAccepted || generating || loading || !profileId
+                ? "cursor-not-allowed border-md-border opacity-50 text-md-text-soft"
+                : "border-[var(--criativo-border)] bg-[var(--criativo-soft)] text-[var(--criativo-text)] hover:opacity-90"
+            }`}
+          >
+            {generating ? "Gerando prévias..." : "Gerar prévias"}
+          </button>
+        ) : null}
       </div>
 
       {!consentAccepted ? (
@@ -257,12 +255,12 @@ export function AvatarVoicePreviewPicker({
                     type="button"
                     disabled={busy || selected}
                     onClick={() => void handleSelect(preview.id)}
-                    className={`shrink-0 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                    className={`shrink-0 rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
                       selected
-                        ? "bg-purple-500/30 text-purple-100 cursor-default"
+                        ? "border-[var(--criativo-border)] bg-[var(--criativo-soft)] text-[var(--criativo-text)] cursor-default"
                         : busy
-                          ? "opacity-50 cursor-wait border border-md-border text-md-text-soft"
-                          : "border border-purple-500/50 text-purple-100 hover:bg-purple-500/20"
+                          ? "opacity-50 cursor-wait border-md-border text-md-text-soft"
+                          : "border-[var(--criativo-border)] bg-[var(--criativo-soft)] text-[var(--criativo-text)] hover:opacity-90"
                     }`}
                   >
                     {selected ? "Selecionada" : busy ? "Salvando..." : "Usar esta voz"}
