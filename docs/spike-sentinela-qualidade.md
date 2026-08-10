@@ -3,7 +3,7 @@
 **ID:** `spike/sentinela-qualidade`  
 **Início:** 2026-07-11  
 **Timebox:** 7 dias  
-**Status:** em andamento
+**Status:** concluído — entregas em produção via `SENTINEL_LLM_QUALITY_RANK` (default off, ligado em prod)
 
 ## Hipótese
 

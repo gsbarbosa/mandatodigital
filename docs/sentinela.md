@@ -4,7 +4,7 @@ O **Sentinela** é o agente de monitoramento do Mandato Digital. Ele varre notí
 
 Esta versão funciona **sem API key externa**: usa Google News (RSS), feeds dos portais cadastrados e um dicionário de sinônimos por tema.
 
-**URL em produção:** [mandatodigital.web.app/sentinela](https://mandatodigital.web.app/sentinela)
+**URL em produção:** [mandatodigital.web.app/monitoramento](https://mandatodigital.web.app/monitoramento) (`/sentinela` é rota legada — só redireciona pra cá)
 
 ---
 
@@ -33,7 +33,7 @@ Esta versão funciona **sem API key externa**: usa Google News (RSS), feeds dos 
 
 ### 1. Abrir o Sentinela
 
-No menu do produto, acesse **Sentinela** (`/sentinela`).
+No menu do produto, acesse **Monitoramento** (`/monitoramento`).
 
 ### 2. Aba «1. Temas de interesse»
 

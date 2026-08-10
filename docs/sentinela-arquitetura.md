@@ -4,7 +4,7 @@ Documento para **estudar**, **explicar a outras LLMs** e **pedir mudanças com p
 Guia de uso do produto: [`docs/sentinela.md`](./sentinela.md).  
 Spike de qualidade em curso: [`docs/spike-sentinela-qualidade.md`](./spike-sentinela-qualidade.md).
 
-**Repo:** `mandatodigital` (Next.js / App Hosting Firebase / Supabase)  
+**Repo:** `mandatodigital` (Next.js / App Hosting Firebase / Firestore)  
 **Prod:** `https://mandatodigital--madatodigital.us-central1.hosted.app` (App Hosting)  
 **Objetivo de produto:** a partir do **radar** do mandato (temas + geo + adversários), gerar **sinais/pautas** com evidência (links) para o **Criativo** virar conteúdo.
 
@@ -171,7 +171,7 @@ V2 classifica pipeline (`portal` / `semantic` / `manual`), usa expansões, score
 Flag: `SENTINEL_LLM_THEME_VERIFY`  
 Arquivo: `sentinel-theme-verify.ts`  
 Aprova/rejeita se a matéria **trata de fato** do tema (não menção lateral).  
-Cache de vereditos em Supabase (`sentinel_article_theme_verdicts`).  
+Cache de vereditos no Firestore (`sentinelArticleThemeVerdicts`).  
 **Custo:** pode chamar LLM em muitos artigos se o match for frouxo.
 
 ### 5.3 Social + oposição
@@ -202,9 +202,9 @@ Eval offline: `npm run sentinel:quality-eval`.
 | Peça | Onde |
 |---|---|
 | Memória processo | `Map` em `sentinel-suggestions.ts` (TTL ~15 min) |
-| Persistido | Supabase `sentinel_suggestion_cache` (`sentinel-storage.ts`) |
-| Expansões | `sentinel_theme_expansions` |
-| Histórico sinais | append em storage (quando habilitado) |
+| Persistido | Firestore `sentinelSuggestionCache` (`sentinel-storage.ts`) |
+| Expansões | Firestore `sentinelThemeExpansions` |
+| Histórico sinais | Firestore `sentinelSignals` (append em storage, quando habilitado) |
 
 **GET `/api/sentinel/suggestions`**  
 → `getSentinelSuggestions` **sem** `forceRefresh` → só cache (ou empty pedindo “Atualizar pautas”). Para guest, a resposta pode incluir `credits` (`used` / `limit` / `remaining`).
@@ -301,7 +301,7 @@ src/lib/sentinel-theme-expansion.ts  # LLM expansão
 src/lib/sentinel-theme-verify.ts     # LLM verify
 src/lib/sentinel-quality*.ts         # spike qualidade
 src/lib/sphere-classifier.ts         # UI esferas
-src/lib/sentinel-storage.ts          # Supabase cache
+src/lib/sentinel-storage.ts          # Firestore cache
 src/lib/guest-limits.ts              # créditos + ciclo 8h BRT
 src/lib/guest-credits-storage.ts     # Firestore guestCredits
 src/app/api/sentinel/refresh/route.ts

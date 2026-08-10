@@ -57,3 +57,10 @@ Pare. Empurre só a feature e diga: branch pronta em `origin/feat/...` — aguar
 - Pode commitar e pushar diretamente em `staging` (não precisa de `feat/...` pro próprio trabalho) e promover `staging` → `main` sem pedir permissão de novo a cada vez.
 - Force-push em `staging`/`main` continua exigindo confirmação explícita a cada vez — é destrutivo mesmo pra ele, não é fluxo padrão.
 - Push em `main` dispara deploy real em produção (pipe do App Hosting) — ao fazer isso, deixe claro que é isso que está acontecendo.
+
+## Documentação (spec-driven)
+
+- `docs/` é a fonte viva de specs/arquitetura do produto — mudança de comportamento e atualização do doc correspondente são parte da mesma entrega, não uma tarefa separada pra "depois".
+- Antes de implementar algo novo ou não-trivial, ver se já existe doc em `docs/` cobrindo a área; se a área for relevante (lógica de negócio, integração externa, arquitetura) e não tiver doc, criar um.
+- Doc que descreve algo já superado pelo código (spec já implementada, decisão já executada, evento já passado) vai pra `docs/archive/` — não fica misturado com referência ativa.
+- `AGENTS.md` e `CLAUDE.md` devem ficar idênticos — editou um, replica no outro na mesma mudança.

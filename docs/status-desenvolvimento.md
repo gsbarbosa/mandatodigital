@@ -2,15 +2,17 @@
 
 Documento vivo para acompanhar o que **já existe**, o que está **parcial** e o que **falta implementar**.
 
-**Última atualização:** 2026-07-31  
+**Última atualização:** 2026-08-10  
 **Produção:** https://mandatodigital--madatodigital.us-central1.hosted.app  
 **Branch principal:** `main`
 
 Documentos relacionados:
 
 - [Guia Sentinela](sentinela.md)
-- [Plano roadmap](plano-roadmap-sentinel-auditor-mvp.md)
-- [Parecer técnico Tars](parecer-tars-roadmap.md)
+- [Painel de gestão](painel-gestao.md)
+- [Billing e NFS-e](billing-nfse.md)
+- [Plano roadmap (arquivado)](archive/plano-roadmap-sentinel-auditor-mvp.md) — decisões já executadas
+- [Parecer técnico Tars (arquivado)](archive/parecer-tars-roadmap.md) — decisões já executadas
 
 ---
 
@@ -24,7 +26,7 @@ Documentos relacionados:
 | ❌ | Não implementado |
 | ⏸ | Bloqueado por decisão externa (produto, jurídico, API key) |
 
-**Flags em produção** (`apphosting.yaml`, 2026-07-31):
+**Flags em produção** (`apphosting.yaml`, 2026-08-10):
 
 | Flag | Prod |
 |------|------|
@@ -32,7 +34,10 @@ Documentos relacionados:
 | `SENTINEL_LLM_EXPANSION` | `true` |
 | `SENTINEL_TREND_PROXY` | `true` |
 | `SENTINEL_SOCIAL_ENABLED` | `true` |
+| `SENTINEL_LLM_THEME_VERIFY` | `true` |
+| `SENTINEL_LLM_QUALITY_RANK` | `true` (spike qualidade — custo premium) |
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
+| `ASAAS_NFS_ENABLED` | `true` |
 | `ASYNC_SEAL` / `ASYNC_VOICE` / `PUBSUB_JOBS` | `false` (sync) |
 | `DISTRIBUTION_*` | `false` (fail-closed) |
 
@@ -119,7 +124,7 @@ Referência detalhada: [sentinela.md](sentinela.md)
 
 | Item | Status | Notas |
 |------|--------|-------|
-| UI v2 (`/sentinela`) | ✅ | |
+| UI v2 (`/monitoramento`, `/sentinela` redireciona) | ✅ | |
 | Formulário radar (temas, oposição, @, portais) | ✅ | |
 | Google News RSS + cidade/estado | ✅ | |
 | RSS portais cadastrados | ✅ | |
@@ -210,6 +215,20 @@ tarja de campanha e limites de roteiro por plano continuam permanentes (não dep
 
 ---
 
+## 7c. Billing / Cobrança (Asaas + NFS-e)
+
+Referência detalhada: [billing-nfse.md](billing-nfse.md)
+
+| Item | Status | Notas |
+|------|--------|-------|
+| Checkout PIX/boleto (pacote único parcelado 3x) | ✅ | `src/app/api/billing/checkout` |
+| Webhook Asaas (idempotente) | ✅ | `billingWebhookEvents`, `/api/billing/webhooks/asaas` |
+| Status de pagamento / painel "Meus pagamentos" | ✅ | `/api/billing/status` |
+| NFS-e automática | ✅ | `ASAAS_NFS_ENABLED=true` em prod |
+| Gate de acesso por pagamento pendente | ✅ | `payment-access.ts` |
+
+---
+
 ## 8. Compliance e escala (Fase 3)
 
 | Item | Status | Notas |
@@ -255,6 +274,7 @@ tarja de campanha e limites de roteiro por plano continuam permanentes (não dep
 
 | Data | Mudança |
 |------|---------|
+| 2026-08-10 | Auditoria de docs: corrigida rota `/sentinela`→`/monitoramento`; flags `SENTINEL_LLM_THEME_VERIFY`/`SENTINEL_LLM_QUALITY_RANK`/`ASAAS_NFS_ENABLED` adicionadas à tabela; nova seção 7c Billing/NFS-e; docs de roadmap/parecer movidos pra `archive/` |
 | 2026-07-13 | Fase 3.3 implementada: path `elevenlabs_audio` (IVC+TTS→`audio_url`); conta única EL; fallback `heygen_clone`; BYOK backlog |
 | 2026-06-24 | Criação inicial pós deploy Fase 0+1 e migration Auditor |
 | | Sentinela v2 + LLM + trend proxy **on** em prod |

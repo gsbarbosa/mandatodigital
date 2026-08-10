@@ -1,19 +1,29 @@
 # Mandato Digital
 
-MVP interno para colocar em operacao o fluxo central do Mandato Digital:
+Plataforma para campanhas eleitorais gerarem conteúdo com IA, monitorarem pauta/adversários e
+cumprirem compliance TSE de ponta a ponta:
 
-- onboarding persistido do parlamentar;
-- entrada manual de pauta;
-- geracao de 3 versoes por pauta;
-- revisao humana e aprovacao;
-- historico reutilizavel.
+- **Curador** — identidade, tom e avatar (HeyGen: gêmeo digital, avatar foto, caricatura; voz ElevenLabs);
+- **Sentinela / Monitoramento** (`/monitoramento`) — radar de temas + oposição, sinais de notícias com evidência;
+- **Criativo** — roteiro + vídeo, com handoff dos sinais do Sentinela;
+- **Auditor / Validador** — fact-check automático antes de aprovar roteiro (compliance TSE);
+- **Distribuidor** — publicação nas redes via Ayrshare (fail-closed até smoke);
+- **Compliance** — selo TSE, contrato + dossiê de transparência, blackout eleitoral 72h/24h;
+- **Cobrança** — pacote campanha parcelado (Asaas PIX/boleto) + NFS-e automática — ver [docs/billing-nfse.md](docs/billing-nfse.md);
+- **Painel `/admin`** — gestão interna (provedores, usuários, roadmap, billing) — ver [docs/painel-gestao.md](docs/painel-gestao.md).
+
+Nasceu como o MVP de geração de texto abaixo ("Fluxo do MVP original") e cresceu pro produto acima; o fluxo original continua funcionando como base do Criativo.
 
 ## Stack atual
 
-- `Next.js` com App Router
-- `TypeScript`
+- `Next.js` com App Router · `TypeScript`
 - `Firebase Auth` + `Firestore` + `Firebase Storage` (Admin SDK no server)
-- integracao com `OpenAI` ou `Anthropic` quando as chaves estiverem configuradas
+- LLM: `OpenAI` e/ou `Anthropic`
+- Vídeo/avatar: `HeyGen` · Voz: `ElevenLabs`
+- Monitoramento social: `Apify` (Instagram, atrás de flag)
+- E-mail transacional: `Resend`
+- Cobrança: `Asaas` (PIX/boleto + NFS-e)
+- Distribuição social: `Ayrshare` (atrás de flag, fail-closed)
 
 Dev e producao exigem Firebase Admin (`FIREBASE_SERVICE_ACCOUNT_JSON` localmente; ADC no App Hosting).
 
@@ -48,10 +58,18 @@ Emissão automática após pagamento confirmado (`invoiceSettings` na assinatura
 
 ## Documentacao
 
-- [Status de desenvolvimento (acompanhamento)](docs/status-desenvolvimento.md)
-- [SPEC — Remodelagem UI/UX e navegacao](docs/spec-remodelagem-ui-navegacao.md)
+- [Status de desenvolvimento (acompanhamento, vivo)](docs/status-desenvolvimento.md)
+- [Checklist roadmap (vivo)](docs/checklist-roadmap-05ago.md)
+- [Painel de gestão (/admin)](docs/painel-gestao.md)
 - [Sentinela — guia de uso (passo a passo)](docs/sentinela.md)
-- [Plano roadmap Sentinela / Validador / MVP](docs/plano-roadmap-sentinel-auditor-mvp.md)
+- [Sentinela — arquitetura técnica (handoff)](docs/sentinela-arquitetura.md)
+- [Billing e NFS-e (Asaas)](docs/billing-nfse.md)
+- [Distribuidor — ADR (Ayrshare)](docs/adr-distribution-ayrshare.md)
+- [Jobs assíncronos — ADR (Pub/Sub)](docs/adr-async-jobs-pubsub.md)
+- [Firebase Storage — fase 1](docs/firebase-storage-fase1.md)
+- [E2E Sentinela (Playwright)](docs/e2e-sentinela.md)
+- [SPEC — Remodelagem UI/UX e navegacao (implementada)](docs/spec-remodelagem-ui-navegacao.md)
+- [Integrações e secrets (agente Claude Code)](.claude/agents/integracoes.md)
 
 ## Deploy no Firebase App Hosting
 
@@ -155,7 +173,9 @@ npm run firebase:indexes:deploy
 
 Ver tambem [docs/firebase-storage-fase1.md](docs/firebase-storage-fase1.md).
 
-## Fluxo do MVP
+## Fluxo do MVP original (texto)
+
+Base do fluxo de geração de conteúdo do Criativo — hoje enriquecido pelos sinais do Sentinela e pelo fact-check do Auditor (ver seções acima).
 
 1. Salvar o onboarding do parlamentar.
 2. Registrar uma nova pauta com contexto e fatos confirmados.

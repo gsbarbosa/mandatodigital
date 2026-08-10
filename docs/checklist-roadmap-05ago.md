@@ -5,7 +5,7 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 
 **Fonte:** `RoadMapAte_05_Ago.txt`  
 **Última atualização:** 2026-08-07 (travas de pagamento + Meus pagamentos + e-mail NF)  
-**Relacionados:** [status-desenvolvimento.md](status-desenvolvimento.md) · [Compliance_Prioridades.txt](Compliance_Prioridades.txt) · [painel-gestao.md](painel-gestao.md)
+**Relacionados:** [status-desenvolvimento.md](status-desenvolvimento.md) · [Compliance_Prioridades.txt (arquivado)](archive/Compliance_Prioridades.txt) · [painel-gestao.md](painel-gestao.md) · [billing-nfse.md](billing-nfse.md)
 
 ### Legenda — Status
 
