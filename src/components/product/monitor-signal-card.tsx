@@ -277,18 +277,14 @@ export function MonitorSignalCard({
                 {displayTitleWithoutOutlet(article.title, articleOutletLabel(article))}
               </h3>
               {suggestion.briefing?.trim() ? (
-                <p className="text-sm text-md-text-muted mb-2 leading-relaxed">
-                  {suggestion.briefing.trim()}
-                </p>
-              ) : null}
-              {suggestion.creativeAngle?.trim() ? (
-                <p className="text-xs text-[var(--distribuidor-text)] mb-3">
-                  Ângulo: {suggestion.creativeAngle.trim()}
-                </p>
-              ) : !suggestion.briefing?.trim() ? (
-                <p className="text-sm text-md-text-soft mb-3 line-clamp-2">{suggestion.topic}</p>
+                <>
+                  <p className="text-sm text-md-text-muted mb-2 leading-relaxed">
+                    {suggestion.briefing.trim()}
+                  </p>
+                  <div className="mb-3" />
+                </>
               ) : (
-                <div className="mb-3" />
+                <p className="text-sm text-md-text-soft mb-3 line-clamp-2">{suggestion.topic}</p>
               )}
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <span className="text-md-text-soft">

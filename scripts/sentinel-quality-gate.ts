@@ -225,6 +225,7 @@ async function main() {
       getSentinelSuggestions(profile, {
         forceRefresh: true,
         qualityRankEnabled: true,
+        sphereRescueEnabled: true,
       }),
     );
     suggestions = result.suggestions;

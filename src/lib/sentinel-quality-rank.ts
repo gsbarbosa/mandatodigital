@@ -11,8 +11,6 @@ const DEFAULT_CONCURRENCY = 4;
 const qualityRankResponseSchema = z.object({
   pautavel: z.boolean(),
   score: z.number().min(0).max(1),
-  briefing: z.string().trim().max(280).default(""),
-  creativeAngle: z.string().trim().max(160).optional().default(""),
 });
 
 export type SentinelQualityRankStats = {
@@ -42,13 +40,12 @@ function buildRankPrompt(suggestion: MockSentinelSuggestion, profileLabel: strin
     system:
       "Voce e editor de pautas politicas no Brasil. " +
       "Responda apenas JSON valido: " +
-      '{ "pautavel": true|false, "score": 0-1, "briefing": "...", "creativeAngle": "..." }. ' +
+      '{ "pautavel": true|false, "score": 0-1 }. ' +
       "pautavel=true so se a materia serve para um mandato produzir um criativo util nas proximas 24-48h " +
       "(fato concreto, angulo local/nacional claro, nao clickbait vazio). " +
       "Rejeite (pautavel=false): ensaio/analise generica sem fato novo; " +
       "opiniao tecnica ('a relacao de X com Y') sem evento concreto; " +
-      "classificado/concurso de vagas sem angulo politico util. " +
-      "briefing: 1 frase objetiva. creativeAngle: gancho curto para video/post.",
+      "classificado/concurso de vagas sem angulo politico util.",
     user: [
       profileLabel ? `Mandato/contexto: ${profileLabel}` : "",
       `Tema do radar: ${suggestion.themeLabel}`,
@@ -91,7 +88,7 @@ function isOpposition(suggestion: MockSentinelSuggestion) {
 }
 
 /**
- * Reordena o top N de notícias com LLM mini e anexa briefing no topic quando útil.
+ * Filtra o top N de notícias com LLM mini (mantém/descarta + boost de relevanceScore).
  * Oposição passa intacta. Flag off = no-op.
  */
 export async function applySentinelQualityRank(
@@ -160,7 +157,7 @@ export async function applySentinelQualityRank(
       return { suggestion, keep: true, score: scoreSuggestionPautavel(suggestion).score };
     }
 
-    const { pautavel, score, briefing, creativeAngle } = validated.data;
+    const { pautavel, score } = validated.data;
     stats.ranked += 1;
     const keep = pautavel && score >= minScore;
     if (!keep) {
@@ -169,18 +166,9 @@ export async function applySentinelQualityRank(
     }
     stats.kept += 1;
 
-    const angle = creativeAngle.trim() || briefing.trim();
-    const nextTopic =
-      angle && !suggestion.topic.includes(angle.slice(0, 24))
-        ? `${suggestion.themeLabel} · ${angle}`
-        : suggestion.topic;
-
     return {
       suggestion: {
         ...suggestion,
-        topic: nextTopic.slice(0, 160),
-        briefing: briefing.trim().slice(0, 280) || suggestion.briefing,
-        creativeAngle: creativeAngle.trim().slice(0, 160) || suggestion.creativeAngle,
         relevanceScore: Math.max(
           suggestion.relevanceScore,
           Math.round(40 + score * 55),

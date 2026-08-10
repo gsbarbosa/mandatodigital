@@ -391,11 +391,11 @@ describe("sentinel-rss", () => {
       },
       {
         article: {
-          title: "Polícia Civil faz operação contra o Comando Vermelho na Bahia e no Ceará - CNN Brasil",
+          title: "Mulher é presa na Rodoviária de Crato com 4 kg de drogas, diz Polícia Civil - G1",
           link: "https://example.com/b",
           pubDate: null,
           publishedAt: null,
-          sourceName: "CNN Brasil",
+          sourceName: "G1",
         },
         themeLabel: "Valorização Policial",
         matchedThemes: ["Valorização Policial"],

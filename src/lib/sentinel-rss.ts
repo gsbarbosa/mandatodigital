@@ -648,28 +648,98 @@ export function titlesAreNearDuplicate(
   );
 }
 
-export function countUniqueOutlets(articles: RssNewsItem[]) {
-  const outlets = new Set<string>();
-
-  for (const article of articles) {
-    if (article.sourceName?.trim()) {
-      outlets.add(normalizeSentinelText(article.sourceName));
-      continue;
+/** Conta só a sobreposição de palavras entre duas cluster keys — usado pelo filtro de
+ * veículo em `articlesAreLikelySameStory`, sem mexer na régua de texto original acima. */
+function sharedTokenCount(left: string, right: string): number {
+  const leftWords = new Set(left.split("|").filter(Boolean));
+  const rightWords = new Set(right.split("|").filter(Boolean));
+  let overlap = 0;
+  for (const word of leftWords) {
+    if (rightWords.has(word)) {
+      overlap += 1;
     }
+  }
+  return overlap;
+}
 
-    if (article.siteHost?.trim()) {
-      outlets.add(normalizeSentinelText(article.siteHost));
-      continue;
-    }
+/** Reportagens sobre o mesmo fato saem, na prática, em uma janela de poucos dias — depois
+ * disso, mesmo com palavras-chave em comum, é mais provável ser um fato novo e parecido. */
+const STORY_MATCH_MAX_HOURS_APART = 72;
 
-    try {
-      outlets.add(new URL(article.link).hostname.replace(/^www\./, ""));
-    } catch {
-      outlets.add(article.link);
+export type StoryMatchInput = {
+  title: string;
+  themeLabel?: string;
+  publishedAt?: Date | string | null;
+  outlet?: string | null;
+};
+
+function toTimeMs(value?: Date | string | null): number | null {
+  if (!value) {
+    return null;
+  }
+  const time = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+/**
+ * Versão "cheia" de `titlesAreNearDuplicate`: a régua de texto é exatamente a mesma
+ * (`storyClusterKeysSimilar`, sem alteração); além dela, considera data de publicação e
+ * veículo — os dois sinais só apertam o critério, nunca afrouxam um caso que o texto
+ * sozinho já rejeitaria. Usada em todo lugar que decide "isso é a mesma notícia".
+ *
+ * Veículo: só entra na parte já "fraca" da régua original — o desempate por proporção
+ * com 1 palavra em comum (o último `return` de `storyClusterKeysSimilar`). Quando as
+ * duas matérias são do mesmo veículo, esse desempate fraco não vale — passa a exigir as
+ * mesmas 2 palavras que a régua original já pede no caminho principal. Qualquer par que
+ * já bate 2+ palavras (o caminho comum) segue exatamente igual, veículo nenhum interfere.
+ */
+export function articlesAreLikelySameStory(
+  left: StoryMatchInput,
+  right: StoryMatchInput,
+  extraExcludeWords?: Set<string>,
+): boolean {
+  const leftKey = buildStoryClusterKey(left.title, left.themeLabel, extraExcludeWords);
+  const rightKey = buildStoryClusterKey(right.title, right.themeLabel, extraExcludeWords);
+
+  const leftOutlet = left.outlet?.trim().toLowerCase();
+  const rightOutlet = right.outlet?.trim().toLowerCase();
+  const sameOutlet = Boolean(leftOutlet && rightOutlet && leftOutlet === rightOutlet);
+
+  if (sameOutlet && sharedTokenCount(leftKey, rightKey) < 2) {
+    return false;
+  }
+  if (!storyClusterKeysSimilar(leftKey, rightKey)) {
+    return false;
+  }
+
+  const leftTime = toTimeMs(left.publishedAt);
+  const rightTime = toTimeMs(right.publishedAt);
+  if (leftTime !== null && rightTime !== null) {
+    const hoursApart = Math.abs(leftTime - rightTime) / 3_600_000;
+    if (hoursApart > STORY_MATCH_MAX_HOURS_APART) {
+      return false;
     }
   }
 
-  return outlets.size;
+  return true;
+}
+
+function outletKeyForArticle(article: RssNewsItem): string {
+  if (article.sourceName?.trim()) {
+    return normalizeSentinelText(article.sourceName);
+  }
+  if (article.siteHost?.trim()) {
+    return normalizeSentinelText(article.siteHost);
+  }
+  try {
+    return new URL(article.link).hostname.replace(/^www\./, "");
+  } catch {
+    return article.link;
+  }
+}
+
+export function countUniqueOutlets(articles: RssNewsItem[]) {
+  return new Set(articles.map(outletKeyForArticle)).size;
 }
 
 function dedupeNewsItems(items: RssNewsItem[]) {
@@ -1216,7 +1286,6 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
 
       const cluster = [seed];
       used.add(index);
-      const seedKey = buildStoryClusterKey(seed.article.title, themeLabel, commonWords);
 
       for (let candidateIndex = index + 1; candidateIndex < themeItems.length; candidateIndex += 1) {
         if (used.has(candidateIndex)) {
@@ -1228,8 +1297,22 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
           continue;
         }
 
-        const candidateKey = buildStoryClusterKey(candidate.article.title, themeLabel, commonWords);
-        if (storyClusterKeysSimilar(seedKey, candidateKey)) {
+        const isSameStory = articlesAreLikelySameStory(
+          {
+            title: seed.article.title,
+            themeLabel,
+            publishedAt: seed.article.publishedAt,
+            outlet: outletKeyForArticle(seed.article),
+          },
+          {
+            title: candidate.article.title,
+            themeLabel,
+            publishedAt: candidate.article.publishedAt,
+            outlet: outletKeyForArticle(candidate.article),
+          },
+          commonWords,
+        );
+        if (isSameStory) {
           cluster.push(candidate);
           used.add(candidateIndex);
         }

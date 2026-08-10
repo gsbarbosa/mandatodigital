@@ -1,6 +1,7 @@
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
-import { batchCommonWords, titlesAreNearDuplicate } from "@/lib/sentinel-rss";
+import { articlesAreLikelySameStory, batchCommonWords } from "@/lib/sentinel-rss";
 import {
+  articleOutletLabel,
   classifySuggestionSphere,
   ESTADUAL_MAX_AGE_DAYS,
   isOlderThanSphereWindow,
@@ -27,43 +28,57 @@ function suggestionPrimaryTitle(suggestion: MockSentinelSuggestion) {
   return suggestion.evidence.articles?.[0]?.title?.trim() || suggestion.topic;
 }
 
+function suggestionStoryInput(suggestion: MockSentinelSuggestion) {
+  const article = suggestion.evidence.articles?.[0];
+  return {
+    title: suggestionPrimaryTitle(suggestion),
+    themeLabel: suggestion.themeLabel,
+    publishedAt: article?.publishedAt ?? null,
+    outlet: article ? articleOutletLabel(article) : null,
+  };
+}
+
 /**
- * Dentro do mesmo themeLabel, mantém só o card de maior score quando os títulos
- * descrevem a mesma pauta (parafraseada / multi-outlet já não clusterizado).
+ * Mantém só o card de maior score quando os títulos descrevem a mesma pauta
+ * (parafraseada / multi-outlet já não clusterizado). Por padrão só compara
+ * dentro do mesmo themeLabel; `ignoreTheme` compara todos entre si — para
+ * pegar a mesma notícia que casou com dois temas diferentes do radar.
  */
 export function collapseNearDuplicateSuggestions(
   suggestions: MockSentinelSuggestion[],
+  options: { ignoreTheme?: boolean } = {},
 ): MockSentinelSuggestion[] {
+  const ignoreTheme = options.ignoreTheme ?? false;
   const sorted = [...suggestions].sort(
     (left, right) => right.relevanceScore - left.relevanceScore,
   );
   const kept: MockSentinelSuggestion[] = [];
 
-  const titlesByTheme = new Map<string, string[]>();
+  const groupKeyOf = (suggestion: MockSentinelSuggestion) =>
+    ignoreTheme ? "*" : suggestion.themeLabel.trim() || "(sem tema)";
+
+  const titlesByGroup = new Map<string, string[]>();
   for (const suggestion of sorted) {
-    const theme = suggestion.themeLabel.trim() || "(sem tema)";
-    const list = titlesByTheme.get(theme) ?? [];
+    const group = groupKeyOf(suggestion);
+    const list = titlesByGroup.get(group) ?? [];
     list.push(suggestionPrimaryTitle(suggestion));
-    titlesByTheme.set(theme, list);
+    titlesByGroup.set(group, list);
   }
-  const commonWordsByTheme = new Map<string, Set<string>>();
-  for (const [theme, titles] of titlesByTheme.entries()) {
-    commonWordsByTheme.set(theme, batchCommonWords(titles));
+  const commonWordsByGroup = new Map<string, Set<string>>();
+  for (const [group, titles] of titlesByGroup.entries()) {
+    commonWordsByGroup.set(group, batchCommonWords(titles));
   }
 
   for (const candidate of sorted) {
-    const candidateTheme = candidate.themeLabel.trim() || "(sem tema)";
-    const candidateTitle = suggestionPrimaryTitle(candidate);
-    const commonWords = commonWordsByTheme.get(candidateTheme);
+    const candidateGroup = groupKeyOf(candidate);
+    const commonWords = commonWordsByGroup.get(candidateGroup);
     const isDup = kept.some((existing) => {
-      const existingTheme = existing.themeLabel.trim() || "(sem tema)";
-      if (existingTheme !== candidateTheme) {
+      if (!ignoreTheme && groupKeyOf(existing) !== candidateGroup) {
         return false;
       }
-      return titlesAreNearDuplicate(
-        suggestionPrimaryTitle(existing),
-        candidateTitle,
-        candidateTheme,
+      return articlesAreLikelySameStory(
+        suggestionStoryInput(existing),
+        suggestionStoryInput(candidate),
         commonWords,
       );
     });
@@ -193,22 +208,36 @@ const SPHERE_AGE_WINDOW_DAYS: Partial<Record<MonitorSphere, number>> = {
   estadual: ESTADUAL_MAX_AGE_DAYS,
 };
 
+export type SphereRescueCandidateGroup = {
+  sphere: MonitorSphere;
+  /** Quantas pautas faltam pra esfera bater o mínimo. */
+  needed: number;
+  /** Candidatos fora de `selected`, já ordenados (sobrevivente da janela de idade primeiro
+   * em federal/estadual, depois por relevanceScore). Pode ser vazio. */
+  candidates: MockSentinelSuggestion[];
+};
+
 /**
+ * Monta, pra cada esfera geográfica abaixo do mínimo, a lista ordenada de candidatos
+ * disponíveis pra preencher a lacuna — sem decidir quem promover. Extraído de
+ * `ensureMinimumSphereRepresentation` pra permitir que `rescueZeroedSpheres`
+ * (@/lib/sentinel-sphere-rescue) troque a escolha cega por score por uma decisão de IA,
+ * reaproveitando a mesma regra de shortlist.
+ *
  * O teto por tema (maxPerTheme) é compartilhado entre as 3 esferas geográficas —
  * numa conta com radar bem local, a cobertura municipal/estadual costuma pontuar
  * mais alto pro mesmo tema (mais fontes cobrindo o mesmo fato, bônus de cidade
  * monitorada) e pode varrer a cota inteira, deixando Nacional sem nenhuma pauta
- * mesmo havendo candidato disponível. Garante pelo menos `minPerSphere` pauta por
- * esfera, promovendo o melhor candidato que sobrou de fora — preferindo, entre
- * os candidatos disponíveis, um que sobreviva ao filtro de idade da esfera
- * (senão a promoção "ganha" no servidor e some de novo na tela).
+ * mesmo havendo candidato disponível — preferindo, entre os candidatos disponíveis,
+ * um que sobreviva ao filtro de idade da esfera (senão a promoção "ganha" no
+ * servidor e some de novo na tela).
  */
-export function ensureMinimumSphereRepresentation(input: {
+export function buildSphereRescueCandidateGroups(input: {
   selected: MockSentinelSuggestion[];
   allCandidates: MockSentinelSuggestion[];
   profile: PoliticianProfile;
   minPerSphere?: number;
-}): MockSentinelSuggestion[] {
+}): SphereRescueCandidateGroup[] {
   const minPerSphere = input.minPerSphere ?? 1;
 
   const sphereOf = (suggestion: MockSentinelSuggestion): MonitorSphere =>
@@ -224,13 +253,14 @@ export function ensureMinimumSphereRepresentation(input: {
       input.profile.municipalCities,
     );
 
-  const result = [...input.selected];
-  const resultIds = new Set(result.map((suggestion) => suggestion.id));
+  const resultIds = new Set(input.selected.map((suggestion) => suggestion.id));
   const countBySphere = new Map<MonitorSphere, number>();
-  for (const suggestion of result) {
+  for (const suggestion of input.selected) {
     const sphere = sphereOf(suggestion);
     countBySphere.set(sphere, (countBySphere.get(sphere) ?? 0) + 1);
   }
+
+  const groups: SphereRescueCandidateGroup[] = [];
 
   for (const sphere of SPHERES_TO_GUARANTEE) {
     const current = countBySphere.get(sphere) ?? 0;
@@ -253,13 +283,26 @@ export function ensureMinimumSphereRepresentation(input: {
         })
       : candidatesForSphere;
 
-    const promoted = ordered.slice(0, minPerSphere - current);
-
-    for (const candidate of promoted) {
-      result.push(candidate);
-      resultIds.add(candidate.id);
-    }
+    groups.push({ sphere, needed: minPerSphere - current, candidates: ordered });
   }
 
+  return groups;
+}
+
+/**
+ * Escolha cega por score — fallback usado quando a IA de resgate de esfera
+ * (@/lib/sentinel-sphere-rescue) está desligada ou falha tecnicamente.
+ */
+export function ensureMinimumSphereRepresentation(input: {
+  selected: MockSentinelSuggestion[];
+  allCandidates: MockSentinelSuggestion[];
+  profile: PoliticianProfile;
+  minPerSphere?: number;
+}): MockSentinelSuggestion[] {
+  const groups = buildSphereRescueCandidateGroups(input);
+  const result = [...input.selected];
+  for (const group of groups) {
+    result.push(...group.candidates.slice(0, group.needed));
+  }
   return result;
 }

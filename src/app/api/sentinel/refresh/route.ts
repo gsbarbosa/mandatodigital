@@ -175,7 +175,9 @@ export async function POST(request: Request) {
     try {
       result = await getSentinelSuggestions(dashboard.profile, {
         forceRefresh: true,
-        qualityRankEnabled: premium,
+        // Sentinela IA (quality rank + resgate de esfera) agora é universal, grátis e pago.
+        qualityRankEnabled: true,
+        sphereRescueEnabled: true,
       });
     } catch (error) {
       await releaseDistributedRateLimit({ key: platformRateKey });

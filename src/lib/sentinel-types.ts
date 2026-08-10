@@ -1,4 +1,5 @@
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
+import type { MonitorSphere } from "@/lib/sphere-classifier";
 
 export type SentinelMunicipalFallbackMeta = {
   reason: "themes_missed" | "few_local" | "portal_no_theme_match";
@@ -48,6 +49,14 @@ export type SentinelSuggestionsMeta = {
     llmCalls: number;
     kept: number;
     dropped: number;
+  };
+  /** IA de resgate de esfera zerada — escolhe, rejeita, ou falha tecnicamente por esfera. */
+  sphereRescueStats?: {
+    spheresNeeded: number;
+    spheresPromotedByAi: number;
+    spheresRejectedByAi: number;
+    failedSpheres: MonitorSphere[];
+    llmCalls: number;
   };
   llmCostEstimate?: {
     expansionCalls: number;
