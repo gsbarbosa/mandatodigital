@@ -8,6 +8,8 @@ import {
   getAdminPassword,
   getAdminSessionSecret,
 } from "@/lib/admin/credentials";
+import { getSessionUser } from "@/lib/auth/session";
+import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
 
 export type AdminSession = {
   email: string;
@@ -82,10 +84,38 @@ export function validateAdminCredentials(email: string, password: string) {
   return emailOk && passwordOk;
 }
 
+/**
+ * Fallback: usuário já logado (Firebase, login normal do app) com `isAdmin`
+ * no cadastro (userRegistrations) entra no /admin sem passar por /admin/login.
+ * Reavaliado a cada request — desligar a flag revoga o acesso na hora.
+ */
+async function getAdminSessionFromUserFlag(): Promise<AdminSession | null> {
+  const user = await getSessionUser();
+  if (!user?.email) {
+    return null;
+  }
+
+  try {
+    const registration = await getUserRegistrationForOwner(user.id);
+    if (!registration?.isAdmin) {
+      return null;
+    }
+    return { email: user.email.toLowerCase(), exp: Date.now() + ADMIN_SESSION_MAX_AGE_MS };
+  } catch (error) {
+    console.error("[admin/session] falha ao checar flag isAdmin:", error);
+    return null;
+  }
+}
+
 export async function getAdminSession(): Promise<AdminSession | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
-  return verifyAdminSessionToken(token);
+  const staticSession = verifyAdminSessionToken(token);
+  if (staticSession) {
+    return staticSession;
+  }
+
+  return getAdminSessionFromUserFlag();
 }
 
 export async function requireAdminSession(): Promise<AdminSession> {

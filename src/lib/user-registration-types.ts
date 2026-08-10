@@ -52,6 +52,8 @@ export type UserRegistration = {
   lastNfsEmailSentFor: string | null;
   /** Parcelas já agendadas para NFS-e (idempotência no parcelamento). */
   scheduledNfsPaymentIds: string[];
+  /** Acesso ao /admin sem login separado. Setado só via script (scripts/set-admin-flag.mjs). */
+  isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
