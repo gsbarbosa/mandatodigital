@@ -230,12 +230,10 @@ env:
       - BUILD
       - RUNTIME
 
-  # Painel /admin — recomendado (sem isto usa default de bootstrap + warning nos logs):
+  # Painel /admin — acesso via flag isAdmin no cadastro do usuário, sem senha.
+  # ADMIN_SESSION_SECRET só deriva a chave de criptografia do cofre de provider secrets
+  # (recomendado; sem isto usa default de bootstrap + warning nos logs):
   # Cadastre: npm run firebase:secrets:guide / --apply
-  # - variable: ADMIN_PASSWORD
-  #   secret: admin-password
-  #   availability:
-  #     - RUNTIME
   # - variable: ADMIN_SESSION_SECRET
   #   secret: admin-session-secret
   #   availability:
