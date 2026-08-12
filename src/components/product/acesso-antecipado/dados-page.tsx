@@ -27,26 +27,15 @@ import {
   type EarlyAccessPlanId,
   type EarlyAccessReservation,
 } from "@/lib/early-access";
-const UF_LIST = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
-  "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-];
-
-/** Partidos registrados no TSE disputando a eleição de 2026. */
-const PARTIDOS_2026 = [
-  "AGIR", "AVANTE", "CIDADANIA", "DC", "MDB", "MOBILIZA", "NOVO", "PCB", "PCdoB",
-  "PCO", "PDT", "PL", "PMB", "PODE", "PP", "PRD", "PRTB", "PSB", "PSD", "PSDB",
-  "PSOL", "PSTU", "PT", "PV", "REDE", "REPUBLICANOS", "SOLIDARIEDADE", "UNIÃO BRASIL", "UP",
-];
-
-const CARGOS_2026 = [
-  "Deputado Federal",
-  "Deputado Estadual",
-  "Deputado Distrital",
-  "Senador",
-  "Governador",
-  "Presidente",
-];
+import {
+  CARGOS_2026,
+  PARTIDOS_2026,
+  UF_LIST,
+  isCargo2026,
+  isPartido2026,
+  isUf,
+} from "@/lib/eleicao-2026";
+import type { TseCandidatePrefill } from "@/lib/tse-candidates";
 
 const BETA_CARGOS = new Set(["Senador", "Governador", "Presidente"]);
 
@@ -414,6 +403,23 @@ export function AcessoDadosPage() {
     setEmailStatusMessage("E-mail inválido — use o formato nome@dominio.com");
   }
 
+  /**
+   * Preenchimento silencioso a partir da base TSE 2026. Só encosta em campo
+   * vazio — o que o usuário já digitou nunca é sobrescrito — e ignora valor
+   * que não exista nos selects (base defasada não deixa o campo em branco
+   * sem opção correspondente). CPF fora da base: nada acontece, sem aviso.
+   */
+  function applyTsePrefill(prefill: TseCandidatePrefill) {
+    setForm((current) => ({
+      ...current,
+      fullName: current.fullName.trim() || prefill.fullName || "",
+      party:
+        current.party || (isPartido2026(prefill.party) ? prefill.party : ""),
+      uf: current.uf || (isUf(prefill.uf) ? prefill.uf : ""),
+      role: current.role || (isCargo2026(prefill.role) ? prefill.role : ""),
+    }));
+  }
+
   async function checkCpfAvailability(cpfValue: string) {
     const seq = ++cpfCheckSeq.current;
     if (!isValidCpf(cpfValue)) {
@@ -438,6 +444,7 @@ export function AcessoDadosPage() {
         valid?: boolean;
         available?: boolean;
         message?: string | null;
+        prefill?: TseCandidatePrefill | null;
       } | null;
 
       if (seq !== cpfCheckSeq.current) {
@@ -464,6 +471,10 @@ export function AcessoDadosPage() {
 
       setCpfStatus("ok");
       setCpfStatusMessage(null);
+
+      if (payload.prefill) {
+        applyTsePrefill(payload.prefill);
+      }
     } catch {
       if (seq === cpfCheckSeq.current) {
         setCpfStatus("idle");

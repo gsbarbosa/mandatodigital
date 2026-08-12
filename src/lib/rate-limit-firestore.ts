@@ -127,3 +127,15 @@ export const SENTINEL_PLATFORM_REFRESH_WINDOW_MS = 24 * 60 * 60 * 1000;
 export function sentinelPlatformRateLimitKey(ownerUserId: string) {
   return `sentinel-refresh:${ownerUserId.trim() || "anonymous"}`;
 }
+
+/**
+ * Prefill do cadastro pela base TSE: teto por usuário/dia. Um cadastro real
+ * gasta poucas consultas; varrer os 15.866 CPFs da base levaria ~317 dias.
+ * Estourar o teto só desliga o prefill — a validação de CPF duplicado segue.
+ */
+export const TSE_PREFILL_LOOKUP_MAX_PER_DAY = 50;
+export const TSE_PREFILL_LOOKUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export function tsePrefillRateLimitKey(ownerUserId: string) {
+  return `tse-prefill:${ownerUserId.trim() || "anonymous"}`;
+}
