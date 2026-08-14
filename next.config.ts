@@ -56,6 +56,8 @@ const nextConfig: NextConfig = {
       { source: "/materialidade/", destination: "/materialidade/index.html" },
       { source: "/chapas-femininas", destination: "/chapas-femininas/index.html" },
       { source: "/chapas-femininas/", destination: "/chapas-femininas/index.html" },
+      { source: "/teste-gratis", destination: "/teste-gratis/index.html" },
+      { source: "/teste-gratis/", destination: "/teste-gratis/index.html" },
     ];
   },
 };
