@@ -26,8 +26,8 @@ import { appLog, startTimer } from "@/lib/observability/log";
 import {
   resolveMaxPerTheme,
   finalizeSuggestionFeed,
-  ensureMinimumSphereRepresentation,
 } from "@/lib/sentinel-diversify";
+import { rescueZeroedSpheres } from "@/lib/sentinel-sphere-rescue";
 import { orderClusterArticlesForDisplay } from "@/lib/sentinel-cluster-order";
 import { isLikelyJobListingTitle, isWeakFakeNewsTitle } from "@/lib/sentinel-title-filters";
 import type { MockSentinelSuggestion, SentinelNewsArticle } from "@/lib/sentinel-mock-suggestions";
@@ -700,12 +700,17 @@ async function buildSuggestions(
 
 export async function getSentinelSuggestions(
   profile: PoliticianProfile,
-  options?: { forceRefresh?: boolean; qualityRankEnabled?: boolean },
+  options?: {
+    forceRefresh?: boolean;
+    qualityRankEnabled?: boolean;
+    sphereRescueEnabled?: boolean;
+  },
 ) {
   const elapsed = startTimer();
   const cacheKey = profile.id || "default";
   const forceRefresh = Boolean(options?.forceRefresh);
   const qualityRankEnabled = options?.qualityRankEnabled !== false;
+  const sphereRescueEnabled = options?.sphereRescueEnabled !== false;
   const cached = await readCachedSuggestions(cacheKey, profile, {
     forceRefresh,
     allowStale: true,
@@ -781,13 +786,19 @@ export async function getSentinelSuggestions(
     enabled: qualityRankEnabled,
   });
 
-  // Depois do rank: repõe ao menos 1 pauta por esfera. allCandidates = pool pré-rank
-  // para poder re-promover o que o LLM dropou e evitar seção vazia na tela.
-  const sphereGuaranteed = ensureMinimumSphereRepresentation({
+  // Depois do rank: repõe ao menos 1 pauta por esfera. Com a IA de resgate ligada, a escolha
+  // (ou rejeição explícita de "nenhuma presta") é da IA, não mais cega por score — allCandidates
+  // continua sendo o pool pré-rank, pool do qual a IA escolhe.
+  const sphereRescue = await rescueZeroedSpheres({
     selected: qualityRank.suggestions,
     allCandidates: suggestionsFiltered,
     profile,
+    options: {
+      profileLabel: [profile.fullName, profile.city, profile.state].filter(Boolean).join(" · "),
+      enabled: sphereRescueEnabled,
+    },
   });
+  const sphereGuaranteed = sphereRescue.suggestions;
 
   // Depois do rank: se municipal ficou sem temas do radar, amplia com notícias locais.
   const geoFallbackResult = promoteMunicipalGeoFallback({
@@ -842,6 +853,7 @@ export async function getSentinelSuggestions(
       oppositionTotal: qualityReport.oppositionTotal,
     },
     qualityRankStats: qualityRank.stats,
+    sphereRescueStats: sphereRescue.stats,
     llmCostEstimate,
     emptyReason:
       suggestions.length === 0

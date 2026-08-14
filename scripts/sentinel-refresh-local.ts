@@ -209,7 +209,6 @@ async function main() {
         count: result.suggestions.length,
         themes,
         withBriefing: result.suggestions.filter((s) => s.briefing?.trim()).length,
-        withAngle: result.suggestions.filter((s) => s.creativeAngle?.trim()).length,
         meta: {
           qualityRankStats: result.meta.qualityRankStats,
           qualityReport: result.meta.qualityReport,
@@ -221,7 +220,6 @@ async function main() {
           theme: s.themeLabel,
           title: s.evidence.articles?.[0]?.title?.slice(0, 90),
           briefing: s.briefing?.slice(0, 120),
-          angle: s.creativeAngle?.slice(0, 80),
           topic: s.topic.slice(0, 100),
         })),
       },

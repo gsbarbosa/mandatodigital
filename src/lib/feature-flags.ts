@@ -35,6 +35,8 @@ export const featureFlags = {
   sentinelLlmThemeVerify: readEnvFlag("SENTINEL_LLM_THEME_VERIFY"),
   /** Spike qualidade: LLM mini só no top N (off por default). */
   sentinelLlmQualityRank: readEnvFlag("SENTINEL_LLM_QUALITY_RANK"),
+  /** IA de resgate de esfera zerada — escolhe ou rejeita, em vez de pegar cego por score. */
+  sentinelLlmSphereRescue: readEnvFlag("SENTINEL_LLM_SPHERE_RESCUE"),
   heygenVoiceProvider: getHeyGenVoiceProvider(),
 } as const;
 
@@ -77,6 +79,10 @@ export function isSentinelLlmThemeVerifyEnabled() {
 
 export function isSentinelLlmQualityRankEnabled() {
   return featureFlags.sentinelLlmQualityRank;
+}
+
+export function isSentinelLlmSphereRescueEnabled() {
+  return featureFlags.sentinelLlmSphereRescue;
 }
 
 /** Selagem FFmpeg via job async (Pub/Sub / worker). */

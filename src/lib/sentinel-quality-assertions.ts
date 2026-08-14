@@ -13,7 +13,6 @@ export type SentinelFeedQualityReport = {
   stats: {
     total: number;
     newsTotal: number;
-    withBriefing: number;
     jobListings: number;
     weakFakeNews: number;
     distinctThemes: number;
@@ -41,7 +40,6 @@ function primaryTitle(suggestion: MockSentinelSuggestion) {
 export function evaluateSentinelFeedQuality(
   input: SentinelFeedQualityInput,
   options: {
-    requireBriefingWhenRanked?: boolean;
     maxJobListingRatio?: number;
     maxThemeShare?: number;
     minCards?: number;
@@ -49,7 +47,6 @@ export function evaluateSentinelFeedQuality(
     expectThemeVerify?: boolean;
   } = {},
 ): SentinelFeedQualityReport {
-  const requireBriefingWhenRanked = options.requireBriefingWhenRanked !== false;
   const maxJobListingRatio = options.maxJobListingRatio ?? 0.25;
   const maxThemeShare = options.maxThemeShare ?? 0.55;
   const minCards = options.minCards ?? 3;
@@ -62,7 +59,6 @@ export function evaluateSentinelFeedQuality(
 
   let jobListings = 0;
   let weakFakeNews = 0;
-  let withBriefing = 0;
   const themeCounts = new Map<string, number>();
 
   for (const suggestion of news) {
@@ -72,9 +68,6 @@ export function evaluateSentinelFeedQuality(
     }
     if (isWeakFakeNewsTitle(title)) {
       weakFakeNews += 1;
-    }
-    if (suggestion.briefing?.trim() || suggestion.creativeAngle?.trim()) {
-      withBriefing += 1;
     }
     const theme = suggestion.themeLabel.trim() || "(sem tema)";
     themeCounts.set(theme, (themeCounts.get(theme) ?? 0) + 1);
@@ -114,10 +107,6 @@ export function evaluateSentinelFeedQuality(
     failures.push("Quality rank esperado, mas meta.qualityRankStats.llmCalls = 0.");
   }
 
-  if (requireBriefingWhenRanked && rankLlmCalls > 0 && withBriefing === 0) {
-    failures.push("Rank rodou, mas nenhum card tem briefing/ângulo.");
-  }
-
   // Cache quente de vereditos deixa llmCalls=0; saúde = llm + cache.
   if (
     expectThemeVerify &&
@@ -135,7 +124,6 @@ export function evaluateSentinelFeedQuality(
     stats: {
       total: suggestions.length,
       newsTotal: news.length,
-      withBriefing,
       jobListings,
       weakFakeNews,
       distinctThemes,

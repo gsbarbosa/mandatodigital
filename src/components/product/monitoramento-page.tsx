@@ -21,6 +21,7 @@ import {
   type GuestSentinelCredits,
 } from "@/lib/guest-limits";
 import { broadcastGuestSentinelCredits } from "@/lib/guest-credits-bus";
+import { collapseNearDuplicateSuggestions } from "@/lib/sentinel-diversify";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 import type { SentinelSuggestionsMeta } from "@/lib/sentinel-types";
 import {
@@ -63,6 +64,12 @@ const SECTIONS: Array<{
   { sphere: "interesse", title: "Interesse", dotClass: "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]" },
   { sphere: "adversarios", title: "Adversários", dotClass: "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" },
 ];
+
+/** A mesma notícia pode casar com dois temas do radar (ex.: "Segurança" e "Educação") e virar
+ * dois cards nesta esfera — o dedup por tema já feito no servidor não pega esse caso porque só
+ * compara dentro do mesmo tema. Nacional/Estadual/Municipal são as únicas esferas com esse risco
+ * (Interesse/Adversários vêm de posts, não de clusters de matéria por tema). */
+const CROSS_THEME_DEDUP_SPHERES: ReadonlySet<MonitorSphere> = new Set(["federal", "estadual", "municipal"]);
 
 /** Mesma origem de data usada no card (artigo ou ator primário) para ordenar por publicação. */
 function suggestionPublishedAtMs(suggestion: MockSentinelSuggestion): number {
@@ -317,7 +324,12 @@ export function MonitoramentoPage() {
       profileForm.municipalCities,
     );
     return Object.fromEntries(
-      Object.entries(groups).map(([sphere, items]) => [sphere, sortByPublishedAtDesc(items)]),
+      Object.entries(groups).map(([sphere, items]) => {
+        const deduped = CROSS_THEME_DEDUP_SPHERES.has(sphere as MonitorSphere)
+          ? collapseNearDuplicateSuggestions(items, { ignoreTheme: true })
+          : items;
+        return [sphere, sortByPublishedAtDesc(deduped)];
+      }),
     ) as Record<MonitorSphere, MockSentinelSuggestion[]>;
   }, [
     suggestions,
@@ -433,7 +445,9 @@ export function MonitoramentoPage() {
       return "Nenhuma pauta identificada nos perfis selecionados.";
     }
     if (sphere === "federal") {
-      const themes = profileForm.sentinelThemesFederal.filter((theme) => theme.trim());
+      const themes = resolveSentinelThemeSpheres(profileForm).federal.filter((theme) =>
+        theme.trim(),
+      );
       if (themes.length) {
         const themesLabel = themes.slice(0, 4).join(", ") + (themes.length > 4 ? "…" : "");
         const suggestion = findRelatedUnselectedTheme(themes, federalThemeGroups);
@@ -445,7 +459,9 @@ export function MonitoramentoPage() {
       return `Nenhuma pauta encontrada nesta esfera com os temas selecionados nos últimos ${NATIONAL_MAX_AGE_DAYS} dias.`;
     }
     if (sphere === "estadual") {
-      const themes = profileForm.sentinelThemesEstadual.filter((theme) => theme.trim());
+      const themes = resolveSentinelThemeSpheres(profileForm).estadual.filter((theme) =>
+        theme.trim(),
+      );
       if (themes.length) {
         const themesLabel = themes.slice(0, 4).join(", ") + (themes.length > 4 ? "…" : "");
         const suggestion = findRelatedUnselectedTheme(themes, estadualThemeGroups);
@@ -699,9 +715,11 @@ export function MonitoramentoPage() {
               {!isLoading && !isRefreshing && !items.length ? (
                 <div className="rounded-xl border border-md-border bg-md-surface px-5 py-6 shadow-sm">
                   <p className="text-sm text-md-text-muted m-0">
-                    {municipalFallback
-                      ? "Não encontramos reportagens locais recentes nos temas selecionados nem outras notícias do município nesta rodada."
-                      : emptyMessageForSphere(sphere)}
+                    {meta?.sphereRescueStats?.failedSpheres?.includes(sphere)
+                      ? "Tivemos uma falha por aqui. Por favor, tente novamente em alguns minutos."
+                      : municipalFallback
+                        ? "Não encontramos reportagens locais recentes nos temas selecionados nem outras notícias do município nesta rodada."
+                        : emptyMessageForSphere(sphere)}
                   </p>
                   <Link
                     href={

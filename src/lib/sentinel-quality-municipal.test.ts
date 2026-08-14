@@ -26,7 +26,6 @@ function card(
     relevanceScore: rest.relevanceScore ?? 70,
     topic: rest.topic ?? title,
     briefing: rest.briefing,
-    creativeAngle: rest.creativeAngle,
     evidence: {
       postsAnalyzed: 1,
       outletCount: 1,

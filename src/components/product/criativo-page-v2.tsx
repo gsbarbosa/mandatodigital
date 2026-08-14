@@ -96,6 +96,7 @@ import {
 } from "@/lib/guest-limits";
 import { useAccountTier } from "@/components/product/use-account-tier";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
+import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 const FREE_PROMPT_RESPONSIBILITY_CONSENT_TEXT =
   "Confirmo que não atribuí falas, atos ou posições não confirmadas a outras pessoas neste texto, e que assumo total responsabilidade pelo conteúdo, já que este modo não passa pela checagem automática do Auditor.";
@@ -389,12 +390,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     canGenerateVideo &&
     (useFreePromptAsTranscript ? freePrompt.trim().length > 0 : scriptClearedForProduction);
 
-  function getGenerateDisabledReason(): { reason: string; href?: Route } | null {
+  function getGenerateDisabledReason(): { reason: string; href?: Route; linkLabel?: string } | null {
     if (isGenerating) {
       return null;
     }
     if (creditsExhausted) {
-      return { reason: creditsExhaustedMessage };
+      return {
+        reason: creditsExhaustedMessage,
+        href: PLAN_SELECTION_PATH as Route,
+        linkLabel: "Ver planos e preços",
+      };
     }
     if (!isPremium && readGuestVideosForAvatar(resolveGuestAvatarKey()) >= GUEST_MAX_VIDEOS_PER_AVATAR) {
       return {
@@ -2809,7 +2814,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                         href={generateDisabledReason.href}
                         className="text-[var(--curador-text)] no-underline hover:underline"
                       >
-                        Ir para configuração
+                        {generateDisabledReason.linkLabel ?? "Ir para configuração"}
                       </Link>
                     </>
                   ) : null}

@@ -14,7 +14,6 @@ function card(
     relevanceScore: rest.relevanceScore ?? 70,
     topic: rest.topic ?? `Desemprego · ${title}`,
     briefing: rest.briefing,
-    creativeAngle: rest.creativeAngle,
     evidence: {
       postsAnalyzed: 1,
       outletCount: 1,
@@ -50,27 +49,21 @@ describe("evaluateSentinelFeedQuality", () => {
     expect(report.failures.some((f) => f.includes("Classificados"))).toBe(true);
   });
 
-  it("aprova feed diversificado com rank e briefing", () => {
+  it("aprova feed diversificado com rank", () => {
     const report = evaluateSentinelFeedQuality(
       {
         suggestions: [
           card({
             themeLabel: "Desemprego",
             title: "Minas atinge menor taxa de desemprego desde 2012",
-            briefing: "Dado oficial da FJP.",
-            creativeAngle: "MG no menor desemprego da década",
           }),
           card({
             themeLabel: "Carga Tributária",
             title: "Carga tributária sobe a 32,4% do PIB",
-            briefing: "Recorde histórico da série.",
-            creativeAngle: "Imposto alto, retorno baixo",
           }),
           card({
             themeLabel: "Contratos Públicos",
             title: "TCEMG suspende licitação por cobrança irregular",
-            briefing: "Tribunal freia edital irregular.",
-            creativeAngle: "Fiscalização em licitação",
           }),
         ],
         meta: {
@@ -92,7 +85,6 @@ describe("evaluateSentinelFeedQuality", () => {
       { expectQualityRank: true },
     );
     expect(report.ok).toBe(true);
-    expect(report.stats.withBriefing).toBe(3);
   });
 
   it("aceita theme verify saudavel so com cacheHits", () => {

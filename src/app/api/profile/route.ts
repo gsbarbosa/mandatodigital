@@ -135,7 +135,9 @@ export async function PUT(request: Request) {
             await invalidateSentinelCacheAsync(profile.id);
             const result = await getSentinelSuggestions(profile, {
               forceRefresh: true,
-              qualityRankEnabled: premium,
+              // Sentinela IA (quality rank + resgate de esfera) agora é universal, grátis e pago.
+              qualityRankEnabled: true,
+              sphereRescueEnabled: true,
             });
             const sourceFailed = isGuestSentinelRefreshSourceFailure(result.meta);
             if (consumeOnSuccess && !sourceFailed) {
