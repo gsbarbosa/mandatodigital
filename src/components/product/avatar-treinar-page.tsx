@@ -116,11 +116,20 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
     if (!file) {
       return;
     }
+    // Foto e áudio são biometria: nada sai do dispositivo antes do aceite dos termos.
+    if (!consentAccepted) {
+      setUploadMessage("Aceite os termos de treinamento antes de enviar foto ou áudio.");
+      return;
+    }
     setPendingPhoto(file);
   }
 
   async function handleUpload(file: File | null | undefined, role: TrainingAssetRole, label: string) {
     if (!file) {
+      return;
+    }
+    if (!consentAccepted) {
+      setUploadMessage("Aceite os termos de treinamento antes de enviar foto ou áudio.");
       return;
     }
     setUploadMessage(null);
@@ -193,10 +202,18 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                 <div className="md:w-[min(100%,20rem)] md:shrink-0 flex flex-col justify-center space-y-3">
                   <button
                     type="button"
-                    disabled={isUploadingAvatarImageAsset}
-                    onClick={() => setCameraOpen(true)}
+                    disabled={!consentAccepted || isUploadingAvatarImageAsset}
+                    onClick={() => {
+                      if (!consentAccepted) {
+                        setUploadMessage(
+                          "Aceite os termos de treinamento antes de enviar foto ou áudio.",
+                        );
+                        return;
+                      }
+                      setCameraOpen(true);
+                    }}
                     className={`w-full inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                      isUploadingAvatarImageAsset
+                      !consentAccepted || isUploadingAvatarImageAsset
                         ? "cursor-not-allowed border-md-border opacity-50 text-md-text-soft"
                         : "border-[var(--curador-border)] bg-[var(--curador-soft)] text-[var(--curador-text)] hover:opacity-90"
                     }`}
@@ -220,7 +237,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
 
                   <label
                     className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
-                      isUploadingAvatarImageAsset
+                      !consentAccepted || isUploadingAvatarImageAsset
                         ? "border-md-border opacity-50 cursor-not-allowed"
                         : "border-md-border-hover hover:border-cyan-500 cursor-pointer"
                     }`}
@@ -237,7 +254,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                       type="file"
                       className="hidden"
                       accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                      disabled={isUploadingAvatarImageAsset}
+                      disabled={!consentAccepted || isUploadingAvatarImageAsset}
                       onChange={(event) => {
                         openPendingPhoto(event.target.files?.[0]);
                         event.target.value = "";
@@ -292,6 +309,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
 
                 <div className="md:w-[min(100%,20rem)] md:shrink-0 flex flex-col justify-center space-y-3">
                   <AvatarVoiceRecorder
+                    disabled={!consentAccepted}
                     busy={isUploadingVoiceAudioAsset}
                     onRecorded={(file) => {
                       setAudioPreviewFromFile(file);
@@ -301,7 +319,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
 
                   <label
                     className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
-                      isUploadingVoiceAudioAsset
+                      !consentAccepted || isUploadingVoiceAudioAsset
                         ? "border-md-border opacity-50 cursor-not-allowed"
                         : "border-md-border-hover hover:border-purple-500 cursor-pointer"
                     }`}
@@ -318,7 +336,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                       type="file"
                       className="hidden"
                       accept="audio/*"
-                      disabled={isUploadingVoiceAudioAsset}
+                      disabled={!consentAccepted || isUploadingVoiceAudioAsset}
                       onChange={(event) => {
                         const file = event.target.files?.[0];
                         if (file) {
@@ -398,13 +416,18 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
             </label>
             {!consentAccepted ? (
               <p className="mt-3 text-xs text-amber-300/90">
-                Aceite os termos para concluir o envio e voltar ao avatar.
+                Aceite os termos para liberar o envio de foto e áudio.
               </p>
             ) : null}
           </div>
 
           {uploadMessage ? (
-            <p className="text-sm mb-6 text-[var(--sentinela-text)]" role="status">
+            <p
+              className={`text-sm mb-6 ${
+                uploadMessage.startsWith("Aceite") ? "text-amber-300/90" : "text-[var(--sentinela-text)]"
+              }`}
+              role="status"
+            >
               {uploadMessage}
             </p>
           ) : null}

@@ -248,7 +248,7 @@ export function NoticiasDoDiaPage() {
         </div>
       ) : null}
 
-      {isLoading ? (
+      {isLoading || isRefreshing ? (
         <div
           className="mb-8 flex items-center justify-center gap-3 rounded-xl border border-md-border bg-md-surface px-5 py-6 text-center shadow-sm relative z-10"
           role="status"
@@ -257,7 +257,9 @@ export function NoticiasDoDiaPage() {
             className="h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-md-border border-t-[var(--sentinela)]"
             aria-hidden="true"
           />
-          <p className="text-sm leading-relaxed text-md-text-muted">Carregando notícias do dia…</p>
+          <p className="text-sm leading-relaxed text-md-text-muted">
+            {isRefreshing ? "Buscando as manchetes de hoje nos portais…" : "Carregando notícias do dia…"}
+          </p>
         </div>
       ) : null}
 
@@ -318,7 +320,7 @@ export function NoticiasDoDiaPage() {
                 </button>
               ) : null}
 
-              {!isLoading && !items.length ? (
+              {!isLoading && !isRefreshing && !items.length ? (
                 <div className="rounded-xl border border-md-border bg-md-surface px-5 py-6 shadow-sm">
                   <p className="text-sm text-md-text-muted m-0">{emptyMessageForSphere(sphere)}</p>
                 </div>
