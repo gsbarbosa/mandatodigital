@@ -2,7 +2,8 @@
 
 Documento para **estudar**, **explicar a outras LLMs** e **pedir mudanças com precisão**.  
 Guia de uso do produto: [`docs/sentinela.md`](./sentinela.md).  
-Spike de qualidade em curso: [`docs/spike-sentinela-qualidade.md`](./spike-sentinela-qualidade.md).
+Spike de qualidade em curso: [`docs/spike-sentinela-qualidade.md`](./spike-sentinela-qualidade.md).  
+Tela irmã com mecanismo de busca **isolado** (não faz parte deste pipeline): [`docs/noticias-do-dia.md`](./noticias-do-dia.md).
 
 **Repo:** `mandatodigital` (Next.js / App Hosting Firebase / Firestore)  
 **Prod:** `https://mandatodigital--madatodigital.us-central1.hosted.app` (App Hosting)  
