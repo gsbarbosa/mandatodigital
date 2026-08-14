@@ -37,6 +37,16 @@ function formatSignalDate(iso?: string): string | null {
   return `${day} - ${time}h`;
 }
 
+/** Data de hoje, sem horário — usado quando não há data real (ver noDateFallbackToToday). */
+function todayDateOnlyLabel(): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date());
+}
+
 function formatSignalDateParts(iso?: string): { date: string; time: string } | null {
   if (!iso) {
     return null;
@@ -183,6 +193,8 @@ export function MonitorSignalCard({
   onOpenEvidence,
   pautarOnboardingAnchor,
   onPautar,
+  themeCaption = "Tema Principal",
+  noDateFallbackToToday = false,
 }: {
   suggestion: MockSentinelSuggestion;
   oppositionCard?: boolean;
@@ -190,6 +202,10 @@ export function MonitorSignalCard({
   onOpenEvidence?: (suggestion: MockSentinelSuggestion) => void;
   pautarOnboardingAnchor?: string;
   onPautar?: () => void;
+  /** Rótulo acima do tema, customizável por página chamadora (ex.: Notícias do Dia usa "Publicada hoje"). */
+  themeCaption?: string;
+  /** Sem data real, mostra a data de hoje (sem horário) em vez de "Pauta recente". */
+  noDateFallbackToToday?: boolean;
 }) {
   const article = primarySignalArticle(suggestion);
   const actor = primarySignalActor(suggestion);
@@ -228,7 +244,7 @@ export function MonitorSignalCard({
           ) : (
             <>
               <span className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1">
-                Tema Principal
+                {themeCaption}
               </span>
               <p className="text-[var(--sentinela-text)] text-sm font-medium mb-3">{suggestion.themeLabel}</p>
             </>
@@ -265,7 +281,7 @@ export function MonitorSignalCard({
           ) : (
             <div className="flex items-center gap-2 text-md-text-soft text-xs">
               <ClockIcon />
-              Pauta recente
+              {noDateFallbackToToday ? todayDateOnlyLabel() : "Pauta recente"}
             </div>
           )}
         </div>

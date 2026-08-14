@@ -17,6 +17,8 @@ export const COLLECTIONS = {
   sentinelThemeExpansions: "sentinelThemeExpansions",
   sentinelArticleThemeVerdicts: "sentinelArticleThemeVerdicts",
   sentinelFactChecks: "sentinelFactChecks",
+  /** Cache diário da tela Notícias do Dia (doc id = profileId). Isolado do Sentinela. */
+  noticiasDoDiaCache: "noticiasDoDiaCache",
   asyncJobs: "asyncJobs",
   /** MP3 TTS temporário aguardando render HeyGen (doc id = heygenVideoId). */
   ttsAudioPending: "ttsAudioPending",

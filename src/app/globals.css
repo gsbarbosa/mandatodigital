@@ -1882,6 +1882,16 @@ textarea.persona-input-control {
   );
 }
 
+/* Mesmo botão de "monitor" (tamanho/comportamento idênticos), só troca a cor pra azul
+   (--curador) em vez do verde padrão (--cta) — usado em Notícias do Dia. */
+.refresh-pautas-btn--blue {
+  --cta: var(--curador);
+  --cta-hover: var(--curador-hover);
+  --cta-on: #ffffff;
+  --cta-shadow: rgba(59, 130, 246, 0.22);
+  --sentinela-border: var(--curador-border);
+}
+
 .refresh-pautas-btn--persona.is-loading {
   opacity: 0.92;
 }

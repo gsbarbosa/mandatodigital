@@ -2,13 +2,14 @@
 
 Documento vivo para acompanhar o que **já existe**, o que está **parcial** e o que **falta implementar**.
 
-**Última atualização:** 2026-08-10  
+**Última atualização:** 2026-08-13  
 **Produção:** https://mandatodigital--madatodigital.us-central1.hosted.app  
 **Branch principal:** `main`
 
 Documentos relacionados:
 
 - [Guia Sentinela](sentinela.md)
+- [Notícias do Dia](noticias-do-dia.md)
 - [Painel de gestão](painel-gestao.md)
 - [Billing e NFS-e](billing-nfse.md)
 - [Plano roadmap (arquivado)](archive/plano-roadmap-sentinel-auditor-mvp.md) — decisões já executadas
@@ -165,6 +166,20 @@ Referência detalhada: [sentinela.md](sentinela.md)
 | Refresh automático periódico (sem clique) | ❌ | | |
 | Fact-check status nos sinais (UI) | ❌ | | Fase 2 |
 
+### 5.4 Notícias do Dia (mecanismo isolado, fora do pipeline do Sentinela)
+
+Referência detalhada: [noticias-do-dia.md](noticias-do-dia.md)
+
+| Item | Status | Notas |
+|------|--------|-------|
+| Tela `/monitoramento/noticias-do-dia` + item no menu | ✅ | Reaproveita `MonitorSignalCard`/layout do Monitoramento |
+| Fetch isolado por portal (3 manchetes cruas, sem tema/LLM) | ✅ | `noticias-do-dia-fetch.ts` — não importa `sentinel-rss.ts` |
+| Nacional: 10 portais do catálogo, exibição cortada em 15 | ✅ | |
+| Estadual: 5 portais por UF, exibição cortada em 15 | ✅ | |
+| Municipal: portais cadastrados em `/monitoramento/temas` (teto 2, igual ao Sentinela) | ✅ | Elevar teto p/ pagantes é decisão futura, fora de escopo |
+| Cache diário Firestore (`noticiasDoDiaCache`) + rate limit próprio (10 refresh/dia) | ✅ | Orçamento separado do Sentinela (30/dia) |
+| Compat "Pautar" (ids `ndd-*`) no lookup do Criativo | ✅ | Fallback pontual em `/api/sentinel/suggestions/[id]/route.ts` |
+
 ---
 
 ## 6. Validador / Auditor (Fase 2)
@@ -274,6 +289,7 @@ Referência detalhada: [billing-nfse.md](billing-nfse.md)
 
 | Data | Mudança |
 |------|---------|
+| 2026-08-13 | Nova tela "Notícias do Dia" (`/monitoramento/noticias-do-dia`) — mecanismo de busca isolado do Sentinela, nova seção 5.4 |
 | 2026-08-10 | Auditoria de docs: corrigida rota `/sentinela`→`/monitoramento`; flags `SENTINEL_LLM_THEME_VERIFY`/`SENTINEL_LLM_QUALITY_RANK`/`ASAAS_NFS_ENABLED` adicionadas à tabela; nova seção 7c Billing/NFS-e; docs de roadmap/parecer movidos pra `archive/` |
 | 2026-07-13 | Fase 3.3 implementada: path `elevenlabs_audio` (IVC+TTS→`audio_url`); conta única EL; fallback `heygen_clone`; BYOK backlog |
 | 2026-06-24 | Criação inicial pós deploy Fase 0+1 e migration Auditor |

@@ -10,6 +10,10 @@ type RefreshPautasButtonProps = {
   disabledTitle?: string;
   variant?: "persona" | "monitor";
   className?: string;
+  /** Texto em repouso — outras páginas que reaproveitam o botão (ex.: Notícias do Dia) customizam aqui. */
+  label?: string;
+  /** Texto durante o carregamento. */
+  loadingLabel?: string;
 };
 
 export function RefreshPautasButton({
@@ -19,6 +23,8 @@ export function RefreshPautasButton({
   disabledTitle,
   variant = "persona",
   className = "",
+  label = "Atualizar pautas",
+  loadingLabel = "Atualizando pautas...",
 }: RefreshPautasButtonProps) {
   const [pending, setPending] = useState(false);
   const busy = isLoading || pending;
@@ -55,16 +61,16 @@ export function RefreshPautasButton({
       aria-busy={busy}
       aria-disabled={isDisabled}
       aria-live="polite"
-      title={isDisabled ? lockTitle ?? "Atualizar pautas indisponível" : "Atualizar pautas"}
+      title={isDisabled ? lockTitle ?? `${label} indisponível` : label}
     >
       <span className="refresh-pautas-btn__content">
         {busy ? (
           <span className="persona-loading-row">
             <span className="persona-spinner" aria-hidden="true" />
-            Atualizando pautas...
+            {loadingLabel}
           </span>
         ) : (
-          "Atualizar pautas"
+          label
         )}
       </span>
       {busy ? <span className="refresh-pautas-btn__progress" aria-hidden="true" /> : null}

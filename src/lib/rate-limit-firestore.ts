@@ -139,3 +139,15 @@ export const TSE_PREFILL_LOOKUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 export function tsePrefillRateLimitKey(ownerUserId: string) {
   return `tse-prefill:${ownerUserId.trim() || "anonymous"}`;
 }
+
+/**
+ * Notícias do Dia: teto de refreshes / usuário / dia. Orçamento próprio,
+ * separado do SENTINEL_PLATFORM_REFRESH_MAX_PER_DAY — os dois mecanismos de
+ * busca são independentes e não competem pela mesma cota.
+ */
+export const NOTICIAS_DO_DIA_REFRESH_MAX_PER_DAY = 10;
+export const NOTICIAS_DO_DIA_REFRESH_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export function noticiasDoDiaRateLimitKey(ownerUserId: string) {
+  return `noticias-do-dia-refresh:${ownerUserId.trim() || "anonymous"}`;
+}
