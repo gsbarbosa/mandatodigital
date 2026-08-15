@@ -141,8 +141,15 @@ env:
     availability:
       - RUNTIME
 
-  # Spike qualidade — rank editorial top-N (custo ~premium; ver docs/spike-sentinela-qualidade.md)
+  # Rank editorial top-N — universal (grátis e pago); ver docs/spike-sentinela-qualidade.md
   - variable: SENTINEL_LLM_QUALITY_RANK
+    value: "true"
+    availability:
+      - RUNTIME
+
+  # Resgate de esfera zerada por IA — 1 chamada por esfera sem pauta, com direito a
+  # rejeitar todas as opções; ver docs/sentinela-arquitetura.md
+  - variable: SENTINEL_LLM_SPHERE_RESCUE
     value: "true"
     availability:
       - RUNTIME

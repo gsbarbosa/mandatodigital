@@ -698,8 +698,32 @@ export function articlesAreLikelySameStory(
   right: StoryMatchInput,
   extraExcludeWords?: Set<string>,
 ): boolean {
-  const leftKey = buildStoryClusterKey(left.title, left.themeLabel, extraExcludeWords);
-  const rightKey = buildStoryClusterKey(right.title, right.themeLabel, extraExcludeWords);
+  return storiesMatchWithKeys(
+    toStoryMatchCandidate(left, extraExcludeWords),
+    toStoryMatchCandidate(right, extraExcludeWords),
+  );
+}
+
+/**
+ * `StoryMatchInput` com a cluster key já calculada. Quem compara N títulos entre si
+ * (clusterização) monta isso uma vez por item, em vez de reconstruir a key dos dois
+ * lados a cada par — o custo do par vira só a comparação.
+ */
+type StoryMatchCandidate = StoryMatchInput & { clusterKey: string };
+
+function toStoryMatchCandidate(
+  input: StoryMatchInput,
+  extraExcludeWords?: Set<string>,
+): StoryMatchCandidate {
+  return {
+    ...input,
+    clusterKey: buildStoryClusterKey(input.title, input.themeLabel, extraExcludeWords),
+  };
+}
+
+function storiesMatchWithKeys(left: StoryMatchCandidate, right: StoryMatchCandidate): boolean {
+  const leftKey = left.clusterKey;
+  const rightKey = right.clusterKey;
 
   const leftOutlet = left.outlet?.trim().toLowerCase();
   const rightOutlet = right.outlet?.trim().toLowerCase();
@@ -1272,6 +1296,19 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
 
   for (const [themeLabel, themeItems] of byTheme.entries()) {
     const commonWords = batchCommonWords(themeItems.map((item) => item.article.title));
+    // Uma vez por item: a comparação abaixo é O(n²) e não pode reconstruir cluster key
+    // e rótulo de veículo a cada par.
+    const storyCandidates = themeItems.map((item) =>
+      toStoryMatchCandidate(
+        {
+          title: item.article.title,
+          themeLabel,
+          publishedAt: item.article.publishedAt,
+          outlet: outletKeyForArticle(item.article),
+        },
+        commonWords,
+      ),
+    );
     const used = new Set<number>();
 
     for (let index = 0; index < themeItems.length; index += 1) {
@@ -1280,7 +1317,8 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
       }
 
       const seed = themeItems[index];
-      if (!seed) {
+      const seedStory = storyCandidates[index];
+      if (!seed || !seedStory) {
         continue;
       }
 
@@ -1293,26 +1331,12 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
         }
 
         const candidate = themeItems[candidateIndex];
-        if (!candidate) {
+        const candidateStory = storyCandidates[candidateIndex];
+        if (!candidate || !candidateStory) {
           continue;
         }
 
-        const isSameStory = articlesAreLikelySameStory(
-          {
-            title: seed.article.title,
-            themeLabel,
-            publishedAt: seed.article.publishedAt,
-            outlet: outletKeyForArticle(seed.article),
-          },
-          {
-            title: candidate.article.title,
-            themeLabel,
-            publishedAt: candidate.article.publishedAt,
-            outlet: outletKeyForArticle(candidate.article),
-          },
-          commonWords,
-        );
-        if (isSameStory) {
+        if (storiesMatchWithKeys(seedStory, candidateStory)) {
           cluster.push(candidate);
           used.add(candidateIndex);
         }

@@ -5,6 +5,10 @@
 **Timebox:** 7 dias  
 **Status:** concluído — entregas em produção via `SENTINEL_LLM_QUALITY_RANK` (default off, ligado em prod)
 
+> **Registro histórico.** O log abaixo é do que foi decidido durante a spike e não
+> acompanha o código depois dela — ver "Depois da spike" no fim do arquivo, e
+> `docs/sentinela-arquitetura.md` §5.5/§5.6 para o comportamento atual.
+
 ## Hipótese
 
 > Rank de 2 estágios (score local → LLM mini só no top N) sobe a **% de cards pautáveis** sem estourar o custo do refresh de convidado. Perplexity fica fora do path default (só experimento B, gated).
@@ -111,5 +115,18 @@ Ligar rank em staging/prod (App Hosting):
 - Boost de portais UF/nacionais no score
 - Oposição: score/limite um pouco maiores (ainda depende de Apify + handles)
 - Meta no monitoramento: kept/dropped do rank + % heurística
+
+## Depois da spike
+
+O que mudou desde o log acima (fonte da verdade: `docs/sentinela-arquitetura.md` §5.5 e §5.6):
+
+- **Briefing e ângulo criativo saíram do rank.** O LLM responde só `{ pautavel, score }`.
+  `creativeAngle` foi removido de `MockSentinelSuggestion`; `briefing` sobrou como aviso
+  estático de contexto, nunca gerado por IA.
+- **Rank não é mais exclusivo de premium.** As rotas de refresh passam
+  `qualityRankEnabled: true` fixo — vale pra conta grátis também, e só a flag de env
+  liga/desliga. Isso muda a conta de custo por refresh de convidado da tabela de métricas.
+- **Esfera zerada ganhou IA própria** (`SENTINEL_LLM_SPHERE_RESCUE`): 1 chamada por esfera
+  sem pauta, com direito a rejeitar todas as opções em vez de promover a menos ruim.
 
 

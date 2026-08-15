@@ -76,12 +76,3 @@ export const noticiasDoDiaStorage = {
     });
   },
 };
-
-/** Cache é considerado "do dia" só se foi gerado no mesmo dia (America/Sao_Paulo). */
-export function isNoticiasDoDiaCacheStale(generatedAt: string, now = new Date()): boolean {
-  const generatedDate = new Date(generatedAt);
-  if (Number.isNaN(generatedDate.getTime())) {
-    return true;
-  }
-  return currentSaoPauloDateStamp(generatedDate) !== currentSaoPauloDateStamp(now);
-}
