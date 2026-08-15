@@ -105,7 +105,9 @@ export function isProviderLimitMessage(message: string) {
     normalized.includes("voice clone limit") ||
     normalized.includes("instant voice cloning") ||
     normalized.includes("does not include instant voice") ||
-    normalized.includes("reached the limit")
+    normalized.includes("reached the limit") ||
+    normalized.includes("maximum amount of custom voices") ||
+    normalized.includes("custom voice limit")
   );
 }
 
@@ -230,6 +232,17 @@ export function formatProviderLimitHint(message: string): string | null {
       "O plano da conta de voz (ElevenLabs) não inclui Instant Voice Cloning. " +
         "O sistema tenta usar o clone de voz da plataforma de vídeo automaticamente; " +
         "se o erro persistir, atualize o plano da API de voz ou use HEYGEN_VOICE_PROVIDER=heygen_clone.",
+    );
+  }
+
+  if (
+    normalized.includes("maximum amount of custom voices") ||
+    normalized.includes("custom voice limit")
+  ) {
+    hints.push(
+      "Limite de vozes customizadas na conta de voz atingido. " +
+        "O sistema usa clones efêmeros (cria → TTS → apaga); se o erro persistir, " +
+        "remova clones órfãos no painel ElevenLabs ou aguarde a fila liberar o slot.",
     );
   }
 

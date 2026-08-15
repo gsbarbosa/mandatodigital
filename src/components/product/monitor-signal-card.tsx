@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import type {
   MockSentinelSuggestion,
@@ -35,6 +35,16 @@ function formatSignalDate(iso?: string): string | null {
   const day = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
   const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   return `${day} - ${time}h`;
+}
+
+/** Data de hoje, sem horário — usado quando não há data real (ver noDateFallbackToToday). */
+function todayDateOnlyLabel(): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date());
 }
 
 function formatSignalDateParts(iso?: string): { date: string; time: string } | null {
@@ -183,6 +193,8 @@ export function MonitorSignalCard({
   onOpenEvidence,
   pautarOnboardingAnchor,
   onPautar,
+  themeCaption = "Tema Principal",
+  noDateFallbackToToday = false,
 }: {
   suggestion: MockSentinelSuggestion;
   oppositionCard?: boolean;
@@ -190,10 +202,20 @@ export function MonitorSignalCard({
   onOpenEvidence?: (suggestion: MockSentinelSuggestion) => void;
   pautarOnboardingAnchor?: string;
   onPautar?: () => void;
+  /** Rótulo acima do tema, customizável por página chamadora (ex.: Notícias do Dia usa "Publicada hoje"). */
+  themeCaption?: string;
+  /** Sem data real, mostra a data de hoje (sem horário) em vez de "Pauta recente". */
+  noDateFallbackToToday?: boolean;
 }) {
   const article = primarySignalArticle(suggestion);
   const actor = primarySignalActor(suggestion);
   const isNewsCard = Boolean(article) && !oppositionCard;
+  // A "Fonte: X" já linka a matéria principal — só vale abrir a gaveta quando
+  // sobra mais alguma coisa além dela.
+  const otherArticlesCount = Math.max(0, (suggestion.evidence.articles?.length ?? 0) - 1);
+  // "Verificar notícia" só existe pra mostrar uma matéria de apoio ao post — sem
+  // nenhuma encontrada, o botão não levaria a lugar nenhum.
+  const hasSupportingArticle = (suggestion.evidence.articles?.length ?? 0) > 0;
   const publishedAt = article?.publishedAt ?? actor?.publishedAt;
   const dateLabel = formatSignalDate(publishedAt);
   const dateParts = formatSignalDateParts(publishedAt);
@@ -222,7 +244,7 @@ export function MonitorSignalCard({
           ) : (
             <>
               <span className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1">
-                Tema Principal
+                {themeCaption}
               </span>
               <p className="text-[var(--sentinela-text)] text-sm font-medium mb-3">{suggestion.themeLabel}</p>
             </>
@@ -259,7 +281,7 @@ export function MonitorSignalCard({
           ) : (
             <div className="flex items-center gap-2 text-md-text-soft text-xs">
               <ClockIcon />
-              Pauta recente
+              {noDateFallbackToToday ? todayDateOnlyLabel() : "Pauta recente"}
             </div>
           )}
         </div>
@@ -271,18 +293,14 @@ export function MonitorSignalCard({
                 {displayTitleWithoutOutlet(article.title, articleOutletLabel(article))}
               </h3>
               {suggestion.briefing?.trim() ? (
-                <p className="text-sm text-md-text-muted mb-2 leading-relaxed">
-                  {suggestion.briefing.trim()}
-                </p>
-              ) : null}
-              {suggestion.creativeAngle?.trim() ? (
-                <p className="text-xs text-[var(--distribuidor-text)] mb-3">
-                  Ângulo: {suggestion.creativeAngle.trim()}
-                </p>
-              ) : !suggestion.briefing?.trim() ? (
-                <p className="text-sm text-md-text-soft mb-3 line-clamp-2">{suggestion.topic}</p>
+                <>
+                  <p className="text-sm text-md-text-muted mb-2 leading-relaxed">
+                    {suggestion.briefing.trim()}
+                  </p>
+                  <div className="mb-3" />
+                </>
               ) : (
-                <div className="mb-3" />
+                <p className="text-sm text-md-text-soft mb-3 line-clamp-2">{suggestion.topic}</p>
               )}
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <span className="text-md-text-soft">
@@ -296,14 +314,18 @@ export function MonitorSignalCard({
                     {articleOutletLabel(article)}
                   </a>
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onOpenEvidence?.(suggestion)}
-                  className="flex items-center gap-1 text-[var(--sentinela-text)] bg-[var(--sentinela-soft)] px-2 py-0.5 rounded border border-[var(--sentinela-border)] cursor-pointer hover:opacity-90 transition-colors"
-                >
-                  <CheckBadgeIcon />
-                  Ver fontes
-                </button>
+                {otherArticlesCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenEvidence?.(suggestion)}
+                    className="flex items-center gap-1 text-[var(--sentinela-text)] bg-[var(--sentinela-soft)] px-2 py-0.5 rounded border border-[var(--sentinela-border)] cursor-pointer hover:opacity-90 transition-colors"
+                  >
+                    <CheckBadgeIcon />
+                    {otherArticlesCount === 1
+                      ? "Ver outra fonte"
+                      : `Ver outras ${otherArticlesCount} fontes`}
+                  </button>
+                ) : null}
               </div>
             </>
           ) : (
@@ -328,14 +350,16 @@ export function MonitorSignalCard({
                     Link do post
                   </a>
                 ) : null}
-                <button
-                  type="button"
-                  onClick={() => onOpenEvidence?.(suggestion)}
-                  className="flex items-center gap-1 text-md-text-soft bg-md-overlay-subtle px-2 py-0.5 rounded border border-md-border cursor-pointer hover:text-md-text transition-colors"
-                >
-                  <SearchIcon />
-                  Verificar notícia
-                </button>
+                {hasSupportingArticle ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenEvidence?.(suggestion)}
+                    className="flex items-center gap-1 text-md-text-soft bg-md-overlay-subtle px-2 py-0.5 rounded border border-md-border cursor-pointer hover:text-md-text transition-colors"
+                  >
+                    <SearchIcon />
+                    Verificar notícia
+                  </button>
+                ) : null}
               </div>
 
               <div className="flex items-center gap-5 mt-2 pt-3 border-t border-md-border/50 text-xs text-md-text-soft">
@@ -370,6 +394,8 @@ export function MonitorSignalCard({
   );
 }
 
+const INITIAL_VISIBLE_ARTICLES = 4;
+
 export function SignalEvidenceDrawer({
   suggestion,
   onClose,
@@ -377,12 +403,28 @@ export function SignalEvidenceDrawer({
   suggestion: MockSentinelSuggestion | null;
   onClose: () => void;
 }) {
+  const [showAllArticles, setShowAllArticles] = useState(false);
+  const [lastSuggestionId, setLastSuggestionId] = useState(suggestion?.id ?? null);
+
+  // Cada matéria aberta é uma pauta diferente — não deixa o "Ver mais" de uma
+  // pauta anterior vazado quando o usuário troca de card sem fechar a gaveta.
+  if ((suggestion?.id ?? null) !== lastSuggestionId) {
+    setLastSuggestionId(suggestion?.id ?? null);
+    setShowAllArticles(false);
+  }
+
   if (!suggestion) {
     return null;
   }
   const articles = suggestion.evidence.articles ?? [];
   const actors = suggestion.evidence.actors ?? [];
   const trend = suggestion.evidence.searchTrend;
+  // Post de rede social (Interesse/Adversários) x cluster de notícias (Nacional/
+  // Estadual/Municipal) — o motivo de existir dessa gaveta é diferente em cada caso.
+  const isSocialEvidence = actors.length > 0;
+  const hasMoreArticles = articles.length > INITIAL_VISIBLE_ARTICLES;
+  const visibleArticles =
+    showAllArticles || !hasMoreArticles ? articles : articles.slice(0, INITIAL_VISIBLE_ARTICLES);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -395,9 +437,6 @@ export function SignalEvidenceDrawer({
       <aside className="relative w-full max-w-md h-full overflow-y-auto bg-md-app-bg border-l border-md-border p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            <p className="text-[10px] font-bold tracking-wider text-md-text-soft uppercase mb-1">
-              Evidências da pauta
-            </p>
             <h3 className="text-lg font-bold text-md-text">{suggestion.themeLabel}</h3>
           </div>
           <button
@@ -409,10 +448,39 @@ export function SignalEvidenceDrawer({
           </button>
         </div>
 
-        <p className="text-xs text-md-text-soft mb-6">
-          A verificação lista as fontes reais capturadas pelo monitoramento. O fact-check por IA do
-          conteúdo acontece na aprovação do roteiro, antes da produção do vídeo.
-        </p>
+        {isSocialEvidence ? (
+          <p className="text-xs text-md-text-soft mb-6">
+            Esse post não é, em si, uma notícia — por isso buscamos uma matéria relacionada pra
+            você confirmar o assunto antes de usar.
+          </p>
+        ) : null}
+
+        <div className="mb-6">
+          <h4 className="text-xs font-bold text-md-text-soft uppercase tracking-widest mb-3">
+            Estatísticas sobre o tema
+          </h4>
+          <ul className="list-disc pl-4 space-y-2 text-xs text-md-text marker:text-md-text-soft">
+            {trend ? (
+              <li>
+                Crescimento do interesse na região (últimos 7 dias):{" "}
+                <strong className="font-bold">
+                  {trend.changePercent > 0 ? "+" : ""}
+                  {trend.changePercent}%
+                </strong>
+              </li>
+            ) : null}
+            <li>
+              Total de matérias encontradas sobre o tema:{" "}
+              <strong className="font-bold">{suggestion.evidence.postsAnalyzed}</strong>
+            </li>
+            {typeof suggestion.evidence.outletCount === "number" ? (
+              <li>
+                Total de sites diferentes com a mesma matéria:{" "}
+                <strong className="font-bold">{suggestion.evidence.outletCount}</strong>
+              </li>
+            ) : null}
+          </ul>
+        </div>
 
         {articles.length ? (
           <div className="mb-6">
@@ -420,7 +488,7 @@ export function SignalEvidenceDrawer({
               Matérias detectadas ({articles.length})
             </h4>
             <ul className="space-y-3">
-              {articles.map((item) => (
+              {visibleArticles.map((item) => (
                 <li key={item.url} className="bg-md-overlay-subtle border border-md-border/50 rounded-lg p-3">
                   <a
                     href={item.url}
@@ -437,6 +505,15 @@ export function SignalEvidenceDrawer({
                 </li>
               ))}
             </ul>
+            {hasMoreArticles && !showAllArticles ? (
+              <button
+                type="button"
+                onClick={() => setShowAllArticles(true)}
+                className="mt-3 text-xs font-medium text-[var(--curador-text)] hover:underline underline-offset-2"
+              >
+                Ver mais
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -466,18 +543,11 @@ export function SignalEvidenceDrawer({
           </div>
         ) : null}
 
-        <div className="border-t border-md-border pt-4 space-y-2 text-xs text-md-text-soft">
-          <p>Posts analisados: {suggestion.evidence.postsAnalyzed}</p>
-          {typeof suggestion.evidence.outletCount === "number" ? (
-            <p>Portais distintos: {suggestion.evidence.outletCount}</p>
-          ) : null}
-          <p>Tendência de engajamento: {suggestion.evidence.engagementTrendPercent}%</p>
-          {trend ? (
-            <p>
-              Buscas &quot;{trend.keyword}&quot; ({trend.geoLabel}): {trend.changePercent > 0 ? "+" : ""}
-              {trend.changePercent}% em {trend.periodDays} dias
-            </p>
-          ) : null}
+        <div className="border-t border-md-border pt-4 text-xs text-md-text-soft">
+          <p>
+            A checagem por IA do conteúdo acontece depois, na aprovação do roteiro, antes da
+            produção do vídeo.
+          </p>
         </div>
       </aside>
     </div>

@@ -353,8 +353,8 @@ describe("groupSuggestionsBySphere", () => {
     expect(groups.adversarios).toHaveLength(0);
   });
 
-  it("drops federal suggestions older than 90 dias, keeps municipal", () => {
-    const oldIso = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString();
+  it("drops federal suggestions older than 240 dias, keeps municipal", () => {
+    const oldIso = new Date(Date.now() - 300 * 24 * 60 * 60 * 1000).toISOString();
     const oldFederal = buildSuggestion({
       articles: [{ title: "t", url: "https://www.estadao.com.br/x", publishedAt: oldIso }],
     });

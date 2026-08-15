@@ -4,13 +4,28 @@ vi.mock("@/lib/feature-flags", () => ({
   getHeyGenVoiceProvider: vi.fn(() => "elevenlabs_audio"),
 }));
 
+vi.mock("@/lib/elevenlabs-ivc-lock", () => ({
+  withElevenLabsIvcSlot: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+}));
+
 vi.mock("@/lib/elevenlabs", () => ({
   elevenLabsCloneVoice: vi.fn(),
+  elevenLabsDeleteVoice: vi.fn(),
   elevenLabsListVoices: vi.fn(),
+  elevenLabsPurgeEphemeralVoices: vi.fn(),
   elevenLabsTextToSpeech: vi.fn(),
   elevenLabsVoiceExists: vi.fn(),
   formatElevenLabsError: (error: unknown) =>
     error instanceof Error ? error.message : String(error ?? ""),
+  isElevenLabsCustomVoiceLimitError: (error: unknown) => {
+    const message = (
+      error instanceof Error ? error.message : String(error ?? "")
+    ).toLowerCase();
+    return (
+      message.includes("maximum amount of custom voices") ||
+      message.includes("custom voice limit")
+    );
+  },
   isElevenLabsIvcSubscriptionError: (error: unknown) => {
     const message = (
       error instanceof Error ? error.message : String(error ?? "")
@@ -38,7 +53,9 @@ vi.mock("@/lib/heygen-voice-resolve", () => ({
 import { getHeyGenVoiceProvider } from "@/lib/feature-flags";
 import {
   elevenLabsCloneVoice,
+  elevenLabsDeleteVoice,
   elevenLabsListVoices,
+  elevenLabsPurgeEphemeralVoices,
   elevenLabsTextToSpeech,
   elevenLabsVoiceExists,
 } from "@/lib/elevenlabs";
@@ -52,7 +69,9 @@ import {
 } from "@/lib/voice-provider-resolve";
 
 const cloneVoice = vi.mocked(elevenLabsCloneVoice);
+const deleteVoice = vi.mocked(elevenLabsDeleteVoice);
 const listVoices = vi.mocked(elevenLabsListVoices);
+const purgeVoices = vi.mocked(elevenLabsPurgeEphemeralVoices);
 const tts = vi.mocked(elevenLabsTextToSpeech);
 const voiceExists = vi.mocked(elevenLabsVoiceExists);
 const storeTts = vi.mocked(storeElevenLabsTtsAudio);
@@ -74,12 +93,12 @@ describe("resolveElevenLabsVoiceId", () => {
 
   it("reutiliza voiceId existente", async () => {
     voiceExists.mockResolvedValue(true);
-    const id = await resolveElevenLabsVoiceId({
+    const resolved = await resolveElevenLabsVoiceId({
       requestedVoiceId: "el-1",
       voiceName: "Maria (deadbeef)",
       audioUrl: "https://example.com/a.mp3",
     });
-    expect(id).toBe("el-1");
+    expect(resolved).toEqual({ voiceId: "el-1", created: false });
     expect(cloneVoice).not.toHaveBeenCalled();
   });
 
@@ -91,12 +110,12 @@ describe("resolveElevenLabsVoiceId", () => {
       requiresVerification: false,
       raw: {},
     });
-    const id = await resolveElevenLabsVoiceId({
+    const resolved = await resolveElevenLabsVoiceId({
       requestedVoiceId: "el-gone",
       voiceName: "Maria (deadbeef)",
       audioUrl: "https://example.com/a.mp3",
     });
-    expect(id).toBe("el-new");
+    expect(resolved).toEqual({ voiceId: "el-new", created: true });
     expect(cloneVoice).toHaveBeenCalledOnce();
   });
 
@@ -104,12 +123,12 @@ describe("resolveElevenLabsVoiceId", () => {
     listVoices.mockResolvedValue([
       { voice_id: "el-existing", name: "Maria (deadbeef)" },
     ]);
-    const id = await resolveElevenLabsVoiceId({
+    const resolved = await resolveElevenLabsVoiceId({
       requestedVoiceId: undefined,
       voiceName: "Maria (deadbeef)",
       audioUrl: "https://example.com/a.mp3",
     });
-    expect(id).toBe("el-existing");
+    expect(resolved).toEqual({ voiceId: "el-existing", created: false });
     expect(cloneVoice).not.toHaveBeenCalled();
   });
 
@@ -120,12 +139,12 @@ describe("resolveElevenLabsVoiceId", () => {
       requiresVerification: false,
       raw: {},
     });
-    const id = await resolveElevenLabsVoiceId({
+    const resolved = await resolveElevenLabsVoiceId({
       requestedVoiceId: undefined,
       voiceName: "Maria (deadbeef)",
       audioUrl: "https://example.com/a.mp3",
     });
-    expect(id).toBe("el-new");
+    expect(resolved).toEqual({ voiceId: "el-new", created: true });
     expect(cloneVoice).toHaveBeenCalledOnce();
   });
 
@@ -136,15 +155,40 @@ describe("resolveElevenLabsVoiceId", () => {
       requiresVerification: false,
       raw: {},
     });
-    const id = await resolveElevenLabsVoiceId({
+    const resolved = await resolveElevenLabsVoiceId({
       requestedVoiceId: "el-old",
       voiceName: "Maria (deadbeef)",
       audioUrl: "https://example.com/a.mp3",
       forceReclone: true,
     });
-    expect(id).toBe("el-new");
+    expect(resolved).toEqual({ voiceId: "el-new", created: true });
     expect(listVoices).not.toHaveBeenCalled();
     expect(cloneVoice).toHaveBeenCalledOnce();
+  });
+
+  it("purga efemeros e retenta quando bate no limite 10/10", async () => {
+    listVoices.mockResolvedValue([]);
+    cloneVoice
+      .mockRejectedValueOnce(
+        new Error(
+          "You have reached your maximum amount of custom voices (10 / 10).",
+        ),
+      )
+      .mockResolvedValueOnce({
+        voiceId: "el-after-purge",
+        requiresVerification: false,
+        raw: {},
+      });
+    purgeVoices.mockResolvedValue({ scanned: 10, deleted: 10 });
+
+    const resolved = await resolveElevenLabsVoiceId({
+      voiceName: "Maria (deadbeef)",
+      audioUrl: "https://example.com/a.mp3",
+    });
+
+    expect(purgeVoices).toHaveBeenCalledOnce();
+    expect(cloneVoice).toHaveBeenCalledTimes(2);
+    expect(resolved).toEqual({ voiceId: "el-after-purge", created: true });
   });
 });
 
@@ -169,15 +213,16 @@ describe("pickReusableElevenLabsVoice", () => {
 describe("resolveVideoSpeechForGeneration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    deleteVoice.mockResolvedValue({ alreadyGone: false });
   });
 
-  it("path elevenlabs_audio: TTS + URL", async () => {
+  it("path elevenlabs_audio: TTS + URL + delete voice efemera", async () => {
     getProvider.mockReturnValue("elevenlabs_audio");
     voiceExists.mockResolvedValue(true);
     tts.mockResolvedValue(Buffer.from("mp3"));
     storeTts.mockResolvedValue({
       audioUrl: "https://cdn.example/tts.mp3",
-      storagePath: "tts/x.mp3",
+      storagePath: "compliance/tts/temp/x.mp3",
     });
 
     const result = await resolveVideoSpeechForGeneration({
@@ -191,10 +236,38 @@ describe("resolveVideoSpeechForGeneration", () => {
 
     expect(result).toEqual({
       provider: "elevenlabs_audio",
-      elevenLabsVoiceId: "el-1",
+      elevenLabsVoiceId: null,
       audioUrl: "https://cdn.example/tts.mp3",
+      storagePath: "compliance/tts/temp/x.mp3",
+      voiceDeleted: true,
     });
+    expect(deleteVoice).toHaveBeenCalledWith("el-1");
     expect(heygenResolve).not.toHaveBeenCalled();
+  });
+
+  it("reusa checkpoint de audio sem clonar nem TTS", async () => {
+    getProvider.mockReturnValue("elevenlabs_audio");
+
+    const result = await resolveVideoSpeechForGeneration({
+      transcript: "Ola mundo",
+      avatarName: "Maria",
+      voiceAudioAssetId: "deadbeef-1",
+      voiceAudioUrl: "https://example.com/sample.mp3",
+      mediaId: "job-1",
+      existingAudioUrl: "https://cdn.example/checkpoint.mp3",
+      existingStoragePath: "compliance/tts/temp/checkpoint.mp3",
+    });
+
+    expect(result).toEqual({
+      provider: "elevenlabs_audio",
+      elevenLabsVoiceId: null,
+      audioUrl: "https://cdn.example/checkpoint.mp3",
+      storagePath: "compliance/tts/temp/checkpoint.mp3",
+      voiceDeleted: true,
+    });
+    expect(cloneVoice).not.toHaveBeenCalled();
+    expect(tts).not.toHaveBeenCalled();
+    expect(deleteVoice).not.toHaveBeenCalled();
   });
 
   it("path heygen_clone: resolve voice_id", async () => {
@@ -240,5 +313,46 @@ describe("resolveVideoSpeechForGeneration", () => {
     });
     expect(tts).not.toHaveBeenCalled();
     expect(heygenResolve).toHaveBeenCalledOnce();
+  });
+
+  it("path elevenlabs_audio persistente: nao apaga a voice", async () => {
+    getProvider.mockReturnValue("elevenlabs_audio");
+    voiceExists.mockResolvedValue(true);
+    tts.mockResolvedValue(Buffer.from("mp3"));
+    storeTts.mockResolvedValue({
+      audioUrl: "https://cdn.example/tts.mp3",
+      storagePath: "compliance/tts/temp/x.mp3",
+    });
+
+    const result = await resolveVideoSpeechForGeneration({
+      transcript: "Ola mundo",
+      avatarName: "Maria",
+      voiceAudioAssetId: "deadbeef-1",
+      voiceAudioUrl: "https://example.com/sample.mp3",
+      requestedElevenLabsVoiceId: "el-persist",
+      persistVoice: true,
+      voiceSettings: {
+        stability: 0.72,
+        similarity_boost: 0.85,
+        style: 0.05,
+        use_speaker_boost: true,
+      },
+      mediaId: "job-persist",
+    });
+
+    expect(result).toEqual({
+      provider: "elevenlabs_audio",
+      elevenLabsVoiceId: "el-persist",
+      audioUrl: "https://cdn.example/tts.mp3",
+      storagePath: "compliance/tts/temp/x.mp3",
+      voiceDeleted: false,
+    });
+    expect(deleteVoice).not.toHaveBeenCalled();
+    expect(tts).toHaveBeenCalledWith(
+      expect.objectContaining({
+        voiceId: "el-persist",
+        voiceSettings: expect.objectContaining({ stability: 0.72 }),
+      }),
+    );
   });
 });

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AvatarCameraCapture } from "@/components/product/avatar-camera-capture";
 import { AvatarImageCropModal } from "@/components/product/avatar-image-crop-modal";
+import { AvatarVoicePreviewPicker } from "@/components/product/avatar-voice-preview-picker";
 import { AvatarVoiceRecorder } from "@/components/product/avatar-voice-recorder";
 import { useOnboarding } from "@/components/product/onboarding-provider";
 import { ProductPageHeader } from "@/components/product/product-page-header";
@@ -115,6 +116,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
     if (!file) {
       return;
     }
+    // Foto e áudio são biometria: nada sai do dispositivo antes do aceite dos termos.
     if (!consentAccepted) {
       setUploadMessage("Aceite os termos de treinamento antes de enviar foto ou áudio.");
       return;
@@ -167,6 +169,215 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
             Quanto melhor a qualidade da foto e do áudio, mais realistas os avatares.
           </p>
 
+          <div className="flex flex-col gap-6 mb-8">
+            {/* FOTO */}
+            <div
+              id="foto"
+              data-onboarding-anchor="avatar-foto"
+              className="bg-md-surface/60 border border-md-border rounded-2xl p-6 scroll-mt-24"
+            >
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-md-text">A Foto Perfeita</h4>
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-stretch gap-6 md:gap-8">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-md-text-soft mb-4">
+                    Para movimentos naturais e ultra-realistas, siga estas regras rígidas:
+                  </p>
+                  <ul className="space-y-3 text-xs text-md-text-soft list-none pl-0 ml-0">
+                    <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Iluminação é tudo: Luz uniforme no rosto, de frente para a luz. Sem sombras.</span></li>
+                    <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Expressão neutra ou sorriso leve: Lábios fechados. Sem mostrar dentes para não distorcer a fala.</span></li>
+                    <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Olhe para a lente: O avatar precisa fazer contato visual direto.</span></li>
+                    <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Enquadramento: Estilo 3x4 (peito para cima). Não corte topo da cabeça ou laterais.</span></li>
+                  </ul>
+                </div>
+
+                <div className="md:w-[min(100%,20rem)] md:shrink-0 flex flex-col justify-center space-y-3">
+                  <button
+                    type="button"
+                    disabled={!consentAccepted || isUploadingAvatarImageAsset}
+                    onClick={() => {
+                      if (!consentAccepted) {
+                        setUploadMessage(
+                          "Aceite os termos de treinamento antes de enviar foto ou áudio.",
+                        );
+                        return;
+                      }
+                      setCameraOpen(true);
+                    }}
+                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
+                      !consentAccepted || isUploadingAvatarImageAsset
+                        ? "cursor-not-allowed border-md-border opacity-50 text-md-text-soft"
+                        : "border-[var(--curador-border)] bg-[var(--curador-soft)] text-[var(--curador-text)] hover:opacity-90"
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+                    Tirar foto com a câmera
+                  </button>
+
+                  <label
+                    className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
+                      !consentAccepted || isUploadingAvatarImageAsset
+                        ? "border-md-border opacity-50 cursor-not-allowed"
+                        : "border-md-border-hover hover:border-cyan-500 cursor-pointer"
+                    }`}
+                  >
+                    <svg className="h-8 w-8 text-md-text-soft group-hover:text-[var(--curador-text)] mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span className="text-sm font-medium text-md-text-muted group-hover:text-md-text">
+                      {isUploadingAvatarImageAsset ? "Enviando imagem..." : "Escolher imagem da galeria"}
+                    </span>
+                    <span className="text-[10px] text-md-text-soft mt-1">JPG, PNG (Max. 10MB)</span>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                      disabled={!consentAccepted || isUploadingAvatarImageAsset}
+                      onChange={(event) => {
+                        openPendingPhoto(event.target.files?.[0]);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {photoName ? (
+                    <p className="text-[11px] text-[var(--sentinela-text)]">Foto atual: {photoName}</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {/* VOZ */}
+            <div
+              id="audio"
+              data-onboarding-anchor="avatar-audio"
+              className="bg-md-surface/60 border border-md-border rounded-2xl p-6 scroll-mt-24"
+            >
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-md-text">A Voz Perfeita</h4>
+              </div>
+
+              <div className="flex flex-col md:flex-row md:items-stretch gap-6 md:gap-8">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-md-text-soft mb-3">
+                    Para uma voz idêntica à do Candidato, o áudio precisa ter:
+                  </p>
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-md-text-soft mb-4">
+                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Ritmo Natural</div>
+                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Respire Normalmente</div>
+                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Entre 30 seg e 2 min</div>
+                    <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Gaguejar</div>
+                    <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Ruído de Fundo</div>
+                  </div>
+
+                  <p className="text-xs text-md-text-soft mb-3">
+                    Caso não tenha um áudio com as condições acima, grave o roteiro abaixo a cerca de
+                    15-20cm do microfone, levemente inclinado para o lado.
+                  </p>
+
+                  <div className="bg-md-bg p-4 rounded-xl border border-md-border overflow-y-auto max-h-40">
+                    <p className="text-sm text-md-text-muted italic">{VOICE_SCRIPT}</p>
+                  </div>
+                </div>
+
+                <div className="md:w-[min(100%,20rem)] md:shrink-0 flex flex-col justify-center space-y-3">
+                  <AvatarVoiceRecorder
+                    disabled={!consentAccepted}
+                    busy={isUploadingVoiceAudioAsset}
+                    onRecorded={(file) => {
+                      setAudioPreviewFromFile(file);
+                      void handleUpload(file, "voice_audio", "Áudio de voz");
+                    }}
+                  />
+
+                  <label
+                    className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
+                      !consentAccepted || isUploadingVoiceAudioAsset
+                        ? "border-md-border opacity-50 cursor-not-allowed"
+                        : "border-md-border-hover hover:border-purple-500 cursor-pointer"
+                    }`}
+                  >
+                    <svg className="h-8 w-8 text-md-text-soft group-hover:text-purple-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <span className="text-sm font-medium text-md-text-muted group-hover:text-md-text">
+                      {isUploadingVoiceAudioAsset ? "Enviando áudio..." : "Enviar arquivo de áudio"}
+                    </span>
+                    <span className="text-[10px] text-md-text-soft mt-1">MP3, WAV, M4A (Até 2 minutos)</span>
+                    <input
+                      ref={audioInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="audio/*"
+                      disabled={!consentAccepted || isUploadingVoiceAudioAsset}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          setAudioPreviewFromFile(file);
+                          void handleUpload(file, "voice_audio", "Áudio de voz");
+                        }
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
+
+                  {audioPlaybackSrc ? (
+                    <div className="rounded-xl border border-md-border bg-md-overlay-subtle p-3 space-y-2">
+                      <p className="text-[11px] font-medium text-md-text-muted break-words">
+                        Ouvir áudio {audioName ? `· ${audioName}` : "enviado"}
+                      </p>
+                      <audio
+                        key={audioPlaybackSrc}
+                        controls
+                        src={audioPlaybackSrc}
+                        className="w-full"
+                        preload="metadata"
+                      />
+                    </div>
+                  ) : audioName ? (
+                    <p className="text-[11px] text-[var(--sentinela-text)] break-words">Áudio atual: {audioName}</p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <AvatarVoicePreviewPicker
+              profileId={profileId}
+              voiceAudioAssetId={latestVoice?.id ?? null}
+              consentAccepted={consentAccepted}
+              onMessage={setUploadMessage}
+            />
+          </div>
+
           {/* CONSENTIMENTO — exigido antes do upload */}
           <div className="bg-md-surface border border-cyan-900/50 rounded-xl p-5 mb-8">
             <h4 className="text-sm font-bold text-md-text mb-3 flex items-center gap-2">
@@ -208,197 +419,6 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                 Aceite os termos para liberar o envio de foto e áudio.
               </p>
             ) : null}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-            {/* FOTO */}
-            <div
-              id="foto"
-              data-onboarding-anchor="avatar-foto"
-              className="bg-md-surface/60 border border-md-border rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold text-md-text">A Foto Perfeita</h4>
-              </div>
-              <p className="text-xs text-md-text-soft mb-4">
-                Para movimentos naturais e ultra-realistas, siga estas regras rígidas:
-              </p>
-
-              <ul className="space-y-3 text-xs text-md-text-soft flex-grow mb-6 list-none pl-0 ml-0">
-                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Iluminação é tudo: Luz uniforme no rosto, de frente para a luz. Sem sombras.</span></li>
-                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Expressão neutra ou sorriso leve: Lábios fechados. Sem mostrar dentes para não distorcer a fala.</span></li>
-                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Olhe para a lente: O avatar precisa fazer contato visual direto.</span></li>
-                <li className="flex items-start gap-2"><span className="text-[var(--sentinela-text)]">✓</span> <span>Enquadramento: Estilo 3x4 (peito para cima). Não corte topo da cabeça ou laterais.</span></li>
-              </ul>
-
-              <div className="mt-auto space-y-3">
-                <button
-                  type="button"
-                  disabled={!consentAccepted || isUploadingAvatarImageAsset}
-                  onClick={() => {
-                    if (!consentAccepted) {
-                      setUploadMessage(
-                        "Aceite os termos de treinamento antes de enviar foto ou áudio.",
-                      );
-                      return;
-                    }
-                    setCameraOpen(true);
-                  }}
-                  className={`w-full inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition ${
-                    !consentAccepted || isUploadingAvatarImageAsset
-                      ? "cursor-not-allowed border-md-border opacity-50 text-md-text-soft"
-                      : "border-[var(--curador-border)] bg-[var(--curador-soft)] text-[var(--curador-text)] hover:opacity-90"
-                  }`}
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                  Tirar foto com a câmera
-                </button>
-
-                <label
-                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
-                    consentAccepted
-                      ? "border-md-border-hover hover:border-cyan-500 cursor-pointer"
-                      : "border-md-border opacity-50 cursor-not-allowed"
-                  }`}
-                >
-                  <svg className="h-8 w-8 text-md-text-soft group-hover:text-[var(--curador-text)] mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  <span className="text-sm font-medium text-md-text-muted group-hover:text-md-text">
-                    {isUploadingAvatarImageAsset ? "Enviando imagem..." : "Escolher imagem da galeria"}
-                  </span>
-                  <span className="text-[10px] text-md-text-soft mt-1">JPG, PNG (Max. 10MB)</span>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    className="hidden"
-                    accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
-                    disabled={!consentAccepted || isUploadingAvatarImageAsset}
-                    onChange={(event) => {
-                      openPendingPhoto(event.target.files?.[0]);
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-                {photoName ? (
-                  <p className="text-[11px] text-[var(--sentinela-text)] mt-2">Foto atual: {photoName}</p>
-                ) : null}
-              </div>
-            </div>
-
-            {/* VOZ */}
-            <div
-              id="audio"
-              data-onboarding-anchor="avatar-audio"
-              className="bg-md-surface/60 border border-md-border rounded-2xl p-6 flex flex-col h-full scroll-mt-24"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold text-md-text">A Voz Perfeita</h4>
-              </div>
-              <p className="text-xs text-md-text-soft mb-3">
-                Para uma voz idêntica à do Candidato, o áudio precisa ter:
-              </p>
-
-              <div className="grid grid-cols-2 gap-2 text-xs text-md-text-soft mb-4">
-                <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Ritmo Natural</div>
-                <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Respire Normalmente</div>
-                <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Entre 30 seg e 2 min</div>
-                <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Gaguejar</div>
-                <div className="flex items-center gap-1 col-span-2"><span className="text-red-400">✕</span> Sem Ruído de Fundo</div>
-              </div>
-
-              <p className="text-xs text-md-text-soft mb-3">
-                Caso não tenha um áudio com as condições acima, grave o roteiro abaixo a cerca de
-                15-20cm do microfone, levemente inclinado para o lado.
-              </p>
-
-              <div className="bg-md-bg p-4 rounded-xl border border-md-border mb-4 overflow-y-auto max-h-40 flex-grow relative">
-                <p className="text-sm text-md-text-muted italic">{VOICE_SCRIPT}</p>
-              </div>
-
-              <div className="mt-auto space-y-3">
-                <AvatarVoiceRecorder
-                  disabled={!consentAccepted}
-                  busy={isUploadingVoiceAudioAsset}
-                  onRecorded={(file) => {
-                    setAudioPreviewFromFile(file);
-                    void handleUpload(file, "voice_audio", "Áudio de voz");
-                  }}
-                />
-
-                <label
-                  className={`w-full flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-xl bg-md-overlay-subtle transition-colors group ${
-                    consentAccepted
-                      ? "border-md-border-hover hover:border-purple-500 cursor-pointer"
-                      : "border-md-border opacity-50 cursor-not-allowed"
-                  }`}
-                >
-                  <svg className="h-8 w-8 text-md-text-soft group-hover:text-purple-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  </svg>
-                  <span className="text-sm font-medium text-md-text-muted group-hover:text-md-text">
-                    {isUploadingVoiceAudioAsset ? "Enviando áudio..." : "Enviar arquivo de áudio"}
-                  </span>
-                  <span className="text-[10px] text-md-text-soft mt-1">MP3, WAV, M4A (Até 2 minutos)</span>
-                  <input
-                    ref={audioInputRef}
-                    type="file"
-                    className="hidden"
-                    accept="audio/*"
-                    disabled={!consentAccepted || isUploadingVoiceAudioAsset}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) {
-                        setAudioPreviewFromFile(file);
-                        void handleUpload(file, "voice_audio", "Áudio de voz");
-                      }
-                      event.target.value = "";
-                    }}
-                  />
-                </label>
-
-                {audioPlaybackSrc ? (
-                  <div className="rounded-xl border border-md-border bg-md-overlay-subtle p-3 space-y-2">
-                    <p className="text-[11px] font-medium text-md-text-muted">
-                      Ouvir áudio {audioName ? `· ${audioName}` : "enviado"}
-                    </p>
-                    <audio
-                      key={audioPlaybackSrc}
-                      controls
-                      src={audioPlaybackSrc}
-                      className="w-full"
-                      preload="metadata"
-                    />
-                  </div>
-                ) : audioName ? (
-                  <p className="text-[11px] text-[var(--sentinela-text)] mt-2">Áudio atual: {audioName}</p>
-                ) : null}
-              </div>
-            </div>
           </div>
 
           {uploadMessage ? (

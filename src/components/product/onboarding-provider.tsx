@@ -140,6 +140,31 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     [signals, persisted],
   );
 
+  // O botão real de "Salvar radar" (fora do onboarding) já chama markRadarSaved()
+  // toda vez que o usuário salva a config de temas, tour aberto ou não. Mas o
+  // passo "temas-salvar" do onboarding só fecha via clique no "Próximo" do tour
+  // guiado (ver deriveAppDone). Quem salvou de verdade sem nunca ter aberto o
+  // tour fica com radarSaved=true só que o passo continua "não feito" pra
+  // sempre — e a bolinha do menu pisca sem parar. Fecha o passo sozinho quando
+  // o salvamento real já aconteceu, exceto se o tour estiver com o tooltip
+  // aberto bem nesse passo (aí deixa o clique manual em "Próximo" acontecer,
+  // pra não pular a transição da experiência guiada).
+  useEffect(() => {
+    if (!mounted || !persisted.radarSaved) {
+      return;
+    }
+    if ((persisted.localDone ?? []).includes("temas-salvar")) {
+      return;
+    }
+    if (guideOpen && guideStepId === "temas-salvar") {
+      return;
+    }
+    persist({
+      ...persisted,
+      localDone: [...(persisted.localDone ?? []), "temas-salvar"],
+    });
+  }, [mounted, persisted, guideOpen, guideStepId, persist]);
+
   const markStepDone = useCallback(
     (step: OnboardingStepId) => {
       setPersisted((current) => {

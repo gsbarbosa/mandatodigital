@@ -113,6 +113,133 @@ export function GuiaIcon({ className }: IconProps) {
   );
 }
 
+export function NationalIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <circle cx="12" cy="12" r="7.7" />
+      <path d="M12 4.3c2.4 2 3.8 4.8 3.8 7.7s-1.4 5.7-3.8 7.7c-2.4-2-3.8-4.8-3.8-7.7s1.4-5.7 3.8-7.7z" />
+      <path d="M4.6 12h14.8" />
+    </svg>
+  );
+}
+
+export function StateIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M4.5 6.5l5-2 5 2 5-2v13l-5 2-5-2-5 2z" />
+      <path d="M9.5 4.5v13M14.5 6.5v13" />
+    </svg>
+  );
+}
+
+export function MunicipalIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M5 20.5V8.5l4-2.5v14.5" />
+      <path d="M13 20.5V4.5l6 3v13" />
+      <path d="M7 11h.01M7 14.5h.01M15.5 9h.01M15.5 12.5h.01M15.5 16h.01" />
+    </svg>
+  );
+}
+
+export function InterestIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M12 21V10" />
+      <path d="M8.5 13a5 5 0 0 1 7 0M6 10.3a9 9 0 0 1 12 0" />
+      <circle cx="12" cy="7.5" r="1.3" />
+    </svg>
+  );
+}
+
+export function AdversariosIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M5 3.5v17M5 4.5h6l-1.8 3 1.8 3H5" />
+      <path d="M19 20.5v-17M19 19.5h-6l1.8-3-1.8-3H19" />
+    </svg>
+  );
+}
+
+export function NoticiasDoDiaIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M4.5 6.5h11a1.5 1.5 0 0 1 1.5 1.5v10a2 2 0 0 1-2 2h-9a1.5 1.5 0 0 1-1.5-1.5z" />
+      <path d="M17 10.5h2.5v8a1.5 1.5 0 0 1-1.5 1.5" />
+      <path d="M7.5 10h5M7.5 13h6.5M7.5 16h6.5" />
+    </svg>
+  );
+}
+
+export function GemeoDigitalIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M4 9V6.5A2.5 2.5 0 0 1 6.5 4H9M15 4h2.5A2.5 2.5 0 0 1 20 6.5V9M20 15v2.5a2.5 2.5 0 0 1-2.5 2.5H15M9 20H6.5A2.5 2.5 0 0 1 4 17.5V15" />
+      <circle cx="12" cy="10.6" r="2.3" />
+      <path d="M8.3 16.3c.8-1.7 2.1-2.6 3.7-2.6s2.9.9 3.7 2.6" />
+    </svg>
+  );
+}
+
+export function CaricatoIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M4.5 8.5c0-2.5 3-4.5 7.5-4.5s7.5 2 7.5 4.5c0 5-3 10-7.5 10s-7.5-5-7.5-10z" />
+      <path d="M8.5 10.5c.5-.8 1.6-.8 2 0M13.5 10.5c.5-.8 1.6-.8 2 0" />
+      <path d="M9.5 15c1.5 1 3.5 1 5 0" />
+    </svg>
+  );
+}
+
+export function Mascote3DIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M12 4.5c4 0 6.5 3.3 6.5 7.5s-2.9 7.5-6.5 7.5-6.5-3.3-6.5-7.5S8 4.5 12 4.5z" />
+      <path d="M9.3 11.5h.01M14.7 11.5h.01" strokeWidth={2.6} />
+      <path d="M9.5 15c.8.6 1.7.9 2.5.9s1.7-.3 2.5-.9" />
+    </svg>
+  );
+}
+
+export function DadosPessoaisIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <circle cx="9" cy="11.5" r="2" />
+      <path d="M6.2 16c.5-1.6 1.8-2.5 2.8-2.5s2.3.9 2.8 2.5" />
+      <path d="M14.5 10h3M14.5 13h3" />
+    </svg>
+  );
+}
+
+export function PlanosPrecosIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M11.5 3.5h5.7a1.3 1.3 0 0 1 1.3 1.3v5.7a2 2 0 0 1-.6 1.4l-8 8a2 2 0 0 1-2.8 0l-5-5a2 2 0 0 1 0-2.8l8-8a2 2 0 0 1 1.4-.6z" />
+      <circle cx="15.3" cy="8.7" r="1.3" />
+    </svg>
+  );
+}
+
+export function PagamentosIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M6.5 3.5h11v17l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3-1 .65z" />
+      <path d="M9 8h6M9 11.5h6M9 15h4" />
+    </svg>
+  );
+}
+
+export function CnpjIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+      <path d="M7.5 15.5v-6l1.5-1 1.5 1v6z" />
+      <path d="M14 9.5h3M14 12.5h3M14 15.5h2" />
+    </svg>
+  );
+}
+
 export function ChevronDownIcon({ className }: IconProps) {
   return (
     <svg className={className} {...BASE_PROPS} strokeWidth={2}>

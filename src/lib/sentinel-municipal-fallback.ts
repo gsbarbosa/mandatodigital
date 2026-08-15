@@ -294,3 +294,150 @@ export function promoteMunicipalGeoFallback(input: {
     meta,
   };
 }
+
+/** Tema sintético dos cards que mostram o portal cadastrado sem match de tema. */
+export const MUNICIPAL_PORTAL_FALLBACK_THEME = "Fonte cadastrada";
+
+const DEFAULT_MAX_PORTAL_PROMOTED = 3;
+
+export function isMunicipalPortalFallbackSuggestion(suggestion: MockSentinelSuggestion) {
+  return (
+    suggestion.pipeline === "portal-fallback" ||
+    suggestion.themeLabel.trim() === MUNICIPAL_PORTAL_FALLBACK_THEME
+  );
+}
+
+function buildPortalFallbackId(articles: RssNewsItem[]) {
+  const hash = createHash("sha256")
+    .update(`portal-fallback:${articles.map((article) => article.link).join("|")}`)
+    .digest("hex")
+    .slice(0, 16);
+  return `sentinela-portal-${hash}`;
+}
+
+function buildPortalFallbackSuggestion(
+  articles: RssNewsItem[],
+  profile: PoliticianProfile,
+): MockSentinelSuggestion {
+  const themeLabel = MUNICIPAL_PORTAL_FALLBACK_THEME;
+  const primary = articles[0];
+  const hosts = [...new Set(articles.map((article) => article.siteHost).filter(Boolean))] as string[];
+  const hostsLabel = hosts.join(", ") || "o site que você cadastrou";
+  const relevanceScore = Math.max(
+    30,
+    scoreSentinelArticle(primary, profile, [], [], {
+      articleCount: articles.length,
+      outletCount: hosts.length || 1,
+    }),
+  );
+
+  return {
+    id: buildPortalFallbackId(articles),
+    themeLabel,
+    matchedThemes: [themeLabel],
+    relevanceScore,
+    pipeline: "portal-fallback",
+    topic: `${themeLabel} · ${primary.title}`.slice(0, 160),
+    briefing: `Não encontramos os temas selecionados em ${hostsLabel}. Mostrando as notícias mais recentes de lá.`,
+    evidence: {
+      postsAnalyzed: articles.length,
+      outletCount: hosts.length || 1,
+      engagementTrendPercent: 0,
+      byNetwork: [],
+      actors: [],
+      articles: articles.map(toNewsArticle),
+    },
+    engagement: {
+      relevanceScore,
+      scoreTrendPercent: 0,
+      likes: 0,
+      comments: 0,
+      postsAnalyzed: articles.length,
+      sources: [],
+      byNetwork: [],
+    },
+  };
+}
+
+export type PromoteMunicipalPortalFallbackResult = {
+  suggestions: MockSentinelSuggestion[];
+  meta?: SentinelMunicipalFallbackMeta;
+};
+
+/**
+ * Quando o usuário cadastrou portal(is) próprio(s) pro município e, mesmo assim,
+ * nenhum card municipal temático tem matéria que realmente cite a cidade dele,
+ * troca o resultado (provavelmente vindo da busca ampla, de outra cidade) por um
+ * aviso explícito + as matérias mais recentes do(s) portal(is) cadastrado(s).
+ * Roda depois do promoteMunicipalGeoFallback, sobre o resultado dele.
+ */
+export function promoteMunicipalPortalFallback(input: {
+  profile: PoliticianProfile;
+  articles: RssNewsItem[];
+  suggestions: MockSentinelSuggestion[];
+  maxPromoted?: number;
+  nowMs?: number;
+}): PromoteMunicipalPortalFallbackResult {
+  const { profile, articles, suggestions, maxPromoted = DEFAULT_MAX_PORTAL_PROMOTED } = input;
+
+  if (!hasMunicipalRadar(profile) || municipalCityNames(profile).length === 0) {
+    return { suggestions };
+  }
+
+  if (!profile.interestSites.some((site) => site.trim())) {
+    return { suggestions };
+  }
+
+  const interestThemes = splitProfileThemesBySphere(profile).interest;
+  if (interestThemes.length === 0) {
+    return { suggestions };
+  }
+
+  // Só o que realmente veio dos portais que o usuário cadastrou (interestSites).
+  const portalArticles = articles.filter((article) => article.siteList === "interest");
+  if (portalArticles.length === 0) {
+    return { suggestions };
+  }
+
+  const themeMatchedMunicipal = suggestions.filter((suggestion) =>
+    isThemeMatchedMunicipalSuggestion(suggestion, profile),
+  );
+
+  // Se algum card temático já cita de fato uma das cidades monitoradas, está tudo certo —
+  // o ajuste de pontuação já garante que ele fica em destaque. Nada a substituir aqui.
+  const hasGenuineCityMatch = themeMatchedMunicipal.some((suggestion) =>
+    (suggestion.evidence.articles ?? []).some((article) =>
+      articleMentionsMunicipalCity(`${article.title} ${article.sourceName ?? ""}`, profile),
+    ),
+  );
+  if (hasGenuineCityMatch) {
+    return { suggestions };
+  }
+
+  const sortedPortalArticles = [...portalArticles].sort((left, right) => {
+    const leftTime = left.publishedAt?.getTime() ?? 0;
+    const rightTime = right.publishedAt?.getTime() ?? 0;
+    return rightTime - leftTime;
+  });
+  const promoted = sortedPortalArticles.slice(0, maxPromoted);
+  const fallbackSuggestion = buildPortalFallbackSuggestion(promoted, profile);
+
+  // Tira os cards temáticos municipais sem citação real da cidade (prováveis "achismos"
+  // da busca ampla) — o card informativo + o portal cadastrado assumem o lugar deles.
+  const remaining = suggestions.filter(
+    (suggestion) => !isThemeMatchedMunicipalSuggestion(suggestion, profile),
+  );
+
+  const meta: SentinelMunicipalFallbackMeta = {
+    reason: "portal_no_theme_match",
+    themesMissed: interestThemes,
+    foundTopics: promoted.map((article) => article.title).slice(0, 8),
+    promotedCount: promoted.length,
+    cities: municipalCityNames(profile),
+  };
+
+  return {
+    suggestions: [...remaining, fallbackSuggestion],
+    meta,
+  };
+}

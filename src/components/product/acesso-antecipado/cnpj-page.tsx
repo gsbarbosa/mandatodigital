@@ -210,7 +210,7 @@ export function AcessoCnpjPage() {
                   />
                   <span>
                     Li e aceito o Contrato de Prestação de Serviços Eleitorais e o Dossiê de
-                    Transparência (Res. TSE 23.732).
+                    Transparência (Res. TSE 23.610/19 e 23.755/26).
                   </span>
                 </label>
 

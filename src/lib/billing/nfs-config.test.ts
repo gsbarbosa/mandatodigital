@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { buildAsaasNfsInvoiceSettings, isAsaasNfsEnabled } from "./nfs-config";
+import {
+  buildAsaasNfsInvoiceSettings,
+  buildAsaasScheduleInvoiceInput,
+  isAsaasNfsEnabled,
+} from "./nfs-config";
 
 const ENV_KEYS = [
   "ASAAS_NFS_ENABLED",
@@ -57,5 +61,26 @@ describe("nfs-config", () => {
       taxes: { iss: 3, retainIss: true },
     });
     expect(settings?.municipalServiceId).toBeUndefined();
+  });
+
+  it("monta agendamento de NFS por parcela paga", () => {
+    process.env.ASAAS_NFS_ENABLED = "true";
+    process.env.ASAAS_NFS_MUNICIPAL_SERVICE_ID = "svc_1";
+    process.env.ASAAS_NFS_ISS = "2.5";
+
+    expect(
+      buildAsaasScheduleInvoiceInput({
+        planLabel: "Avançado",
+        paymentId: "pay_9",
+        value: 1998,
+        effectiveDate: "2026-08-05",
+      }),
+    ).toMatchObject({
+      paymentId: "pay_9",
+      value: 1998,
+      effectiveDate: "2026-08-05",
+      municipalServiceId: "svc_1",
+      taxes: { iss: 2.5 },
+    });
   });
 });

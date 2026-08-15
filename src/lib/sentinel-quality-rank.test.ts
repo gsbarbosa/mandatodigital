@@ -70,8 +70,6 @@ describe("applySentinelQualityRank", () => {
         rawText: JSON.stringify({
           pautavel: true,
           score: 0.9,
-          briefing: "IBGE confirma menor taxa da serie.",
-          creativeAngle: "Emprego em alta: o que o mandato pode cobrar",
         }),
         provider: "openai",
         model: "test",
@@ -84,9 +82,8 @@ describe("applySentinelQualityRank", () => {
     const result = await applySentinelQualityRank([newsCard()]);
     expect(result.stats.llmCalls).toBe(1);
     expect(result.stats.kept).toBe(1);
-    expect(result.suggestions[0]?.topic).toContain("Emprego em alta");
-    expect(result.suggestions[0]?.briefing).toContain("IBGE");
-    expect(result.suggestions[0]?.creativeAngle).toContain("Emprego em alta");
+    expect(result.suggestions[0]?.topic).toBe(newsCard().topic);
+    expect(result.suggestions[0]?.relevanceScore).toBe(Math.round(40 + 0.9 * 55));
   });
 
   it("respeita enabled=false mesmo com flag ligada", async () => {

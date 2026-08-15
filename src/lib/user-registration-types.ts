@@ -20,11 +20,17 @@ export type UserRegistration = {
   teamEmail: string;
   teamPhone: string;
   planId: EarlyAccessPlanId | "";
-  /** Cobrança Asaas (PIX ou boleto 3x). Default trial = free trial / convidado. */
+  /** Cobrança Asaas (pacote único em PIX/boleto 3x). Default trial = convidado. */
   billingStatus: BillingStatus;
   billingMethod: BillingMethod | null;
   asaasCustomerId: string | null;
   asaasSubscriptionId: string | null;
+  /** Parcelamento Asaas (pacote único em 3x). Preferir isto à assinatura. */
+  asaasInstallmentId: string | null;
+  /** Cobrança atual/primeira (smoke 1x ou 1ª parcela do pacote). */
+  asaasPrimaryPaymentId: string | null;
+  /** Vencimento da 1ª parcela; 2ª e 3ª = +1 e +2 meses civis. */
+  billingFirstDueDate: string | null;
   pendingBoletoUrl: string | null;
   pendingBoletoLinhaDigitavel: string | null;
   pendingBoletoDueDate: string | null;
@@ -35,11 +41,19 @@ export type UserRegistration = {
   paidInstallments: number;
   /** Última cobrança Asaas já contabilizada (evita CONFIRMED+RECEIVED somarem 2x). */
   lastPaidPaymentId: string | null;
+  /** Quando a última parcela paga foi reconciliada (webhook ou status). */
+  lastPaidAt: string | null;
   /** Última NFS-e autorizada (Asaas). */
   lastNfsPdfUrl: string | null;
   lastNfsXmlUrl: string | null;
   lastNfsNumber: string | null;
   lastNfsStatus: string | null;
+  /** Número/id da NFS já enviada por e-mail (idempotência). */
+  lastNfsEmailSentFor: string | null;
+  /** Parcelas já agendadas para NFS-e (idempotência no parcelamento). */
+  scheduledNfsPaymentIds: string[];
+  /** Acesso ao /admin sem login separado. Setado só via script (scripts/set-admin-flag.mjs). */
+  isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;

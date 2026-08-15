@@ -15,6 +15,7 @@ import { MAX_THEMES_PER_SPHERE } from "@/lib/sphere-theme-catalog";
 import { matchThemesWithSynonyms } from "@/lib/sentinel-theme-synonyms";
 import { softQualityPenaltyForTitle } from "@/lib/sentinel-title-filters";
 import { normalizeSentinelText } from "@/lib/sentinel-text";
+import { displayTitleWithoutOutlet } from "@/lib/sphere-classifier";
 
 export { normalizeSentinelText } from "@/lib/sentinel-text";
 
@@ -495,15 +496,104 @@ export function extractTitleNumericSignals(title: string) {
   return [...signals];
 }
 
-export function buildStoryClusterKey(title: string) {
-  const normalized = normalizeSentinelText(title).replace(/(\d)\s*[.,]\s*(\d)/g, "$1$2");
+/** Palavras do próprio nome do tema — não contam como prova de "mesma pauta". */
+function themeExclusionWords(themeLabel?: string): Set<string> {
+  if (!themeLabel) {
+    return new Set();
+  }
+  return new Set(
+    normalizeSentinelText(themeLabel)
+      .split(" ")
+      .filter((word) => word.length >= 4)
+      .map(stemTitleToken),
+  );
+}
+
+// Lote pequeno demais deixa o corte errático (2 de 5 matérias já bate 40%,
+// mesmo sendo palavra que realmente identifica as duas). Só ativa com volume
+// suficiente pra "aparece demais" ser sinal confiável de "não distingue nada".
+const BATCH_COMMON_WORDS_MIN_TITLES = 15;
+// 65%: alto o bastante pra não fragmentar um mega-fato real que legitimamente
+// domine boa parte do tema (ex.: uma greve gerando 50-60% das matérias do dia),
+// mas ainda pega folgado os casos reais que motivaram isso (tema/instituição
+// recorrente apareciam em 90%+ do lote).
+const BATCH_COMMON_WORDS_MAX_SHARE = 0.65;
+
+function titleWordSet(title: string): Set<string> {
+  const cleanTitle = displayTitleWithoutOutlet(title);
+  const normalized = normalizeSentinelText(cleanTitle).replace(/(\d)\s*[.,]\s*(\d)/g, "$1$2");
+  return new Set(
+    normalized
+      .split(" ")
+      .filter((word) => word.length >= 4 && !TITLE_STOP_WORDS.has(word))
+      .map(stemTitleToken)
+      .filter((word) => word.length >= 4),
+  );
+}
+
+/**
+ * Palavras que aparecem em quase todo título de um mesmo lote (ex.: o nome de uma
+ * instituição recorrente, "Polícia Civil") não distinguem uma pauta da outra — mesmo
+ * raciocínio do nome do tema, só que descoberto automaticamente em vez de fixo.
+ * Exige um lote mínimo pra não excluir palavra à toa com poucos exemplos.
+ */
+export function batchCommonWords(
+  titles: string[],
+  minTitles: number = BATCH_COMMON_WORDS_MIN_TITLES,
+  maxShare: number = BATCH_COMMON_WORDS_MAX_SHARE,
+): Set<string> {
+  if (titles.length < minTitles) {
+    return new Set();
+  }
+  const docFrequency = new Map<string, number>();
+  for (const title of titles) {
+    for (const word of titleWordSet(title)) {
+      docFrequency.set(word, (docFrequency.get(word) ?? 0) + 1);
+    }
+  }
+  const exclude = new Set<string>();
+  for (const [word, count] of docFrequency.entries()) {
+    if (count / titles.length >= maxShare) {
+      exclude.add(word);
+    }
+  }
+  return exclude;
+}
+
+/**
+ * Chave de identidade da pauta — usada tanto pra agrupar matérias do mesmo fato
+ * (clusterScoredArticles) quanto pra colapsar cards quase-duplicados
+ * (collapseNearDuplicateSuggestions). Cautelas:
+ *  - tira o "- Veículo" que o Google News anexa, senão o nome do veículo disputa
+ *    vaga com as palavras que realmente identificam a notícia nas 7 mantidas;
+ *  - ignora as palavras do próprio tema (`themeLabel`), senão qualquer matéria
+ *    que só bate no tema (ex.: "Sistema Prisional") vira "parecida" com outra só
+ *    por repetir o nome do tema, mesmo sendo um fato completamente diferente;
+ *  - ignora palavras "demais no lote" (`extraExcludeWords`, ver `batchCommonWords`),
+ *    pro mesmo problema não se repetir com instituições recorrentes ("Polícia Civil").
+ */
+export function buildStoryClusterKey(
+  title: string,
+  themeLabel?: string,
+  extraExcludeWords?: Set<string>,
+) {
+  const cleanTitle = displayTitleWithoutOutlet(title);
+  const exclude = themeExclusionWords(themeLabel);
+  if (extraExcludeWords) {
+    for (const word of extraExcludeWords) {
+      exclude.add(word);
+    }
+  }
+  const normalized = normalizeSentinelText(cleanTitle).replace(/(\d)\s*[.,]\s*(\d)/g, "$1$2");
   const words = normalized
     .split(" ")
     .filter((word) => word.length >= 4 && !TITLE_STOP_WORDS.has(word))
     .map(stemTitleToken)
-    .filter((word) => word.length >= 4);
+    .filter((word) => word.length >= 4 && !exclude.has(word));
 
-  const tokens = [...new Set([...words, ...extractTitleNumericSignals(title)])].sort().slice(0, 7);
+  const tokens = [...new Set([...words, ...extractTitleNumericSignals(cleanTitle)])]
+    .sort()
+    .slice(0, 7);
   return tokens.join("|");
 }
 
@@ -546,35 +636,134 @@ function storyClusterKeysSimilar(left: string, right: string) {
 }
 
 /** Compara títulos brutos (cluster key) — usado no agrupamento RSS e no near-dup de cards. */
-export function titlesAreNearDuplicate(leftTitle: string, rightTitle: string) {
+export function titlesAreNearDuplicate(
+  leftTitle: string,
+  rightTitle: string,
+  themeLabel?: string,
+  extraExcludeWords?: Set<string>,
+) {
   return storyClusterKeysSimilar(
-    buildStoryClusterKey(leftTitle),
-    buildStoryClusterKey(rightTitle),
+    buildStoryClusterKey(leftTitle, themeLabel, extraExcludeWords),
+    buildStoryClusterKey(rightTitle, themeLabel, extraExcludeWords),
   );
 }
 
-export function countUniqueOutlets(articles: RssNewsItem[]) {
-  const outlets = new Set<string>();
-
-  for (const article of articles) {
-    if (article.sourceName?.trim()) {
-      outlets.add(normalizeSentinelText(article.sourceName));
-      continue;
+/** Conta só a sobreposição de palavras entre duas cluster keys — usado pelo filtro de
+ * veículo em `articlesAreLikelySameStory`, sem mexer na régua de texto original acima. */
+function sharedTokenCount(left: string, right: string): number {
+  const leftWords = new Set(left.split("|").filter(Boolean));
+  const rightWords = new Set(right.split("|").filter(Boolean));
+  let overlap = 0;
+  for (const word of leftWords) {
+    if (rightWords.has(word)) {
+      overlap += 1;
     }
+  }
+  return overlap;
+}
 
-    if (article.siteHost?.trim()) {
-      outlets.add(normalizeSentinelText(article.siteHost));
-      continue;
-    }
+/** Reportagens sobre o mesmo fato saem, na prática, em uma janela de poucos dias — depois
+ * disso, mesmo com palavras-chave em comum, é mais provável ser um fato novo e parecido. */
+const STORY_MATCH_MAX_HOURS_APART = 72;
 
-    try {
-      outlets.add(new URL(article.link).hostname.replace(/^www\./, ""));
-    } catch {
-      outlets.add(article.link);
+export type StoryMatchInput = {
+  title: string;
+  themeLabel?: string;
+  publishedAt?: Date | string | null;
+  outlet?: string | null;
+};
+
+function toTimeMs(value?: Date | string | null): number | null {
+  if (!value) {
+    return null;
+  }
+  const time = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+/**
+ * Versão "cheia" de `titlesAreNearDuplicate`: a régua de texto é exatamente a mesma
+ * (`storyClusterKeysSimilar`, sem alteração); além dela, considera data de publicação e
+ * veículo — os dois sinais só apertam o critério, nunca afrouxam um caso que o texto
+ * sozinho já rejeitaria. Usada em todo lugar que decide "isso é a mesma notícia".
+ *
+ * Veículo: só entra na parte já "fraca" da régua original — o desempate por proporção
+ * com 1 palavra em comum (o último `return` de `storyClusterKeysSimilar`). Quando as
+ * duas matérias são do mesmo veículo, esse desempate fraco não vale — passa a exigir as
+ * mesmas 2 palavras que a régua original já pede no caminho principal. Qualquer par que
+ * já bate 2+ palavras (o caminho comum) segue exatamente igual, veículo nenhum interfere.
+ */
+export function articlesAreLikelySameStory(
+  left: StoryMatchInput,
+  right: StoryMatchInput,
+  extraExcludeWords?: Set<string>,
+): boolean {
+  return storiesMatchWithKeys(
+    toStoryMatchCandidate(left, extraExcludeWords),
+    toStoryMatchCandidate(right, extraExcludeWords),
+  );
+}
+
+/**
+ * `StoryMatchInput` com a cluster key já calculada. Quem compara N títulos entre si
+ * (clusterização) monta isso uma vez por item, em vez de reconstruir a key dos dois
+ * lados a cada par — o custo do par vira só a comparação.
+ */
+type StoryMatchCandidate = StoryMatchInput & { clusterKey: string };
+
+function toStoryMatchCandidate(
+  input: StoryMatchInput,
+  extraExcludeWords?: Set<string>,
+): StoryMatchCandidate {
+  return {
+    ...input,
+    clusterKey: buildStoryClusterKey(input.title, input.themeLabel, extraExcludeWords),
+  };
+}
+
+function storiesMatchWithKeys(left: StoryMatchCandidate, right: StoryMatchCandidate): boolean {
+  const leftKey = left.clusterKey;
+  const rightKey = right.clusterKey;
+
+  const leftOutlet = left.outlet?.trim().toLowerCase();
+  const rightOutlet = right.outlet?.trim().toLowerCase();
+  const sameOutlet = Boolean(leftOutlet && rightOutlet && leftOutlet === rightOutlet);
+
+  if (sameOutlet && sharedTokenCount(leftKey, rightKey) < 2) {
+    return false;
+  }
+  if (!storyClusterKeysSimilar(leftKey, rightKey)) {
+    return false;
+  }
+
+  const leftTime = toTimeMs(left.publishedAt);
+  const rightTime = toTimeMs(right.publishedAt);
+  if (leftTime !== null && rightTime !== null) {
+    const hoursApart = Math.abs(leftTime - rightTime) / 3_600_000;
+    if (hoursApart > STORY_MATCH_MAX_HOURS_APART) {
+      return false;
     }
   }
 
-  return outlets.size;
+  return true;
+}
+
+function outletKeyForArticle(article: RssNewsItem): string {
+  if (article.sourceName?.trim()) {
+    return normalizeSentinelText(article.sourceName);
+  }
+  if (article.siteHost?.trim()) {
+    return normalizeSentinelText(article.siteHost);
+  }
+  try {
+    return new URL(article.link).hostname.replace(/^www\./, "");
+  } catch {
+    return article.link;
+  }
+}
+
+export function countUniqueOutlets(articles: RssNewsItem[]) {
+  return new Set(articles.map(outletKeyForArticle)).size;
 }
 
 function dedupeNewsItems(items: RssNewsItem[]) {
@@ -1043,11 +1232,14 @@ export function scoreSentinelArticle(
 
   const normalizedTitle = normalizeSentinelText(article.title);
 
-  if (profile.city.trim()) {
-    const city = normalizeSentinelText(profile.city);
-    if (city.length >= 3 && normalizedTitle.includes(city)) {
-      score += 20;
-    }
+  const monitoredCities = profile.municipalCities.map((city) => city.trim()).filter(Boolean);
+  if (
+    monitoredCities.some((city) => {
+      const normalizedCity = normalizeSentinelText(city);
+      return normalizedCity.length >= 3 && normalizedTitle.includes(normalizedCity);
+    })
+  ) {
+    score += 20;
   }
 
   // A sigla como substring gerava falso positivo em qualquer palavra que a contivesse
@@ -1102,7 +1294,21 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
 
   const clusters: ScoredArticle[][] = [];
 
-  for (const themeItems of byTheme.values()) {
+  for (const [themeLabel, themeItems] of byTheme.entries()) {
+    const commonWords = batchCommonWords(themeItems.map((item) => item.article.title));
+    // Uma vez por item: a comparação abaixo é O(n²) e não pode reconstruir cluster key
+    // e rótulo de veículo a cada par.
+    const storyCandidates = themeItems.map((item) =>
+      toStoryMatchCandidate(
+        {
+          title: item.article.title,
+          themeLabel,
+          publishedAt: item.article.publishedAt,
+          outlet: outletKeyForArticle(item.article),
+        },
+        commonWords,
+      ),
+    );
     const used = new Set<number>();
 
     for (let index = 0; index < themeItems.length; index += 1) {
@@ -1111,13 +1317,13 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
       }
 
       const seed = themeItems[index];
-      if (!seed) {
+      const seedStory = storyCandidates[index];
+      if (!seed || !seedStory) {
         continue;
       }
 
       const cluster = [seed];
       used.add(index);
-      const seedKey = buildStoryClusterKey(seed.article.title);
 
       for (let candidateIndex = index + 1; candidateIndex < themeItems.length; candidateIndex += 1) {
         if (used.has(candidateIndex)) {
@@ -1125,12 +1331,12 @@ export function clusterScoredArticles(scored: ScoredArticle[]) {
         }
 
         const candidate = themeItems[candidateIndex];
-        if (!candidate) {
+        const candidateStory = storyCandidates[candidateIndex];
+        if (!candidate || !candidateStory) {
           continue;
         }
 
-        const candidateKey = buildStoryClusterKey(candidate.article.title);
-        if (storyClusterKeysSimilar(seedKey, candidateKey)) {
+        if (storiesMatchWithKeys(seedStory, candidateStory)) {
           cluster.push(candidate);
           used.add(candidateIndex);
         }

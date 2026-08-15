@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { AdminShell } from "@/components/admin/admin-shell";
 import { getAdminSession } from "@/lib/admin/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export default async function AdminAuthenticatedLayout({
   children,
@@ -12,7 +13,11 @@ export default async function AdminAuthenticatedLayout({
 }) {
   const session = await getAdminSession();
   if (!session) {
-    redirect("/admin/login" as Route);
+    const user = await getSessionUser();
+    if (!user) {
+      redirect("/login?next=/admin" as Route);
+    }
+    redirect("/" as Route);
   }
 
   return <AdminShell email={session.email}>{children}</AdminShell>;

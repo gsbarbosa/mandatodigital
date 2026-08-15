@@ -16,6 +16,7 @@ playwright/.auth/
 .env.development
 meta-app-review-credentials.txt
 data/mandato-digital.json
+.local/
 *-firebase-adminsdk-*.json
 tsconfig.tsbuildinfo
 public/_ref_siteold/

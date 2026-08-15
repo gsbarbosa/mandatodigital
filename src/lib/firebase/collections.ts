@@ -17,7 +17,13 @@ export const COLLECTIONS = {
   sentinelThemeExpansions: "sentinelThemeExpansions",
   sentinelArticleThemeVerdicts: "sentinelArticleThemeVerdicts",
   sentinelFactChecks: "sentinelFactChecks",
+  /** Cache diário da tela Notícias do Dia (doc id = profileId). Isolado do Sentinela. */
+  noticiasDoDiaCache: "noticiasDoDiaCache",
   asyncJobs: "asyncJobs",
+  /** MP3 TTS temporário aguardando render HeyGen (doc id = heygenVideoId). */
+  ttsAudioPending: "ttsAudioPending",
+  /** Seleção de voz ElevenLabs + prévias TTS (doc id = profileId). */
+  profileVoiceSelections: "profileVoiceSelections",
   /** Contas sociais conectadas (Ayrshare) por perfil político. */
   socialConnections: "socialConnections",
   /** Pacotes de publicação do Distribuidor. */
@@ -40,6 +46,12 @@ export const COLLECTIONS = {
   supportThreads: "supportThreads",
   /** Casos resolvidos para RAG do suporte (embeddings OpenAI). */
   supportLearningItems: "supportLearningItems",
+  /**
+   * Base de candidaturas TSE 2026 para prefill do cadastro (doc id = CPF).
+   * Dado de referência, não do usuário: populado por scripts/seed-tse-candidates.ts
+   * e de propósito fora do `db:reset`.
+   */
+  tseCandidates2026: "tseCandidates2026",
   /** Legado — lido só para migração soft; não gravar mais. */
   earlyAccessReservations: "earlyAccessReservations",
 } as const;

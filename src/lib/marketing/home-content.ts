@@ -118,5 +118,5 @@ export const homeEcosystemSummary = {
     "Auditor: revisa, verifica fontes e garante qualidade.",
     "Distribuidor: publica nas redes sociais na hora certa.",
   ],
-  ctaLabel: "Conheça a solução",
+  ctaLabel: "Conheça o ecossistema",
 } as const;

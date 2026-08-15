@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { factCheckTopSentinelSuggestions } from "@/lib/auditor-storage";
+import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
@@ -174,7 +175,9 @@ export async function POST(request: Request) {
     try {
       result = await getSentinelSuggestions(dashboard.profile, {
         forceRefresh: true,
-        qualityRankEnabled: premium,
+        // Sentinela IA (quality rank + resgate de esfera) agora é universal, grátis e pago.
+        qualityRankEnabled: true,
+        sphereRescueEnabled: true,
       });
     } catch (error) {
       await releaseDistributedRateLimit({ key: platformRateKey });
@@ -193,6 +196,13 @@ export async function POST(request: Request) {
       credits = consumed.credits;
       if (!consumed.ok) {
         // Corrida rara: outro request esgotou no meio — ainda devolvemos o resultado.
+        // Auditoria grava mesmo assim: a varredura rodou e o dossiê precisa contar.
+        recordAuditEventFireAndForget({
+          request,
+          action: "monitoring_refresh",
+          profileId: dashboard.profile.id ?? null,
+          payload: { reason, suggestionCount: result.suggestions.length, sourceFailed },
+        });
         return NextResponse.json({
           ...result,
           reason,
@@ -222,6 +232,13 @@ export async function POST(request: Request) {
       qualityKept: result.meta?.qualityRankStats?.kept ?? null,
       qualityDropped: result.meta?.qualityRankStats?.dropped ?? null,
       durationMs: routeElapsed(),
+    });
+
+    recordAuditEventFireAndForget({
+      request,
+      action: "monitoring_refresh",
+      profileId: dashboard.profile.id ?? null,
+      payload: { reason, suggestionCount: result.suggestions.length, sourceFailed },
     });
 
     return NextResponse.json({

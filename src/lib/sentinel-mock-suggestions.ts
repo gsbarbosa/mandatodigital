@@ -57,7 +57,8 @@ export type SentinelPipeline =
   | "semantic"
   | "social"
   | "legacy"
-  | "geo-fallback";
+  | "geo-fallback"
+  | "portal-fallback";
 
 /** Sinal do Sentinela com dados de alta confiabilidade (scraping + config + Trends). */
 export type MockSentinelSuggestion = {
@@ -74,10 +75,8 @@ export type MockSentinelSuggestion = {
    * quando distinto do themeLabel.
    */
   matchingSearchTerm?: string;
-  /** Briefing editorial (quality rank LLM) — 1 frase objetiva. */
+  /** Aviso estático de contexto (fallback municipal/portal) — não é gerado por IA. */
   briefing?: string;
-  /** Gancho curto para vídeo/post (quality rank LLM). */
-  creativeAngle?: string;
   evidence: SentinelVerifiedEvidence;
   engagement: SentinelEngagementMetrics;
 };
@@ -345,9 +344,6 @@ export function buildSentinelBriefingForCriativo(suggestion: MockSentinelSuggest
 
   if (suggestion.briefing?.trim()) {
     parts.push(`Briefing editorial: ${suggestion.briefing.trim()}`);
-  }
-  if (suggestion.creativeAngle?.trim()) {
-    parts.push(`Angulo criativo: ${suggestion.creativeAngle.trim()}`);
   }
 
   parts.push(

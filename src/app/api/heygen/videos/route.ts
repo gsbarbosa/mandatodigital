@@ -4,14 +4,14 @@ import { recordAuditEventFireAndForget } from "@/lib/audit/record";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { buildAvatarVideoTranscript, countTranscriptWords } from "@/lib/avatar-video-script";
+import { resolveSessionAccountTier } from "@/lib/account-tier.server";
 import { isPremiumAccountMode } from "@/lib/dev-account-mode.server";
 import {
   guestVideosExhaustedMessage,
   releaseGuestVideoQuota,
   tryConsumeGuestVideoQuota,
 } from "@/lib/guest-usage-storage";
-import { maxScriptWordsForPlan, maxVideoSecondsLabelForPlan } from "@/lib/plan-limits";
-import { getUserRegistrationForOwner } from "@/lib/user-registration-storage";
+import { maxScriptWordsForTier, maxVideoSecondsLabelForTier } from "@/lib/plan-limits";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 import {
   formatHeyGenError,
@@ -34,6 +34,7 @@ import {
   resolveHeyGenVoiceWithRetryForImageVideo,
   resolveVideoSpeechForGeneration,
 } from "@/lib/voice-provider-resolve";
+import { registerTtsAudioPendingCleanup } from "@/lib/elevenlabs-tts-storage";
 import { isAsyncVoiceEnabled, isElevenLabsAudioVoiceProvider } from "@/lib/feature-flags";
 import { getSessionUser } from "@/lib/auth/session";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
@@ -43,6 +44,7 @@ import {
 } from "@/lib/async-jobs-enqueue";
 import type { ProfileTrainingAsset } from "@/lib/types";
 import { appLog, appLogError, startTimer } from "@/lib/observability/log";
+import { resolvePersistedVoiceForGeneration } from "@/lib/voice-preview";
 
 export const maxDuration = 300;
 
@@ -169,13 +171,15 @@ export async function POST(request: Request) {
         guestQuota.release = () => releaseGuestVideoQuota(ownerUserId, generateMode);
       }
 
-      const registration = await getUserRegistrationForOwner().catch((error) => {
-        appLogError("heygen", "registration_lookup_failed", error, { profileId });
+      const account = await resolveSessionAccountTier().catch((error) => {
+        appLogError("heygen", "account_tier_lookup_failed", error, { profileId });
         return null;
       });
-      const planId = registration?.planId || null;
-      const maxScriptWords = maxScriptWordsForPlan(planId);
-      const durationLabel = maxVideoSecondsLabelForPlan(planId).replace(/^até\s+/i, "");
+      const maxScriptWords = maxScriptWordsForTier(account?.tier ?? "trial");
+      const durationLabel = maxVideoSecondsLabelForTier(account?.tier ?? "trial").replace(
+        /^até\s+/i,
+        "",
+      );
 
       if (explicitTranscript && countTranscriptWords(explicitTranscript) > maxScriptWords) {
         appLog(
@@ -284,6 +288,20 @@ export async function POST(request: Request) {
           : undefined;
         const imageUrl = await getTrainingAssetPublicUrl(imageAsset, appBaseUrl);
         const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, appBaseUrl);
+        const voicePrefs = profileId
+          ? await resolvePersistedVoiceForGeneration({
+              profileId,
+              voiceAudioAssetId: voiceAudioAsset.id,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId,
+            })
+          : {
+              persistVoice: false,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId ?? null,
+              voiceSettings: null,
+              selectedPreviewId: null,
+            };
+        const resolvedElevenLabsVoiceId =
+          voicePrefs.requestedElevenLabsVoiceId ?? undefined;
         const avatarName = resolveAvatarTrainingName({
           fullName: dashboard.profile?.fullName,
           role: dashboard.profile?.role,
@@ -320,8 +338,10 @@ export async function POST(request: Request) {
                 avatarName,
                 voiceAudioAssetId: voiceAudioAsset.id,
                 voiceAudioUrl,
-                requestedElevenLabsVoiceId: elevenLabsVoiceId,
+                requestedElevenLabsVoiceId: resolvedElevenLabsVoiceId,
                 requestedHeygenVoiceId: voiceId,
+                persistVoice: voicePrefs.persistVoice,
+                voiceSettings: voicePrefs.voiceSettings ?? undefined,
                 createVideo: {
                   generateMode,
                   imageUrl,
@@ -375,7 +395,9 @@ export async function POST(request: Request) {
           voiceAudioAssetId: voiceAudioAsset.id,
           voiceAudioUrl,
           requestedHeygenVoiceId: voiceId,
-          requestedElevenLabsVoiceId: elevenLabsVoiceId,
+          requestedElevenLabsVoiceId: resolvedElevenLabsVoiceId,
+          persistVoice: voicePrefs.persistVoice,
+          voiceSettings: voicePrefs.voiceSettings,
           mediaId: `image-${Date.now()}`,
         });
 
@@ -389,6 +411,13 @@ export async function POST(request: Request) {
             resolution: "1080p",
             callbackUrl,
           });
+          if (speech.storagePath) {
+            await registerTtsAudioPendingCleanup({
+              videoId: result.videoId,
+              storagePath: speech.storagePath,
+              audioUrl: speech.audioUrl,
+            });
+          }
           auditVideoEvent(request, dashboard.profile?.id, {
             videoId: result.videoId,
             generateMode,
@@ -554,6 +583,18 @@ export async function POST(request: Request) {
             voiceAudioAssetId: twinVoiceAsset.id,
             avatarImageAssetId: requestedAvatarImageAssetId,
           });
+          const twinVoicePrefs = profileId
+            ? await resolvePersistedVoiceForGeneration({
+                profileId,
+                voiceAudioAssetId: twinVoiceAsset.id,
+                requestedElevenLabsVoiceId: elevenLabsVoiceId,
+              })
+            : {
+                persistVoice: false,
+                requestedElevenLabsVoiceId: elevenLabsVoiceId ?? null,
+                voiceSettings: null,
+                selectedPreviewId: null,
+              };
 
           const speech = await resolveVideoSpeechForGeneration({
             transcript,
@@ -565,7 +606,10 @@ export async function POST(request: Request) {
             voiceAudioAssetId: twinVoiceAsset.id,
             voiceAudioUrl: await getTrainingAssetPublicUrl(twinVoiceAsset, appBaseUrl),
             requestedHeygenVoiceId: voiceId,
-            requestedElevenLabsVoiceId: elevenLabsVoiceId,
+            requestedElevenLabsVoiceId:
+              twinVoicePrefs.requestedElevenLabsVoiceId ?? undefined,
+            persistVoice: twinVoicePrefs.persistVoice,
+            voiceSettings: twinVoicePrefs.voiceSettings,
             mediaId: `avatar-${avatarId}`,
           });
 
@@ -579,6 +623,13 @@ export async function POST(request: Request) {
               callbackUrl,
               engine,
             });
+            if (speech.storagePath) {
+              await registerTtsAudioPendingCleanup({
+                videoId: result.videoId,
+                storagePath: speech.storagePath,
+                audioUrl: speech.audioUrl,
+              });
+            }
             auditVideoEvent(request, dashboard.profile?.id, {
               videoId: result.videoId,
               generateMode: "avatar",
@@ -687,6 +738,18 @@ export async function POST(request: Request) {
         const imageUrlBase = resolveAppBaseUrl(request);
         const imageUrl = await getTrainingAssetPublicUrl(avatarImageAsset, imageUrlBase);
         const voiceAudioUrl = await getTrainingAssetPublicUrl(voiceAudioAsset, imageUrlBase);
+        const fallbackVoicePrefs = profileId
+          ? await resolvePersistedVoiceForGeneration({
+              profileId,
+              voiceAudioAssetId: voiceAudioAsset.id,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId,
+            })
+          : {
+              persistVoice: false,
+              requestedElevenLabsVoiceId: elevenLabsVoiceId ?? null,
+              voiceSettings: null,
+              selectedPreviewId: null,
+            };
         const avatarName = resolveAvatarTrainingName({
           fullName: dashboard.profile?.fullName,
           role: dashboard.profile?.role,
@@ -699,7 +762,10 @@ export async function POST(request: Request) {
           voiceAudioAssetId: voiceAudioAsset.id,
           voiceAudioUrl,
           requestedHeygenVoiceId: voiceId,
-          requestedElevenLabsVoiceId: elevenLabsVoiceId,
+          requestedElevenLabsVoiceId:
+            fallbackVoicePrefs.requestedElevenLabsVoiceId ?? undefined,
+          persistVoice: fallbackVoicePrefs.persistVoice,
+          voiceSettings: fallbackVoicePrefs.voiceSettings,
           mediaId: `fallback-${Date.now()}`,
         });
 
@@ -712,6 +778,13 @@ export async function POST(request: Request) {
             resolution: "1080p",
             callbackUrl,
           });
+          if (speech.storagePath) {
+            await registerTtsAudioPendingCleanup({
+              videoId: fallbackResult.videoId,
+              storagePath: speech.storagePath,
+              audioUrl: speech.audioUrl,
+            });
+          }
           auditVideoEvent(request, dashboard.profile?.id, {
             videoId: fallbackResult.videoId,
             providerMode: "image_fallback",

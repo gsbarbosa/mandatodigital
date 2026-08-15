@@ -2,9 +2,10 @@
 
 Documento para **estudar**, **explicar a outras LLMs** e **pedir mudanças com precisão**.  
 Guia de uso do produto: [`docs/sentinela.md`](./sentinela.md).  
-Spike de qualidade em curso: [`docs/spike-sentinela-qualidade.md`](./spike-sentinela-qualidade.md).
+Spike de qualidade em curso: [`docs/spike-sentinela-qualidade.md`](./spike-sentinela-qualidade.md).  
+Tela irmã com mecanismo de busca **isolado** (não faz parte deste pipeline): [`docs/noticias-do-dia.md`](./noticias-do-dia.md).
 
-**Repo:** `mandatodigital` (Next.js / App Hosting Firebase / Supabase)  
+**Repo:** `mandatodigital` (Next.js / App Hosting Firebase / Firestore)  
 **Prod:** `https://mandatodigital--madatodigital.us-central1.hosted.app` (App Hosting)  
 **Objetivo de produto:** a partir do **radar** do mandato (temas + geo + adversários), gerar **sinais/pautas** com evidência (links) para o **Criativo** virar conteúdo.
 
@@ -117,6 +118,7 @@ Campos críticos:
 - `rssFetchStats` — tentativas/sucessos/erros HTTP da coleta  
 - `themeVerificationStats` — verify LLM  
 - `qualityReport` / `llmCostEstimate` / `qualityRankStats` — spike qualidade  
+- `sphereRescueStats` — resgate de esfera zerada: quantas precisaram, quantas a IA promoveu, quantas rejeitou e quais falharam tecnicamente (`failedSpheres` vira aviso na UI)  
 - `emptyReason`, `oppositionUnavailableReason`
 - `municipalFallback` — quando a esfera municipal não acha os temas do radar na cidade: amplia com notícias locais (`pipeline: geo-fallback`) e a UI mostra aviso + lista do que encontrou (só municipal) 
 - `radarThemesSignature` — invalida cache se o radar mudou  
@@ -171,7 +173,7 @@ V2 classifica pipeline (`portal` / `semantic` / `manual`), usa expansões, score
 Flag: `SENTINEL_LLM_THEME_VERIFY`  
 Arquivo: `sentinel-theme-verify.ts`  
 Aprova/rejeita se a matéria **trata de fato** do tema (não menção lateral).  
-Cache de vereditos em Supabase (`sentinel_article_theme_verdicts`).  
+Cache de vereditos no Firestore (`sentinelArticleThemeVerdicts`).  
 **Custo:** pode chamar LLM em muitos artigos se o match for frouxo.
 
 ### 5.3 Social + oposição
@@ -187,13 +189,40 @@ Cache de vereditos em Supabase (`sentinel_article_theme_verdicts`).
 - Oposição passa  
 - News: `themeLabel` deve estar nos temas ativos do radar (evita expansão órfã rotular tema errado)
 
-### 5.5 Quality rank (spike)
+### 5.5 Quality rank
 
-Flag: `SENTINEL_LLM_QUALITY_RANK` (default **false**)  
+Flag: `SENTINEL_LLM_QUALITY_RANK` (default **false**, `true` em prod)  
 Arquivo: `sentinel-quality-rank.ts`  
-Pega top N news por heurística, LLM mini decide `pautavel` + briefing/ângulo, reordena/dropa.  
+Pega top N news por heurística, LLM mini responde `{ pautavel, score }` e o card é
+mantido ou dropado; quem passa ganha boost de `relevanceScore`. **Não gera texto** — o
+rank já produziu briefing e ângulo criativo no passado, foi removido porque a qualidade
+não justificava o custo por card. `creativeAngle` não existe mais em
+`MockSentinelSuggestion`, e `briefing` sobrou só como aviso estático de contexto
+(fallback municipal/portal), nunca gerado por IA.  
+Vale pra **toda conta**, grátis e paga — as rotas passam `qualityRankEnabled: true`
+fixo; só a flag de env liga/desliga.  
 Heurística e custo: `sentinel-quality.ts`.  
 Eval offline: `npm run sentinel:quality-eval`.
+
+### 5.6 Resgate de esfera zerada
+
+Flag: `SENTINEL_LLM_SPHERE_RESCUE` (default **false**, `true` em prod)  
+Arquivo: `sentinel-sphere-rescue.ts`
+
+O teto por tema é compartilhado entre as 3 esferas geográficas, então uma esfera pode
+terminar o rank sem nenhuma pauta mesmo havendo candidato no pool. `rescueZeroedSpheres`
+monta, pra cada esfera zerada, uma shortlist de 5 candidatos do pool **pré-rank** e faz
+1 chamada de LLM por esfera, que escolhe uma pauta **ou rejeita todas** (`pick=false`) —
+esfera vazia é resultado aceitável, melhor que reintroduzir conteúdo fraco só pra
+preencher.
+
+Falha técnica (sem provider, JSON malformado, índice fora da shortlist) **não** cai no
+fallback cego: a esfera fica vazia e a falha vai pra `meta.sphereRescueStats.failedSpheres`,
+que a `monitoramento-page` usa pra mostrar "tente novamente" em vez da mensagem de
+"sem pauta" (que sugeriria mexer no radar, o que não é o problema).
+
+Com a flag off, o comportamento é o antigo `ensureMinimumSphereRepresentation`: promove
+o melhor candidato por score, zero chamadas de IA.
 
 ---
 
@@ -202,9 +231,9 @@ Eval offline: `npm run sentinel:quality-eval`.
 | Peça | Onde |
 |---|---|
 | Memória processo | `Map` em `sentinel-suggestions.ts` (TTL ~15 min) |
-| Persistido | Supabase `sentinel_suggestion_cache` (`sentinel-storage.ts`) |
-| Expansões | `sentinel_theme_expansions` |
-| Histórico sinais | append em storage (quando habilitado) |
+| Persistido | Firestore `sentinelSuggestionCache` (`sentinel-storage.ts`) |
+| Expansões | Firestore `sentinelThemeExpansions` |
+| Histórico sinais | Firestore `sentinelSignals` (append em storage, quando habilitado) |
 
 **GET `/api/sentinel/suggestions`**  
 → `getSentinelSuggestions` **sem** `forceRefresh` → só cache (ou empty pedindo “Atualizar pautas”). Para guest, a resposta pode incluir `credits` (`used` / `limit` / `remaining`).
@@ -280,7 +309,8 @@ Auth: Firebase session cookie → `owner_user_id` derivado (`toDatabaseOwnerUser
 | `SENTINEL_V2_PIPELINES` | Pipeline v2 |
 | `SENTINEL_LLM_EXPANSION` | Gera/usa termos semânticos |
 | `SENTINEL_LLM_THEME_VERIFY` | LLM aprova match tema↔matéria |
-| `SENTINEL_LLM_QUALITY_RANK` | Spike: rank top-N + briefing |
+| `SENTINEL_LLM_QUALITY_RANK` | Rank editorial top-N (mantém/dropa), toda conta |
+| `SENTINEL_LLM_SPHERE_RESCUE` | IA escolhe (ou rejeita) pauta pra esfera zerada |
 | `SENTINEL_SOCIAL_ENABLED` | Social/Apify |
 | `SENTINEL_TREND_PROXY` | Trends (quando usado) |
 | `SENTINEL_PERSIST_CACHE` | Força on/off cache persistido |
@@ -301,7 +331,7 @@ src/lib/sentinel-theme-expansion.ts  # LLM expansão
 src/lib/sentinel-theme-verify.ts     # LLM verify
 src/lib/sentinel-quality*.ts         # spike qualidade
 src/lib/sphere-classifier.ts         # UI esferas
-src/lib/sentinel-storage.ts          # Supabase cache
+src/lib/sentinel-storage.ts          # Firestore cache
 src/lib/guest-limits.ts              # créditos + ciclo 8h BRT
 src/lib/guest-credits-storage.ts     # Firestore guestCredits
 src/app/api/sentinel/refresh/route.ts

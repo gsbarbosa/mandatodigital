@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mandato Digital — Campanha para Mulheres</title>
+<style>
+  @font-face { font-family: 'Jakarta'; font-weight: 500; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-500.woff2') format('woff2'); }
+  @font-face { font-family: 'Jakarta'; font-weight: 600; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-600.woff2') format('woff2'); }
+  @font-face { font-family: 'Jakarta'; font-weight: 700; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-700.woff2') format('woff2'); }
+  @font-face { font-family: 'Jakarta'; font-weight: 800; font-display: swap; src: url('/vozdelas/assets/fonts/pjs-800.woff2') format('woff2'); }
+
+  :root {
+    --ink: #0A2540;
+    --ink-soft: #3C5068;
+    --paper: #F5F8FC;
+    --paper-raised: #FFFFFF;
+    --line: rgba(10,37,64,0.12);
+    --line-soft: rgba(10,37,64,0.07);
+    --accent: #00B86B;
+    --accent-ink: #04231A;
+    --accent-soft: rgba(0,184,107,0.12);
+    --risk: #B23A2E;
+    --risk-soft: rgba(178,58,46,0.09);
+    --risk-line: rgba(178,58,46,0.22);
+    --mono-ink: #0A2540;
+    --shadow: 0 24px 60px -20px rgba(10,37,64,0.28);
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --serif-tab: "tnum" 1;
+  }
+  :root[data-theme="dark"] {
+    --ink: #EEF3F9;
+    --ink-soft: #A9BAD0;
+    --paper: #08111F;
+    --paper-raised: #0F1D30;
+    --line: rgba(238,243,249,0.14);
+    --line-soft: rgba(238,243,249,0.08);
+    --accent: #21D689;
+    --accent-ink: #04170F;
+    --accent-soft: rgba(33,214,137,0.14);
+    --risk: #FF8A73;
+    --risk-soft: rgba(255,138,115,0.1);
+    --risk-line: rgba(255,138,115,0.28);
+    --shadow: 0 24px 60px -18px rgba(0,0,0,0.55);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #EEF3F9;
+      --ink-soft: #A9BAD0;
+      --paper: #08111F;
+      --paper-raised: #0F1D30;
+      --line: rgba(238,243,249,0.14);
+      --line-soft: rgba(238,243,249,0.08);
+      --accent: #21D689;
+      --accent-ink: #04170F;
+      --accent-soft: rgba(33,214,137,0.14);
+      --risk: #FF8A73;
+      --risk-soft: rgba(255,138,115,0.1);
+      --risk-line: rgba(255,138,115,0.28);
+      --shadow: 0 24px 60px -18px rgba(0,0,0,0.55);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Jakarta', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+  a { color: inherit; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+  @media (max-width: 720px) { .wrap { padding: 0 20px; } }
+
+  /* ---------- reveal-on-scroll ---------- */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    html { scroll-behavior: auto; }
+  }
+
+  /* ---------- header ---------- */
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  header.site .bar { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  a.brand { text-decoration: none; color: inherit; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; letter-spacing: -0.2px; }
+  .brand .mark path:first-child, .brand .mark path:nth-child(2), .brand .mark path:nth-child(3) { fill: var(--ink); }
+  .brand .word-digital { color: var(--accent); }
+  .header-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: var(--paper);
+    font-weight: 700; font-size: 13.5px; letter-spacing: 0.1px;
+    padding: 10px 18px; border-radius: 999px; text-decoration: none;
+    transition: transform .18s ease, background .18s ease;
+  }
+  .header-cta:hover { background: var(--accent); color: var(--accent-ink); transform: translateY(-1px); }
+  :root[data-theme="dark"] .header-cta, @media (prefers-color-scheme: dark) { }
+
+  /* ---------- eyebrow ---------- */
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase;
+    color: var(--accent-ink); background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    padding: 7px 14px; border-radius: 999px;
+  }
+  :root[data-theme="dark"] .eyebrow { color: var(--accent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .eyebrow { color: var(--accent); } }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+  /* ---------- hero ---------- */
+  .hero { padding: 64px 0 40px; }
+  .hero h1 {
+    font-size: clamp(28px, 3.3vw, 45px); line-height: 1.08; font-weight: 800; letter-spacing: -1.2px;
+    margin: 20px 0 32px; white-space: nowrap;
+  }
+  @media (max-width: 980px) { .hero h1 { white-space: normal; font-size: clamp(26px, 5vw, 38px); } }
+  .hero h1 .accent { color: var(--accent); }
+  .hero-subtitle { font-size: 18px; line-height: 1.55; color: var(--ink-soft); max-width: 68ch; margin: 0 0 40px; }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--accent); color: var(--accent-ink);
+    font-weight: 800; font-size: 15.5px; padding: 15px 26px; border-radius: 12px;
+    text-decoration: none; box-shadow: var(--shadow); transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-primary svg { width: 16px; height: 16px; }
+  .hero-note { font-size: 13px; color: var(--ink-soft); }
+
+  /* hero media column — photo full-width (matches title width), stats row below it */
+  .hero-media-row { display: flex; flex-direction: column; gap: 28px; }
+  .hero-stats-side { display: flex; flex-direction: row; gap: 32px; flex-wrap: wrap; justify-content: space-between; }
+  .hero-stat b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -0.5px; }
+  .hero-stat span { font-size: 13.5px; color: var(--ink-soft); }
+
+  /* hero visual — supplied photo, stretched to the same width as the hero title */
+  .hero-visual { position: relative; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 1698 / 926; width: 100%; }
+  .hero-visual img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+
+  /* ---------- section shell ---------- */
+  section { padding: 88px 0; }
+  @media (max-width: 720px) { section { padding: 60px 0; } }
+  .section-head { max-width: 640px; margin-bottom: 48px; }
+  .section-kicker { font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-soft); }
+  .section-title { font-size: clamp(28px, 3.6vw, 40px); font-weight: 800; letter-spacing: -1px; margin: 12px 0 14px; text-wrap: balance; }
+  .section-title.nowrap-lg { white-space: nowrap; }
+  @media (max-width: 900px) { .section-title.nowrap-lg { white-space: normal; font-size: clamp(24px, 5.6vw, 34px); } }
+  .section-title.size-xl { font-size: clamp(31px, 3.96vw, 44px); }
+  @media (max-width: 900px) { .section-title.size-xl { font-size: clamp(26px, 6.2vw, 37px); } }
+  .section-lead { font-size: 16.5px; line-height: 1.6; color: var(--ink-soft); max-width: 58ch; }
+  .tone-risk { color: var(--risk); }
+  .tone-accent { color: var(--accent); }
+  :root[data-theme="dark"] .tone-accent { color: var(--accent); }
+
+  /* ---------- pairs (pain <-> solution, contraposto) ---------- */
+  .pairs { display: flex; flex-direction: column; gap: 20px; }
+  .pair {
+    display: grid; grid-template-columns: 1fr 60px 1fr; align-items: stretch;
+    border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line);
+    box-shadow: 0 18px 40px -28px rgba(10,37,64,0.4);
+  }
+  @media (max-width: 860px) { .pair { grid-template-columns: 1fr; } }
+
+  .pair-half { position: relative; padding: 40px 28px 34px; display: flex; flex-direction: column; justify-content: flex-start; }
+  .pair-pain { background: var(--risk-soft); }
+  .pair-solution { background: var(--accent-soft); padding-bottom: 64px; }
+
+  .pair-tag-slot { height: 22px; margin-bottom: 10px; display: flex; align-items: center; }
+  .pair-tag {
+    display: inline-flex; align-items: center; width: fit-content;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+    color: var(--risk); background: color-mix(in srgb, var(--risk) 16%, transparent); border: 1px solid var(--risk-line);
+  }
+  .pair-title { font-size: 20.5px; font-weight: 700; letter-spacing: -0.2px; line-height: 1.28; margin: 0 0 8px; }
+  .pair-body { font-size: 12.6px; line-height: 1.55; color: var(--ink-soft); margin: 0; }
+
+  .more-link {
+    position: absolute; right: 20px; bottom: 18px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 700; color: var(--accent-ink); text-decoration: none;
+    border-bottom: 1.5px solid currentColor; padding-bottom: 1px; width: fit-content;
+  }
+  :root[data-theme="dark"] .more-link { color: var(--accent); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .more-link { color: var(--accent); } }
+  .more-link svg { width: 12px; height: 12px; transition: transform .15s ease; }
+  .more-link:hover svg { transform: translateX(3px); }
+
+  .pair-connector { position: relative; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, var(--risk-soft), var(--accent-soft));
+  }
+  .pair-connector::before, .pair-connector::after {
+    content: ""; position: absolute; left: 50%; width: 1px; background: var(--line); transform: translateX(-50%);
+  }
+  .pair-connector::before { top: 0; height: calc(50% - 23px); }
+  .pair-connector::after { bottom: 0; height: calc(50% - 23px); }
+  .pair-badge {
+    width: 40px; height: 40px; border-radius: 50%; background: var(--paper-raised);
+    border: 2px solid var(--ink); display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px rgba(10,37,64,0.22); z-index: 2; flex: none;
+  }
+  .pair-badge svg { width: 17px; height: 17px; color: var(--ink); }
+  @media (max-width: 860px) {
+    .pair-connector { padding: 12px 0; background: linear-gradient(90deg, var(--risk-soft), var(--accent-soft)); }
+    .pair-connector::before { top: 50%; left: 0; width: calc(50% - 23px); height: 1px; transform: translateY(-50%); }
+    .pair-connector::after { top: 50%; right: 0; left: auto; width: calc(50% - 23px); height: 1px; transform: translateY(-50%); }
+  }
+
+  /* ---------- materialidade (dark dossie interlude) ---------- */
+  .dossie {
+    background: var(--ink); color: #EEF3F9;
+    border-radius: 28px; padding: 64px 56px; position: relative; overflow: hidden;
+  }
+  :root[data-theme="dark"] .dossie { background: #050B14; border: 1px solid var(--line); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dossie { background: #050B14; border: 1px solid var(--line); } }
+  @media (max-width: 720px) { .dossie { padding: 40px 22px; border-radius: 20px; } }
+  .dossie-grain { position: absolute; inset: 0; opacity: .5; pointer-events: none;
+    background-image: radial-gradient(circle at 15% 20%, rgba(0,184,107,0.12), transparent 40%), radial-gradient(circle at 85% 80%, rgba(0,184,107,0.08), transparent 45%);
+  }
+  .dossie-grid { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 52px; align-items: start; }
+  @media (max-width: 940px) { .dossie-grid { grid-template-columns: 1fr; } }
+  .dossie-kicker { font-size: 12px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #7FE8B8; }
+  .dossie h2 { font-size: clamp(26px,3.2vw,36px); font-weight: 800; letter-spacing: -0.9px; margin: 14px 0 18px; color: #fff; text-wrap: balance; }
+  .dossie p.lead { font-size: 15.5px; line-height: 1.65; color: #B9C6D6; max-width: 46ch; margin: 0 0 22px; }
+  .dossie-cite {
+    border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; margin: 0 0 26px;
+    font-size: 13.5px; line-height: 1.6; color: #9FB0C4; font-style: normal;
+  }
+  .dossie-cite b { color: #EAF6F0; }
+  .dossie-audience { display: flex; gap: 14px; flex-wrap: wrap; }
+  .dossie-audience .pill {
+    font-size: 12.5px; font-weight: 700; color: #EAF6F0; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14); padding: 8px 14px; border-radius: 10px;
+  }
+
+  /* dossier document mock */
+  .doc {
+    background: #0C1826; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
+    padding: 22px 22px 18px; box-shadow: 0 30px 70px -24px rgba(0,0,0,0.6);
+  }
+  .doc-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .doc-top .who { font-size: 12.5px; color: #9FB0C4; }
+  .doc-top .who b { color: #fff; }
+  .doc-seal {
+    display: flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px;
+    color: var(--accent); border: 1px solid rgba(33,214,137,0.4); background: rgba(33,214,137,0.08);
+    padding: 5px 10px; border-radius: 999px; text-transform: uppercase;
+  }
+  .doc-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+  .doc-stat { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; }
+  .doc-stat b { display: block; font-size: 20px; font-weight: 800; color: #fff; }
+  .doc-stat span { font-size: 10.5px; color: #8FA0B5; line-height: 1.3; display: block; margin-top: 2px; }
+  .doc-log { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px; }
+  .doc-log-title { font-size: 10.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8FA0B5; margin-bottom: 10px; }
+  .doc-log-row {
+    display: grid; grid-template-columns: 76px 1fr 78px; gap: 10px; font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Consolas, monospace;
+    font-size: 11px; color: #C7D3E0; padding: 6px 0; border-top: 1px dashed rgba(255,255,255,0.07);
+  }
+  .doc-log-row:first-of-type { border-top: none; }
+  .doc-log-row .t { color: #7FE8B8; }
+  .doc-log-row .ip { color: #728AA3; text-align: right; }
+  .doc-hash { margin-top: 12px; font-family: ui-monospace, monospace; font-size: 10px; color: #5E7288; letter-spacing: 0.2px; }
+
+  /* ---------- trust strip ---------- */
+  .trust-strip { display: flex; gap: 14px; flex-wrap: wrap; }
+  .trust-pill {
+    flex: 1 1 220px; display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+    font-size: 13.5px; font-weight: 600; background: var(--paper-raised);
+  }
+  .trust-pill svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
+
+  /* ---------- pricing ---------- */
+  .price-card {
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-lg);
+    padding: 40px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; align-items: center;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 860px) { .price-card { grid-template-columns: 1fr; padding: 28px; } }
+  .price-amount { font-size: 44px; font-weight: 800; letter-spacing: -1.2px; }
+  .price-amount span { font-size: 16px; font-weight: 600; color: var(--ink-soft); }
+  .price-list { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .price-list li { display: flex; gap: 10px; font-size: 14px; color: var(--ink-soft); align-items: flex-start; }
+  .price-list svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--accent); }
+  .price-side { text-align: left; }
+  @media (max-width: 860px) { .price-side { text-align: left; } }
+  .price-side .btn-primary { width: 100%; justify-content: center; margin-top: 16px; }
+  .price-side-note { font-size: 12.5px; color: var(--ink-soft); margin-top: 12px; line-height: 1.5; }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--line-soft); padding: 40px 0 56px; }
+  .foot-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
+  .foot-legal { font-size: 11.5px; line-height: 1.6; color: var(--ink-soft); max-width: 640px; }
+
+  .icon-wrap { display: inline-flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap bar">
+    <a class="brand" href="/" aria-label="Mandato Digital — início">
+      <svg class="mark" width="26" height="26" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 44V4L10 10V44H0z"/><path d="M13 44V16L23 9.5V44H13z"/><path d="M26 44V6.5L37 -1V44H26z" transform="translate(0,1)"/>
+        <path fill="#00B86B" d="M38.5 9H46A17 19 0 0 1 46 47H38.5V39.5H43.5A10 11 0 0 0 43.5 16.5H38.5V9Z"/>
+      </svg>
+      <span>Mandato<span class="word-digital"> Digital</span></span>
+    </a>
+    <a class="header-cta" href="/planos">Reservar vaga</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span>Primeira plataforma de campanha dedicada a mulheres</span>
+    <h1>A verba pode ser menor. A campanha, <span class="accent">não.</span></h1>
+    <p class="hero-subtitle">Qualidade de estúdio sem equipe de gravação. Monitoramento que não dorme. E prova documentada de cada real investido — pra você e pra quem paga a conta.</p>
+    <div class="hero-media-row">
+      <div class="hero-visual">
+        <img src="/vozdelas/assets/images/hero.png" alt="Candidata segurando um tablet com a plataforma aberta, com um banner ao fundo anunciando a primeira plataforma de campanha dedicada a mulheres" />
+      </div>
+      <div class="hero-stats-side">
+        <div class="hero-stat"><b>3</b><span>tipos de avatar, sua voz e seu rosto</span></div>
+        <div class="hero-stat"><b>24h</b><span>de monitoramento automático</span></div>
+        <div class="hero-stat"><b>7</b><span>redes publicadas ao mesmo tempo</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="dores">
+  <div class="wrap">
+    <div class="section-head reveal" style="max-width:none;">
+      <p class="section-kicker">O que a candidata enfrenta</p>
+      <h2 class="section-title nowrap-lg size-xl"><span class="tone-risk">As dores</span> são conhecidas. <span class="tone-accent">As soluções</span>, poucas vezes.</h2>
+      <p class="section-lead" style="max-width:none;">Seis desafios documentados de quem faz campanha sendo mulher — e o que, dentro da plataforma, já resolve cada um deles hoje.</p>
+    </div>
+
+    <div class="pairs">
+      <div class="pair reveal">
+        <div class="pair-half pair-pain">
+          <div class="pair-tag-slot"><span class="pair-tag">Recursos</span></div>
+          <h3 class="pair-title">Menos verba de campanha, historicamente</h3>
+          <p class="pair-body">Mesmo com a cota e a distribuição proporcional do fundo, candidatas seguem recebendo, na prática, menos estrutura do que concorrentes homens na mesma disputa.</p>
+        </div>
+        <div class="pair-connector"><span class="pair-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></span></div>
+        <div class="pair-half pair-solution">
+          <div class="pair-tag-slot"></div>
+          <h3 class="pair-title">Qualidade de estúdio, sem equipe de gravação</h3>
+          <p class="pair-body">Três formatos de avatar — Gêmeo Digital, Caricato e Mascote 3D — todos com a sua voz e o seu rosto, treinados sob a sua autorização.</p>
+          <a class="more-link" href="/vozdelas/provas.html#recursos">Ver a tela real <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+
+      <div class="pair reveal">
+        <div class="pair-half pair-pain">
+          <div class="pair-tag-slot"><span class="pair-tag">Tempo</span></div>
+          <h3 class="pair-title">A jornada dupla não para pra fazer campanha</h3>
+          <p class="pair-body">Entre casa, trabalho e mandato, sobra pouco tempo pra ler notícia, escrever roteiro e gravar vídeo todos os dias.</p>
+        </div>
+        <div class="pair-connector"><span class="pair-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span></div>
+        <div class="pair-half pair-solution">
+          <div class="pair-tag-slot"></div>
+          <h3 class="pair-title">Monitoramento que não dorme</h3>
+          <p class="pair-body">Enquanto você dorme, o sistema já leu o país, seu estado, sua cidade e seus adversários. Pauta pronta, não painel em branco.</p>
+          <a class="more-link" href="/vozdelas/provas.html#tempo">Ver a tela real <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+
+      <div class="pair reveal">
+        <div class="pair-half pair-pain">
+          <div class="pair-tag-slot"><span class="pair-tag">Legitimidade</span></div>
+          <h3 class="pair-title">O rótulo de "candidatura de cota"</h3>
+          <p class="pair-body">A Justiça Eleitoral já cassou chapa inteira por fraude na cota de gênero (Lei 9.504/97, art. 10 §3º; TSE, caso Jacobina/BA, 2022) — o risco não é só reputacional.</p>
+        </div>
+        <div class="pair-connector"><span class="pair-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="5"/><path d="M8.5 12.5L7 21l5-3 5 3-1.5-8.5"/></svg></span></div>
+        <div class="pair-half pair-solution">
+          <div class="pair-tag-slot"></div>
+          <h3 class="pair-title">Prova documentada de candidatura ativa</h3>
+          <p class="pair-body">Cada peça de campanha vira registro com data, hora e aprovação — o histórico que sustenta a candidatura se for questionada.</p>
+          <a class="more-link" href="/vozdelas/provas.html#legitimidade">Ver a tela real <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+
+      <div class="pair reveal">
+        <div class="pair-half pair-pain">
+          <div class="pair-tag-slot"><span class="pair-tag">Segurança</span></div>
+          <h3 class="pair-title">Ataques de imagem e desinformação de gênero</h3>
+          <p class="pair-body">Mulheres na política são alvo desproporcional de conteúdo fabricado e ataques coordenados de desinformação.</p>
+        </div>
+        <div class="pair-connector"><span class="pair-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v5.5c0 4.6-3 8.3-7 9.5-4-1.2-7-4.9-7-9.5V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></span></div>
+        <div class="pair-half pair-solution">
+          <div class="pair-tag-slot"></div>
+          <h3 class="pair-title">IA sob o seu consentimento, sempre</h3>
+          <p class="pair-body">O treino do avatar só começa com autorização da própria titular. Deepfake é crime; avatar declarado é ferramenta — a palavra final é sempre sua.</p>
+          <a class="more-link" href="/vozdelas/provas.html#seguranca">Ver a tela real <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+
+      <div class="pair reveal">
+        <div class="pair-half pair-pain">
+          <div class="pair-tag-slot"><span class="pair-tag">Alcance</span></div>
+          <h3 class="pair-title">Menos imprensa, menos agência por trás</h3>
+          <p class="pair-body">Sem uma assessoria grande, cortar e adaptar conteúdo pra cada rede social vira trabalho manual, rede por rede.</p>
+        </div>
+        <div class="pair-connector"><span class="pair-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8.2 10.8L15.8 7.2M8.2 13.2l7.6 3.6"/></svg></span></div>
+        <div class="pair-half pair-solution">
+          <div class="pair-tag-slot"></div>
+          <h3 class="pair-title">Publicação em até 7 redes, ao mesmo tempo</h3>
+          <p class="pair-body">O mesmo roteiro aprovado se adapta ao formato e ao corte de cada rede — sem trabalho manual, sem agência.</p>
+          <a class="more-link" href="/vozdelas/provas.html#alcance">Ver a tela real <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+
+      <div class="pair reveal">
+        <div class="pair-half pair-pain">
+          <div class="pair-tag-slot"><span class="pair-tag">Credibilidade</span></div>
+          <h3 class="pair-title">Ter que provar competência em dobro</h3>
+          <p class="pair-body">Um deslize de conteúdo custa mais caro pra quem já precisa provar que merece estar na disputa.</p>
+        </div>
+        <div class="pair-connector"><span class="pair-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></span></div>
+        <div class="pair-half pair-solution">
+          <div class="pair-tag-slot"></div>
+          <h3 class="pair-title">Checagem de fatos antes de ir ao ar</h3>
+          <p class="pair-body">O Agente Auditor confere cada afirmação contra a notícia de origem. Informação contestada é bloqueada antes de virar vídeo.</p>
+          <a class="more-link" href="/vozdelas/provas.html#credibilidade">Ver a tela real <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="materialidade">
+  <div class="wrap">
+    <div class="dossie reveal">
+      <div class="dossie-grain"></div>
+      <div class="dossie-grid">
+        <div>
+          <p class="dossie-kicker">O diferencial pra quem paga a conta</p>
+          <h2>Não é só uma prova pra você. É a blindagem da chapa inteira.</h2>
+          <p class="lead">Todo real investido na sua campanha vira um registro — data, hora, IP, aprovação. Se a candidatura for questionada, o partido tem como provar que ela sempre foi real.</p>
+          <p class="dossie-cite"><b>Fato:</b> a Justiça Eleitoral cassou mandatos já eleitos por fraude na cota de gênero em outras candidaturas. O registro contínuo de atividade é o que evita essa discussão.</p>
+        </div>
+
+        <div class="doc">
+          <div class="doc-top">
+            <div class="who">Titular: <b>Ana Beatriz Souza</b> · PSD/PE</div>
+            <span class="doc-seal">Blindagem Documental</span>
+          </div>
+          <div class="doc-stats">
+            <div class="doc-stat"><b>31</b><span>atos de campanha registrados</span></div>
+            <div class="doc-stat"><b>14</b><span>dias ativos no período</span></div>
+            <div class="doc-stat"><b>12</b><span>checagens de fatos concluídas</span></div>
+          </div>
+          <div class="doc-log">
+            <div class="doc-log-title">Trilha de eventos</div>
+            <div class="doc-log-row"><span class="t">19:26</span><span>Geração de vídeo — aprovado</span><span class="ip">191.32.44.10</span></div>
+            <div class="doc-log-row"><span class="t">14:00</span><span>Checagem de fatos — fonte confirmada</span><span class="ip">191.32.44.10</span></div>
+            <div class="doc-log-row"><span class="t">09:05</span><span>Login — sessão iniciada</span><span class="ip">191.32.44.10</span></div>
+          </div>
+          <div class="doc-hash">hash de integridade · sha256 · gerado automaticamente pela plataforma</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="confianca">
+  <div class="wrap">
+    <div class="section-head reveal" style="max-width:none;">
+      <p class="section-kicker">Sem letra miúda</p>
+      <h2 class="section-title nowrap-lg">Dentro das regras, do primeiro ao último frame</h2>
+    </div>
+    <div class="trust-strip reveal">
+      <div class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v5.5c0 4.6-3 8.3-7 9.5-4-1.2-7-4.9-7-9.5V6l7-3z"/></svg>100% em conformidade com o TSE</div>
+      <div class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6"/></svg>Aprovação humana obrigatória</div>
+      <div class="trust-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M7 20h10"/></svg>Marca d'água queimada no arquivo</div>
+    </div>
+  </div>
+</section>
+
+<section id="planos">
+  <div class="wrap">
+    <div class="section-head reveal" style="max-width:none;">
+      <p class="section-kicker">Plano individual por candidata</p>
+      <h2 class="section-title nowrap-lg">Um investimento, não uma promessa</h2>
+    </div>
+    <div class="price-card reveal">
+      <div>
+        <div class="price-amount">3x de R$ 1.998 <span>(Avançado) · todo o período eleitoral</span></div>
+        <ul class="price-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>Monitoramento ilimitado — nacional, estadual, municipal e de adversários</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>22 avatares/mês, renderização avançada do Gêmeo Digital, vídeos de até 90 segundos</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>Compliance Legal Pack Institucional — provas protocoladas para o seu corpo jurídico</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>Checagem de fatos avançada e aprovação humana em cada peça</li>
+        </ul>
+      </div>
+      <div class="price-side">
+        <a class="btn-primary" href="/planos">Ver planos e reservar vaga</a>
+        <p class="price-side-note">Sem cobrança até você testar a plataforma e aprovar. Vagas limitadas por partido e estado.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <div class="brand">
+      <svg class="mark" width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 44V4L10 10V44H0z"/><path d="M13 44V16L23 9.5V44H13z"/><path d="M26 44V6.5L37 -1V44H26z" transform="translate(0,1)"/>
+        <path fill="#00B86B" d="M38.5 9H46A17 19 0 0 1 46 47H38.5V39.5H43.5A10 11 0 0 0 43.5 16.5H38.5V9Z"/>
+      </svg>
+      <span>Mandato<span class="word-digital"> Digital</span></span>
+    </div>
+    <p class="foot-legal">Página de apresentação comercial da plataforma Mandato Digital — não substitui a prestação de contas ao TSE/SPCE nem certifica resultado eleitoral. EATEASY SERVIÇOS DIGITAIS LTDA — CNPJ 48.142.514/0001-08.</p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var els = document.querySelectorAll('.reveal');
+    if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('in'); io.unobserve(entry.target); }
+      });
+    }, { threshold: 0.12 });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
+
+</body>
+</html>

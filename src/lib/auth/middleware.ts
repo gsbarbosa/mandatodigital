@@ -21,7 +21,13 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/ecossistema/") ||
     pathname === "/conformidade" ||
     pathname === "/planos" ||
-    pathname === "/dossie";
+    pathname === "/dossie" ||
+    pathname === "/vozdelas" ||
+    pathname.startsWith("/vozdelas/") ||
+    pathname === "/materialidade" ||
+    pathname.startsWith("/materialidade/") ||
+    pathname === "/chapas-femininas" ||
+    pathname.startsWith("/chapas-femininas/");
   const isDevRoute =
     process.env.NODE_ENV !== "production" &&
     (pathname === "/dev-login" || pathname === "/api/dev/login");

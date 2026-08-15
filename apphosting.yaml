@@ -141,8 +141,15 @@ env:
     availability:
       - RUNTIME
 
-  # Spike qualidade — rank editorial top-N (custo ~premium; ver docs/spike-sentinela-qualidade.md)
+  # Rank editorial top-N — universal (grátis e pago); ver docs/spike-sentinela-qualidade.md
   - variable: SENTINEL_LLM_QUALITY_RANK
+    value: "true"
+    availability:
+      - RUNTIME
+
+  # Resgate de esfera zerada por IA — 1 chamada por esfera sem pauta, com direito a
+  # rejeitar todas as opções; ver docs/sentinela-arquitetura.md
+  - variable: SENTINEL_LLM_SPHERE_RESCUE
     value: "true"
     availability:
       - RUNTIME
@@ -230,12 +237,10 @@ env:
       - BUILD
       - RUNTIME
 
-  # Painel /admin — recomendado (sem isto usa default de bootstrap + warning nos logs):
+  # Painel /admin — acesso via flag isAdmin no cadastro do usuário, sem senha.
+  # ADMIN_SESSION_SECRET só deriva a chave de criptografia do cofre de provider secrets
+  # (recomendado; sem isto usa default de bootstrap + warning nos logs):
   # Cadastre: npm run firebase:secrets:guide / --apply
-  # - variable: ADMIN_PASSWORD
-  #   secret: admin-password
-  #   availability:
-  #     - RUNTIME
   # - variable: ADMIN_SESSION_SECRET
   #   secret: admin-session-secret
   #   availability:

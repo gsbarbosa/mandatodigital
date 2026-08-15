@@ -44,8 +44,13 @@ export function AcessoPlanosPage() {
   const [checkoutPlanId, setCheckoutPlanId] = useState<EarlyAccessPlanId | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [billingStatus, setBillingStatus] = useState<string | null>(null);
+  const [hasRemainingInstallments, setHasRemainingInstallments] = useState(false);
   const [registeredPlanId, setRegisteredPlanId] = useState<EarlyAccessPlanId | null>(null);
   const [smokeTestAvailable, setSmokeTestAvailable] = useState(false);
+  const [pendingCheckout, setPendingCheckout] = useState<{
+    planId: EarlyAccessPlanId;
+    method: "pix" | "boleto";
+  } | null>(null);
   const selectedPlanId = earlyAccess.reservation?.planId ?? registeredPlanId;
 
   useEffect(() => {
@@ -79,9 +84,11 @@ export function AcessoPlanosPage() {
             billingStatus?: string;
             planId?: EarlyAccessPlanId | null;
             smokeTestAvailable?: boolean;
+            hasRemainingInstallments?: boolean;
           };
           if (!cancelled) {
             setBillingStatus(bill.billingStatus ?? null);
+            setHasRemainingInstallments(Boolean(bill.hasRemainingInstallments));
             setSmokeTestAvailable(Boolean(bill.smokeTestAvailable));
             if (
               bill.planId === "essencial" ||
@@ -148,6 +155,10 @@ export function AcessoPlanosPage() {
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
       } | null;
+      if (response.status === 409) {
+        router.push(BILLING_PAYMENT_PATH as Route);
+        return;
+      }
       if (!response.ok) {
         throw new Error(payload?.message || "Nao foi possivel gerar a cobranca.");
       }
@@ -161,10 +172,6 @@ export function AcessoPlanosPage() {
     } finally {
       setCheckoutPlanId(null);
     }
-  }
-
-  async function handleConfirmPlan(planId: EarlyAccessPlanId) {
-    await handleCheckout(planId, "pix");
   }
 
   const choosingPlan = needsPlan && !selectedPlanId;
@@ -209,9 +216,11 @@ export function AcessoPlanosPage() {
             const isRecommendedSlot = !selectedPlanId && plan.id === "avancado";
             const highlighted = isSelected || isRecommendedSlot;
             const isSaving = checkoutPlanId === plan.id;
-            const billingActive = billingStatus === "active";
+            const billingActive = billingStatus === "active" && !hasRemainingInstallments;
             const billingPending =
-              billingStatus === "pending_payment" || billingStatus === "past_due";
+              billingStatus === "pending_payment" ||
+              billingStatus === "past_due" ||
+              (billingStatus === "active" && hasRemainingInstallments);
 
             return (
               <div
@@ -279,19 +288,32 @@ export function AcessoPlanosPage() {
                       onClick={() =>
                         billingPending
                           ? router.push(BILLING_PAYMENT_PATH as Route)
-                          : void handleCheckout(plan.id, "pix")
+                          : setPendingCheckout({ planId: plan.id, method: "pix" })
                       }
                       className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 bg-gradient-to-r from-cyan-500 to-blue-600 text-md-text"
                     >
                       {billingActive
                         ? "Plano ativo"
                         : billingPending
-                          ? "Ver cobrança pendente"
+                          ? billingStatus === "active"
+                            ? "Ver parcelas restantes"
+                            : "Ver cobrança pendente"
                           : isSaving
                             ? "Gerando PIX..."
                             : smokeTestAvailable
                               ? "Pagar teste via PIX (R$ 5,00)"
                               : "Pagar com PIX (3 parcelas)"}
+                    </button>
+                  ) : selectedPlanId === "essencial" && !billingActive && !billingPending ? (
+                    // Upgrade livre só sai do Essencial (nunca pago) pra um plano mais caro.
+                    // Avançado/Elite já escolhidos travam — sem downgrade/troca lateral por aqui.
+                    <button
+                      type="button"
+                      disabled={!hydrated || Boolean(checkoutPlanId)}
+                      onClick={() => setPendingCheckout({ planId: plan.id, method: "pix" })}
+                      className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 border border-cyan-500/50 text-[var(--curador-text)] hover:bg-cyan-500/10"
+                    >
+                      {isSaving ? "Gerando PIX..." : `Fazer upgrade para ${plan.name}`}
                     </button>
                   ) : (
                     <button
@@ -306,7 +328,7 @@ export function AcessoPlanosPage() {
                   <button
                     type="button"
                     disabled={!hydrated || Boolean(checkoutPlanId)}
-                    onClick={() => void handleConfirmPlan(plan.id)}
+                    onClick={() => setPendingCheckout({ planId: plan.id, method: "pix" })}
                     className={`w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-60 ${
                       plan.id === "avancado"
                         ? "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-md-text shadow-[0_0_15px_rgba(6,182,212,0.2)]"
@@ -332,18 +354,20 @@ export function AcessoPlanosPage() {
                     {plan.id === "essencial" ? "Reservar Desconto" : "Reservar Vaga VIP"}
                   </button>
                 )}
-                {isSelected && !billingActive && !billingPending ? (
+                {!billingActive &&
+                !billingPending &&
+                (isSelected || selectedPlanId === "essencial") ? (
                   <button
                     type="button"
                     disabled={!hydrated || Boolean(checkoutPlanId)}
-                    onClick={() => void handleCheckout(plan.id, "boleto")}
+                    onClick={() => setPendingCheckout({ planId: plan.id, method: "boleto" })}
                     className="mt-2 w-full text-center text-[11px] font-medium text-md-text-soft hover:text-md-text hover:underline disabled:opacity-60"
                   >
                     Preferir boleto bancário
                   </button>
                 ) : null}
                 <p className="text-[10px] text-md-text-soft text-center mt-3">
-                  PIX instantâneo ou boleto (TSE). Pacote em 3 parcelas mensais.
+                  Pacote único em 3x (vencimento hoje + 10/Setembro + 20/Setembro). Não é assinatura mensal.
                 </p>
               </div>
             );
@@ -480,6 +504,48 @@ export function AcessoPlanosPage() {
           possível cancelar a qualquer momento sem fidelidade.
         </p>
       </div>
+
+      {pendingCheckout ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-md-app-bg/75 backdrop-blur-[2px] px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-confirm-title"
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-md-border bg-md-surface px-6 py-5 shadow-lg">
+            <h2 id="checkout-confirm-title" className="text-base font-semibold text-md-text">
+              Confirmar plano
+            </h2>
+            <p className="mt-2 text-sm text-md-text-soft">
+              Você selecionou o plano{" "}
+              <strong className="text-md-text">
+                {earlyAccessPlans.find((item) => item.id === pendingCheckout.planId)?.name}
+              </strong>
+              . Ao confirmar, vamos gerar a cobrança para você.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingCheckout(null)}
+                className="flex-1 rounded-xl border border-md-border px-4 py-2.5 text-sm font-medium text-md-text-soft hover:bg-md-overlay-hover"
+              >
+                Não confirmar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = pendingCheckout;
+                  setPendingCheckout(null);
+                  void handleCheckout(target.planId, target.method);
+                }}
+                className="flex-1 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-md-text"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

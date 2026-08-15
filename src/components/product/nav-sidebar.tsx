@@ -10,19 +10,35 @@ import { AppearanceToggle } from "@/components/appearance-toggle";
 import { BrandLogo } from "@/components/brand-logo";
 import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
+import { isPaymentLockAllowedPath } from "@/lib/billing/payment-access";
+import { BILLING_PAYMENT_PATH } from "@/lib/registration-gate";
 import { useEarlyAccess } from "@/lib/early-access";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
+import { usePaymentAccess } from "./use-payment-access";
 import { useOnboarding } from "./onboarding-provider";
 import {
   AcessoAntecipadoIcon,
+  AdversariosIcon,
   AuditoriaIcon,
   AvatarNavIcon,
+  CaricatoIcon,
   ChevronDownIcon,
+  CnpjIcon,
   ComplianceIcon,
   CriativoIcon,
+  DadosPessoaisIcon,
   DistribuidorIcon,
+  GemeoDigitalIcon,
+  InterestIcon,
+  Mascote3DIcon,
   MonitoramentoIcon,
+  MunicipalIcon,
+  NationalIcon,
+  NoticiasDoDiaIcon,
+  PagamentosIcon,
   PautaIndependenteIcon,
+  PlanosPrecosIcon,
+  StateIcon,
 } from "./nav-icons";
 
 type NavChild = {
@@ -31,6 +47,12 @@ type NavChild = {
   showActionDot?: boolean;
   /** Configuração do bloco pai (ex.: temas do monitoramento). */
   variant?: "settings";
+  /** Ícone do item — opcional; itens "settings" caem no ícone de engrenagem se omitido. */
+  icon?: NavIcon;
+  /** Abre um respiro antes deste item — separa grupos de itens que não são a mesma coisa (ex.: Notícias do dia não é uma esfera do radar). */
+  groupBreakBefore?: boolean;
+  /** Respiro + traço fino acima — para itens que são ação/configuração, não destino (ex.: Configurar), fechando a lista. */
+  dividerBefore?: boolean;
 };
 
 type NavIcon = ComponentType<{ className?: string }>;
@@ -87,6 +109,24 @@ function CloseIcon({ className }: { className?: string }) {
   );
 }
 
+function NavLockIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
 /** Marcador pulsante do passo atual do onboarding guiado. */
 function OnbHighlightDot() {
   return (
@@ -110,12 +150,18 @@ const NAV_BLOCKS: NavBlock[] = [
     href: "/monitoramento",
     icon: MonitoramentoIcon,
     children: [
-      { label: "Nacional", href: "/monitoramento#federal" },
-      { label: "Estadual", href: "/monitoramento#estadual" },
-      { label: "Municipal", href: "/monitoramento#municipal" },
-      { label: "Interesse", href: "/monitoramento#interesse" },
-      { label: "Adversários", href: "/monitoramento#adversarios" },
-      { label: "Configurar", href: "/monitoramento/temas", variant: "settings" },
+      { label: "Nacional", href: "/monitoramento#federal", icon: NationalIcon },
+      { label: "Estadual", href: "/monitoramento#estadual", icon: StateIcon },
+      { label: "Municipal", href: "/monitoramento#municipal", icon: MunicipalIcon },
+      { label: "Interesse", href: "/monitoramento#interesse", icon: InterestIcon },
+      { label: "Adversários", href: "/monitoramento#adversarios", icon: AdversariosIcon },
+      {
+        label: "Notícias do dia",
+        href: "/monitoramento/noticias-do-dia",
+        icon: NoticiasDoDiaIcon,
+        groupBreakBefore: true,
+      },
+      { label: "Configurar", href: "/monitoramento/temas", variant: "settings", dividerBefore: true },
     ],
   },
   {
@@ -123,10 +169,15 @@ const NAV_BLOCKS: NavBlock[] = [
     href: "/avatares/foto-real",
     icon: AvatarNavIcon,
     children: [
-      { label: "Gêmeo Digital", href: "/avatares/foto-real" },
-      { label: "Caricato", href: "/avatares/caricato" },
-      { label: "Mascote 3D", href: "/avatares/3d" },
-      { label: "Configurar avatar", href: "/avatares/foto-real/treinar", variant: "settings" },
+      { label: "Gêmeo Digital", href: "/avatares/foto-real", icon: GemeoDigitalIcon },
+      { label: "Caricato", href: "/avatares/caricato", icon: CaricatoIcon },
+      { label: "Mascote 3D", href: "/avatares/3d", icon: Mascote3DIcon },
+      {
+        label: "Configurar avatar",
+        href: "/avatares/foto-real/treinar",
+        variant: "settings",
+        dividerBefore: true,
+      },
     ],
   },
 ];
@@ -214,10 +265,8 @@ function isChildActive(
 }
 
 function rowClassName(active: boolean) {
-  return `group flex h-11 items-center gap-3 rounded-xl border px-3 no-underline transition-colors ${
-    active
-      ? "border-[var(--curador-border)] bg-[var(--curador-soft)]"
-      : "border-md-border bg-md-surface/40 hover:bg-md-surface hover:border-md-border-hover"
+  return `group flex h-11 items-center gap-3 rounded-lg px-2.5 no-underline transition-colors ${
+    active ? "bg-[var(--curador-soft)]" : "hover:bg-md-overlay-subtle"
   }`;
 }
 
@@ -240,36 +289,43 @@ type ChildRow = {
   onboardingAnchor?: string;
   icon?: NavIcon;
   actionDot?: boolean;
+  locked?: boolean;
+  /** Ver NavChild.groupBreakBefore. */
+  groupBreakBefore?: boolean;
+  /** Ver NavChild.dividerBefore. */
+  dividerBefore?: boolean;
 };
 
-function childCardClassName(active: boolean) {
-  return `flex min-w-0 flex-1 items-center gap-1.5 rounded-lg border px-3 py-2 text-[13px] no-underline transition-colors ${
+function childCardClassName(active: boolean, locked?: boolean) {
+  if (locked) {
+    return "flex min-w-0 flex-1 cursor-not-allowed items-center gap-2 rounded-md px-2.5 py-[7px] text-[12.5px] text-md-text-soft/55 no-underline opacity-60";
+  }
+  return `flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-[7px] text-[12.5px] no-underline transition-colors ${
     active
-      ? "border-[var(--curador-border)] bg-[var(--curador-soft)] text-[var(--curador-text)]"
-      : "border-md-border bg-md-surface/40 text-md-text-soft hover:bg-md-surface hover:text-md-text"
+      ? "bg-[var(--curador-soft)] text-[var(--curador-text)] font-medium"
+      : "text-md-text-soft hover:bg-md-overlay-subtle hover:text-md-text"
   }`;
 }
 
-/**
- * Submenu como "timeline" — cartão por item conectado por linha+ponto,
- * na mesma linguagem visual dos blocos principais (não texto solto).
- */
-function ChildTimeline({ rows }: { rows: ChildRow[] }) {
+/** Submenu — um cartão por item, na mesma linguagem visual dos blocos principais. */
+function ChildList({ rows }: { rows: ChildRow[] }) {
   return (
     <ul className="mt-2 mb-1 space-y-1.5">
-      {rows.map((row, index) => {
+      {rows.map((row) => {
         const active = row.active;
-        const isLast = index === rows.length - 1;
+        const locked = Boolean(row.locked);
         const content = (
           <>
             {row.highlighted ? <OnbHighlightDot /> : null}
             {row.icon ? (
               <row.icon
-                className={`h-3.5 w-3.5 shrink-0 ${active ? "text-[var(--curador-text)]" : "text-md-text-soft"}`}
+                className={`h-4 w-4 shrink-0 ${active && !locked ? "text-[var(--curador-text)]" : "text-md-text-soft"}`}
               />
             ) : null}
             <span className="truncate">{row.label}</span>
-            {row.actionDot ? (
+            {locked ? (
+              <NavLockIcon className="ml-auto h-3.5 w-3.5 shrink-0 text-md-text-soft" />
+            ) : row.actionDot ? (
               <span
                 className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-pulse"
                 title="Ação Requerida"
@@ -278,17 +334,19 @@ function ChildTimeline({ rows }: { rows: ChildRow[] }) {
           </>
         );
 
+        const liClassName = row.dividerBefore
+          ? "flex mt-3 border-t border-md-border pt-3"
+          : row.groupBreakBefore
+            ? "flex mt-3"
+            : "flex";
+
         return (
-          <li key={row.key} className="flex items-stretch gap-2">
-            <div className="flex w-3 shrink-0 flex-col items-center">
-              <span
-                className={`mt-3.5 h-2 w-2 shrink-0 rounded-full border-2 ${
-                  active ? "border-[var(--curador-text)] bg-[var(--curador-text)]" : "border-md-border-hover bg-md-app-bg"
-                }`}
-              />
-              {!isLast ? <span className="mt-0.5 w-px flex-1 bg-md-border" /> : null}
-            </div>
-            {row.isHashLink ? (
+          <li key={row.key} className={liClassName}>
+            {locked ? (
+              <span className={childCardClassName(active, true)} title="Disponível após regularizar o pagamento">
+                {content}
+              </span>
+            ) : row.isHashLink ? (
               <a href={row.href} onClick={row.onHashClick} className={childCardClassName(active)}>
                 {content}
               </a>
@@ -335,10 +393,22 @@ function NavSidebarPanel({
     setExpandedBlock((current) => (current === label ? null : label));
   }, []);
 
+  const [earlyAccess] = useEarlyAccess();
+  const [emailMenuOpen, setEmailMenuOpen] = useState(false);
+  const cnpjPending = !earlyAccess.cnpj;
+  const { exhausted: guestCreditsExhausted } = useGuestCreditsGate();
+  const { blocked: paymentBlocked, dueSoon } = usePaymentAccess();
+  const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
+
   // Navegar para outra seção recolhe o que estiver aberto (e expande a nova, se aplicável).
+  // Com trava de pagamento, mantém Acesso antecipado aberto (Meus pagamentos / CNPJ).
   useEffect(() => {
+    if (paymentBlocked) {
+      setExpandedBlock(EARLY_ACCESS_LABEL);
+      return;
+    }
     setExpandedBlock(activeBlockLabel(pathname));
-  }, [pathname]);
+  }, [pathname, paymentBlocked]);
 
   const syncActiveHash = useCallback(() => {
     setActiveHash(window.location.hash);
@@ -398,18 +468,19 @@ function NavSidebarPanel({
     }
   }, [sidebarTarget]);
 
-  const [earlyAccess] = useEarlyAccess();
-  const [emailMenuOpen, setEmailMenuOpen] = useState(false);
-  const cnpjPending = !earlyAccess.cnpj;
-  const { exhausted: guestCreditsExhausted } = useGuestCreditsGate();
-  const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
-
   const earlyAccessChildren: NavChild[] = [
-    { label: "Dados Pessoais", href: "/acesso-antecipado/dados" },
-    { label: "Planos e Preços", href: "/acesso-antecipado/planos" },
+    { label: "Dados Pessoais", href: "/acesso-antecipado/dados", icon: DadosPessoaisIcon },
+    { label: "Planos e Preços", href: "/acesso-antecipado/planos", icon: PlanosPrecosIcon },
+    {
+      label: "Meus pagamentos",
+      href: BILLING_PAYMENT_PATH,
+      icon: PagamentosIcon,
+      showActionDot: paymentBlocked || dueSoon,
+    },
     {
       label: "Informar CNPJ até 16/Ago",
       href: "/acesso-antecipado/cnpj",
+      icon: CnpjIcon,
       showActionDot: cnpjPending,
     },
   ];
@@ -421,6 +492,10 @@ function NavSidebarPanel({
     onNavigate?.();
   }
 
+  function isNavHrefLocked(href: string) {
+    return paymentBlocked && !isPaymentLockAllowedPath(navHrefPath(href));
+  }
+
   function renderSingle(item: NavChild & { icon: NavIcon }) {
     const itemActive = isChildActive(pathname, item.href, activeHash, pendingMonitorHash);
     const singleHl =
@@ -428,6 +503,22 @@ function NavSidebarPanel({
       (item.href === "/criativo" || item.href.startsWith("/criativo"));
     const Icon = item.icon;
     const active = itemActive;
+    const locked = isNavHrefLocked(item.href);
+
+    if (locked) {
+      return (
+        <span
+          key={item.href}
+          className={`${rowClassName(false)} cursor-not-allowed opacity-55`}
+          title="Disponível após regularizar o pagamento"
+          aria-disabled="true"
+        >
+          <Icon className={rowIconClassName(false)} />
+          <span className={rowLabelClassName(false)}>{item.label}</span>
+          <NavLockIcon className="ml-auto h-4 w-4 shrink-0 text-md-text-soft" />
+        </span>
+      );
+    }
 
     return (
       <Link
@@ -489,24 +580,37 @@ function NavSidebarPanel({
           const temasConfigHl = sidebarTarget === "temas-config";
           const expanded = expandedBlock === block.label;
           const Icon = block.icon;
+          const blockLocked = isNavHrefLocked(block.href);
 
           return (
             <div key={block.label} className="rounded-xl">
-              <div className={rowClassName(blockActive)}>
-                <Link
-                  href={block.href as Route}
-                  className="flex min-w-0 flex-1 items-center gap-3 no-underline"
-                  data-onboarding-anchor={
-                    block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
-                  }
-                  onClick={handleLinkNavigate}
-                >
-                  <Icon className={rowIconClassName(blockActive)} />
-                  <span className={rowLabelClassName(blockActive)}>
-                    {blockHl ? <OnbHighlightDot /> : null}
-                    {block.label}
+              <div className={`${rowClassName(blockActive && !blockLocked)}${blockLocked ? " opacity-55" : ""}`}>
+                {blockLocked ? (
+                  <span
+                    className="flex min-w-0 flex-1 cursor-not-allowed items-center gap-3"
+                    title="Disponível após regularizar o pagamento"
+                    aria-disabled="true"
+                  >
+                    <Icon className={rowIconClassName(false)} />
+                    <span className={rowLabelClassName(false)}>{block.label}</span>
+                    <NavLockIcon className="ml-auto h-4 w-4 shrink-0 text-md-text-soft" />
                   </span>
-                </Link>
+                ) : (
+                  <Link
+                    href={block.href as Route}
+                    className="flex min-w-0 flex-1 items-center gap-3 no-underline"
+                    data-onboarding-anchor={
+                      block.href.startsWith("/monitoramento") ? "monitoramento" : undefined
+                    }
+                    onClick={handleLinkNavigate}
+                  >
+                    <Icon className={rowIconClassName(blockActive)} />
+                    <span className={rowLabelClassName(blockActive)}>
+                      {blockHl ? <OnbHighlightDot /> : null}
+                      {block.label}
+                    </span>
+                  </Link>
+                )}
                 {block.children?.length ? (
                   <button
                     type="button"
@@ -527,8 +631,8 @@ function NavSidebarPanel({
                   expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
                 }`}
               >
-                <div className="overflow-hidden pl-1">
-                  <ChildTimeline
+                <div className="overflow-hidden">
+                  <ChildList
                     rows={(block.children ?? []).map((child) => {
                       const childActive = isChildActive(
                         pathname,
@@ -541,6 +645,7 @@ function NavSidebarPanel({
                         (sidebarTarget === "avatar-config" &&
                           child.href === "/avatares/foto-real/treinar");
                       const isHashLink = child.href.includes("#");
+                      const locked = isNavHrefLocked(child.href);
 
                       return {
                         key: child.href + child.label,
@@ -549,19 +654,23 @@ function NavSidebarPanel({
                         active: childActive,
                         highlighted: childHl,
                         isHashLink,
-                        onHashClick: isHashLink
-                          ? (event: React.MouseEvent) => {
-                              event.preventDefault();
-                              navigateToMonitorSection(child.href);
-                            }
-                          : undefined,
+                        locked,
+                        onHashClick:
+                          !locked && isHashLink
+                            ? (event: React.MouseEvent) => {
+                                event.preventDefault();
+                                navigateToMonitorSection(child.href);
+                              }
+                            : undefined,
                         onboardingAnchor:
                           child.href === "/monitoramento/temas"
                             ? "temas-config"
                             : child.href === "/avatares/foto-real/treinar"
                               ? "avatar-config"
                               : undefined,
-                        icon: child.variant === "settings" ? SettingsGearIcon : undefined,
+                        icon: child.icon ?? (child.variant === "settings" ? SettingsGearIcon : undefined),
+                        groupBreakBefore: child.groupBreakBefore,
+                        dividerBefore: child.dividerBefore,
                       };
                     })}
                   />
@@ -575,7 +684,7 @@ function NavSidebarPanel({
           {NAV_SINGLES_PRIMARY.map((item) => renderSingle(item))}
         </div>
 
-        <div className="my-4 border-t-[3px] border-md-border-soft" aria-hidden="true" />
+        <div className="my-4 border-t border-md-border" aria-hidden="true" />
 
         <div className="space-y-1.5">
           {NAV_SINGLES_SECONDARY.map((item) => renderSingle(item))}
@@ -617,14 +726,16 @@ function NavSidebarPanel({
               earlyAccessExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
             }`}
           >
-            <div className="overflow-hidden pl-1">
-              <ChildTimeline
+            <div className="overflow-hidden">
+              <ChildList
                 rows={earlyAccessChildren.map((child) => ({
                   key: child.href,
                   label: child.label,
                   href: child.href,
                   active: isChildActive(pathname, child.href, activeHash, pendingMonitorHash),
+                  icon: child.icon,
                   actionDot: child.showActionDot,
+                  locked: isNavHrefLocked(child.href),
                 }))}
               />
             </div>
@@ -694,7 +805,7 @@ function NavSidebarPanel({
                 handleLinkNavigate();
               }}
             >
-              Alternar modo da conta
+              Tipo de conta (trial + 3 planos)
             </Link>
           ) : null}
         </div>

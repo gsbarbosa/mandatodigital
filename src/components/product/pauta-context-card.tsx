@@ -120,13 +120,7 @@ export function PautaContextCard({ suggestion }: { suggestion: MockSentinelSugge
                 ) : (
                   <p className="text-sm text-md-text-soft mb-2 line-clamp-3">{suggestion.topic}</p>
                 )}
-                {suggestion.creativeAngle?.trim() ? (
-                  <p className="text-xs text-[var(--distribuidor-text)] mb-4">
-                    Ângulo: {suggestion.creativeAngle.trim()}
-                  </p>
-                ) : (
-                  <div className="mb-4" />
-                )}
+                <div className="mb-4" />
                 <div className="flex flex-wrap items-center gap-4 text-xs">
                   <span className="text-md-text-soft">
                     Fonte:{" "}

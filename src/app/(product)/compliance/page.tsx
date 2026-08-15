@@ -121,24 +121,19 @@ export default function ComplianceRoute() {
       <div className="absolute bottom-[10%] left-[20%] w-[35%] h-[35%] bg-cyan-600/5 rounded-full blur-[130px] pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-[51px] md:pt-[77px]">
-        <header className="text-center max-w-4xl mx-auto mb-16 space-y-6">
+        <header className="text-left max-w-4xl mb-16 space-y-6">
           <div className="inline-block p-1 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 shadow-2xl backdrop-blur-sm mb-8">
             <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest px-4 py-1.5 block">
-              Dossiê de Transparência Eleitoral
+              Compliance TSE
             </span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-extrabold text-md-text tracking-tight leading-tight">
-            Tecnologia a favor da sua <br />
-            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              Segurança Jurídica
-            </span>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-tight">
+            Tecnologia a favor da sua Segurança Jurídica
           </h1>
 
-          <p className="text-md-text-soft text-base md:text-lg font-normal max-w-3xl mx-auto leading-relaxed">
-            O Mandato Digital foi construído para blindar a sua campanha. Transformamos as complexas
-            regras eleitorais em processos automáticos para que você foque apenas em conquistar
-            votos, sem dores de cabeça com a Justiça Eleitoral.
+          <p className="text-md-text-soft text-base md:text-lg font-normal leading-relaxed">
+            O Mandato Digital foi construído para blindar a sua campanha. Transformamos as complexas regras eleitorais em processos automáticos para que você foque apenas em conquistar votos, sem dores de cabeça com a Justiça Eleitoral.
           </p>
         </header>
 
@@ -188,7 +183,7 @@ export default function ComplianceRoute() {
             </PillarCard>
 
             <PillarCard
-              title="Marca d'água “Conteúdo Sintético” (Res. 23.732 TSE)"
+              title="Marca d'água “Conteúdo Sintético” (Res. TSE 23.610/19 e 23.755/26)"
               icon={
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -196,8 +191,8 @@ export default function ComplianceRoute() {
               }
             >
               Rotulagem automática queimada nos vídeos gerados: caixa semitransparente no canto
-              inferior esquerdo com o texto exigido pela Resolução 23.732 do TSE, do primeiro ao
-              último frame.
+              inferior esquerdo com o texto exigido pela Resolução TSE 23.610/19 e 23.755/26, do
+              primeiro ao último frame.
             </PillarCard>
           </div>
         </section>
@@ -261,7 +256,7 @@ export default function ComplianceRoute() {
 
             <div className="relative z-10">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
-                <div className="lg:col-span-5 flex flex-col items-center lg:items-start text-center lg:text-left lg:sticky lg:top-28">
+                <div className="lg:col-span-5 flex flex-col items-start text-left lg:sticky lg:top-28">
                   <div className="inline-flex items-center gap-2 text-emerald-400 text-[11px] font-bold tracking-widest uppercase mb-5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -327,7 +322,7 @@ export default function ComplianceRoute() {
               </div>
 
               <div className="mt-12 pt-6 border-t border-md-border/50">
-                <p className="text-md-text-soft text-xs md:text-sm text-center font-medium">
+                <p className="text-md-text-soft text-xs md:text-sm text-left font-medium">
                   * Os itens marcados como “Em breve” entram em operação junto ao lançamento
                   comercial — esta página reflete somente o que o sistema já executa hoje.
                 </p>

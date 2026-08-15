@@ -500,6 +500,7 @@ textarea.persona-input-control {
   margin: 0 auto 0.75rem;
   border-radius: 10px;
   border: 1px solid #334155;
+  object-position: top;
 }
 
 .persona-production-track {
@@ -1704,6 +1705,7 @@ textarea.persona-input-control {
   margin: 0;
   border-radius: 0;
   object-fit: cover;
+  object-position: top;
   aspect-ratio: auto;
 }
 
@@ -1878,6 +1880,16 @@ textarea.persona-input-control {
     var(--cta-on),
     color-mix(in srgb, var(--cta-on) 15%, transparent)
   );
+}
+
+/* Mesmo botão de "monitor" (tamanho/comportamento idênticos), só troca a cor pra azul
+   (--curador) em vez do verde padrão (--cta) — usado em Notícias do Dia. */
+.refresh-pautas-btn--blue {
+  --cta: var(--curador);
+  --cta-hover: var(--curador-hover);
+  --cta-on: #ffffff;
+  --cta-shadow: rgba(59, 130, 246, 0.22);
+  --sentinela-border: var(--curador-border);
 }
 
 .refresh-pautas-btn--persona.is-loading {

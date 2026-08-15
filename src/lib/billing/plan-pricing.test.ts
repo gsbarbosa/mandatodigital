@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  addCalendarMonths,
+  buildInstallmentSchedule,
   formatBrl,
   getPlanPricing,
   isBillingSmokeTestEmail,
@@ -31,6 +33,15 @@ describe("plan-pricing", () => {
 
   it("endDate cobre 3 ciclos a partir do primeiro vencimento", () => {
     expect(subscriptionEndDateFromFirstDue("2026-08-10")).toBe("2026-10-10");
+  });
+
+  it("agenda 3x relativa: hoje, +1 mês, +2 meses", () => {
+    expect(buildInstallmentSchedule("2026-08-05", 3)).toEqual([
+      { number: 1, dueDate: "2026-08-05" },
+      { number: 2, dueDate: "2026-09-05" },
+      { number: 3, dueDate: "2026-10-05" },
+    ]);
+    expect(addCalendarMonths("2026-01-31", 1)).toBe("2026-02-28");
   });
 
   it("smoke test so para gsbarbosa180", () => {

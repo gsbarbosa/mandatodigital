@@ -147,7 +147,7 @@ export function AdminDashboardPage() {
             <Card
               label="Pagaram / ativos"
               value={stats.billing.paid}
-              hint={`${stats.billing.pendingPayment} aguardando boleto · ${stats.billing.trial} trial`}
+              hint={`${stats.billing.pendingPayment} aguardando · ${stats.billing.pastDue} inadimplente · ${stats.billing.trial} trial`}
               href={"/admin/usuarios" as Route}
             />
             <Card
@@ -243,6 +243,7 @@ export function AdminDashboardPage() {
                           {user.paidInstallments > 0
                             ? ` · ${user.paidInstallments}x`
                             : ""}
+                          {user.lastPaidAt ? ` · ${formatDate(user.lastPaidAt)}` : ""}
                         </td>
                         <td className={`px-4 py-3 ${nfsClass(user.lastNfsStatus, user.lastNfsPdfUrl)}`}>
                           {user.lastNfsNumber

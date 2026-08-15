@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { heygenApiRoute } from "@/lib/heygen-api-route";
 import { handleRouteError } from "@/lib/api";
 import { formatHeyGenError, heygenGetVideo } from "@/lib/heygen";
+import { cleanupTtsAudioForVideo } from "@/lib/elevenlabs-tts-storage";
 import { appLog, appLogError } from "@/lib/observability/log";
 
 export async function GET(
@@ -34,6 +35,20 @@ export async function GET(
           },
           status === "failed" ? "warn" : "info",
         );
+
+        // MP3 TTS só é seguro apagar depois do render (HeyGen baixa o audio_url async).
+        void cleanupTtsAudioForVideo(videoId)
+          .then((result) => {
+            if (result.deleted) {
+              appLog("voice", "tts_audio_cleaned", {
+                videoId,
+                storagePath: result.storagePath,
+              });
+            }
+          })
+          .catch((error) => {
+            appLogError("voice", "tts_audio_cleanup_failed", error, { videoId });
+          });
       }
 
       return NextResponse.json({

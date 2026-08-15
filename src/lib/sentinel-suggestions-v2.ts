@@ -36,7 +36,9 @@ import { splitProfileThemesBySphere } from "@/lib/sentinel-profile-themes";
 import type { PoliticianProfile } from "@/lib/types";
 
 const MAX_SUGGESTIONS = 20;
-const MAX_ARTICLES_PER_SUGGESTION = 4;
+// Teto alto só pra não deixar um cluster viral crescer sem limite — a gaveta de
+// evidências mostra 4 de cara e o resto atrás do "Ver mais".
+const MAX_ARTICLES_PER_SUGGESTION = 30;
 
 type V2BuildContext = {
   profileId: string;
@@ -301,10 +303,13 @@ function mergeSuggestionsById(suggestions: MockSentinelSuggestion[]) {
     }
   }
 
+  const allCandidates = [...byId.values()];
   const distinctThemes = new Set(
-    [...byId.values()].map((item) => item.themeLabel.trim()).filter(Boolean),
+    allCandidates.map((item) => item.themeLabel.trim()).filter(Boolean),
   ).size;
-  return finalizeSuggestionFeed([...byId.values()], {
+  // ensureMinimumSphereRepresentation roda depois do quality rank em
+  // getSentinelSuggestions — senão o LLM pode dropar a pauta promovida.
+  return finalizeSuggestionFeed(allCandidates, {
     maxTotal: MAX_SUGGESTIONS,
     maxPerTheme: resolveMaxPerTheme(distinctThemes),
     maxPerPipeline: 10,

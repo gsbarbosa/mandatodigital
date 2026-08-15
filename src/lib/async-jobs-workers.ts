@@ -3,6 +3,7 @@ import {
   completeAsyncJob,
   failAsyncJob,
   getAsyncJob,
+  patchAsyncJobResult,
   requeueAsyncJob,
 } from "@/lib/async-jobs-storage";
 import type {
@@ -18,6 +19,7 @@ import { getSocialPublisher } from "@/lib/distribution/providers/ayrshare-publis
 import type { ChannelDeliveryState, DistributionPostStatus } from "@/lib/distribution/types";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { resolveVideoSpeechForGeneration } from "@/lib/voice-provider-resolve";
+import { registerTtsAudioPendingCleanup } from "@/lib/elevenlabs-tts-storage";
 import { heygenCreateVideoFromImage } from "@/lib/heygen";
 import { sealRemoteVideo } from "@/lib/media-tse-seal";
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
@@ -114,6 +116,9 @@ export async function processVoiceJob(jobId: string) {
   });
 
   try {
+    const checkpointAudioUrl = String(claimed.result?.audioUrl ?? "").trim();
+    const checkpointStoragePath = String(claimed.result?.storagePath ?? "").trim();
+
     const speech = await resolveVideoSpeechForGeneration({
       transcript: String(payload.transcript ?? ""),
       avatarName: String(payload.avatarName ?? "Avatar"),
@@ -121,16 +126,31 @@ export async function processVoiceJob(jobId: string) {
       voiceAudioUrl: String(payload.voiceAudioUrl ?? ""),
       requestedElevenLabsVoiceId: payload.requestedElevenLabsVoiceId,
       requestedHeygenVoiceId: payload.requestedHeygenVoiceId,
+      persistVoice: Boolean(payload.persistVoice),
+      voiceSettings: payload.voiceSettings ?? null,
       mediaId: jobId,
+      existingAudioUrl: checkpointAudioUrl || null,
+      existingStoragePath: checkpointStoragePath || null,
     });
 
     const result: Record<string, unknown> = {
+      ...claimed.result,
       voiceProvider: speech.provider,
     };
 
     if (speech.provider === "elevenlabs_audio") {
       result.elevenLabsVoiceId = speech.elevenLabsVoiceId;
       result.audioUrl = speech.audioUrl;
+      result.storagePath = speech.storagePath;
+      result.voiceDeleted = speech.voiceDeleted;
+      // Checkpoint: se HeyGen falhar, retry reusa o MP3 sem reclonar.
+      await patchAsyncJobResult(jobId, {
+        voiceProvider: speech.provider,
+        elevenLabsVoiceId: speech.elevenLabsVoiceId,
+        audioUrl: speech.audioUrl,
+        storagePath: speech.storagePath,
+        voiceDeleted: speech.voiceDeleted,
+      });
     } else {
       result.voiceId = speech.voiceId;
       if (speech.fallbackFromElevenLabs) {
@@ -139,39 +159,63 @@ export async function processVoiceJob(jobId: string) {
     }
 
     if (payload.createVideo?.imageUrl) {
-      const appBaseUrl = resolveAppBaseUrl();
-      const callbackUrl = appBaseUrl.startsWith("https://")
-        ? `${appBaseUrl}/api/heygen/webhooks`
-        : undefined;
+      const existingVideoId = String(claimed.result?.heygenVideoId ?? "").trim();
+      if (existingVideoId) {
+        result.heygenVideoId = existingVideoId;
+        result.generateMode = payload.createVideo.generateMode;
+        appLog("async-jobs", "voice_job_video_reused", {
+          jobId,
+          videoId: existingVideoId,
+        });
+      } else {
+        const appBaseUrl = resolveAppBaseUrl();
+        const callbackUrl = appBaseUrl.startsWith("https://")
+          ? `${appBaseUrl}/api/heygen/webhooks`
+          : undefined;
 
-      const created =
-        speech.provider === "elevenlabs_audio"
-          ? await heygenCreateVideoFromImage({
-              image: { type: "url", url: payload.createVideo.imageUrl },
-              audioUrl: speech.audioUrl,
-              title: payload.createVideo.title,
-              aspectRatio: "9:16",
-              resolution: "1080p",
-              callbackUrl,
-            })
-          : await heygenCreateVideoFromImage({
-              image: { type: "url", url: payload.createVideo.imageUrl },
-              voiceId: speech.voiceId,
-              script: String(payload.transcript ?? ""),
-              title: payload.createVideo.title,
-              aspectRatio: "9:16",
-              resolution: "1080p",
-              callbackUrl,
-            });
+        const created =
+          speech.provider === "elevenlabs_audio"
+            ? await heygenCreateVideoFromImage({
+                image: { type: "url", url: payload.createVideo.imageUrl },
+                audioUrl: speech.audioUrl,
+                title: payload.createVideo.title,
+                aspectRatio: "9:16",
+                resolution: "1080p",
+                callbackUrl,
+              })
+            : await heygenCreateVideoFromImage({
+                image: { type: "url", url: payload.createVideo.imageUrl },
+                voiceId: speech.voiceId,
+                script: String(payload.transcript ?? ""),
+                title: payload.createVideo.title,
+                aspectRatio: "9:16",
+                resolution: "1080p",
+                callbackUrl,
+              });
 
-      result.heygenVideoId = created.videoId;
-      result.generateMode = payload.createVideo.generateMode;
-      appLog("async-jobs", "voice_job_video_created", {
-        jobId,
-        videoId: created.videoId,
-        voiceProvider: speech.provider,
-        generateMode: payload.createVideo.generateMode,
-      });
+        result.heygenVideoId = created.videoId;
+        result.generateMode = payload.createVideo.generateMode;
+
+        if (speech.provider === "elevenlabs_audio" && speech.storagePath) {
+          await registerTtsAudioPendingCleanup({
+            videoId: created.videoId,
+            storagePath: speech.storagePath,
+            audioUrl: speech.audioUrl,
+          });
+        }
+
+        await patchAsyncJobResult(jobId, {
+          heygenVideoId: created.videoId,
+          generateMode: payload.createVideo.generateMode,
+        });
+
+        appLog("async-jobs", "voice_job_video_created", {
+          jobId,
+          videoId: created.videoId,
+          voiceProvider: speech.provider,
+          generateMode: payload.createVideo.generateMode,
+        });
+      }
     }
 
     const completed = await completeAsyncJob(jobId, result);

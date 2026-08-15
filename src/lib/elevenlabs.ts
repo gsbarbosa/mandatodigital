@@ -52,6 +52,16 @@ export function isElevenLabsIvcSubscriptionError(error: unknown) {
   );
 }
 
+/** Teto de custom voices (ex.: 10/10 no Starter) — típico com clones órfãos. */
+export function isElevenLabsCustomVoiceLimitError(error: unknown) {
+  const message = formatElevenLabsError(error).toLowerCase();
+  return (
+    message.includes("maximum amount of custom voices") ||
+    message.includes("custom voice limit") ||
+    (message.includes("custom voices") && message.includes("upgrade your subscription"))
+  );
+}
+
 type ElevenLabsErrorBody = {
   detail?:
     | { status?: string; message?: string }
@@ -226,6 +236,37 @@ export async function elevenLabsCloneVoice(input: ElevenLabsCloneVoiceInput) {
   };
 }
 
+/** Remove custom voice — libera slot da cota (IVC efêmero). */
+export async function elevenLabsDeleteVoice(voiceId: string) {
+  const id = voiceId.trim();
+  if (!id) {
+    return { alreadyGone: true as const };
+  }
+
+  try {
+    await elevenLabsFetch(`/v1/voices/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+    });
+    return { alreadyGone: false as const };
+  } catch (error) {
+    const message = formatElevenLabsError(error).toLowerCase();
+    const status =
+      error && typeof error === "object" && "status" in error
+        ? Number((error as { status?: number }).status)
+        : 0;
+    if (
+      status === 404 ||
+      message.includes("not found") ||
+      message.includes("does not exist") ||
+      message.includes("voice_does_not_exist")
+    ) {
+      return { alreadyGone: true as const };
+    }
+    throw error;
+  }
+}
+
 export async function elevenLabsGetVoice(voiceId: string) {
   const id = voiceId.trim();
   const response = await elevenLabsFetch(`/v1/voices/${encodeURIComponent(id)}`, {
@@ -289,20 +330,85 @@ export async function elevenLabsVoiceExists(voiceId: string) {
   }
 }
 
+/** Nomes gerados por buildElevenLabsCloneVoiceName: "Avatar (deadbeef)". */
+export function isEphemeralElevenLabsVoiceName(name: string) {
+  return /\([0-9a-f]{8}\)\s*$/i.test(name.trim());
+}
+
+/**
+ * Apaga clones IVC efêmeros órfãos (padrão de nome do Mandato).
+ * Usado como recuperação quando a cota 10/10 ainda tem restos.
+ */
+export async function elevenLabsPurgeEphemeralVoices(options?: { limit?: number }) {
+  const limit = Math.max(1, Math.min(options?.limit ?? 10, 30));
+  const voices = await elevenLabsListVoices();
+  const targets = voices.filter((voice) => {
+    const id = voice.voice_id?.trim();
+    const name = String(voice.name ?? "");
+    return Boolean(id) && isEphemeralElevenLabsVoiceName(name);
+  });
+
+  let deleted = 0;
+  for (const voice of targets.slice(0, limit)) {
+    const id = voice.voice_id!.trim();
+    try {
+      await elevenLabsDeleteVoice(id);
+      deleted += 1;
+    } catch {
+      // segue tentando os demais
+    }
+  }
+  return { scanned: targets.length, deleted };
+}
+
+export type ElevenLabsVoiceSettings = {
+  stability: number;
+  similarity_boost: number;
+  style: number;
+  use_speaker_boost: boolean;
+};
+
 export type ElevenLabsTtsInput = {
   voiceId: string;
   text: string;
   modelId?: string;
   languageCode?: string;
+  voiceSettings?: Partial<ElevenLabsVoiceSettings>;
 };
 
 /** Defaults afinados para clone IVC + discurso político (PT). */
-const DEFAULT_VOICE_SETTINGS = {
+export const DEFAULT_VOICE_SETTINGS: ElevenLabsVoiceSettings = {
   stability: 0.45,
   similarity_boost: 0.8,
   style: 0.15,
   use_speaker_boost: true,
 };
+
+function mergeVoiceSettings(
+  override?: Partial<ElevenLabsVoiceSettings>,
+): ElevenLabsVoiceSettings {
+  if (!override) {
+    return { ...DEFAULT_VOICE_SETTINGS };
+  }
+  return {
+    stability:
+      typeof override.stability === "number"
+        ? override.stability
+        : DEFAULT_VOICE_SETTINGS.stability,
+    similarity_boost:
+      typeof override.similarity_boost === "number"
+        ? override.similarity_boost
+        : DEFAULT_VOICE_SETTINGS.similarity_boost,
+    style:
+      typeof override.style === "number"
+        ? override.style
+        : DEFAULT_VOICE_SETTINGS.style,
+    use_speaker_boost:
+      typeof override.use_speaker_boost === "boolean"
+        ? override.use_speaker_boost
+        : DEFAULT_VOICE_SETTINGS.use_speaker_boost,
+  };
+}
 
 /** TTS — POST /v1/text-to-speech/{voice_id} → buffer MP3. */
 export async function elevenLabsTextToSpeech(input: ElevenLabsTtsInput) {
@@ -324,7 +430,7 @@ export async function elevenLabsTextToSpeech(input: ElevenLabsTtsInput) {
   const body: Record<string, unknown> = {
     text,
     model_id: modelId,
-    voice_settings: DEFAULT_VOICE_SETTINGS,
+    voice_settings: mergeVoiceSettings(input.voiceSettings),
     apply_text_normalization: "auto",
   };
   // language_code é suportado no v3; multilingual_v2 ignora.

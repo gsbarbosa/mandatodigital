@@ -1,6 +1,6 @@
 # SPEC — Remodelagem UI/UX e navegação (Mandato Digital.IA)
 
-Data: 2026-07-08 · Autor: proposta consolidada aprovada pelo owner · Status: aprovada para implementação
+Data: 2026-07-08 · Autor: proposta consolidada aprovada pelo owner · Status: **implementada** (mapa de navegação abaixo já é o real em `src/app/(product)/`)
 
 ## O quê
 

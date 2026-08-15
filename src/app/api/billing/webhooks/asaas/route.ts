@@ -5,8 +5,15 @@ import { NextResponse } from "next/server";
 
 import { asaasGetInvoice, asaasGetPayment } from "@/lib/asaas/client";
 import { handleRouteError } from "@/lib/api";
-import { getPlanPricing } from "@/lib/billing/plan-pricing";
+import {
+  applyOverdueBillingStatus,
+  applySinglePaidPayment,
+  isAsaasOverdueStatus,
+  isAsaasPaidStatus,
+} from "@/lib/billing/asaas-payment-sync";
+import { ensureNfsScheduledForPaidPayments } from "@/lib/billing/ensure-nfs";
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
+import { sendNfsAuthorizedEmail } from "@/lib/legal/email";
 import { appLog, appLogError } from "@/lib/observability/log";
 import {
   findRegistrationByAsaasCustomerId,
@@ -36,8 +43,6 @@ function verifyAsaasAccessToken(headerValue: string | null) {
   }
 }
 
-const PAID_STATUSES = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"]);
-
 type AsaasWebhookBody = {
   id?: string;
   event?: string;
@@ -47,6 +52,8 @@ type AsaasWebhookBody = {
     subscription?: string | null;
     status?: string;
     value?: number;
+    dueDate?: string;
+    billingType?: string;
     externalReference?: string | null;
   };
   invoice?: {
@@ -160,13 +167,52 @@ async function handleInvoiceEvent(
   const authorized =
     eventName.includes("AUTHORIZED") || status === "AUTHORIZED" || Boolean(invoice?.pdfUrl);
 
+  const pdfUrl = invoice?.pdfUrl || body.invoice?.pdfUrl || null;
+  const xmlUrl = invoice?.xmlUrl || body.invoice?.xmlUrl || null;
+  const nfsNumber = invoice?.number || body.invoice?.number || null;
+  const emailKey = String(nfsNumber || invoiceId).trim();
+
   if (authorized) {
     await updateUserRegistrationBilling(registration.ownerUserId, {
-      lastNfsPdfUrl: invoice?.pdfUrl || body.invoice?.pdfUrl || null,
-      lastNfsXmlUrl: invoice?.xmlUrl || body.invoice?.xmlUrl || null,
-      lastNfsNumber: invoice?.number || body.invoice?.number || null,
+      lastNfsPdfUrl: pdfUrl,
+      lastNfsXmlUrl: xmlUrl,
+      lastNfsNumber: nfsNumber,
       lastNfsStatus: "authorized",
     });
+
+    if (
+      pdfUrl &&
+      registration.email &&
+      emailKey &&
+      registration.lastNfsEmailSentFor !== emailKey
+    ) {
+      try {
+        const mail = await sendNfsAuthorizedEmail({
+          to: registration.email,
+          campaignName: registration.fullName || registration.email,
+          nfsNumber,
+          pdfUrl,
+          xmlUrl,
+        });
+        if (mail.sent) {
+          await updateUserRegistrationBilling(registration.ownerUserId, {
+            lastNfsEmailSentFor: emailKey,
+          });
+        } else {
+          appLog(
+            "billing",
+            "nfs_email_skipped",
+            { ownerUserId: registration.ownerUserId, invoiceId, reason: mail.reason },
+            "warn",
+          );
+        }
+      } catch (error) {
+        appLogError("billing", "nfs_email_failed", error, {
+          ownerUserId: registration.ownerUserId,
+          invoiceId,
+        });
+      }
+    }
   } else {
     await updateUserRegistrationBilling(registration.ownerUserId, {
       lastNfsStatus: status.toLowerCase() || "scheduled",
@@ -219,18 +265,7 @@ async function handlePaymentEvent(
     appLogError("billing", "asaas_payment_fetch_failed", error, { paymentId });
   }
 
-  const status = String(payment?.status ?? "").toUpperCase();
-  if (!PAID_STATUSES.has(status)) {
-    appLog("billing", "webhook_payment_not_paid", { paymentId, status, eventName });
-    await markEventProcessed(eventRef, {
-      eventId,
-      event: eventName,
-      paymentId,
-      status,
-    });
-    return NextResponse.json({ ok: true, status });
-  }
-
+  const status = String(payment?.status ?? body.payment?.status ?? "").toUpperCase();
   const customerId = String(payment?.customer ?? body.payment?.customer ?? "").trim();
   if (!customerId) {
     return NextResponse.json({ ok: true, matched: false });
@@ -242,63 +277,82 @@ async function handlePaymentEvent(
     return NextResponse.json({ ok: true, matched: false });
   }
 
-  if (registration.lastPaidPaymentId === paymentId) {
+  const paymentRecord = {
+    id: paymentId,
+    status,
+    dueDate: String(payment?.dueDate ?? ""),
+    externalReference: payment?.externalReference ?? body.payment?.externalReference ?? null,
+    subscription: payment?.subscription ?? body.payment?.subscription ?? null,
+    billingType: payment?.billingType ?? body.payment?.billingType,
+    value: payment?.value ?? body.payment?.value ?? null,
+  };
+
+  if (isAsaasPaidStatus(status)) {
+    const applied = await applySinglePaidPayment({
+      registration,
+      payment: paymentRecord,
+    });
+    await ensureNfsScheduledForPaidPayments({
+      registration: applied.registration,
+      payments: [paymentRecord],
+    });
     await markEventProcessed(eventRef, {
       eventId,
       event: eventName,
       paymentId,
       ownerUserId: registration.ownerUserId,
-      duplicatePayment: true,
-      paidInstallments: registration.paidInstallments || 0,
+      duplicatePayment: applied.duplicatePayment,
+      paidInstallments: applied.registration.paidInstallments || 0,
+      planId: applied.registration.planId,
+    });
+    appLog("billing", "payment_confirmed", {
+      ownerUserId: registration.ownerUserId,
+      paymentId,
+      paidInstallments: applied.registration.paidInstallments,
+      planId: applied.registration.planId,
+      duplicatePayment: applied.duplicatePayment,
     });
     return NextResponse.json({
       ok: true,
       matched: true,
-      duplicatePayment: true,
-      billingStatus: "active",
-      paidInstallments: registration.paidInstallments || 0,
+      duplicatePayment: applied.duplicatePayment,
+      billingStatus: applied.registration.billingStatus,
+      paidInstallments: applied.registration.paidInstallments,
+      planId: applied.registration.planId,
     });
   }
 
-  const paidInstallments = Math.min(
-    (registration.paidInstallments || 0) + 1,
-    registration.planId ? getPlanPricing(registration.planId).installmentCount : 3,
-  );
+  if (isAsaasOverdueStatus(status) || eventName.includes("OVERDUE")) {
+    const applied = await applyOverdueBillingStatus(registration);
+    await markEventProcessed(eventRef, {
+      eventId,
+      event: eventName,
+      paymentId,
+      ownerUserId: registration.ownerUserId,
+      status,
+      billingStatus: applied.registration.billingStatus,
+    });
+    appLog("billing", "payment_overdue", {
+      ownerUserId: registration.ownerUserId,
+      paymentId,
+      billingStatus: applied.registration.billingStatus,
+    });
+    return NextResponse.json({
+      ok: true,
+      matched: true,
+      billingStatus: applied.registration.billingStatus,
+      paidInstallments: applied.registration.paidInstallments,
+    });
+  }
 
-  await updateUserRegistrationBilling(registration.ownerUserId, {
-    billingStatus: "active",
-    paidInstallments,
-    lastPaidPaymentId: paymentId,
-    pendingBoletoUrl: null,
-    pendingBoletoLinhaDigitavel: null,
-    pendingBoletoDueDate: null,
-    pendingBoletoValue: null,
-    pendingPixPayload: null,
-    pendingPixQrImage: null,
-    pendingPixExpiration: null,
-  });
-
+  appLog("billing", "webhook_payment_not_paid", { paymentId, status, eventName });
   await markEventProcessed(eventRef, {
     eventId,
     event: eventName,
     paymentId,
-    ownerUserId: registration.ownerUserId,
-    paidInstallments,
+    status,
   });
-
-  appLog("billing", "payment_confirmed", {
-    ownerUserId: registration.ownerUserId,
-    paymentId,
-    paidInstallments,
-    planId: registration.planId,
-  });
-
-  return NextResponse.json({
-    ok: true,
-    matched: true,
-    billingStatus: "active",
-    paidInstallments,
-  });
+  return NextResponse.json({ ok: true, status });
 }
 
 export async function POST(request: Request) {
@@ -330,6 +384,7 @@ export async function POST(request: Request) {
       eventName.includes("PAYMENT") ||
       eventName === "PAYMENT_RECEIVED" ||
       eventName === "PAYMENT_CONFIRMED" ||
+      eventName === "PAYMENT_OVERDUE" ||
       eventName === "PAYMENT_RECEIVED_IN_CASH";
 
     if (isPaymentEvent) {

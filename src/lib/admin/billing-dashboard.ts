@@ -12,12 +12,14 @@ export type AdminUserRow = {
   billingStatus: BillingStatus;
   billingMethod: "boleto" | "pix" | null;
   paidInstallments: number;
+  lastPaidAt: string | null;
   pendingBoletoValue: number | null;
   pendingBoletoDueDate: string | null;
   lastNfsStatus: string | null;
   lastNfsNumber: string | null;
   lastNfsPdfUrl: string | null;
   asaasSubscriptionId: string | null;
+  billingFirstDueDate: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -136,9 +138,9 @@ export function summarizeAdminBilling(
 
 export const BILLING_STATUS_LABELS: Record<BillingStatus, string> = {
   trial: "Trial",
-  pending_payment: "Aguardando boleto",
+  pending_payment: "Aguardando pagamento",
   active: "Pago / ativo",
-  past_due: "Em atraso",
+  past_due: "Inadimplente",
   canceled: "Cancelado",
 };
 

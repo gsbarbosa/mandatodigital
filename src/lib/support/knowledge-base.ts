@@ -21,6 +21,7 @@ Ajuda o candidato a monitorar pautas, criar conteúdo alinhado à persona, gerar
 - Compliance TSE (/compliance): conformidade eleitoral e materiais.
 - Auditoria (/auditoria): trilha de ações e checagens.
 - Cadastro / planos: /acesso-antecipado/dados, /acesso-antecipado/planos, /acesso-antecipado/cnpj.
+- Meus pagamentos: /acesso-antecipado/pagamento.
 
 ## Agentes do ecossistema
 1. Sentinela — identifica pautas quentes do dia (sites, blogs, redes, temas e adversários). Entrega pautas quentes e gatilhos para conteúdo.
@@ -50,7 +51,7 @@ Há um checklist flutuante de onboarding no canto inferior direito enquanto o pr
 - Vídeos podem passar por jobs assíncronos (geração/selo/voz); o status aparece na própria tela do criativo.
 
 ### Compliance e segurança
-- Resolução TSE 23.732: conteúdos com IA devem ter metadados/rotulagem adequados.
+- Resolução TSE 23.610/2019 (redação da Res. TSE 23.755/2026): conteúdos com IA devem ter metadados/rotulagem adequados.
 - Apagão algorítmico de 72h: travas perto do pleito.
 - Gastos tipificados como serviço de software/comunicação política; NF atrelada ao CNPJ da campanha quando aplicável.
 - LGPD: isolamento por gabinete; não guardar dados pessoais de eleitores.
