@@ -10,6 +10,7 @@ export function ThemeTagPill({
   children,
   themeLabel,
   sphere,
+  compact = false,
 }: {
   active: boolean;
   onClick: () => void;
@@ -18,9 +19,12 @@ export function ThemeTagPill({
   /** Label estável para e2e (data-theme). */
   themeLabel?: string;
   sphere?: "federal" | "estadual";
+  /** Empilha as pills sem folga vertical (config de monitoramento). */
+  compact?: boolean;
 }) {
-  const base =
-    "px-4 py-1.5 rounded-full border text-xs sm:text-sm font-medium transition-all select-none";
+  const base = compact
+    ? "px-3 py-0 rounded-full border text-xs sm:text-sm font-medium transition-all select-none leading-6"
+    : "px-4 py-1.5 rounded-full border text-xs sm:text-sm font-medium transition-all select-none";
   const idle =
     "border-md-border bg-md-surface-inset text-md-text-muted hover:border-[var(--curador-border)] hover:text-[var(--curador-text)] cursor-pointer";
   const activeClasses =

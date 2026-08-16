@@ -21,6 +21,7 @@ import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { resolveVideoSpeechForGeneration } from "@/lib/voice-provider-resolve";
 import { registerTtsAudioPendingCleanup } from "@/lib/elevenlabs-tts-storage";
 import { heygenCreateVideoFromImage } from "@/lib/heygen";
+import { releaseGuestVideoQuota } from "@/lib/guest-usage-storage";
 import { sealRemoteVideo } from "@/lib/media-tse-seal";
 import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
 
@@ -233,7 +234,13 @@ export async function processVoiceJob(jobId: string) {
       durationMs: elapsed(),
     });
     const failed = await failAsyncJob(jobId, message);
-    if (failed.status === "failed" && failed.attempts < failed.maxAttempts) {
+    if (failed.status === "dead") {
+      const mode = payload.createVideo?.generateMode;
+      const videoAlreadyCreated = Boolean(String(claimed.result?.heygenVideoId ?? "").trim());
+      if (mode && claimed.ownerUserId && !videoAlreadyCreated) {
+        await releaseGuestVideoQuota(claimed.ownerUserId, mode).catch(() => undefined);
+      }
+    } else if (failed.status === "failed" && failed.attempts < failed.maxAttempts) {
       await requeueAsyncJob(jobId);
       appLog(
         "async-jobs",

@@ -81,16 +81,17 @@ function resolveAssetPath(relativePath: string) {
 function buildOverlayFilterComplex(opts: { guest: boolean; campaign: boolean }) {
   // TSE/guest no canto inf. esquerdo; campanha no topo.
   // eof_action=repeat: PNG de 1 frame permanece até o fim do vídeo.
+  // Selo TSE em 2× (PNG ~2333px): cap 2200 para a letra aparecer o dobro no 1080p.
   if (!opts.guest && !opts.campaign) {
     return (
-      "[1:v]scale=min(1100\\,iw):-1[tse];" +
+      "[1:v]scale=min(2200\\,iw):-1[tse];" +
       "[0:v][tse]overlay=24:H-h-24:eof_action=repeat[vout]"
     );
   }
 
   if (opts.guest && !opts.campaign) {
     return (
-      "[1:v]scale=min(1100\\,iw):-1[tse];" +
+      "[1:v]scale=min(2200\\,iw):-1[tse];" +
       "[2:v]scale=min(900\\,iw):-1[guest];" +
       "[0:v][tse]overlay=24:H-h-56:eof_action=repeat[tmp];" +
       "[tmp][guest]overlay=24:H-h-24:eof_action=repeat[vout]"
@@ -99,7 +100,7 @@ function buildOverlayFilterComplex(opts: { guest: boolean; campaign: boolean }) 
 
   if (!opts.guest && opts.campaign) {
     return (
-      "[1:v]scale=min(1100\\,iw):-1[tse];" +
+      "[1:v]scale=min(2200\\,iw):-1[tse];" +
       "[2:v]scale=min(1100\\,iw):-1[campaign];" +
       "[0:v][campaign]overlay=24:24:eof_action=repeat[tmp];" +
       "[tmp][tse]overlay=24:H-h-24:eof_action=repeat[vout]"
@@ -107,7 +108,7 @@ function buildOverlayFilterComplex(opts: { guest: boolean; campaign: boolean }) 
   }
 
   return (
-    "[1:v]scale=min(1100\\,iw):-1[tse];" +
+    "[1:v]scale=min(2200\\,iw):-1[tse];" +
     "[2:v]scale=min(900\\,iw):-1[guest];" +
     "[3:v]scale=min(1100\\,iw):-1[campaign];" +
     "[0:v][campaign]overlay=24:24:eof_action=repeat[tmp0];" +

@@ -1,4 +1,4 @@
-export const TSE_SEAL_VERSION = "2026-07-31";
+export const TSE_SEAL_VERSION = "2026-08-15";
 
 /**
  * Texto queimado no rodapé de vídeos/imagens gerados por IA.

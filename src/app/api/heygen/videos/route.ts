@@ -574,7 +574,7 @@ export async function POST(request: Request) {
             return failAsset({
               ...twinVoiceResult,
               message: twinVoiceResult.message.includes("Selecione")
-                ? "Gêmeo digital com ElevenLabs exige o áudio de voz selecionado. Envie o áudio em Configurar avatar."
+                ? "Gêmeo digital exige o áudio de voz selecionado. Envie o áudio em Configurar avatar."
                 : twinVoiceResult.message,
             });
           }

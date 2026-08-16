@@ -78,6 +78,9 @@ describe("sanitizeProviderFacingMessage", () => {
 
     expect(message).not.toContain("HeyGen");
     expect(message).not.toContain("OpenAI");
+    expect(sanitizeProviderFacingMessage("Clone ElevenLabs indisponível.")).not.toContain(
+      "ElevenLabs",
+    );
     expect(message).toContain("use o gêmeo já treinado");
     expect(message).not.toContain("no Curador");
     expect(message).toContain("biblioteca de vozes do painel");
@@ -114,7 +117,8 @@ describe("formatProviderLimitHint", () => {
     const hint = formatProviderLimitHint(
       "Voice clone limit reached (10). Delete unused clones or contact support to increase your limit.",
     );
-    expect(hint).toContain("Limite de clones de voz HeyGen");
-    expect(hint).toContain("elevenlabs_audio");
+    expect(hint).toContain("Limite de clones de voz");
+    expect(hint).not.toContain("HeyGen");
+    expect(hint).not.toContain("ElevenLabs");
   });
 });

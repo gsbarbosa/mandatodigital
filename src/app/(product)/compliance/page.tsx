@@ -235,7 +235,6 @@ export default function ComplianceRoute() {
 
             <PillarCard
               title="Contas de Campanha, NFs e SPCE"
-              comingSoon
               icon={
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -305,11 +304,11 @@ export default function ComplianceRoute() {
                   </ChecklistGroup>
 
                   <ChecklistGroup label="Prestação de contas e formalização">
-                    <ChecklistItem title="Materialidade na Prestação de Contas" comingSoon>
+                    <ChecklistItem title="Materialidade na Prestação de Contas">
                       Nossos relatórios com logs de acesso da sua equipe atestam a entrega de todos
                       os serviços contratados.
                     </ChecklistItem>
-                    <ChecklistItem title="Transparência Fiscal e Contábil" comingSoon>
+                    <ChecklistItem title="Transparência Fiscal e Contábil">
                       PIX Corporativo Direto e Boleto Bancário Híbrido com descrições claras nas
                       notas-fiscais e CNAEs aceitos pelo TSE.
                     </ChecklistItem>

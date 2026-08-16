@@ -36,7 +36,6 @@ import {
 } from "@/lib/sentinel-profile-themes";
 import { useAccountTier } from "@/components/product/use-account-tier";
 import {
-  estadualThemeGroups,
   federalThemeGroups,
   type SphereThemeGroup,
 } from "@/lib/sphere-theme-catalog";
@@ -44,6 +43,22 @@ import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 const INITIAL_VISIBLE = 3;
 const VISIBLE_STEP = 5;
+const FALLBACK_TOPIC_LIMIT = 3;
+const NOTICIAS_DO_DIA_HREF = "/monitoramento/noticias-do-dia" as Route;
+
+function VejaMaisNoticiasDoDiaLink({ className }: { className?: string }) {
+  return (
+    <Link
+      href={NOTICIAS_DO_DIA_HREF}
+      className={
+        className ??
+        "mt-3 inline-block text-sm font-medium text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80"
+      }
+    >
+      Veja mais notícias do dia
+    </Link>
+  );
+}
 
 type SuggestionsPayload = {
   message?: string;
@@ -439,7 +454,7 @@ export function MonitoramentoPage() {
       if (hasProfiles) {
         return "Nenhuma pauta de interesse capturada nesta rodada.";
       }
-      return "Configure perfis @ de interesse no radar de temas.";
+      return "Configure perfis de interesse no radar de temas.";
     }
     if (sphere === "adversarios") {
       return "Nenhuma pauta identificada nos perfis selecionados.";
@@ -464,11 +479,7 @@ export function MonitoramentoPage() {
       );
       if (themes.length) {
         const themesLabel = themes.slice(0, 4).join(", ") + (themes.length > 4 ? "…" : "");
-        const suggestion = findRelatedUnselectedTheme(themes, estadualThemeGroups);
-        const suggestionText = suggestion
-          ? ` Para garantir pauta na esfera Estadual, considere adicionar um tema menos amplo, como '${suggestion}'.`
-          : " Para garantir pauta na esfera Estadual, considere adicionar um tema menos amplo ao radar.";
-        return `Os temas selecionados (${themesLabel}) não tiveram pauta Estadual recente (últimos ${ESTADUAL_MAX_AGE_DAYS} dias).${suggestionText}`;
+        return `Os temas selecionados (${themesLabel}) não tiveram pauta Estadual recente (últimos ${ESTADUAL_MAX_AGE_DAYS} dias). Para garantir pauta na esfera Estadual, considere novos temas.`;
       }
       return `Nenhuma pauta encontrada nesta esfera com os temas selecionados nos últimos ${ESTADUAL_MAX_AGE_DAYS} dias.`;
     }
@@ -614,6 +625,10 @@ export function MonitoramentoPage() {
           const shown = items.slice(0, visible);
           const municipalFallback =
             sphere === "municipal" ? meta?.municipalFallback : undefined;
+          const fallbackTopics = municipalFallback?.foundTopics.slice(0, FALLBACK_TOPIC_LIMIT) ?? [];
+          const fallbackListedCount = fallbackTopics.length;
+          const showNoticiasDoDiaLink =
+            Boolean(municipalFallback) || sphere === "federal" || sphere === "estadual";
           return (
             <section key={sphere} id={sphere}>
               <h2 className="text-lg font-semibold text-md-text border-b border-md-border pb-3 mb-5 flex items-center gap-2">
@@ -637,8 +652,8 @@ export function MonitoramentoPage() {
                       <>
                         Não encontramos os temas que você selecionou no(s) site(s) que você
                         cadastrou para o município. Mostramos as notícias mais recentes de lá
-                        {municipalFallback.promotedCount
-                          ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
+                        {fallbackListedCount
+                          ? ` (${fallbackListedCount} ${fallbackListedCount === 1 ? "pauta" : "pautas"})`
                           : ""}
                         .
                       </>
@@ -650,20 +665,21 @@ export function MonitoramentoPage() {
                           ? ` (${municipalFallback.themesMissed.slice(0, 4).join(", ")}${municipalFallback.themesMissed.length > 4 ? "…" : ""})`
                           : ""}
                         . Listamos o que há de atual na cidade
-                        {municipalFallback.promotedCount
-                          ? ` (${municipalFallback.promotedCount} ${municipalFallback.promotedCount === 1 ? "pauta" : "pautas"})`
+                        {fallbackListedCount
+                          ? ` (${fallbackListedCount} ${fallbackListedCount === 1 ? "pauta" : "pautas"})`
                           : ""}
                         .
                       </>
                     )}
                   </p>
-                  {municipalFallback.foundTopics.length ? (
+                  {fallbackTopics.length ? (
                     <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-md-text-soft">
-                      {municipalFallback.foundTopics.slice(0, 5).map((topic) => (
+                      {fallbackTopics.map((topic) => (
                         <li key={topic}>{topic}</li>
                       ))}
                     </ul>
                   ) : null}
+                  <VejaMaisNoticiasDoDiaLink className="mt-3 inline-block text-sm font-medium text-emerald-700 underline underline-offset-2 hover:opacity-80 dark:text-emerald-300" />
                 </div>
               ) : null}
 
@@ -721,6 +737,9 @@ export function MonitoramentoPage() {
                         ? "Não encontramos reportagens locais recentes nos temas selecionados nem outras notícias do município nesta rodada."
                         : emptyMessageForSphere(sphere)}
                   </p>
+                  {showNoticiasDoDiaLink && !municipalFallback ? (
+                    <VejaMaisNoticiasDoDiaLink />
+                  ) : null}
                   <Link
                     href={
                       sphere === "adversarios"
