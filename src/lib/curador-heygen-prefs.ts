@@ -128,6 +128,9 @@ export function sanitizeProviderFacingMessage(message: string) {
     .replace(/\s*—\s*HeyGen/gi, "")
     .replace(/\bHeyGen\b/gi, "a plataforma")
     .replace(/\bOpenAI\b/gi, "o serviço de IA")
+    .replace(/\bElevenLabs\b/gi, "o serviço de voz")
+    .replace(/\bAyrshare\b/gi, "o serviço de publicação")
+    .replace(/\bApify\b/gi, "o serviço de coleta")
     .replace(/\bHeyGen\b/gi, "a plataforma")
     .replace(/OPENAI_API_KEY/gi, "configuração do servidor")
     .replace(/HEYGEN_API_KEY/gi, "configuração do servidor")
@@ -189,10 +192,8 @@ export function formatHeyGenInsufficientCreditMessage(message: string) {
   }
 
   return (
-    "Saldo insuficiente na carteira da API. " +
-    "O valor que você vê no plano web do HeyGen (ex.: US$ 8) não é o mesmo pool usado por esta integração — " +
-    "a API debita de Settings → API → wallet (pay-as-you-go). " +
-    "Recarregue essa carteira ou encurte o roteiro (~US$ 0,05 por segundo em caricatura 1080p)."
+    "Saldo insuficiente para gerar este vídeo. " +
+    "Encurte o roteiro ou tente novamente em alguns minutos."
   );
 }
 
@@ -229,9 +230,9 @@ export function formatProviderLimitHint(message: string): string | null {
     (normalized.includes("upgrade your plan") && normalized.includes("voice"))
   ) {
     hints.push(
-      "O plano da conta de voz (ElevenLabs) não inclui Instant Voice Cloning. " +
-        "O sistema tenta usar o clone de voz da plataforma de vídeo automaticamente; " +
-        "se o erro persistir, atualize o plano da API de voz ou use HEYGEN_VOICE_PROVIDER=heygen_clone.",
+      "O serviço de voz não inclui clonagem instantânea neste plano. " +
+        "O sistema tenta usar a voz da plataforma de vídeo automaticamente; " +
+        "se o erro persistir, tente novamente em alguns minutos.",
     );
   }
 
@@ -240,17 +241,13 @@ export function formatProviderLimitHint(message: string): string | null {
     normalized.includes("custom voice limit")
   ) {
     hints.push(
-      "Limite de vozes customizadas na conta de voz atingido. " +
-        "O sistema usa clones efêmeros (cria → TTS → apaga); se o erro persistir, " +
-        "remova clones órfãos no painel ElevenLabs ou aguarde a fila liberar o slot.",
+      "Limite de vozes customizadas atingido. Tente novamente em alguns minutos.",
     );
   }
 
   if (normalized.includes("voice clone limit")) {
     hints.push(
-      "Limite de clones de voz HeyGen (10 na conta): use HEYGEN_VOICE_PROVIDER=elevenlabs_audio " +
-        "(TTS ElevenLabs → audio_url) ou remova clones órfãos no painel. " +
-        "Não apague o vínculo local só para 'Refazer'.",
+      "Limite de clones de voz atingido. Tente novamente em alguns minutos.",
     );
   }
 

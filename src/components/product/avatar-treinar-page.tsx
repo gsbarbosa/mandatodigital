@@ -45,6 +45,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
 
   const profileId = profile?.id ?? profileForm.id ?? null;
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [selectedVoicePreviewId, setSelectedVoicePreviewId] = useState<string | null>(null);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
@@ -160,6 +161,9 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
               {tipo.caricatureVariant
                 ? " A versão caricata/3D é gerada a partir da sua foto na tela de criação de conteúdo."
                 : ""}
+              <span className="mt-3 block text-amber-300">
+                Aceite os termos abaixo para liberar o envio de foto e áudio.
+              </span>
             </>
           }
         />
@@ -375,6 +379,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
               voiceAudioAssetId={latestVoice?.id ?? null}
               consentAccepted={consentAccepted}
               onMessage={setUploadMessage}
+              onSelectedPreviewChange={setSelectedVoicePreviewId}
             />
           </div>
 
@@ -418,6 +423,10 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
               <p className="mt-3 text-xs text-amber-300/90">
                 Aceite os termos para liberar o envio de foto e áudio.
               </p>
+            ) : !selectedVoicePreviewId ? (
+              <p className="mt-3 text-xs text-amber-300/90">
+                Selecione uma das prévias em “Usar esta voz” para concluir o envio.
+              </p>
             ) : null}
           </div>
 
@@ -435,10 +444,10 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
           <div className="mt-8">
             <button
               type="button"
-              disabled={!consentAccepted}
+              disabled={!consentAccepted || !selectedVoicePreviewId}
               onClick={() => router.push(hubHref)}
               className={
-                consentAccepted
+                consentAccepted && selectedVoicePreviewId
                   ? "w-full block text-center bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-md-text font-bold py-4 px-4 rounded-xl btn-transition shadow-[0_4px_20px_rgba(168,85,247,0.25)] hover:shadow-[0_6px_25px_rgba(168,85,247,0.35)] focus:outline-none focus:ring-2 focus:ring-purple-400 text-lg"
                   : "w-full block text-center bg-slate-700 text-md-text-soft font-bold py-4 px-4 rounded-xl transition-all cursor-not-allowed"
               }

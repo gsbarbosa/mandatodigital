@@ -5,20 +5,23 @@ import { useCallback, useEffect, useState } from "react";
 import {
   GUEST_CREDITS_EXHAUSTED_ACTION_MESSAGE,
   type GuestSentinelCredits,
+  type GuestVideoUsage,
 } from "@/lib/guest-limits";
 import { broadcastGuestSentinelCredits, onGuestSentinelCreditsUpdate } from "@/lib/guest-credits-bus";
 
 type CreditsResponse = {
   credits?: GuestSentinelCredits | null;
+  videoUsage?: GuestVideoUsage | null;
 };
 
 /**
- * Créditos vitalícios do convidado (Sentinela).
- * Premium → `credits: null` → nunca exhausto.
+ * Créditos vitalícios do convidado (Sentinela) e cota de vídeos do free trial.
+ * Premium → `credits`/`videoUsage` null → nunca exhausto.
  * Convidado com remaining <= 0 → trava ações (não a navegação).
  */
 export function useGuestCreditsGate() {
   const [credits, setCredits] = useState<GuestSentinelCredits | null>(null);
+  const [videoUsage, setVideoUsage] = useState<GuestVideoUsage | null>(null);
   const [checked, setChecked] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -29,6 +32,7 @@ export function useGuestCreditsGate() {
       }
       const payload = (await response.json()) as CreditsResponse;
       setCredits(payload.credits ?? null);
+      setVideoUsage(payload.videoUsage ?? null);
       broadcastGuestSentinelCredits(payload.credits ?? null);
     } catch {
       // Em falha de rede, mantém liberado.
@@ -55,6 +59,7 @@ export function useGuestCreditsGate() {
   return {
     credits,
     remaining: credits?.remaining ?? null,
+    videoUsage,
     exhausted,
     checked,
     refresh,

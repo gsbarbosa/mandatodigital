@@ -176,9 +176,9 @@ export function AcessoCnpjPage() {
             <>
               <p className="text-sm md:text-base text-md-text-soft mb-5 leading-relaxed">
                 Se você já possui o CNPJ de campanha registrado no TSE, insira abaixo para assinar o
-                Contrato de Prestação de Serviços Eleitorais e desbloquear a plataforma
-                provisoriamente. O CNPJ será validado quanto à natureza jurídica (Comitê Financeiro
-                ou Candidato a Cargo Político Eletivo).
+                Contrato de Prestação de Serviços Eleitorais e desbloquear a plataforma. O CNPJ será
+                validado quanto à natureza jurídica (Comitê Financeiro ou Candidato a Cargo Político
+                Eletivo).
               </p>
 
               <div className="text-left w-full">
@@ -196,9 +196,8 @@ export function AcessoCnpjPage() {
                 <div className="bg-md-overlay-subtle border border-md-border/60 rounded-xl p-4 mt-3 text-xs md:text-sm text-md-text-soft leading-relaxed text-left">
                   <strong className="text-md-text-muted">Atenção ao Calendário:</strong> Para facilitar
                   sua prestação de contas no SPCE/TSE, os boletos no seu CNPJ serão emitidos somente
-                  a partir de <strong>16/Agosto</strong>. O pagamento é mensal e o desconto VIP de
-                  50% é válido exclusivamente durante os meses de eleição para quem realizou esta
-                  reserva.
+                  a partir de <strong>16/Agosto</strong>. O desconto VIP de 50% é válido
+                  exclusivamente durante os meses de eleição para quem realizou esta reserva.
                 </div>
 
                 <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-md-text">
@@ -240,10 +239,6 @@ export function AcessoCnpjPage() {
             </>
           )}
 
-          <p className="mt-5 text-[10px] text-md-text-soft text-center">
-            Fase de acesso antecipado: o resumo local fica neste dispositivo; a trilha jurídica
-            completa é gravada no servidor.
-          </p>
         </div>
       </div>
     </div>

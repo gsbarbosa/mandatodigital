@@ -198,7 +198,7 @@ function InterestThemeSections({
           <h3 className="text-sm font-semibold text-md-text mb-3 uppercase tracking-wider">
             {group.title}
           </h3>
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-x-1 gap-y-0">
             {group.options.map((option) => {
               const isActive = selected.includes(option);
               const isDisabled = !isActive && atLimit;
@@ -210,6 +210,7 @@ function InterestThemeSections({
                   sphere="federal"
                   active={isActive}
                   disabled={isDisabled}
+                  compact
                   onClick={() => onToggle(option)}
                 >
                   {option}
@@ -450,7 +451,8 @@ export function RedefinirTemasPage() {
       <span>
         Versão convidado: até {MAX_INTEREST_THEMES} temas, {MAX_MUNICIPAL_CITIES} municípios,{" "}
         {MAX_MUNICIPAL_PORTALS} portais, {MAX_INTEREST_PROFILES} perfis de rede sociais e{" "}
-        {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real.
+        {MAX_ADVERSARY_PROFILES} adversários. O monitoramento das pautas não é em tempo real nessa
+        versão convidado.
       </span>
       <button
         type="button"
@@ -566,7 +568,7 @@ export function RedefinirTemasPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <SourcesDisclosure title="Nacionais" accentClassName="text-[var(--curador-text)]">
               <p className="text-sm text-md-text-soft mb-4">
-                Para a esfera nacional, monitoramos os portais:
+                Para a esfera nacional, monitoramos os portais e os agregadores de notícias abaixo:
               </p>
               <InfoList
                 items={[...nationalPortals.map(getPortalHostLabel), ...SEARCH_ENGINE_SOURCE_ITEMS]}

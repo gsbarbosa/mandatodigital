@@ -163,7 +163,7 @@ export async function withElevenLabsIvcSlot<T>(
       "warn",
     );
     throw new Error(
-      "Fila de voz ocupada (limite de clones ElevenLabs). Tente novamente em instantes.",
+      "Fila de voz ocupada. Tente novamente em instantes.",
     );
   }
 

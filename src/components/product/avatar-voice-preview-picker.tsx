@@ -13,6 +13,7 @@ type AvatarVoicePreviewPickerProps = {
   voiceAudioAssetId: string | null;
   consentAccepted: boolean;
   onMessage?: (message: string | null) => void;
+  onSelectedPreviewChange?: (previewId: string | null) => void;
 };
 
 export function AvatarVoicePreviewPicker({
@@ -20,6 +21,7 @@ export function AvatarVoicePreviewPicker({
   voiceAudioAssetId,
   consentAccepted,
   onMessage,
+  onSelectedPreviewChange,
 }: AvatarVoicePreviewPickerProps) {
   const [selection, setSelection] = useState<ProfileVoiceSelection | null>(null);
   const [loading, setLoading] = useState(false);
@@ -89,6 +91,10 @@ export function AvatarVoicePreviewPicker({
       cancelled = true;
     };
   }, [profileId, voiceAudioAssetId]);
+
+  useEffect(() => {
+    onSelectedPreviewChange?.(selection?.selectedPreviewId ?? null);
+  }, [onSelectedPreviewChange, selection?.selectedPreviewId]);
 
   async function handleGenerate() {
     if (!profileId || !voiceAudioAssetId) {
@@ -178,8 +184,8 @@ export function AvatarVoicePreviewPicker({
         <div>
           <h4 className="text-lg font-bold text-md-text">Escolha sua voz</h4>
           <p className="text-xs text-md-text-soft mt-1 max-w-xl">
-            Geramos três variações com o mesmo clone da ElevenLabs. Ouça e selecione
-            a que mais se parece com você — ela será usada em todos os vídeos.
+            Geramos três variações da sua voz. Ouça e selecione aquela que mais gosta ou se
+            parece com você. Ela será utilizada em todos os seus vídeos.
           </p>
         </div>
         {!hasPreviews || staleAsset ? (

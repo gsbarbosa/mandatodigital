@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { normalizeFactCheckVerdict } from "@/lib/auditor/fact-check-gate";
 import type { FactCheckInput, FactCheckResult } from "@/lib/auditor/types";
 import { fetchArticlesCorpus } from "@/lib/auditor/url-extract";
 import { parseJsonResponse, requestStructuredJson } from "@/lib/llm";
@@ -31,8 +32,14 @@ function buildPrompt(input: FactCheckInput, corpus: string) {
       "Trate como disputed qualquer trecho que atribua falas, atos ou posicoes a terceiros " +
       "(jornalistas, autoridades, adversarios, cidadaos) sem suporte explicito nas fontes, ou que simule " +
       "contextos factuais nao verificados como se fossem reais. " +
+      "Afirmacoes factuais (morte, saude, crime, numeros, atos de pessoas publicas) sem respaldo " +
+      "explicito nas fontes NAO podem ser verified: o claim deve ser unsupported (ou contradicted) " +
+      "e o verdict do roteiro disputed. inconclusive so quando o roteiro nao tem afirmacao factual checavel. " +
       "Responda JSON: { verdict, confidence, summary, claims[], sources[] }. " +
-      "verdict=verified se claims centrais tem suporte; disputed se ha contradicoes materiais; inconclusive se fontes insuficientes. " +
+      "verdict=verified somente se TODAS as afirmações factuais tiverem suporte explícito nas fontes; " +
+      "disputed se houver contradição material; inconclusive se alguma afirmação factual não puder ser comprovada. " +
+      "Não use verified quando existir claim unsupported. Morte, crime, saúde, números e atos de terceiros " +
+      "sem trecho explícito na fonte são disputed (claim unsupported ou contradicted). " +
       "Para cada item de claims[], defina verdict='contradicted' quando as fontes disserem algo diferente do " +
       "afirmado no roteiro (preencha contradictionDetail com o que a fonte realmente diz, de forma curta e direta); " +
       "verdict='unsupported' quando nenhuma fonte confirmar nem contradizer o trecho; verdict='supported' quando " +
@@ -125,7 +132,7 @@ export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResu
       durationMs: elapsed(),
     });
 
-    return {
+    return normalizeFactCheckVerdict({
       verdict: validated.data.verdict,
       confidence: Math.round(validated.data.confidence),
       summary: validated.data.summary.trim(),
@@ -134,7 +141,7 @@ export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResu
       checkedAt: new Date().toISOString(),
       provider: execution.provider,
       model: execution.model,
-    };
+    });
   } catch (error) {
     appLogError("fact-check", "failed_heuristic_fallback", error, {
       articleCount,
