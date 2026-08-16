@@ -77,7 +77,6 @@ import { fetchHeyGenConsentLink } from "@/lib/heygen-consent-client";
 import { fetchHeygenApi } from "@/lib/heygen-client-override";
 import {
   SCRIPT_EDIT_CONSENT_TEXT,
-  SCRIPT_MANUAL_REVIEW_CONSENT_TEXT,
   useScriptFactCheck,
 } from "@/components/product/use-script-fact-check";
 import { isFactCheckHeuristicFallback } from "@/lib/auditor/types";
@@ -87,12 +86,9 @@ import {
   type MockSentinelSuggestion,
 } from "@/lib/sentinel-mock-suggestions";
 import {
-  incrementGuestVideosForAvatar,
-  readGuestVideosForAvatar,
-} from "@/lib/guest-client-usage";
-import {
-  GUEST_MAX_VIDEOS_PER_AVATAR,
+  guestVideoBucketFromAvatarTrack,
   guestVideosExhaustedMessage,
+  guestVideosUsedForBucket,
 } from "@/lib/guest-limits";
 import { useAccountTier } from "@/components/product/use-account-tier";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
@@ -138,7 +134,7 @@ export type CriativoPageMode = "padrao" | "independente";
 export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { exhausted: creditsExhausted, exhaustedMessage: creditsExhaustedMessage } =
+  const { exhausted: creditsExhausted, exhaustedMessage: creditsExhaustedMessage, videoUsage } =
     useGuestCreditsGate();
   const [creativeForm, setCreativeForm] = useState<CreativeFormState>(EMPTY_CREATIVE_FORM);
   const [isTraining, setIsTraining] = useState(false);
@@ -200,21 +196,19 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     scriptEditedAfterApproval,
     scriptEditConsent,
     setScriptEditConsent,
-    manualReviewConsentRequired,
-    manualReviewConsent,
-    setManualReviewConsent,
     markScriptEditedAfterApproval,
     resetFactCheckState,
     approveWithFactCheck,
     extraSources,
     addExtraSource,
-    unsupportedAttributionClaims,
+    unsupportedClaims,
     contradictedClaims,
   } = useScriptFactCheck();
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
   const [sourceUrlDraft, setSourceUrlDraft] = useState("");
   const autoPollStartedRef = useRef(false);
+  const generateLockRef = useRef(false);
   const twinPollActiveRef = useRef(false);
   const autoSyncTwinOnLoadRef = useRef(false);
   const [isPollingTwinTraining, setIsPollingTwinTraining] = useState(false);
@@ -384,7 +378,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
   const scriptClearedForProduction =
     scriptApproved &&
     scriptDraft.trim().length > 0 &&
-    (!manualReviewConsentRequired || manualReviewConsent) &&
     (!scriptEditedAfterApproval || scriptEditConsent);
   const canProduceContent =
     canGenerateVideo &&
@@ -401,9 +394,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         linkLabel: "Ver planos e preços",
       };
     }
-    if (!isPremium && readGuestVideosForAvatar(resolveGuestAvatarKey()) >= GUEST_MAX_VIDEOS_PER_AVATAR) {
+    if (
+      !isPremium &&
+      videoUsage &&
+      guestVideosUsedForBucket(
+        videoUsage.videosByAvatar,
+        guestVideoBucketFromAvatarTrack(avatarTrack),
+      ) >= videoUsage.videosPerAvatarLimit
+    ) {
       return {
-        reason: guestVideosExhaustedMessage(),
+        reason: guestVideosExhaustedMessage(videoUsage.videosPerAvatarLimit),
       };
     }
     if (isPollingTwinTraining && !twinReadyForVideo) {
@@ -444,11 +444,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     }
     if (avatarTrack === "caricature" && isTraining) {
       return { reason: "Preparando a voz na plataforma. Aguarde." };
-    }
-    if (manualReviewConsentRequired && !manualReviewConsent) {
-      return {
-        reason: "Confirme a revisão manual do roteiro antes de produzir o conteúdo.",
-      };
     }
     if (scriptEditedAfterApproval && !scriptEditConsent) {
       return {
@@ -1592,32 +1587,25 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     }
   }
 
-  /** Chave do avatar para o limite de vídeos do free trial. */
-  function resolveGuestAvatarKey(): string {
-    return (
-      heygenAvatarGroupId.trim() ||
-      heygenAvatarId.trim() ||
-      selectedCaricatureAssetId.trim() ||
-      avatarImageAssets[0]?.id ||
-      "default"
-    );
-  }
-
   function requestGenerate() {
-    if (isGenerating || isSealing) {
+    if (isGenerating || isSealing || generateLockRef.current) {
       return;
     }
     if (creditsExhausted) {
       showUserError(setVideoError, new Error(creditsExhaustedMessage));
       return;
     }
-    if (!isPremium) {
-      const guestAvatarKey = resolveGuestAvatarKey();
-      if (readGuestVideosForAvatar(guestAvatarKey) >= GUEST_MAX_VIDEOS_PER_AVATAR) {
-        showUserError(setVideoError, new Error(guestVideosExhaustedMessage()));
+    if (!isPremium && videoUsage) {
+      const used = guestVideosUsedForBucket(
+        videoUsage.videosByAvatar,
+        guestVideoBucketFromAvatarTrack(avatarTrack),
+      );
+      if (used >= videoUsage.videosPerAvatarLimit) {
+        showUserError(setVideoError, new Error(guestVideosExhaustedMessage(videoUsage.videosPerAvatarLimit)));
         return;
       }
     }
+    generateLockRef.current = true;
     void handleGenerate();
   }
 
@@ -1633,15 +1621,20 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     let startedVideoId: string | null = null;
 
     const guestTrial = !isPremium;
-    const guestAvatarKey = guestTrial ? resolveGuestAvatarKey() : "";
 
     try {
       if (creditsExhausted) {
         throw new Error(creditsExhaustedMessage);
       }
 
-      if (guestTrial && readGuestVideosForAvatar(guestAvatarKey) >= GUEST_MAX_VIDEOS_PER_AVATAR) {
-        throw new Error(guestVideosExhaustedMessage());
+      if (guestTrial && videoUsage) {
+        const used = guestVideosUsedForBucket(
+          videoUsage.videosByAvatar,
+          guestVideoBucketFromAvatarTrack(avatarTrack),
+        );
+        if (used >= videoUsage.videosPerAvatarLimit) {
+          throw new Error(guestVideosExhaustedMessage(videoUsage.videosPerAvatarLimit));
+        }
       }
 
       const topic = creativeForm.topic.trim();
@@ -1664,11 +1657,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       if (scriptEditedAfterApproval && !scriptEditConsent) {
         throw new Error(
           "Confirme o termo de responsabilidade apos editar o roteiro aprovado.",
-        );
-      }
-      if (manualReviewConsentRequired && !manualReviewConsent) {
-        throw new Error(
-          "Confirme a revisao manual do roteiro antes de produzir o conteudo.",
         );
       }
       if (!useFreePromptAsTranscript && !scriptDraft.trim()) {
@@ -1872,9 +1860,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
             ? ["HeyGen", "ElevenLabs"]
             : ["HeyGen"],
       });
-      if (guestTrial) {
-        incrementGuestVideosForAvatar(guestAvatarKey);
-      }
       router.push("/criativo");
     } catch (error) {
       if (startedVideoId) {
@@ -1897,13 +1882,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         showUserError(
           setVideoError,
           new Error(
-            `O video foi gerado na HeyGen (Job: ${startedVideoId}), mas falhou ao salvar no banco. ${baseMessage}`,
+            `O vídeo foi gerado, mas falhou ao salvar no banco. ${baseMessage}`,
           ),
         );
       } else {
         showUserError(setVideoError, error);
       }
     } finally {
+      generateLockRef.current = false;
       setIsGenerating(false);
       setIsSealing(false);
     }
@@ -2397,6 +2383,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
       <ProductPageHeader
         title={mode === "independente" ? "Criar conteúdo independente" : "Nova pauta"}
+        descriptionClassName={
+          mode === "independente"
+            ? "mt-2 max-w-none text-sm leading-relaxed text-md-text-soft"
+            : undefined
+        }
         description={
           mode === "independente" ? (
             <>
@@ -2608,10 +2599,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <span>
-                    <strong>Aviso:</strong> após a aprovação, nosso Agente Auditor confere cada
+                    <strong>Aviso:</strong> ao clicar em Aprovar, o Agente Auditor confere cada
                     afirmação do roteiro contra a notícia de origem e as matérias capturadas pelo
-                    monitoramento. Roteiros com afirmações contestadas são bloqueados para sua
-                    revisão — nada é produzido com informação marcada como falsa.
+                    monitoramento. Se algo não puder ser comprovado, o roteiro não é aprovado —
+                    nada é produzido com informação marcada como falsa.
                   </span>
                 </div>
                 <textarea
@@ -2660,14 +2651,14 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     {factCheckResult.summary}
                   </p>
                 ) : null}
-                {unsupportedAttributionClaims.length > 0 ? (
+                {unsupportedClaims.length > 0 ? (
                   <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-md-border-soft">
                     <p className={`${CRIATIVO_HELPER_CLASS} mb-3 w-full`}>
-                      <strong>Precisamos de uma fonte.</strong> Estes trechos atribuem fala, ato
-                      ou posição a outra pessoa sem uma matéria que confirme:
+                      <strong>Precisamos de uma fonte.</strong> Estes trechos não puderam ser
+                      comprovados nas matérias da pauta:
                     </p>
                     <ul className="mb-3 w-full list-disc pl-5 space-y-1">
-                      {unsupportedAttributionClaims.map((claim) => (
+                      {unsupportedClaims.map((claim) => (
                         <li key={claim.text} className={CRIATIVO_HELPER_CLASS}>
                           &quot;{claim.text}&quot;
                         </li>
@@ -2713,42 +2704,22 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
                     </ul>
                   </div>
                 ) : null}
-                {manualReviewConsentRequired ? (
+                {scriptEditedAfterApproval ? (
                   <div className="persona-checkbox-row persona-top-gap pt-4 border-t border-md-border-soft">
-                    <p className={`${CRIATIVO_HELPER_CLASS} mb-3 w-full`}>
-                      O validador automático não pôde concluir a checagem factual neste momento.
-                      Revise o roteiro com base nas fontes da pauta antes de produzir o vídeo.
-                    </p>
                     <label className="persona-checkbox !items-start cursor-pointer">
                       <input
-                        id="script-manual-review-consent"
+                        id="script-edit-consent"
                         type="checkbox"
-                        checked={manualReviewConsent}
-                        onChange={(event) => setManualReviewConsent(event.target.checked)}
+                        checked={scriptEditConsent}
+                        onChange={(event) => setScriptEditConsent(event.target.checked)}
                         className="w-4 h-4 mt-0.5 shrink-0 accent-cyan-500"
                       />
                       <span className="text-xs leading-relaxed">
-                        {SCRIPT_MANUAL_REVIEW_CONSENT_TEXT}{" "}
+                        {SCRIPT_EDIT_CONSENT_TEXT}{" "}
                         <Link href="/compliance" className="text-[var(--curador-text)] no-underline hover:underline">
                           Ver Compliance TSE
                         </Link>
                       </span>
-                    </label>
-                  </div>
-                ) : null}
-                {scriptEditedAfterApproval ? (
-                  <div className="persona-checkbox-row persona-top-gap">
-                    <input
-                      id="script-edit-consent"
-                      type="checkbox"
-                      checked={scriptEditConsent}
-                      onChange={(event) => setScriptEditConsent(event.target.checked)}
-                    />
-                    <label htmlFor="script-edit-consent">
-                      {SCRIPT_EDIT_CONSENT_TEXT}{" "}
-                      <Link href="/compliance" className="text-[var(--curador-text)] hover:underline">
-                        Ver Compliance TSE
-                      </Link>
                     </label>
                   </div>
                 ) : null}

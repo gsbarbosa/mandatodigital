@@ -6,6 +6,8 @@ import {
   getBrazilDateParts,
   guestSentinelCreditsExhaustedMessage,
   guestSentinelNextDailyRefreshLabel,
+  guestVideoBucketFromAvatarTrack,
+  guestVideosUsedForBucket,
   isGuestSentinelRefreshSourceFailure,
   needsDailySentinelRefresh,
   sentinelDailyCycleKey,
@@ -127,5 +129,22 @@ describe("isGuestSentinelRefreshSourceFailure", () => {
         articlesScanned: 0,
       }),
     ).toBe(true);
+  });
+});
+
+describe("guestVideoBucketFromAvatarTrack", () => {
+  it("mapeia o track do criativo para o generateMode da cota", () => {
+    expect(guestVideoBucketFromAvatarTrack("caricature")).toBe("caricature");
+    expect(guestVideoBucketFromAvatarTrack("photo_real")).toBe("photo_real");
+    expect(guestVideoBucketFromAvatarTrack("realistic")).toBe("photo_real");
+    expect(guestVideoBucketFromAvatarTrack("avatar")).toBe("avatar");
+  });
+});
+
+describe("guestVideosUsedForBucket", () => {
+  it("nao mistura buckets e ignora lixo", () => {
+    expect(guestVideosUsedForBucket({ caricature: 1, photo_real: 2 }, "caricature")).toBe(1);
+    expect(guestVideosUsedForBucket({ caricature: 1 }, "photo_real")).toBe(0);
+    expect(guestVideosUsedForBucket(undefined, "avatar")).toBe(0);
   });
 });

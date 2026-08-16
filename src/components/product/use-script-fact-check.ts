@@ -2,28 +2,23 @@
 
 import { useCallback, useRef, useState } from "react";
 
+import { evaluateFactCheckForApproval } from "@/lib/auditor/fact-check-gate";
 import type { FactCheckResult } from "@/lib/auditor/types";
-import { isFactCheckHeuristicFallback } from "@/lib/auditor/types";
 import type { MockSentinelSuggestion } from "@/lib/sentinel-mock-suggestions";
 
 export const SCRIPT_EDIT_CONSENT_TEXT =
   "Confirmo que alterei o roteiro após a validação factual e assumo responsabilidade pelo conteúdo publicado.";
-
-export const SCRIPT_MANUAL_REVIEW_CONSENT_TEXT =
-  "Confirmo que a validação factual automática não pôde ser concluída, que revisei o roteiro manualmente com base nas fontes da pauta e assumo responsabilidade pelo conteúdo publicado.";
 
 export function useScriptFactCheck() {
   const [isFactChecking, setIsFactChecking] = useState(false);
   const [factCheckResult, setFactCheckResult] = useState<FactCheckResult | null>(null);
   const [scriptEditedAfterApproval, setScriptEditedAfterApproval] = useState(false);
   const [scriptEditConsent, setScriptEditConsent] = useState(false);
-  const [manualReviewConsentRequired, setManualReviewConsentRequired] = useState(false);
-  const [manualReviewConsent, setManualReviewConsent] = useState(false);
   const [extraSources, setExtraSources] = useState<string[]>([]);
   const wasApprovedRef = useRef(false);
 
-  const unsupportedAttributionClaims = (factCheckResult?.claims ?? []).filter(
-    (claim) => claim.attributesToThirdParty && claim.verdict === "unsupported",
+  const unsupportedClaims = (factCheckResult?.claims ?? []).filter(
+    (claim) => claim.verdict === "unsupported",
   );
   const contradictedClaims = (factCheckResult?.claims ?? []).filter(
     (claim) => claim.verdict === "contradicted",
@@ -50,8 +45,6 @@ export function useScriptFactCheck() {
     setFactCheckResult(null);
     setScriptEditedAfterApproval(false);
     setScriptEditConsent(false);
-    setManualReviewConsentRequired(false);
-    setManualReviewConsent(false);
     setExtraSources([]);
     wasApprovedRef.current = false;
   }, []);
@@ -81,18 +74,18 @@ export function useScriptFactCheck() {
           }),
         });
 
-        if (response.status === 403) {
-          wasApprovedRef.current = true;
-          setScriptEditedAfterApproval(false);
-          setManualReviewConsentRequired(false);
-          setManualReviewConsent(false);
-          return { ok: true };
-        }
-
-        const payload = (await response.json()) as {
+        const payload = (await response.json().catch(() => ({}))) as {
           result?: FactCheckResult;
           message?: string;
         };
+
+        if (response.status === 403) {
+          return {
+            ok: false,
+            message:
+              "O validador factual está indisponível. Não é possível aprovar o roteiro agora.",
+          };
+        }
 
         if (!response.ok) {
           return { ok: false, message: payload.message || "Falha ao validar fatos do roteiro." };
@@ -105,24 +98,19 @@ export function useScriptFactCheck() {
 
         setFactCheckResult(result);
 
-        if (result.verdict === "disputed") {
-          return {
-            ok: false,
-            message:
-              result.summary ||
-              "O validador encontrou inconsistencias. Revise o roteiro ou as fontes antes de aprovar.",
-          };
+        if (input.useFreePrompt && result.verdict === "skipped") {
+          wasApprovedRef.current = true;
+          setScriptEditedAfterApproval(false);
+          return { ok: true };
+        }
+
+        const decision = evaluateFactCheckForApproval(result);
+        if (!decision.ok) {
+          return { ok: false, message: decision.message };
         }
 
         wasApprovedRef.current = true;
         setScriptEditedAfterApproval(false);
-        if (isFactCheckHeuristicFallback(result)) {
-          setManualReviewConsentRequired(true);
-          setManualReviewConsent(false);
-        } else {
-          setManualReviewConsentRequired(false);
-          setManualReviewConsent(false);
-        }
         return { ok: true };
       } catch {
         return { ok: false, message: "Nao foi possivel contatar o validador factual." };
@@ -139,16 +127,13 @@ export function useScriptFactCheck() {
     scriptEditedAfterApproval,
     scriptEditConsent,
     setScriptEditConsent,
-    manualReviewConsentRequired,
-    manualReviewConsent,
-    setManualReviewConsent,
     markScriptEditedAfterApproval,
     resetFactCheckState,
     approveWithFactCheck,
     extraSources,
     addExtraSource,
     removeExtraSource,
-    unsupportedAttributionClaims,
+    unsupportedClaims,
     contradictedClaims,
   };
 }

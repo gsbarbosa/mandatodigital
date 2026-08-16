@@ -9,6 +9,33 @@ export const GUEST_THEME_SAVE_LIMIT = 3;
 /** Máximo de vídeos gerados por avatar no free trial. */
 export const GUEST_MAX_VIDEOS_PER_AVATAR = 2;
 
+/** Bucket server-side (generateMode). Não usar id de asset/HeyGen. */
+export type GuestVideoBucket = "avatar" | "caricature" | "photo_real";
+
+export function guestVideoBucketFromAvatarTrack(
+  track: "realistic" | "caricature" | "photo_real" | string,
+): GuestVideoBucket {
+  if (track === "caricature") {
+    return "caricature";
+  }
+  if (track === "photo_real" || track === "realistic") {
+    return "photo_real";
+  }
+  return "avatar";
+}
+
+export function guestVideosUsedForBucket(
+  videosByAvatar: Record<string, number> | null | undefined,
+  bucket: GuestVideoBucket,
+) {
+  return Math.max(0, Math.floor(Number(videosByAvatar?.[bucket] ?? 0)));
+}
+
+export type GuestVideoUsage = {
+  videosByAvatar: Record<string, number>;
+  videosPerAvatarLimit: number;
+};
+
 export const GUEST_THEME_SAVE_BLOCKED_MESSAGE =
   "Limite da versão gratuita atingido: você já salvou os temas 3 vezes. Escolha um plano para continuar ajustando.";
 

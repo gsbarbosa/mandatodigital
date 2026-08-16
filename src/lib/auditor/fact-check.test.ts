@@ -78,6 +78,30 @@ describe("auditor/fact-check", () => {
     ]);
   });
 
+  it("nao deixa verified passar quando um claim e unsupported", async () => {
+    vi.mocked(requestStructuredJson).mockResolvedValueOnce({
+      rawText: JSON.stringify({
+        verdict: "verified",
+        confidence: 90,
+        summary: "Roteiro alinhado, com um trecho extra.",
+        claims: [
+          {
+            text: "O Lula morreu de infarto.",
+            verdict: "unsupported",
+          },
+        ],
+        sources: [],
+      }),
+      provider: "openai",
+      model: "gpt-4.1-mini",
+      latencyMs: 80,
+      tokenUsage: null,
+    });
+
+    const result = await runFactCheck({ script: "O Lula morreu de infarto." });
+    expect(result.verdict).toBe("inconclusive");
+  });
+
   it("identifica fallback heuristico local", () => {
     expect(
       isFactCheckHeuristicFallback({

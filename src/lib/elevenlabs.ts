@@ -36,10 +36,10 @@ async function resolveElevenLabsApiKey() {
 }
 
 export function formatElevenLabsError(error: unknown) {
-  if (!error) return "Erro desconhecido na ElevenLabs.";
+  if (!error) return "Erro desconhecido no serviço de voz.";
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
-  return "Erro desconhecido na ElevenLabs.";
+  return "Erro desconhecido no serviço de voz.";
 }
 
 /** Plano da conta sem Instant Voice Cloning (IVC) — comum em freemium/starter. */
@@ -87,7 +87,7 @@ function messageFromElevenLabsBody(json: unknown, status: number) {
   if (payload.message?.trim()) {
     return payload.message.trim();
   }
-  return `ElevenLabs retornou erro HTTP ${status}.`;
+  return `O serviço de voz retornou erro HTTP ${status}.`;
 }
 
 async function elevenLabsFetch(path: string, init?: RequestInit) {
@@ -105,7 +105,7 @@ async function elevenLabsFetch(path: string, init?: RequestInit) {
   const execute = async (apiKey: string) => {
     if (!apiKey) {
       throw new Error(
-        "Servico de voz (ElevenLabs) indisponivel. Configure ELEVENLABS_API_KEY.",
+        "Serviço de voz indisponível. Tente novamente mais tarde.",
       );
     }
 
@@ -224,7 +224,7 @@ export async function elevenLabsCloneVoice(input: ElevenLabsCloneVoiceInput) {
     (json as { voice_id?: string } | null)?.voice_id ?? "",
   ).trim();
   if (!voiceId) {
-    throw new Error("Resposta invalida da ElevenLabs: voice_id ausente.");
+    throw new Error("Resposta inválida do serviço de voz: voice_id ausente.");
   }
 
   return {
@@ -416,10 +416,10 @@ export async function elevenLabsTextToSpeech(input: ElevenLabsTtsInput) {
   const voiceId = input.voiceId.trim();
   const text = input.text.trim();
   if (!voiceId) {
-    throw new Error("voice_id ElevenLabs ausente para TTS.");
+    throw new Error("Identificador de voz ausente para gerar o áudio.");
   }
   if (!text) {
-    throw new Error("Texto vazio para TTS ElevenLabs.");
+    throw new Error("Texto vazio para gerar o áudio.");
   }
 
   const modelId = input.modelId?.trim() || config.ttsModelId;

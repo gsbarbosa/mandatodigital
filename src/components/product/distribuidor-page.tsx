@@ -5,6 +5,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
+  IconFacebook,
+  IconInstagram,
+  IconLinkedIn,
+  IconThreads,
+  IconTikTok,
+  IconX,
+  IconYouTube,
+} from "@/components/marketing/icons";
+import {
   DISTRIBUTION_CHANNELS,
   type DistributionChannelId,
 } from "@/lib/distribution/channels";
@@ -21,6 +30,30 @@ import {
 import type { DistributionPost } from "@/lib/distribution/types";
 import { ProductPageHeader } from "@/components/product/product-page-header";
 import { useProductApp } from "@/components/product/provider";
+
+const CHANNEL_ICONS = {
+  instagram: IconInstagram,
+  facebook: IconFacebook,
+  tiktok: IconTikTok,
+  youtube: IconYouTube,
+  threads: IconThreads,
+  linkedin: IconLinkedIn,
+  twitter: IconX,
+} as const;
+
+function ConnectedNetworksLogos() {
+  return (
+    <span
+      className="mt-1.5 flex flex-wrap items-center gap-1.5"
+      aria-label="Instagram, Facebook, TikTok, YouTube, Threads, LinkedIn e X"
+    >
+      {DISTRIBUTION_CHANNELS.map((channel) => {
+        const Icon = CHANNEL_ICONS[channel.id];
+        return <Icon key={channel.id} size={14} className="text-md-text-muted" />;
+      })}
+    </span>
+  );
+}
 
 type TabId = "fila" | "contas" | "historico";
 
@@ -321,6 +354,7 @@ export function DistribuidorPage() {
             <p className="text-[11px] font-semibold uppercase tracking-wider text-md-text-soft">
               Redes conectadas
             </p>
+            <ConnectedNetworksLogos />
             <p className="mt-2 text-2xl font-bold tabular-nums text-md-text">
               {connectedCount}
               <span className="text-sm font-medium text-md-text-soft"> / 7</span>
@@ -681,10 +715,6 @@ export function DistribuidorPage() {
                 Pela legislação eleitoral, candidatos só podem iniciar posts de campanha a partir
                 dessa data. Até lá, o Publicador fica em{" "}
                 <strong className="text-md-text">pré-visualização</strong>.
-              </p>
-              <p>
-                Você já pode explorar a fila, conectar contas de demonstração, ensaiar Publicar ou
-                Descartar e ver o histórico — sem disparo real nas redes.
               </p>
             </div>
             <button

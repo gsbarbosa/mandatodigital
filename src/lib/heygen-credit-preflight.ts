@@ -46,15 +46,10 @@ export function buildHeyGenInsufficientCreditMessage(input: {
   const duration = Math.ceil(input.seconds);
 
   return (
-    `Saldo insuficiente na carteira da API (${balance}). ` +
+    `Saldo insuficiente para gerar este vídeo (${balance}). ` +
     `Este roteiro tem ~${input.words} palavras (~${duration}s de fala) e o modo ${input.modeLabel} ` +
     `custa cerca de ${estimate}. ` +
-    `Os créditos do plano web do HeyGen (ex.: US$ 8 no painel principal) não são usados pela API — ` +
-    `recarregue em app.heygen.com → Settings → API → Add credits (pay-as-you-go), ` +
-    `ou encurte o roteiro para ~${Math.max(
-      1,
-      Math.floor((input.remainingBalanceUsd / (input.estimatedCostUsd / Math.max(input.words, 1))) * input.words),
-    )} palavras.`
+    `Encurte o roteiro ou tente novamente em alguns minutos.`
   );
 }
 
