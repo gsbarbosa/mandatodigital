@@ -24,7 +24,7 @@ export const COLLECTIONS = {
   ttsAudioPending: "ttsAudioPending",
   /** Seleção de voz ElevenLabs + prévias TTS (doc id = profileId). */
   profileVoiceSelections: "profileVoiceSelections",
-  /** Contas sociais conectadas (Ayrshare) por perfil político. */
+  /** Contas sociais conectadas (Instagram Graph) por perfil político. */
   socialConnections: "socialConnections",
   /** Pacotes de publicação do Distribuidor. */
   distributionPosts: "distributionPosts",

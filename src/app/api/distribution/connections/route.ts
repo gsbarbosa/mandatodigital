@@ -4,43 +4,20 @@ import { z } from "zod";
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
 import {
-  ayrshareGetUser,
-  isAyrshareConfigured,
-} from "@/lib/distribution/ayrshare-client";
-import {
-  ayrsharePlatformToChannelId,
-  DISTRIBUTION_CHANNEL_IDS,
-  DISTRIBUTION_CHANNELS,
+  ACTIVE_DISTRIBUTION_CHANNELS,
 } from "@/lib/distribution/channels";
 import {
   connectedChannelIds,
   newConnectionRefId,
   socialConnectionStorage,
 } from "@/lib/distribution/connection-storage";
+import { overlayInstagramConnection } from "@/lib/distribution/instagram-credentials";
+import {
+  isInstagramConfigured,
+  isInstagramOAuthConfigured,
+} from "@/lib/distribution/instagram-env";
 import { isDistributionEnabled } from "@/lib/feature-flags";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
-
-function buildPlatformSnapshot(activeSocialAccounts: string[] | undefined) {
-  const now = new Date().toISOString();
-  const active = new Set(
-    (activeSocialAccounts ?? [])
-      .map((item) => ayrsharePlatformToChannelId(item))
-      .filter(Boolean),
-  );
-  const platforms: Record<
-    string,
-    { connected: boolean; displayName: string | null; connectedAt: string | null }
-  > = {};
-  for (const id of DISTRIBUTION_CHANNEL_IDS) {
-    const connected = active.has(id);
-    platforms[id] = {
-      connected,
-      displayName: null,
-      connectedAt: connected ? now : null,
-    };
-  }
-  return platforms;
-}
 
 export async function GET() {
   return apiRoute(async (repository) => {
@@ -50,36 +27,23 @@ export async function GET() {
       return NextResponse.json({ message: "Salve o perfil antes." }, { status: 400 });
     }
 
-    let connection = await socialConnectionStorage.getByProfileId(profile.id);
-
-    if (
-      isDistributionEnabled() &&
-      connection?.ayrshareProfileKey &&
-      isAyrshareConfigured()
-    ) {
-      try {
-        const user = await ayrshareGetUser(connection.ayrshareProfileKey);
-        const platforms = buildPlatformSnapshot(user.activeSocialAccounts);
-        connection = await socialConnectionStorage.updatePlatforms(profile.id, platforms);
-      } catch (error) {
-        console.warn("[distribution] sync user falhou", error);
-      }
-    }
-
+    const stored = await socialConnectionStorage.getByProfileId(profile.id);
+    const connection = overlayInstagramConnection(stored, profile.id);
     const connected = new Set(connectedChannelIds(connection));
+
     return NextResponse.json({
-      enabled: isDistributionEnabled() && isAyrshareConfigured(),
-      electionDate: connection?.electionDate ?? null,
-      ayrshareProfileKey: connection?.ayrshareProfileKey
-        ? `${connection.ayrshareProfileKey.slice(0, 6)}…`
+      enabled: isDistributionEnabled() && isInstagramConfigured(),
+      electionDate: connection?.electionDate ?? stored?.electionDate ?? null,
+      instagramUsername: connection?.instagramUsername
+        ? `@${connection.instagramUsername.replace(/^@/, "")}`
         : null,
-      channels: DISTRIBUTION_CHANNELS.map((c) => ({
-        id: c.id,
-        label: c.label,
-        connected: connected.has(c.id),
-        displayName: connection?.platforms[c.id]?.displayName ?? null,
+      channels: ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => ({
+        id: channel.id,
+        label: channel.label,
+        connected: connected.has(channel.id),
+        displayName: connection?.platforms[channel.id]?.displayName ?? null,
       })),
-      linkAvailable: isDistributionEnabled() && isAyrshareConfigured(),
+      linkAvailable: isDistributionEnabled() && isInstagramOAuthConfigured(),
     });
   });
 }
@@ -116,7 +80,6 @@ export async function PATCH(request: Request) {
       connection = await socialConnectionStorage.upsert({
         profileId: profile.id,
         ownerUserId,
-        ayrshareProfileKey: "",
         ayrshareRefId: newConnectionRefId(profile.id),
         electionDate: body.electionDate ?? null,
       });
@@ -127,6 +90,10 @@ export async function PATCH(request: Request) {
       );
     }
 
-    return NextResponse.json({ connection });
+    const publicConnection = overlayInstagramConnection(connection, profile.id);
+    return NextResponse.json({
+      electionDate: publicConnection?.electionDate ?? null,
+      instagramUsername: publicConnection?.instagramUsername || null,
+    });
   });
 }

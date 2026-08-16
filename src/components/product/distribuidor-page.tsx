@@ -13,12 +13,15 @@ import {
   IconX,
   IconYouTube,
 } from "@/components/marketing/icons";
+import { parseJsonOrText } from "@/components/product/persona-shared";
 import {
-  DISTRIBUTION_CHANNELS,
+  ACTIVE_DISTRIBUTION_CHANNEL_IDS,
+  ACTIVE_DISTRIBUTION_CHANNELS,
   type DistributionChannelId,
 } from "@/lib/distribution/channels";
 import {
   approveDemoPost,
+  connectDemoInstagram,
   getDemoConnections,
   isDistributionDemoMode,
   listDemoPosts,
@@ -43,11 +46,8 @@ const CHANNEL_ICONS = {
 
 function ConnectedNetworksLogos() {
   return (
-    <span
-      className="mt-1.5 flex flex-wrap items-center gap-1.5"
-      aria-label="Instagram, Facebook, TikTok, YouTube, Threads, LinkedIn e X"
-    >
-      {DISTRIBUTION_CHANNELS.map((channel) => {
+    <span className="mt-1.5 flex flex-wrap items-center gap-1.5" aria-label="Instagram">
+      {ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => {
         const Icon = CHANNEL_ICONS[channel.id];
         return <Icon key={channel.id} size={14} className="text-md-text-muted" />;
       })}
@@ -135,6 +135,7 @@ export function DistribuidorPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [previewIntroOpen, setPreviewIntroOpen] = useState(false);
+  const [linkAvailable, setLinkAvailable] = useState(false);
 
   const selected = useMemo(
     () => posts.find((post) => post.id === selectedId) ?? null,
@@ -169,37 +170,98 @@ export function DistribuidorPage() {
     [connections],
   );
 
-  const loadAll = useCallback((opts?: { silent?: boolean }) => {
-    if (!opts?.silent) {
-      setIsLoading(true);
-    }
-    setError(null);
-    try {
-      const nextPosts = listDemoPosts();
-      const nextConnections = getDemoConnections();
-      setPosts(nextPosts);
-      setConnections(nextConnections);
-      setSelectedId((current) => {
-        if (focusPostId && nextPosts.some((post) => post.id === focusPostId)) {
-          return focusPostId;
-        }
-        if (current && nextPosts.some((post) => post.id === current)) {
-          return current;
-        }
-        return nextPosts[0]?.id ?? null;
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao carregar Publicador.");
-    } finally {
+  const loadAll = useCallback(
+    async (opts?: { silent?: boolean }) => {
       if (!opts?.silent) {
-        setIsLoading(false);
+        setIsLoading(true);
       }
-    }
-  }, [focusPostId]);
+      setError(null);
+      try {
+        if (demoMode) {
+          const nextPosts = listDemoPosts();
+          const nextConnections = getDemoConnections();
+          setPosts(nextPosts);
+          setConnections(nextConnections);
+          setLinkAvailable(true);
+          setSelectedId((current) => {
+            if (focusPostId && nextPosts.some((post) => post.id === focusPostId)) {
+              return focusPostId;
+            }
+            if (current && nextPosts.some((post) => post.id === current)) {
+              return current;
+            }
+            return nextPosts[0]?.id ?? null;
+          });
+          return;
+        }
+
+        const [postsRes, connRes] = await Promise.all([
+          fetch("/api/distribution/posts"),
+          fetch("/api/distribution/connections"),
+        ]);
+        const postsPayload = await parseJsonOrText<{
+          posts?: DistributionPost[];
+          message?: string;
+        }>(postsRes);
+        const connPayload = await parseJsonOrText<{
+          channels?: DemoConnectionsSnapshot["channels"];
+          electionDate?: string | null;
+          message?: string;
+          linkAvailable?: boolean;
+        }>(connRes);
+        if (!postsRes.ok) {
+          throw new Error(postsPayload.message || "Falha ao carregar pacotes.");
+        }
+        if (!connRes.ok) {
+          throw new Error(connPayload.message || "Falha ao carregar contas.");
+        }
+        const nextPosts = postsPayload.posts ?? [];
+        setPosts(nextPosts);
+        setConnections({
+          electionDate: connPayload.electionDate ?? null,
+          channels: connPayload.channels ?? [],
+        });
+        setLinkAvailable(Boolean(connPayload.linkAvailable));
+        setSelectedId((current) => {
+          if (focusPostId && nextPosts.some((post) => post.id === focusPostId)) {
+            return focusPostId;
+          }
+          if (current && nextPosts.some((post) => post.id === current)) {
+            return current;
+          }
+          return nextPosts[0]?.id ?? null;
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha ao carregar Publicador.");
+      } finally {
+        if (!opts?.silent) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [demoMode, focusPostId],
+  );
 
   useEffect(() => {
-    loadAll();
+    void loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const igError = searchParams.get("ig_error");
+    if (!connected && !igError) {
+      return;
+    }
+    if (connected === "1") {
+      setNotice("Instagram conectado.");
+      setTab("contas");
+    }
+    if (igError) {
+      setError(igError);
+      setTab("contas");
+    }
+    router.replace("/distribuidor");
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (!notice) {
@@ -248,7 +310,11 @@ export function DistribuidorPage() {
     }
     setCaptionDraft(selected.captionBase);
     setScheduledAt(selected.scheduledAt ? selected.scheduledAt.slice(0, 16) : "");
-    setSelectedChannels(selected.channels);
+    setSelectedChannels(
+      selected.channels.filter((channel) =>
+        (ACTIVE_DISTRIBUTION_CHANNEL_IDS as readonly string[]).includes(channel),
+      ),
+    );
   }, [selected]);
 
   function runAction(action: () => void, successMessage: string, nextTab?: TabId) {
@@ -268,16 +334,55 @@ export function DistribuidorPage() {
     }
   }
 
+  async function runRemote(
+    action: () => Promise<void>,
+    successMessage: string,
+    nextTab?: TabId,
+  ) {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+      setNotice(successMessage);
+      await loadAll({ silent: true });
+      if (nextTab) {
+        setTab(nextTab);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel concluir a acao.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function saveDraft() {
     if (!selected) {
       return;
     }
-    runAction(() => {
-      updateDemoPost(selected.id, {
-        captionBase: captionDraft,
-        channels: selectedChannels,
-        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+    if (demoMode) {
+      runAction(() => {
+        updateDemoPost(selected.id, {
+          captionBase: captionDraft,
+          channels: selectedChannels,
+          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        });
+      }, "Pacote atualizado.");
+      return;
+    }
+    void runRemote(async () => {
+      const response = await fetch(`/api/distribution/posts/${selected.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          captionBase: captionDraft,
+          channels: selectedChannels,
+          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        }),
       });
+      const payload = await parseJsonOrText<{ message?: string }>(response);
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel salvar o pacote.");
+      }
     }, "Pacote atualizado.");
   }
 
@@ -285,16 +390,45 @@ export function DistribuidorPage() {
     if (!selected) {
       return;
     }
-    runAction(
-      () => {
-        updateDemoPost(selected.id, {
-          captionBase: captionDraft,
-          channels: selectedChannels,
-          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+    if (demoMode) {
+      runAction(
+        () => {
+          updateDemoPost(selected.id, {
+            captionBase: captionDraft,
+            channels: selectedChannels,
+            scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          });
+          approveDemoPost(selected.id);
+        },
+        "Publicação confirmada. Simulação nas redes selecionadas.",
+        "historico",
+      );
+      return;
+    }
+    void runRemote(
+      async () => {
+        const saved = await fetch(`/api/distribution/posts/${selected.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            captionBase: captionDraft,
+            channels: selectedChannels,
+            scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          }),
         });
-        approveDemoPost(selected.id);
+        const savedPayload = await parseJsonOrText<{ message?: string }>(saved);
+        if (!saved.ok) {
+          throw new Error(savedPayload.message || "Nao foi possivel salvar o pacote.");
+        }
+        const response = await fetch(`/api/distribution/posts/${selected.id}/approve`, {
+          method: "POST",
+        });
+        const payload = await parseJsonOrText<{ message?: string }>(response);
+        if (!response.ok) {
+          throw new Error(payload.message || "Nao foi possivel publicar.");
+        }
       },
-      "Publicação confirmada. Simulação nas redes selecionadas.",
+      "Publicação enviada para o Instagram.",
       "historico",
     );
   }
@@ -304,15 +438,67 @@ export function DistribuidorPage() {
       return;
     }
     const reason = window.prompt("Motivo do descarte (opcional):") ?? "";
-    runAction(() => {
-      rejectDemoPost(selected.id, reason);
+    if (demoMode) {
+      runAction(() => {
+        rejectDemoPost(selected.id, reason);
+      }, "Pacote descartado.");
+      return;
+    }
+    void runRemote(async () => {
+      const response = await fetch(`/api/distribution/posts/${selected.id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const payload = await parseJsonOrText<{ message?: string }>(response);
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel descartar o pacote.");
+      }
     }, "Pacote descartado.");
   }
 
   function retry(postId: string) {
-    runAction(() => {
-      retryDemoPost(postId);
-    }, "Retry simulado — canais atualizados.");
+    if (demoMode) {
+      runAction(() => {
+        retryDemoPost(postId);
+      }, "Retry simulado — canais atualizados.");
+      return;
+    }
+    void runRemote(async () => {
+      const response = await fetch(`/api/distribution/posts/${postId}/retry`, {
+        method: "POST",
+      });
+      const payload = await parseJsonOrText<{ message?: string }>(response);
+      if (!response.ok) {
+        throw new Error(payload.message || "Nao foi possivel retentar.");
+      }
+    }, "Retry enviado.");
+  }
+
+  async function connectAccounts() {
+    if (demoMode) {
+      runAction(() => {
+        connectDemoInstagram();
+      }, "Instagram conectado na pré-visualização.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/distribution/connections/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channels: ["instagram"] }),
+      });
+      const payload = await parseJsonOrText<{ url?: string; message?: string }>(response);
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.message || "Nao foi possivel iniciar o OAuth Instagram.");
+      }
+      window.location.href = payload.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nao foi possivel conectar o Instagram.");
+      setBusy(false);
+    }
   }
 
   function toggleChannel(id: DistributionChannelId) {
@@ -331,7 +517,7 @@ export function DistribuidorPage() {
       <div className="relative z-10 mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <ProductPageHeader
           title="Publicador"
-          description="Revise o vídeo, escolha as redes e acompanhe o disparo coordenado."
+          description="Revise o vídeo, escolha o Instagram e acompanhe o disparo."
         />
 
         {demoMode ? (
@@ -357,7 +543,10 @@ export function DistribuidorPage() {
             <ConnectedNetworksLogos />
             <p className="mt-2 text-2xl font-bold tabular-nums text-md-text">
               {connectedCount}
-              <span className="text-sm font-medium text-md-text-soft"> / 7</span>
+              <span className="text-sm font-medium text-md-text-soft">
+                {" "}
+                / {ACTIVE_DISTRIBUTION_CHANNEL_IDS.length}
+              </span>
             </p>
           </div>
           <div className="rounded-2xl border border-md-border bg-md-surface/40 px-4 py-4">
@@ -434,17 +623,17 @@ export function DistribuidorPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-md-text">Redes conectadas</h2>
                   <p className="mt-1 text-sm text-md-text-soft">
-                    Conecte as suas redes sociais ao Mandato Digital para publicações
-                    diretamente do painel. As adaptações de conteúdo para cada rede é realizada
-                    automaticamente.
+                    Conecte o Instagram ao Mandato Digital para publicar Reels
+                    diretamente do painel.
                   </p>
                 </div>
                 <button
                   type="button"
-                  disabled
+                  disabled={busy || (!demoMode && !linkAvailable)}
+                  onClick={() => void connectAccounts()}
                   className="rounded-xl bg-[var(--distribuidor)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--distribuidor-hover)] disabled:opacity-50"
                 >
-                  {connectedCount === 7 ? "Reconectar contas" : "Conectar redes"}
+                  {connectedCount > 0 ? "Reconectar Instagram" : "Conectar Instagram"}
                 </button>
               </div>
               <ul className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -591,7 +780,7 @@ export function DistribuidorPage() {
                   <div>
                     <p className="text-sm text-md-text-soft">Canais</p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {DISTRIBUTION_CHANNELS.map((channel) => {
+                      {ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => {
                         const active = selectedChannels.includes(channel.id);
                         const connected = connections?.channels.find(
                           (row) => row.id === channel.id,
@@ -632,7 +821,7 @@ export function DistribuidorPage() {
                     {selected.channels.map((channel) => {
                       const state = selected.perChannelStatus[channel];
                       const label =
-                        DISTRIBUTION_CHANNELS.find((item) => item.id === channel)?.label ??
+                        ACTIVE_DISTRIBUTION_CHANNELS.find((item) => item.id === channel)?.label ??
                         channel;
                       return (
                         <div

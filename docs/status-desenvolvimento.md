@@ -40,7 +40,7 @@ Documentos relacionados:
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
 | `ASAAS_NFS_ENABLED` | `true` |
 | `ASYNC_SEAL` / `ASYNC_VOICE` / `PUBSUB_JOBS` | `false` (sync) |
-| `DISTRIBUTION_*` | `false` (fail-closed) |
+| `DISTRIBUTION_*` | `true` em **staging** (smoke Instagram); prod continua `false` até promover `main` |
 
 **Persistência:** Firestore + Firebase Storage (`npm run db:reset`).
 
@@ -207,17 +207,18 @@ Referência detalhada: [noticias-do-dia.md](noticias-do-dia.md)
 
 | Item | Status | Notas |
 |------|--------|-------|
-| UI v2 (`/distribuidor`) | ✅ | Fila Go/No-go, Contas, Histórico (preview local) |
-| Fluxo Criativo → Fila | ✅ | CTA **Distribuir** grava pacote no store local |
-| Conexão OAuth (Ayrshare) | ⏸ | Backend fail-closed; Contas simula vínculo no browser |
+| UI v2 (`/distribuidor`) | ✅ | Fila Go/No-go, Contas, Histórico; Instagram-only |
+| Fluxo Criativo → Fila | ✅ | CTA **Distribuir** grava pacote (demo local ou API) |
+| Conexão OAuth (Instagram Login) | ✅ | Callback `/api/distribution/instagram/callback`; testers no app Meta |
 | Draft a partir do Criativo | ✅ | Caption/vídeo do criativo selado |
-| Publicação real (7 redes) | ⏸ | Código + worker prontos; flags off até smoke |
-| Janelas / `scheduledAt` | ✅ | UI + simulação scheduled/published |
-| Blackout eleitoral (72h / 24h) | ✅ | Data em Contas (local); gate real no backend |
-| Audit log distribuição | ⏸ | Só com backend ligado |
-| Feature flags | ✅ | `DISTRIBUTION_*` = false (fail-closed) |
+| Publicação real (Instagram Reels) | 🟡 | Adapter Graph + worker; **ligado em staging** para smoke; prod off até promover |
+| Janelas / `scheduledAt` | ✅ | UI + Graph não agenda (marca `scheduled`, não posta agora) |
+| Blackout eleitoral (72h / 24h) | ✅ | Data em Contas; gate real no backend |
+| Audit log distribuição | ✅ | Worker + approve/reject/retry |
+| Feature flags | 🟡 | `DISTRIBUTION_*` = true em staging; revisar antes de `staging` → `main` |
 
-Ver [adr-distribution-ayrshare.md](adr-distribution-ayrshare.md).
+Ver [adr-distribution-instagram.md](adr-distribution-instagram.md).
+
 
 ---
 

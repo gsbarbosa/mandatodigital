@@ -10,6 +10,7 @@ import {
   connectedChannelIds,
   socialConnectionStorage,
 } from "@/lib/distribution/connection-storage";
+import { overlayInstagramConnection } from "@/lib/distribution/instagram-credentials";
 import { enqueuePublishPostJob } from "@/lib/distribution/enqueue-publish";
 import { assertDistributionReady } from "@/lib/distribution/guard";
 import { distributionPostStorage } from "@/lib/distribution/post-storage";
@@ -61,7 +62,8 @@ export async function POST(_request: Request, { params }: Params) {
       return NextResponse.json({ message: "Video ausente no pacote." }, { status: 400 });
     }
 
-    const connection = await socialConnectionStorage.getByProfileId(post.profileId);
+    const stored = await socialConnectionStorage.getByProfileId(post.profileId);
+    const connection = overlayInstagramConnection(stored, post.profileId);
     const connected = new Set(connectedChannelIds(connection));
     const publishChannels = post.channels.filter((channel) => connected.has(channel));
     if (publishChannels.length === 0) {

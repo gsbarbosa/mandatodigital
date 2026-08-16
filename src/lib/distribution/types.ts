@@ -71,6 +71,10 @@ export type SocialConnection = {
   ownerUserId: string;
   ayrshareProfileKey: string;
   ayrshareRefId: string;
+  instagramUserId: string;
+  instagramUsername: string;
+  instagramTokenEncrypted: string;
+  instagramTokenExpiresAt: string | null;
   platforms: Partial<Record<DistributionChannelId, ConnectedPlatformState>>;
   /** Data da eleição (YYYY-MM-DD) para blackout; null = sem blackout. */
   electionDate: string | null;

@@ -1,9 +1,10 @@
-/** Store client-only do Distribuidor enquanto o backend Ayrshare fica fail-closed. */
+/** Store client-only do Distribuidor enquanto o backend Instagram fica fail-closed. */
 
 import { buildCaptionsByChannel } from "@/lib/distribution/captions";
 import {
+  ACTIVE_DISTRIBUTION_CHANNEL_IDS,
+  ACTIVE_DISTRIBUTION_CHANNELS,
   DISTRIBUTION_CHANNEL_IDS,
-  DISTRIBUTION_CHANNELS,
   type DistributionChannelId,
 } from "@/lib/distribution/channels";
 import type {
@@ -14,7 +15,7 @@ import type {
 
 const STORAGE_KEY = "md-distribution-demo-v1";
 
-/** UI usa store local enquanto publish real (Ayrshare) permanece desligado. */
+/** UI usa store local enquanto publish real (Instagram Graph) permanece desligado. */
 export function isDistributionDemoMode() {
   const value = process.env.NEXT_PUBLIC_DISTRIBUTION_ENABLED?.trim().toLowerCase();
   return !(value === "1" || value === "true" || value === "yes" || value === "on");
@@ -170,13 +171,29 @@ export function getDemoConnections(): DemoConnectionsSnapshot {
   const state = readState();
   return {
     electionDate: state.electionDate,
-    channels: DISTRIBUTION_CHANNELS.map((channel) => ({
+    channels: ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => ({
       id: channel.id,
       label: channel.label,
-      connected: false,
-      displayName: null,
+      connected: Boolean(state.platforms[channel.id]?.connected),
+      displayName: state.platforms[channel.id]?.displayName ?? null,
     })),
   };
+}
+
+export function connectDemoInstagram() {
+  const state = readState();
+  const now = nowIso();
+  writeState({
+    ...state,
+    platforms: {
+      ...state.platforms,
+      instagram: {
+        connected: true,
+        displayName: "@demo",
+        connectedAt: now,
+      },
+    },
+  });
 }
 
 export type CreateDemoPostInput = {
@@ -189,7 +206,7 @@ export type CreateDemoPostInput = {
 export function createDemoPost(input: CreateDemoPostInput): DistributionPost {
   const channels = input.channels?.length
     ? input.channels
-    : [...DISTRIBUTION_CHANNEL_IDS];
+    : [...ACTIVE_DISTRIBUTION_CHANNEL_IDS];
   const stamp = nowIso();
   const captionBase = input.captionBase.trim() || "Pacote pronto para revisão.";
   const post: DistributionPost = {
@@ -269,10 +286,10 @@ export function updateDemoPost(
 
 export function approveDemoPost(id: string): DistributionPost {
   return mutatePost(id, (post, state) => {
-    const connected = DISTRIBUTION_CHANNEL_IDS.filter(
-      (channel) => state.platforms[channel]?.connected,
+    const connected = new Set<string>(
+      ACTIVE_DISTRIBUTION_CHANNEL_IDS.filter((channel) => state.platforms[channel]?.connected),
     );
-    const targets = post.channels.filter((channel) => connected.includes(channel));
+    const targets = post.channels.filter((channel) => connected.has(channel));
     if (targets.length === 0) {
       throw new Error("Conecte ao menos uma rede em Contas antes do Go.");
     }

@@ -45,6 +45,12 @@ function mapDoc(id: string, data: DocumentData): SocialConnection {
     ownerUserId: String(data.ownerUserId ?? ""),
     ayrshareProfileKey: String(data.ayrshareProfileKey ?? ""),
     ayrshareRefId: String(data.ayrshareRefId ?? ""),
+    instagramUserId: String(data.instagramUserId ?? ""),
+    instagramUsername: String(data.instagramUsername ?? ""),
+    instagramTokenEncrypted: String(data.instagramTokenEncrypted ?? ""),
+    instagramTokenExpiresAt: data.instagramTokenExpiresAt
+      ? String(data.instagramTokenExpiresAt)
+      : null,
     platforms: mapPlatforms(data),
     electionDate: data.electionDate ? String(data.electionDate) : null,
     createdAt: String(data.createdAt ?? nowIso()),
@@ -64,8 +70,12 @@ export const socialConnectionStorage = {
   async upsert(input: {
     profileId: string;
     ownerUserId: string;
-    ayrshareProfileKey: string;
-    ayrshareRefId: string;
+    ayrshareProfileKey?: string;
+    ayrshareRefId?: string;
+    instagramUserId?: string;
+    instagramUsername?: string;
+    instagramTokenEncrypted?: string;
+    instagramTokenExpiresAt?: string | null;
     platforms?: SocialConnection["platforms"];
     electionDate?: string | null;
   }): Promise<SocialConnection> {
@@ -75,8 +85,16 @@ export const socialConnectionStorage = {
       id: input.profileId,
       profileId: input.profileId,
       ownerUserId: input.ownerUserId,
-      ayrshareProfileKey: input.ayrshareProfileKey,
-      ayrshareRefId: input.ayrshareRefId,
+      ayrshareProfileKey: input.ayrshareProfileKey ?? existing?.ayrshareProfileKey ?? "",
+      ayrshareRefId: input.ayrshareRefId ?? existing?.ayrshareRefId ?? "",
+      instagramUserId: input.instagramUserId ?? existing?.instagramUserId ?? "",
+      instagramUsername: input.instagramUsername ?? existing?.instagramUsername ?? "",
+      instagramTokenEncrypted:
+        input.instagramTokenEncrypted ?? existing?.instagramTokenEncrypted ?? "",
+      instagramTokenExpiresAt:
+        input.instagramTokenExpiresAt !== undefined
+          ? input.instagramTokenExpiresAt
+          : (existing?.instagramTokenExpiresAt ?? null),
       platforms: input.platforms ?? existing?.platforms ?? {},
       electionDate:
         input.electionDate !== undefined

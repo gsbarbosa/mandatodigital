@@ -6,7 +6,8 @@ import { getSessionUser } from "@/lib/auth/session";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { buildCaptionsByChannel } from "@/lib/distribution/captions";
 import {
-  DISTRIBUTION_CHANNEL_IDS,
+  ACTIVE_DISTRIBUTION_CHANNEL_IDS,
+  isActiveDistributionChannelId,
   type DistributionChannelId,
 } from "@/lib/distribution/channels";
 import { assertDistributionReady } from "@/lib/distribution/guard";
@@ -67,19 +68,18 @@ export async function POST(request: Request) {
 
     const preferred = (profile.distributionChannels ?? [])
       .map((label) => {
-        const match = DISTRIBUTION_CHANNEL_IDS.find((id) =>
-          label.toLowerCase().includes(id === "twitter" ? "x" : id),
-        );
-        return match;
+        const normalized = label.toLowerCase();
+        return ACTIVE_DISTRIBUTION_CHANNEL_IDS.find((id) => normalized.includes(id));
       })
       .filter(Boolean) as DistributionChannelId[];
 
-    const channels = (
-      body.channels?.filter((id): id is DistributionChannelId =>
-        (DISTRIBUTION_CHANNEL_IDS as readonly string[]).includes(id),
-      ) ??
-      (preferred.length > 0 ? preferred : [...DISTRIBUTION_CHANNEL_IDS])
-    ) as DistributionChannelId[];
+    const requested = (body.channels ?? []).filter(isActiveDistributionChannelId);
+    const channels: DistributionChannelId[] =
+      requested.length > 0
+        ? requested
+        : preferred.length > 0
+          ? preferred
+          : [...ACTIVE_DISTRIBUTION_CHANNEL_IDS];
 
     const captionBase =
       body.captionBase?.trim() ||

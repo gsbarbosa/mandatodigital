@@ -26,6 +26,7 @@ const SECRET_MAP = [
   ["ADMIN_SESSION_SECRET", "admin-session-secret"],
   ["ASAAS_API_KEY", "asaas-api-key"],
   ["ASAAS_WEBHOOK_TOKEN", "asaas-webhook-token"],
+  ["INSTAGRAM_APP_SECRET", "instagram-app-secret"],
 ];
 
 function loadEnvFile(filePath) {
@@ -126,25 +127,27 @@ function main() {
   }
 
   if (apply && applied.length > 0) {
-    console.log("\nLiberando secrets para o backend mandatodigital...\n");
-    const grant = spawnSync(
-      "firebase",
-      [
-        "apphosting:secrets:grantaccess",
-        applied.join(","),
-        "--backend",
-        "mandatodigital",
-        "--project",
-        "madatodigital",
-        "--location",
-        "us-central1",
-      ],
-      { stdio: "inherit", env: { ...process.env, CI: "true" } },
-    );
+    console.log("\nLiberando secrets para os backends mandatodigital e mandatodigital-stg...\n");
+    for (const backend of ["mandatodigital", "mandatodigital-stg"]) {
+      const grant = spawnSync(
+        "firebase",
+        [
+          "apphosting:secrets:grantaccess",
+          applied.join(","),
+          "--backend",
+          backend,
+          "--project",
+          "madatodigital",
+          "--location",
+          "us-central1",
+        ],
+        { stdio: "inherit", env: { ...process.env, CI: "true" } },
+      );
 
-    if (grant.status !== 0) {
-      console.error("Falha ao liberar secrets para o backend.");
-      process.exit(grant.status ?? 1);
+      if (grant.status !== 0) {
+        console.error(`Falha ao liberar secrets para o backend ${backend}.`);
+        process.exit(grant.status ?? 1);
+      }
     }
   }
 

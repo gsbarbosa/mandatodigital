@@ -1,23 +1,21 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
-import {
-  ayrshareCreateProfile,
-  ayrshareGenerateJwt,
-} from "@/lib/distribution/ayrshare-client";
-import {
-  channelIdsToAyrsharePlatforms,
-  DISTRIBUTION_CHANNEL_IDS,
-} from "@/lib/distribution/channels";
-import {
-  newConnectionRefId,
-  socialConnectionStorage,
-} from "@/lib/distribution/connection-storage";
+import { socialConnectionStorage } from "@/lib/distribution/connection-storage";
 import { assertDistributionReady } from "@/lib/distribution/guard";
+import { buildInstagramAuthorizeUrl } from "@/lib/distribution/instagram-graph-client";
+import {
+  instagramRedirectUriFromRequest,
+  isInstagramOAuthConfigured,
+} from "@/lib/distribution/instagram-env";
+import {
+  createInstagramOAuthState,
+  INSTAGRAM_OAUTH_COOKIE,
+} from "@/lib/distribution/instagram-oauth-state";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
-import { resolveAppBaseUrl } from "@/lib/training-asset-urls";
 
 const linkSchema = z.object({
   channels: z.array(z.string()).optional(),
@@ -30,6 +28,16 @@ export async function POST(request: Request) {
       return blocked;
     }
 
+    if (!isInstagramOAuthConfigured()) {
+      return NextResponse.json(
+        {
+          message:
+            "OAuth Instagram nao configurado. Defina INSTAGRAM_APP_ID e INSTAGRAM_APP_SECRET.",
+        },
+        { status: 503 },
+      );
+    }
+
     const dashboard = await repository.getDashboard();
     const profile = dashboard.profile;
     if (!profile) {
@@ -38,53 +46,30 @@ export async function POST(request: Request) {
 
     const session = await getSessionUser();
     const ownerUserId = toDatabaseOwnerUserId(session!.id);
-    const body = linkSchema.parse(await request.json().catch(() => ({})));
+    linkSchema.parse(await request.json().catch(() => ({})));
 
-    let connection = await socialConnectionStorage.getByProfileId(profile.id);
-    if (!connection?.ayrshareProfileKey) {
-      const refId = connection?.ayrshareRefId || newConnectionRefId(profile.id);
-      const created = await ayrshareCreateProfile({
-        title: profile.fullName || `Mandato ${profile.id.slice(0, 8)}`,
-        refId,
-      });
-      if (!created.profileKey) {
-        return NextResponse.json(
-          { message: "Ayrshare nao retornou profileKey." },
-          { status: 502 },
-        );
-      }
-      connection = await socialConnectionStorage.upsert({
+    const existing = await socialConnectionStorage.getByProfileId(profile.id);
+    if (!existing) {
+      await socialConnectionStorage.upsert({
         profileId: profile.id,
         ownerUserId,
-        ayrshareProfileKey: created.profileKey,
-        ayrshareRefId: created.refId || refId,
-        electionDate: connection?.electionDate ?? null,
       });
     }
 
-    const allowed =
-      body.channels && body.channels.length > 0
-        ? channelIdsToAyrsharePlatforms(
-            body.channels.filter((id): id is (typeof DISTRIBUTION_CHANNEL_IDS)[number] =>
-              (DISTRIBUTION_CHANNEL_IDS as readonly string[]).includes(id),
-            ),
-          )
-        : channelIdsToAyrsharePlatforms([...DISTRIBUTION_CHANNEL_IDS]);
-
-    const redirectUrl = `${resolveAppBaseUrl()}/distribuidor?connected=1`;
-    const jwt = await ayrshareGenerateJwt({
-      profileKey: connection.ayrshareProfileKey,
-      redirectUrl,
-      allowedSocial: allowed,
+    const state = createInstagramOAuthState(profile.id, ownerUserId);
+    const redirectUri = instagramRedirectUriFromRequest(request);
+    const cookieStore = await cookies();
+    cookieStore.set(INSTAGRAM_OAUTH_COOKIE, state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 10 * 60,
     });
 
-    if (!jwt.url) {
-      return NextResponse.json(
-        { message: "Ayrshare nao retornou URL de conexao." },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json({ url: jwt.url, expiresIn: jwt.expiresIn ?? null });
+    return NextResponse.json({
+      url: buildInstagramAuthorizeUrl(state, redirectUri),
+      expiresIn: 600,
+    });
   });
 }
