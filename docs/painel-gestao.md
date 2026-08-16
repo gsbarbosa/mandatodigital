@@ -17,6 +17,7 @@ Não há mais login estático por senha compartilhada — foi removido. `ADMIN_S
 |------|--------|
 | `/admin` | Dashboard (contagens) |
 | `/admin/roadmap` | Board do roadmap (estilo Trello) — CRUD |
+| `/admin/marketing` | Outbound: base de prospects, segmentação e campanhas — ver [marketing-outbound.md](marketing-outbound.md) |
 | `/admin/provedores` | Lista de provedores + status de configuração |
 | `/admin/usuarios` | Lista read-only de cadastros |
 

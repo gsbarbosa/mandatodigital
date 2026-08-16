@@ -10,7 +10,8 @@ cumprirem compliance TSE de ponta a ponta:
 - **Distribuidor** — publicação nas redes via Ayrshare (fail-closed até smoke);
 - **Compliance** — selo TSE, contrato + dossiê de transparência, blackout eleitoral 72h/24h;
 - **Cobrança** — pacote campanha parcelado (Asaas PIX/boleto) + NFS-e automática — ver [docs/billing-nfse.md](docs/billing-nfse.md);
-- **Painel `/admin`** — gestão interna (provedores, usuários, roadmap, billing) — ver [docs/painel-gestao.md](docs/painel-gestao.md).
+- **Painel `/admin`** — gestão interna (provedores, usuários, roadmap, billing) — ver [docs/painel-gestao.md](docs/painel-gestao.md);
+- **Marketing outbound `/admin/marketing`** — base de prospects públicos, segmentação e campanhas de e-mail — ver [docs/marketing-outbound.md](docs/marketing-outbound.md).
 
 Nasceu como o MVP de geração de texto abaixo ("Fluxo do MVP original") e cresceu pro produto acima; o fluxo original continua funcionando como base do Criativo.
 
@@ -61,6 +62,7 @@ Emissão automática após pagamento confirmado (`invoiceSettings` na assinatura
 - [Status de desenvolvimento (acompanhamento, vivo)](docs/status-desenvolvimento.md)
 - [Checklist roadmap (vivo)](docs/checklist-roadmap-05ago.md)
 - [Painel de gestão (/admin)](docs/painel-gestao.md)
+- [Marketing outbound (/admin/marketing)](docs/marketing-outbound.md)
 - [Sentinela — guia de uso (passo a passo)](docs/sentinela.md)
 - [Sentinela — arquitetura técnica (handoff)](docs/sentinela-arquitetura.md)
 - [Billing e NFS-e (Asaas)](docs/billing-nfse.md)
