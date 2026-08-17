@@ -207,8 +207,15 @@ env:
       - BUILD
       - RUNTIME
 
+  # Jobs assíncronos via Pub/Sub. Com false, enqueueAsyncJob cai no
+  # kickLocalWorker (fire-and-forget) e o publish do Reel — polling de até 180s
+  # — continua depois da resposta HTTP, sujeito ao throttle de CPU do Cloud Run.
+  # As três push subscriptions autenticam por OIDC (SA de compute do App
+  # Hosting, audience = APP_BASE_URL). Sem essa auth o worker recusaria o push
+  # e os jobs iriam para a DLQ — não ligue esta flag antes de conferir o
+  # oidcToken em `gcloud pubsub subscriptions describe`.
   - variable: PUBSUB_JOBS_ENABLED
-    value: "false"
+    value: "true"
     availability:
       - RUNTIME
 

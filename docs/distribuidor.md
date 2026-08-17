@@ -139,6 +139,22 @@ Dois detalhes que o código carrega por um motivo:
 - **Blackout é rechecado no tick**, não só no Go: a janela pode ter entrado em
   vigor entre a aprovação e o horário marcado.
 
+## Execução dos jobs
+
+`PUBSUB_JOBS_ENABLED=true`: o `publish_post` sai por Pub/Sub
+(`md-jobs-publish` → push em `/api/workers/publish`), então o publish do Reel
+roda dentro de um request de verdade, com `maxDuration = 300`. Com a flag em
+false o `enqueueAsyncJob` cai no `kickLocalWorker`, que dispara sem `await` — o
+polling de até 180s ficaria correndo depois da resposta HTTP, sujeito ao
+throttle de CPU do Cloud Run.
+
+As três push subscriptions (`publish`, `seal`, `voice`) autenticam por **OIDC**,
+com o SA de compute do App Hosting e `audience = APP_BASE_URL`. A audience é a
+URL de produção nos dois backends, de propósito: o worker valida contra
+`JOBS_WORKER_OIDC_AUDIENCE || APP_BASE_URL`, que é o mesmo valor em staging e
+prod, então o mesmo comando serve os dois. Push sem OIDC não manda header
+nenhum e o `assertJobsWorkerAuthorized` recusaria tudo → DLQ em 5 tentativas.
+
 ## Token do Instagram
 
 O token de longa duração vale 60 dias. `POST /api/workers/instagram-token-refresh`
@@ -169,12 +185,6 @@ passado o vencimento não há refresh, só reconectar por OAuth.
   Firestore com o link de criação do índice. A query de token é de campo único
   e usa o índice automático — essa já funciona.
 
-- **`PUBSUB_JOBS_ENABLED=false`.** Sem Pub/Sub, `enqueueAsyncJob` cai em
-  `kickLocalWorker`, que roda `processPublishJob` sem `await` — o publish do
-  Reel (polling de até 180s) continua depois da resposta HTTP, e o Cloud Run
-  faz throttle de CPU fora do request. Ligar exige criar `md-jobs-publish` e a
-  subscription **com OIDC** (`--push-auth-service-account`): o push simples não
-  manda header nenhum e o worker recusaria tudo, jogando os jobs na DLQ.
 - **`ADMIN_SESSION_SECRET` não configurado** (`adminSessionSecretFromEnv: false`
   em `/api/health/runtime-env`). O cofre que cifra o token do Instagram usa
   chave de bootstrap; se ela mudar, os tokens gravados param de descriptografar
