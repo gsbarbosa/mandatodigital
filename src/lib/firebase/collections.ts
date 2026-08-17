@@ -64,6 +64,8 @@ export const COLLECTIONS = {
   marketingCampaigns: "marketingCampaigns",
   /** Registro por contato de cada disparo (trilha de acompanhamento). */
   marketingSends: "marketingSends",
+  /** Threads de conversa do WhatsApp (doc id = telefone E.164). */
+  marketingConversations: "marketingConversations",
   /** Legado — lido só para migração soft; não gravar mais. */
   earlyAccessReservations: "earlyAccessReservations",
 } as const;

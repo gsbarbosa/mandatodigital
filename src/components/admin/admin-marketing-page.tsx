@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { CampaignsTab } from "@/components/admin/marketing/campaigns-tab";
 import { ContactsTab } from "@/components/admin/marketing/contacts-tab";
+import { ConversationsTab } from "@/components/admin/marketing/conversations-tab";
 import { SegmentsTab, type SegmentWithCount } from "@/components/admin/marketing/segments-tab";
 import type { MarketingContactStats } from "@/lib/outbound/contacts-storage";
 import { EMPTY_SEGMENT_FILTER, type SegmentFilter } from "@/lib/outbound/types";
@@ -12,6 +13,7 @@ const TABS = [
   { id: "contatos", label: "Contatos" },
   { id: "segmentos", label: "Segmentos" },
   { id: "campanhas", label: "Campanhas" },
+  { id: "conversas", label: "Conversas" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -110,6 +112,8 @@ export function AdminMarketingPage() {
       ) : null}
 
       {tab === "campanhas" ? <CampaignsTab segments={segments} /> : null}
+
+      {tab === "conversas" ? <ConversationsTab /> : null}
     </div>
   );
 }

@@ -46,6 +46,8 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [templateName, setTemplateName] = useState("");
+  const [templateLanguage, setTemplateLanguage] = useState("pt_BR");
+  const [templateParams, setTemplateParams] = useState("");
 
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -110,7 +112,19 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
       const response = await fetch("/api/admin/marketing/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, channel, segmentId, subject, body, templateName }),
+        body: JSON.stringify({
+          name,
+          channel,
+          segmentId,
+          subject,
+          body,
+          templateName,
+          templateLanguage,
+          templateParams: templateParams
+            .split("|")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        }),
       });
       const payload = (await response.json()) as { message?: string };
       if (!response.ok) {
@@ -120,6 +134,7 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
       setSubject("");
       setBody("");
       setTemplateName("");
+      setTemplateParams("");
       setError(null);
       await load();
     } catch (err) {
@@ -248,15 +263,31 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
           </div>
         ) : (
           <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <input
+                value={templateName}
+                onChange={(event) => setTemplateName(event.target.value)}
+                placeholder="Template aprovado (ex.: md_intro_vaga_sigla_v1)"
+                className="rounded-xl border border-md-border bg-md-surface px-3 py-2 text-sm text-md-text placeholder:text-md-text-soft"
+              />
+              <input
+                value={templateLanguage}
+                onChange={(event) => setTemplateLanguage(event.target.value)}
+                placeholder="Idioma do template (pt_BR)"
+                className="rounded-xl border border-md-border bg-md-surface px-3 py-2 text-sm text-md-text placeholder:text-md-text-soft"
+              />
+            </div>
             <input
-              value={templateName}
-              onChange={(event) => setTemplateName(event.target.value)}
-              placeholder="Nome do template aprovado (ex.: md_intro_vaga_sigla_v1)"
+              value={templateParams}
+              onChange={(event) => setTemplateParams(event.target.value)}
+              placeholder="Parâmetros na ordem, separados por | — ex.: {{nome}} | {{uf}}"
               className="w-full rounded-xl border border-md-border bg-md-surface px-3 py-2 text-sm text-md-text placeholder:text-md-text-soft"
             />
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-              O disparo por WhatsApp ainda não está ligado — a Cloud API não está configurada. A
-              campanha fica salva como rascunho e pode ser segmentada normalmente.
+            <p className="text-xs text-md-text-soft">
+              O primeiro parâmetro preenche <code>{"{{1}}"}</code> do template, o segundo{" "}
+              <code>{"{{2}}"}</code>, e assim por diante. Variáveis disponíveis:{" "}
+              <code>{"{{nome}}"}</code>, <code>{"{{uf}}"}</code>, <code>{"{{partido}}"}</code>,{" "}
+              <code>{"{{cargo}}"}</code>, <code>{"{{municipio}}"}</code>.
             </p>
           </div>
         )}
@@ -322,7 +353,7 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
                   </button>
                   <button
                     type="button"
-                    disabled={busy || campaign.channel === "whatsapp"}
+                    disabled={busy}
                     onClick={() => void handleSend(campaign)}
                     className="rounded-xl bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/30 disabled:opacity-40"
                   >
