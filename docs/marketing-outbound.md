@@ -57,6 +57,17 @@ npm run marketing:seed -- --only=camara    # uma fonte só (diretorio|camara|ins
 O seed é idempotente: `createdAt` só é gravado em doc novo, então reimportar atualiza sem duplicar
 nem resetar histórico.
 
+**Os CSVs de origem não estão no Git** (são PII e ficam em `.local/`). Em máquina nova:
+
+| Arquivo | Onde conseguir |
+|---|---|
+| `diretorios-partidarios.csv` | export do [SGIP3](https://sgip3-consulta.tse.jus.br/) — órgãos partidários por UF |
+| `consulta_cand_2026_BRASIL.csv` | [`consulta_cand_2026.zip`](https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_2026.zip) (latin-1, `;`) |
+| `instagram-enriquecido.csv` | produzido fora daqui; sem ele o seed roda só com as outras duas fontes |
+
+**A base já está no Firestore** — rodar o seed de novo só é necessário para atualizar ou incluir
+fonte nova, não para retomar o trabalho.
+
 ### 1. Diretórios partidários (TSE / SGIP3)
 
 Contato institucional de presidente, tesoureiro etc. por UF — público por obrigação de prestação
@@ -145,6 +156,50 @@ Proteções:
 
 O disparo por WhatsApp usa a **Cloud API da Meta** direto (sem BSP). Tudo é fail-closed: sem as
 variáveis abaixo, o disparo recusa e o webhook responde erro, em vez de fingir que funcionou.
+
+### Identificadores do Meta (referência)
+
+| O quê | Valor |
+|---|---|
+| App ID | `1754129402447742` (MandatoDigital, publicado) |
+| WABA ID | `1736757104132656` (MandatoDigital IA BR) |
+| Phone Number ID | `1180191901853184` |
+| Número | +55 31 7535-5968 — `VERIFIED`, qualidade `GREEN` |
+| System user | `mandatodigital-whatsapp` (token sem expiração) |
+| Política de privacidade | `https://mandatodigital.ia.br/politica-de-privacidade` |
+
+Nenhum desses é segredo. Os secretos (`WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_SECRET`,
+`WHATSAPP_VERIFY_TOKEN`) vivem no `.env.local` e no Secret Manager
+(`whatsapp-access-token`, `whatsapp-app-secret`, `whatsapp-verify-token`) — para recuperá-los:
+`npm run env:pull -- --env prod`.
+
+### Templates aprovados
+
+Os 9 estão `APPROVED` em `pt_BR`. **A contagem de parâmetros varia** — passar quantidade
+diferente faz a Meta rejeitar o envio, então confira antes de montar a campanha:
+
+| Template | Params | Gatilho |
+|---|---|---|
+| `md_intro_adversario_v1` | 1 | resposta a ataque em ~20 min |
+| `md_intro_feito_candidatas_v1` | 1 | plataforma pensada para candidatas |
+| `md_intro_tempo_volume_v1` | 1 | volume de vídeo por semana |
+| `md_followup_candidatas_v1` | 1 | follow-up do convite |
+| `md_intro_candidatas_curta_v1` | 3 | versão curta |
+| `md_intro_candidatas_soft_v1` | 3 | versão consultiva |
+| `md_intro_materialidade_v1` | 3 | comprovação de atuação da chapa |
+| `md_intro_vaga_sigla_v1` | 3 | escassez: 3 campanhas por partido/estado |
+| `md_intro_prova_v1` | 4 | prova de IA lendo notícia do dia |
+
+Persona fixa: **Marina, do Mandato Digital**. Todos terminam pedindo autorização para enviar um
+material ("página de um minuto" / "vídeo de 3 minutos") — material que ainda não existe, ver
+Pendências.
+
+Listar direto da API (fonte da verdade):
+
+```bash
+curl "https://graph.facebook.com/v25.0/1736757104132656/message_templates?fields=name,status,language,components" \
+  -H "Authorization: Bearer $WHATSAPP_ACCESS_TOKEN"
+```
 
 ### Variáveis
 
@@ -296,6 +351,28 @@ atribuído a **4 candidatos diferentes**), 1 por DDD de outro estado e 1 sem tel
 Vale como referência de expectativa: de uma lista enriquecida "pronta", algo em torno de um terço
 costuma ser aproveitável. E 10 é um primeiro lote melhor que 30 — número novo não deve estrear com
 volume frio, mesmo com qualidade GREEN.
+
+Os 10 que passaram (handle bate com o nome, telefone exclusivo, DDD compatível, bio própria):
+
+| Handle | Candidato | UF | Telefone |
+|---|---|---|---|
+| helioferreiravereador | HELIO FERREIRA | BA | 5571991475655 |
+| sarah | SARAH PONCIO | RJ | 5521999496430 |
+| renatomachadocariacica | RENATO MACHADO | ES | 5527995736670 |
+| hugohgarcia | HUGO GARCIA | MT | 5565999910163 |
+| depdalmoribeiro | DALMO RIBEIRO | MG | 5531998895051 |
+| cabo.meireles | CABO MEIRELES | MG | 5531988107528 |
+| leilabedani | LEILA BEDANI | SP | 5511937080505 |
+| silvinhadudu | SILVINHA DUDU | MG | 5531985229416 |
+| marcoshenriques_ | MARCOS HENRIQUES | PB | 5583991375151 |
+| dhiegoserra | DHIEGO SERRA | PE | 5587999968499 |
+
+Estão em `marketingContacts` com `source: instagram_enriquecido` — filtrar por essa origem no
+segmento os isola. Os reprovados **não** foram gravados.
+
+Casos que justificam a régua, para quem duvidar dela: `carlosrussorj` caiu porque o telefone
+`5522997692727` está atribuído a **4 candidatos diferentes** na planilha; `vereadoraestelaalmagro`
+aponta para "FÁBIO FERRACINI"; `monicarosenbergsp` para "PROF CIDACARLOS ELASCOM O POVO".
 
 ## Próximas fontes de contato
 
