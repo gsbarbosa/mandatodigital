@@ -162,6 +162,13 @@ passado o vencimento não há refresh, só reconectar por OAuth.
 
 ## Pendências conhecidas
 
+- **Índice composto do sweep não deployado.** `listScheduledDue` consulta
+  `status == "scheduled"` + `scheduledAt <=` com `orderBy(scheduledAt)`, o que
+  exige o índice já declarado em `firestore.indexes.json`. Até rodar
+  `npm run firebase:indexes:deploy`, o worker de agendados responde erro do
+  Firestore com o link de criação do índice. A query de token é de campo único
+  e usa o índice automático — essa já funciona.
+
 - **`PUBSUB_JOBS_ENABLED=false`.** Sem Pub/Sub, `enqueueAsyncJob` cai em
   `kickLocalWorker`, que roda `processPublishJob` sem `await` — o publish do
   Reel (polling de até 180s) continua depois da resposta HTTP, e o Cloud Run
