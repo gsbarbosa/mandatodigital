@@ -28,6 +28,12 @@ export type PricingComparisonRow = {
 export const pricingUrgencyBanner =
   "Planos com vagas limitadas por Lote e preço promocional com 50% off.";
 
+/** Nota abaixo dos cards, onde a objeção de custo aparece. */
+export const pricingTrialNote = {
+  emphasis: "Sem cobrança ou compromisso",
+  tail: "no período de testes.",
+} as const;
+
 export const pricingIntro = {
   title: "Reserva VIP — escolha o pacote da sua campanha",
   body: "Monitoramento em tempo real, avatares personalizados com voz do candidato — compliance total com TSE, tudo integrado em uma plataforma.",
@@ -46,6 +52,9 @@ export const pricingPlans: PricingPlan[] = [
       { text: "Monitoramento ilimitado de redes sociais, portais, sites e blogs" },
       { text: "Produção de 5 avatares/mês (2 digitais e 3 caricaturas/3D), vídeos de até 1 minuto." },
       { text: "Checagem de fatos básica." },
+      {
+        text: "Publicação simultânea e adaptada nas 07 redes, direto do painel.",
+      },
     ],
     restriction: "Vagas garantidas no Lote Atual",
     restrictionTone: "safe",
@@ -88,9 +97,6 @@ export const pricingPlans: PricingPlan[] = [
       {
         text: "(livre escolha) com renderização avançada de Gêmeo Digital, vídeos de até 3 minutos.",
         strongPrefix: "Produção de 60 avatares/mês",
-      },
-      {
-        text: "Publicação simultânea e adaptada em 07 redes: Instagram, TikTok, Twitter/X, YouTube, Threads e LinkedIn.",
       },
     ],
     restriction: "Limitado por ordem de chegada e UF",
@@ -211,14 +217,14 @@ export const pricingComparison = {
     {
       section: "Distribuidor",
       label: "Customiza o conteúdo gerado para publicação em 07 redes sociais",
-      values: ["✕", "✕", "✓"],
+      values: ["✓", "✓", "✓"],
     },
     {
       label:
         "Permite selecionar uma ou todas as redes - Insta, X, TikTok, Threads, Youtube, Face e LinkedIn",
-      values: ["✕", "✕", "✓"],
+      values: ["✓", "✓", "✓"],
     },
-    { label: "Grade de horário de disparos", values: ["✕", "✕", "✓"] },
+    { label: "Grade de horário de disparos", values: ["✓", "✓", "✓"] },
   ] satisfies PricingComparisonRow[],
 } as const;
 
