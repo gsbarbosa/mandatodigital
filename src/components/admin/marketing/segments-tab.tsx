@@ -7,6 +7,7 @@ import {
   CAMPAIGN_CHANNEL_LABELS,
   CONTACT_SOURCE_LABELS,
   EMPTY_SEGMENT_FILTER,
+  OFFICE_KEY_LABELS,
   type MarketingSegment,
   type SegmentFilter,
 } from "@/lib/outbound/types";
@@ -30,6 +31,12 @@ function describeFilter(filter: SegmentFilter): string {
   }
   if (filter.onlyCandidates2026) {
     parts.push("candidatos 2026");
+  }
+  if (filter.onlyWomen) {
+    parts.push("só mulheres");
+  }
+  if (filter.offices.length > 0) {
+    parts.push(filter.offices.map((office) => OFFICE_KEY_LABELS[office]).join(" + "));
   }
   if (filter.search) {
     parts.push(`busca: "${filter.search}"`);

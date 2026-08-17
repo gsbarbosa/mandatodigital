@@ -126,11 +126,26 @@ Aproveitamento de ~2%. É baixo de propósito: o custo de um falso positivo (men
 |---|---|
 | Diretórios partidários | 1.259 linhas → **744 contatos** (650 com WhatsApp, 31 suspensos, 273 com canal compartilhado) |
 | Câmara dos Deputados | 513 deputados, 513 com e-mail, **364 candidatos em 2026** |
-| Instagram enriquecido | 1.849 linhas → **32 aprovados** (69 reprovados por defeito, 983 sem telefone) |
-| **Total gravado** | **1.289 contatos** |
+| Instagram (lote 1, planilha antiga) | 1.849 linhas → **32 aprovados** |
+| Instagram (lote Pasta1) | 1.080 linhas → **651 aprovados** (642 novos, 9 já existiam, 1 telefone de diretório pulado) |
+| **Total gravado** | **1.931 contatos** (1.324 com WhatsApp) |
+
+O lote Pasta1 já vem com gênero e `whatsapp_e164`. As mesmas travas do lote 1 se aplicam
+(`scripts/import-instagram-pasta1.ts`). Reprovados: 181 sem telefone, 25 bio de terceiro,
+18 DDD, 17 @ vs nome, 2 telefone compartilhado.
 
 Staging e produção compartilham o mesmo Firestore (projeto `madatodigital`), então o seed roda uma
 vez e vale para os dois.
+
+### Sexo e cargo no segmento
+
+`onlyWomen` exige `gender === "F"`. Contato sem sexo classificado **não entra** — o template de
+candidatas no vocativo feminino não pode ir para nome trocado nem para homem.
+
+`offices` filtra pelo texto de `candidateRole`/`roles`: estadual, distrital ou federal.
+
+Depois do lote Pasta1, mulheres com WhatsApp classificadas: **233** (125 estaduais, 97 federais,
+7 distritais, 2 senadoras, 2 suplentes). Diretório continua sem sexo.
 
 ## Disparo
 
@@ -144,9 +159,10 @@ sem valor vira string vazia, nunca chega cru no destinatário.
 Proteções:
 
 - **Não reenvia para quem já recebeu** aquela campanha (consulta `marketingSends`). Redisparar
-  atinge só quem ficou pendente.
-- **Teto de 500 destinatários por disparo** (`MAX_RECIPIENTS_PER_DISPATCH`). O envio é síncrono
-  dentro da request; acima disso, estreitar o segmento e mandar em levas.
+  atinge só quem ficou pendente — é assim que o lote de 5 em 5 avança.
+- **Lote por clique** (`batchSize` na campanha). WhatsApp nasce em 5; o teto duro do canal
+  continua 50 (`MAX_WHATSAPP_RECIPIENTS_PER_DISPATCH`). O clique envia o lote, o próximo clique
+  pega os que faltam. Não recusa mais o disparo quando o segmento é maior que o teto: corta o lote.
 - **Trilha gravada mesmo em erro** — sem isso um erro parcial deixaria envio real sem registro e o
   redisparo duplicaria mensagem.
 - Erro inesperado marca a campanha como `erro`, nunca deixa presa em `enviando` (o guard de
@@ -190,9 +206,13 @@ diferente faz a Meta rejeitar o envio, então confira antes de montar a campanha
 | `md_intro_vaga_sigla_v1` | 3 | escassez: 3 campanhas por partido/estado |
 | `md_intro_prova_v1` | 4 | prova de IA lendo notícia do dia |
 
-Persona fixa: **Marina, do Mandato Digital**. Todos terminam pedindo autorização para enviar um
-material ("página de um minuto" / "vídeo de 3 minutos") — material que ainda não existe, ver
-Pendências.
+O template `md_intro_feito_candidatas_v1` está aprovado na persona **Anna** (1 parâmetro =
+primeiro nome). A IA que responde depois da primeira mensagem do lead continua sendo Marina —
+são personas diferentes de propósito (campanha vs. conversa).
+
+Persona da conversa: **Marina**. A maior parte dos outros templates também pede autorização para
+enviar um material ("página de um minuto" / "vídeo de 3 minutos") — material que ainda não existe,
+ver Pendências.
 
 Listar direto da API (fonte da verdade):
 
@@ -309,6 +329,8 @@ E.164) e o agente responde na hora, com a persona **Marina**.
 - **Idempotência por `wamid`**: a Meta reentrega o evento se a resposta demorar; sem isso a IA
   responderia duas vezes à mesma frase.
 - **Assumir no braço**: "Pausar IA" na aba Conversas desliga a resposta automática daquela thread.
+  Com a conversa aberta, o operador escreve no campo e o texto sai pela Cloud API (`sendText`) —
+  a mesma janela de 24h da Meta. Enviar pausa a IA automaticamente, para ela não responder em cima.
 - **Guarda-corpos no prompt**: não inventar preço/prazo/funcionalidade, encerrar com cordialidade
   em pedido de opt-out, e não prometer link quando `WHATSAPP_DEMO_LINK_URL` está vazio.
 - Mídia (áudio/imagem) fica registrada mas não é respondida pela IA — vai para atendimento humano.
@@ -316,8 +338,8 @@ E.164) e o agente responde na hora, com a persona **Marina**.
 ## Limites conhecidos
 
 - **Teto de 50 destinatários por disparo no WhatsApp** (`MAX_WHATSAPP_RECIPIENTS_PER_DISPATCH`),
-  com 1,2s entre mensagens. Número novo começa em tier baixo e rajada fria derruba a nota de
-  qualidade — subir só depois que o tier subir.
+  com 1,2s entre mensagens. O lote da campanha (padrão 5) fica abaixo disso de propósito: número
+  novo começa em tier baixo e rajada fria derruba a nota de qualidade.
 - **Status de entrega chega mas não é gravado**: o webhook separa `statuses`, porém hoje só loga.
   A trilha registra "a API aceitou o envio", não "foi entregue/lido".
 - **E-mail não tem webhook**: sem abertura, clique ou bounce.

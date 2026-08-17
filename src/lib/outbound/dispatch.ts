@@ -1,9 +1,7 @@
 /**
- * Disparo das campanhas do painel de marketing.
- *
- * MVP: só e-mail (Resend). WhatsApp fica fail-closed até a Cloud API ser
- * configurada — a campanha pode ser criada e segmentada, mas o disparo recusa
- * em vez de fingir que enviou. Ver docs/marketing-outbound.md.
+ * Disparo das campanhas do painel de marketing (e-mail via Resend, WhatsApp
+ * via Cloud API). Cada clique envia um lote; redisparar atinge só quem ficou
+ * pendente. Ver docs/marketing-outbound.md.
  */
 
 import { Resend } from "resend";
@@ -47,6 +45,15 @@ const WHATSAPP_SEND_INTERVAL_MS = 1_200;
 
 export class DispatchError extends Error {}
 
+export function effectiveBatchSize(campaign: MarketingCampaign): number {
+  const cap =
+    campaign.channel === "whatsapp"
+      ? MAX_WHATSAPP_RECIPIENTS_PER_DISPATCH
+      : MAX_RECIPIENTS_PER_DISPATCH;
+  const requested = campaign.batchSize > 0 ? campaign.batchSize : cap;
+  return Math.min(Math.max(requested, 1), cap);
+}
+
 /**
  * Espelha o resolver de legal/email.ts (cofre de provider secrets → env).
  * Duplicado de propósito: o caminho de contrato é crítico de billing e não
@@ -83,6 +90,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 export type DispatchResult = {
   stats: CampaignStats;
   skippedAlreadySent: number;
+  remaining: number;
 };
 
 /**
@@ -260,21 +268,14 @@ export async function dispatchCampaign(campaign: MarketingCampaign): Promise<Dis
   }
 
   const { recipients, skippedAlreadySent } = await resolveRecipients(campaign);
-  const cap =
-    campaign.channel === "whatsapp"
-      ? MAX_WHATSAPP_RECIPIENTS_PER_DISPATCH
-      : MAX_RECIPIENTS_PER_DISPATCH;
+  const lote = recipients.slice(0, effectiveBatchSize(campaign));
+  const remaining = recipients.length - lote.length;
 
-  if (recipients.length === 0) {
+  if (lote.length === 0) {
     throw new DispatchError(
       skippedAlreadySent > 0
         ? "Todos os contatos do segmento já receberam esta campanha."
         : "Nenhum contato no segmento para este canal.",
-    );
-  }
-  if (recipients.length > cap) {
-    throw new DispatchError(
-      `Segmento tem ${recipients.length} contatos e o teto por disparo neste canal é ${cap}. Estreite o segmento (ex.: por UF) e dispare em levas.`,
     );
   }
 
@@ -287,8 +288,8 @@ export async function dispatchCampaign(campaign: MarketingCampaign): Promise<Dis
   try {
     const result =
       campaign.channel === "whatsapp"
-        ? await dispatchWhatsapp(campaign, recipients)
-        : await dispatchEmail(campaign, recipients);
+        ? await dispatchWhatsapp(campaign, lote)
+        : await dispatchEmail(campaign, lote);
     sends = result.sends;
     sent = result.sent;
     failed = result.failed;
@@ -316,7 +317,7 @@ export async function dispatchCampaign(campaign: MarketingCampaign): Promise<Dis
   }
 
   const stats: CampaignStats = {
-    total: campaign.stats.total + recipients.length,
+    total: campaign.stats.total + lote.length,
     sent: campaign.stats.sent + sent,
     failed: campaign.stats.failed + failed,
   };
@@ -327,21 +328,27 @@ export async function dispatchCampaign(campaign: MarketingCampaign): Promise<Dis
     sentAt: new Date().toISOString(),
   });
 
-  return { stats, skippedAlreadySent };
+  return { stats, skippedAlreadySent, remaining };
 }
 
 /** Prévia do público sem enviar nada — usada no painel antes de disparar. */
 export async function previewCampaignAudience(campaign: MarketingCampaign): Promise<{
   total: number;
   skippedAlreadySent: number;
+  batchSize: number;
+  thisBatch: number;
   sample: Array<{ name: string; destination: string }>;
 }> {
   const { recipients, skippedAlreadySent } = await resolveRecipients(campaign);
+  const batchSize = effectiveBatchSize(campaign);
+  const thisBatch = Math.min(recipients.length, batchSize);
 
   return {
     total: recipients.length,
     skippedAlreadySent,
-    sample: recipients.slice(0, 5).map((contact) => ({
+    batchSize,
+    thisBatch,
+    sample: recipients.slice(0, thisBatch).map((contact) => ({
       name: contact.name,
       destination: campaign.channel === "email" ? contact.email : contact.phoneE164,
     })),

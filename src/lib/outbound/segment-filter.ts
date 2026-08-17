@@ -11,7 +11,9 @@ import {
   EMPTY_SEGMENT_FILTER,
   isCampaignChannel,
   isContactSource,
+  isOfficeKey,
   type MarketingContact,
+  type OfficeKey,
   type SegmentFilter,
 } from "@/lib/outbound/types";
 
@@ -37,6 +39,15 @@ export function contactSupportsChannel(
   return true;
 }
 
+/** Cargo estadual/distrital/federal a partir do texto livre da fonte. */
+export function contactOffice(contact: MarketingContact): OfficeKey | null {
+  const text = normalize(`${contact.candidateRole} ${contact.roles.join(" ")}`);
+  if (text.includes("distrital")) return "distrital";
+  if (text.includes("estadual")) return "estadual";
+  if (text.includes("federal")) return "federal";
+  return null;
+}
+
 export function matchesSegment(contact: MarketingContact, filter: SegmentFilter): boolean {
   if (filter.sources.length > 0 && !filter.sources.includes(contact.source)) {
     return false;
@@ -49,6 +60,15 @@ export function matchesSegment(contact: MarketingContact, filter: SegmentFilter)
   }
   if (filter.onlyCandidates2026 && !contact.isCandidate2026) {
     return false;
+  }
+  if (filter.onlyWomen && contact.gender !== "F") {
+    return false;
+  }
+  if (filter.offices.length > 0) {
+    const office = contactOffice(contact);
+    if (!office || !filter.offices.includes(office)) {
+      return false;
+    }
   }
   if (filter.excludeSuspended && contact.suspended) {
     return false;
@@ -92,6 +112,8 @@ export function coerceSegmentFilter(value: unknown): SegmentFilter {
     parties: stringArray(raw.parties),
     channel,
     onlyCandidates2026: Boolean(raw.onlyCandidates2026),
+    onlyWomen: Boolean(raw.onlyWomen),
+    offices: stringArray(raw.offices).filter(isOfficeKey),
     excludeSuspended:
       raw.excludeSuspended === undefined
         ? EMPTY_SEGMENT_FILTER.excludeSuspended

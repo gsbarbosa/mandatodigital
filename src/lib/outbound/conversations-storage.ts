@@ -3,7 +3,12 @@
 import type { DocumentData } from "firebase-admin/firestore";
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
-import type { ConversationMessage, MarketingConversation } from "@/lib/outbound/types";
+import {
+  isConversationRole,
+  type ConversationMessage,
+  type ConversationRole,
+  type MarketingConversation,
+} from "@/lib/outbound/types";
 
 /** Corta o histórico para não crescer sem limite no doc nem no prompt. */
 const MAX_MESSAGES = 40;
@@ -19,7 +24,7 @@ function mapDoc(id: string, data: DocumentData | undefined): MarketingConversati
 
   const messages = Array.isArray(data.messages)
     ? (data.messages as DocumentData[]).map((raw) => ({
-        role: raw.role === "agente" ? ("agente" as const) : ("lead" as const),
+        role: isConversationRole(raw.role) ? raw.role : ("lead" as const),
         text: String(raw.text ?? ""),
         providerMessageId: String(raw.providerMessageId ?? ""),
         at: String(raw.at ?? nowIso()),
@@ -112,6 +117,16 @@ export async function appendAgentMessage(input: {
   text: string;
   providerMessageId: string;
 }): Promise<void> {
+  await appendOutboundMessage({ ...input, role: "agente" });
+}
+
+export async function appendOutboundMessage(input: {
+  phoneE164: string;
+  text: string;
+  providerMessageId: string;
+  role: Exclude<ConversationRole, "lead">;
+  pauseAgent?: boolean;
+}): Promise<void> {
   const ref = col(COLLECTIONS.marketingConversations).doc(input.phoneE164);
   const now = nowIso();
 
@@ -121,14 +136,23 @@ export async function appendAgentMessage(input: {
     const messages = [
       ...(current?.messages ?? []),
       {
-        role: "agente" as const,
+        role: input.role,
         text: input.text,
         providerMessageId: input.providerMessageId,
         at: now,
       },
     ].slice(-MAX_MESSAGES);
 
-    tx.set(ref, { messages, updatedAt: now, lastError: "" }, { merge: true });
+    tx.set(
+      ref,
+      {
+        messages,
+        updatedAt: now,
+        lastError: "",
+        ...(input.pauseAgent ? { agentPaused: true } : {}),
+      },
+      { merge: true },
+    );
   });
 }
 

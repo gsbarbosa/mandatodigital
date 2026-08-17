@@ -51,9 +51,15 @@ Regras rígidas:
 - Responda somente com o texto da mensagem, sem aspas e sem prefixo de remetente.`;
 }
 
+function speakerLabel(role: MarketingConversation["messages"][number]["role"]): string {
+  if (role === "lead") return "Lead";
+  if (role === "humano") return "Operador (humano)";
+  return "Marina";
+}
+
 function renderHistory(conversation: MarketingConversation): string {
   const linhas = conversation.messages.map((message) =>
-    `${message.role === "lead" ? "Lead" : "Marina"}: ${message.text}`,
+    `${speakerLabel(message.role)}: ${message.text}`,
   );
 
   const contexto = conversation.contactName

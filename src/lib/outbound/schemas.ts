@@ -10,6 +10,8 @@ export const segmentFilterSchema = z.object({
   parties: z.array(z.string().min(1).max(40)).default([]),
   channel: z.enum(CAMPAIGN_CHANNELS).nullable().default(null),
   onlyCandidates2026: z.boolean().default(false),
+  onlyWomen: z.boolean().default(false),
+  offices: z.array(z.enum(["estadual", "distrital", "federal"])).default([]),
   excludeSuspended: z.boolean().default(true),
   search: z.string().max(120).default(""),
 });
@@ -24,6 +26,13 @@ export const campaignInputSchema = z.object({
   templateLanguage: z.string().max(10).optional(),
   /** Preenchimento posicional do template: item 0 vira `{{1}}`. */
   templateParams: z.array(z.string().max(300)).max(10).optional(),
+  /** Destinatários por clique. WhatsApp default 5; e-mail default = teto do canal. */
+  batchSize: z.number().int().min(1).max(500).optional(),
 });
 
 export const campaignPatchSchema = campaignInputSchema.partial();
+
+/** Texto livre do operador, enviado pela Cloud API dentro da janela de 24h. */
+export const conversationReplySchema = z.object({
+  text: z.string().trim().min(1).max(4000),
+});

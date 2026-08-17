@@ -167,7 +167,14 @@ function isSuspended(situacao: string): boolean {
   return last ? stripAccents(last).toLowerCase().startsWith("suspenso") : false;
 }
 
-type Candidate2026 = { role: string; uf: string };
+type Candidate2026 = { role: string; uf: string; gender: "F" | "M" | "" };
+
+function genderFromTse(value: string): "F" | "M" | "" {
+  const normalized = stripAccents(value).toUpperCase();
+  if (normalized.includes("FEMININO")) return "F";
+  if (normalized.includes("MASCULINO")) return "M";
+  return "";
+}
 
 /** Índice nome-normalizado + UF → cargo disputado, para marcar quem concorre. */
 function readCandidateIndex(filePath: string): Map<string, Candidate2026> {
@@ -177,12 +184,13 @@ function readCandidateIndex(filePath: string): Map<string, Candidate2026> {
   for (const row of rows) {
     const uf = (row.SG_UF ?? "").trim().toUpperCase();
     const role = (row.DS_CARGO ?? "").trim();
+    const gender = genderFromTse(row.DS_GENERO ?? "");
     for (const nameField of [row.NM_CANDIDATO, row.NM_URNA_CANDIDATO]) {
       const name = normalizeName(nameField ?? "");
       if (name && uf) {
         const key = `${name}|${uf}`;
         if (!index.has(key)) {
-          index.set(key, { role, uf });
+          index.set(key, { role, uf, gender });
         }
       }
     }
@@ -247,6 +255,7 @@ function buildDirectoryContacts(
       municipality: (row["Município/UF"] ?? "").trim(),
       isCandidate2026: false,
       candidateRole: "",
+      gender: "",
       suspended,
       origin,
     });
@@ -304,6 +313,7 @@ function parseJsonArray(value: string): string[] {
 function buildInstagramContacts(
   filePath: string,
   origin: string,
+  candidateIndex: Map<string, Candidate2026>,
 ): {
   contacts: MarketingContactSeed[];
   sourceRows: number;
@@ -358,6 +368,7 @@ function buildInstagramContacts(
 
     const party = (row.SG_PARTIDO ?? "").trim();
     const cargo = (row.DS_CARGO ?? "").trim();
+    const fromIndex = candidateIndex.get(`${normalizeName(nome)}|${uf}`);
 
     byPhone.set(resultado.phone, {
       id: docId("instagram_enriquecido", resultado.phone),
@@ -372,6 +383,7 @@ function buildInstagramContacts(
       // A fonte é a própria lista de candidaturas 2026.
       isCandidate2026: true,
       candidateRole: cargo,
+      gender: fromIndex?.gender || genderFromTse(row.DS_GENERO ?? ""),
       suspended: false,
       origin,
     });
@@ -432,6 +444,7 @@ function buildCamaraContacts(
         municipality: "",
         isCandidate2026: Boolean(candidate),
         candidateRole: candidate?.role ?? "",
+        gender: candidate?.gender ?? "",
         suspended: false,
         origin,
       };
@@ -463,6 +476,15 @@ async function main() {
   const contacts: MarketingContactSeed[] = [];
   const stamp = new Date().toISOString().slice(0, 10);
 
+  let candidateIndex = new Map<string, Candidate2026>();
+  if (fs.existsSync(candidatosPath)) {
+    candidateIndex = readCandidateIndex(candidatosPath);
+  } else if (wantsCamara || wantsInstagram) {
+    console.warn(
+      `Aviso: ${path.basename(candidatosPath)} não encontrado — cruzamento 2026/sexo fica incompleto.`,
+    );
+  }
+
   console.log("");
 
   if (wantsDirectory) {
@@ -485,15 +507,6 @@ async function main() {
   }
 
   if (wantsCamara) {
-    let candidateIndex = new Map<string, Candidate2026>();
-    if (fs.existsSync(candidatosPath)) {
-      candidateIndex = readCandidateIndex(candidatosPath);
-    } else {
-      console.warn(
-        `Aviso: ${path.basename(candidatosPath)} não encontrado — ninguém será marcado como candidato 2026.`,
-      );
-    }
-
     const deputies = await fetchCamaraDeputies();
     const camaraContacts = buildCamaraContacts(
       deputies,
@@ -519,7 +532,11 @@ async function main() {
       }
       console.warn(`Aviso: ${DEFAULT_INSTAGRAM_CSV} não encontrado — fonte Instagram pulada.`);
     } else {
-      const result = buildInstagramContacts(instagramPath, `instagram_enriquecido_${stamp}`);
+      const result = buildInstagramContacts(
+        instagramPath,
+        `instagram_enriquecido_${stamp}`,
+        candidateIndex,
+      );
       contacts.push(...result.contacts);
 
       console.log(`Instagram enriquecido (${path.basename(instagramPath)})`);

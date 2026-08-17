@@ -9,7 +9,7 @@
 import type { DocumentData } from "firebase-admin/firestore";
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
-import { isContactSource, type ContactSource, type MarketingContact } from "@/lib/outbound/types";
+import { isContactSource, type ContactGender, type ContactSource, type MarketingContact } from "@/lib/outbound/types";
 
 const UPSERT_BATCH_SIZE = 450; // Firestore aceita 500 writes por batch.
 
@@ -40,6 +40,7 @@ function mapDoc(id: string, data: DocumentData | undefined): MarketingContact | 
     municipality: String(data.municipality ?? "").trim(),
     isCandidate2026: Boolean(data.isCandidate2026),
     candidateRole: String(data.candidateRole ?? "").trim(),
+    gender: data.gender === "F" || data.gender === "M" ? (data.gender as ContactGender) : "",
     suspended: Boolean(data.suspended),
     origin: String(data.origin ?? "").trim(),
     createdAt: String(data.createdAt ?? nowIso()),

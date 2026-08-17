@@ -16,6 +16,7 @@ function contact(overrides: Partial<MarketingContact> = {}): MarketingContact {
     municipality: "SÃO PAULO / SP",
     isCandidate2026: false,
     candidateRole: "",
+    gender: "",
     suspended: false,
     origin: "teste",
     createdAt: "2026-08-11T00:00:00.000Z",
@@ -65,6 +66,23 @@ describe("matchesSegment", () => {
     expect(matchesSegment(contact(), filter)).toBe(true);
   });
 
+  it("só mulheres exige gender F e exclui não classificado", () => {
+    const filter = { ...EMPTY_SEGMENT_FILTER, onlyWomen: true };
+    expect(matchesSegment(contact({ gender: "F" }), filter)).toBe(true);
+    expect(matchesSegment(contact({ gender: "M" }), filter)).toBe(false);
+    expect(matchesSegment(contact({ gender: "" }), filter)).toBe(false);
+  });
+
+  it("filtra cargo estadual/distrital pelo texto do cargo", () => {
+    const estadual = { ...EMPTY_SEGMENT_FILTER, offices: ["estadual" as const] };
+    expect(
+      matchesSegment(contact({ candidateRole: "DEPUTADO ESTADUAL" }), estadual),
+    ).toBe(true);
+    expect(
+      matchesSegment(contact({ candidateRole: "DEPUTADO DISTRITAL" }), estadual),
+    ).toBe(false);
+  });
+
   it("combina filtros de forma conjuntiva", () => {
     const filter = {
       ...EMPTY_SEGMENT_FILTER,
@@ -105,5 +123,10 @@ describe("coerceSegmentFilter", () => {
 
   it("mantém excludeSuspended=false explícito", () => {
     expect(coerceSegmentFilter({ excludeSuspended: false }).excludeSuspended).toBe(false);
+  });
+
+  it("descarta cargo inválido e aceita estadual/distrital", () => {
+    const filter = coerceSegmentFilter({ offices: ["estadual", "senador", "distrital"] });
+    expect(filter.offices).toEqual(["estadual", "distrital"]);
   });
 });

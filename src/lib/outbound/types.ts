@@ -21,6 +21,22 @@ export const CONTACT_SOURCE_LABELS: Record<ContactSource, string> = {
   instagram_enriquecido: "Instagram (validado)",
 };
 
+export const OFFICE_KEYS = ["estadual", "distrital", "federal"] as const;
+export type OfficeKey = (typeof OFFICE_KEYS)[number];
+
+export const OFFICE_KEY_LABELS: Record<OfficeKey, string> = {
+  estadual: "Deputado(a) estadual",
+  distrital: "Deputado(a) distrital",
+  federal: "Deputado(a) federal",
+};
+
+export function isOfficeKey(value: unknown): value is OfficeKey {
+  return OFFICE_KEYS.includes(value as OfficeKey);
+}
+
+/** Sexo conhecido. String vazia = não classificado (o filtro "só mulheres" exclui). */
+export type ContactGender = "F" | "M" | "";
+
 export const CAMPAIGN_CHANNELS = ["email", "whatsapp"] as const;
 export type CampaignChannel = (typeof CAMPAIGN_CHANNELS)[number];
 
@@ -63,6 +79,8 @@ export type MarketingContact = {
   isCandidate2026: boolean;
   /** Cargo disputado em 2026, quando `isCandidate2026`. */
   candidateRole: string;
+  /** `F`/`M` quando a fonte informa; vazio se não classificado. */
+  gender: ContactGender;
   /** Diretório com situação suspensa no TSE (ex.: falta de prestação de contas). */
   suspended: boolean;
   /** Origem + data do import, para rastrear de onde o registro veio. */
@@ -82,6 +100,10 @@ export type SegmentFilter = {
   /** `email` exige e-mail; `whatsapp` exige telefone móvel. */
   channel: CampaignChannel | null;
   onlyCandidates2026: boolean;
+  /** Exige `gender === "F"`. Contato sem sexo classificado fica de fora. */
+  onlyWomen: boolean;
+  /** Cargo disputado/ocupado: estadual, distrital, federal. Vazio = qualquer. */
+  offices: OfficeKey[];
   excludeSuspended: boolean;
   /** Busca livre em nome, e-mail e município. */
   search: string;
@@ -93,6 +115,8 @@ export const EMPTY_SEGMENT_FILTER: SegmentFilter = {
   parties: [],
   channel: null,
   onlyCandidates2026: false,
+  onlyWomen: false,
+  offices: [],
   excludeSuspended: true,
   search: "",
 };
@@ -133,6 +157,11 @@ export type MarketingCampaign = {
    * um texto com variáveis (ex.: `"{{nome}}"`), renderizado por contato.
    */
   templateParams: string[];
+  /**
+   * Teto deste disparo (não da campanha inteira). Clique de novo envia o
+   * próximo lote, pulando quem já recebeu. `0` = usa o teto do canal.
+   */
+  batchSize: number;
   status: CampaignStatus;
   stats: CampaignStats;
   /** Preenchido quando o disparo falha por completo (ex.: Resend não configurado). */
@@ -157,8 +186,12 @@ export type MarketingSend = {
   createdAt: string;
 };
 
-export const CONVERSATION_ROLES = ["lead", "agente"] as const;
+export const CONVERSATION_ROLES = ["lead", "agente", "humano"] as const;
 export type ConversationRole = (typeof CONVERSATION_ROLES)[number];
+
+export function isConversationRole(value: unknown): value is ConversationRole {
+  return CONVERSATION_ROLES.includes(value as ConversationRole);
+}
 
 export type ConversationMessage = {
   role: ConversationRole;
