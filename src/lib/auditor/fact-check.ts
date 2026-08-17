@@ -6,7 +6,78 @@ import { fetchArticlesCorpus } from "@/lib/auditor/url-extract";
 import { parseJsonResponse, requestStructuredJson } from "@/lib/llm";
 import { appLog, appLogError, startTimer } from "@/lib/observability/log";
 
-const factCheckResponseSchema = z.object({
+const MAX_CLAIMS = 12;
+const MAX_SOURCES = 8;
+
+/** O modelo as vezes responde confianca qualitativa em vez de numero. */
+const CONFIDENCE_WORDS: Record<string, number> = {
+  alta: 85,
+  high: 85,
+  media: 60,
+  moderada: 60,
+  medium: 60,
+  baixa: 30,
+  low: 30,
+  nenhuma: 0,
+  none: 0,
+};
+
+function coerceConfidence(value: unknown) {
+  if (typeof value === "number") {
+    return value <= 1 ? value * 100 : value;
+  }
+
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  const numeric = Number(normalized.replace("%", "").replace(",", "."));
+
+  if (Number.isFinite(numeric)) {
+    return numeric <= 1 ? numeric * 100 : numeric;
+  }
+
+  const withoutAccents = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  return CONFIDENCE_WORDS[withoutAccents] ?? value;
+}
+
+/** Aceita as variacoes de nome/nulo que o LLM produz sem descartar a resposta inteira. */
+function normalizeClaim(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const claim = value as Record<string, unknown>;
+
+  return {
+    ...claim,
+    text: claim.text ?? claim.claim ?? claim.afirmacao ?? claim.trecho,
+    attributesToThirdParty: claim.attributesToThirdParty ?? false,
+    contradictionDetail: claim.contradictionDetail ?? undefined,
+    sourceUrl: claim.sourceUrl ?? undefined,
+  };
+}
+
+const factCheckResponseSchema = z.preprocess((value) => {
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  const payload = value as Record<string, unknown>;
+
+  return {
+    ...payload,
+    confidence: coerceConfidence(payload.confidence),
+    claims: Array.isArray(payload.claims)
+      ? payload.claims.slice(0, MAX_CLAIMS).map(normalizeClaim)
+      : payload.claims,
+    sources: Array.isArray(payload.sources)
+      ? payload.sources.filter((source) => typeof source === "string").slice(0, MAX_SOURCES)
+      : payload.sources,
+  };
+}, z.object({
   verdict: z.enum(["verified", "disputed", "inconclusive"]),
   confidence: z.number().min(0).max(100),
   summary: z.string(),
@@ -20,9 +91,9 @@ const factCheckResponseSchema = z.object({
         sourceUrl: z.string().optional(),
       }),
     )
-    .max(12),
-  sources: z.array(z.string()).max(8),
-});
+    .max(MAX_CLAIMS),
+  sources: z.array(z.string()).max(MAX_SOURCES),
+}));
 
 function buildPrompt(input: FactCheckInput, corpus: string) {
   return {
@@ -35,7 +106,14 @@ function buildPrompt(input: FactCheckInput, corpus: string) {
       "Afirmacoes factuais (morte, saude, crime, numeros, atos de pessoas publicas) sem respaldo " +
       "explicito nas fontes NAO podem ser verified: o claim deve ser unsupported (ou contradicted) " +
       "e o verdict do roteiro disputed. inconclusive so quando o roteiro nao tem afirmacao factual checavel. " +
-      "Responda JSON: { verdict, confidence, summary, claims[], sources[] }. " +
+      "Responda SOMENTE JSON valido neste formato exato: " +
+      '{"verdict":"verified|disputed|inconclusive","confidence":<inteiro 0-100>,"summary":"...",' +
+      '"claims":[{"text":"trecho do roteiro","verdict":"supported|contradicted|unsupported",' +
+      '"attributesToThirdParty":true|false,"contradictionDetail":"...","sourceUrl":"..."}],' +
+      '"sources":["url"]}. ' +
+      "O campo do trecho chama-se text (nunca claim). confidence e numero inteiro, nunca palavra. " +
+      "Omita contradictionDetail e sourceUrl quando nao se aplicarem, em vez de enviar null. " +
+      `No maximo ${MAX_CLAIMS} itens em claims e ${MAX_SOURCES} em sources. ` +
       "verdict=verified somente se TODAS as afirmações factuais tiverem suporte explícito nas fontes; " +
       "disputed se houver contradição material; inconclusive se alguma afirmação factual não puder ser comprovada. " +
       "Não use verified quando existir claim unsupported. Morte, crime, saúde, números e atos de terceiros " +
@@ -117,7 +195,15 @@ export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResu
       appLog(
         "fact-check",
         "llm_fallback",
-        { reason: "invalid_llm_json", articleCount, durationMs: elapsed() },
+        {
+          reason: "invalid_llm_json",
+          articleCount,
+          durationMs: elapsed(),
+          // Caminhos do schema que falharam — sem o conteudo, que carrega o roteiro.
+          invalidPaths: validated.error.issues
+            .map((issue) => issue.path.join("."))
+            .join(", "),
+        },
         "warn",
       );
       return heuristicFallback(input);
