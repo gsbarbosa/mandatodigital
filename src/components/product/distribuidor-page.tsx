@@ -31,6 +31,7 @@ import {
   type DemoConnectionsSnapshot,
 } from "@/lib/distribution/demo-store";
 import type { DistributionPost } from "@/lib/distribution/types";
+import { datetimeLocalToIso, isoToDatetimeLocal } from "@/lib/distribution/datetime-local";
 import { ProductPageHeader } from "@/components/product/product-page-header";
 import { useProductApp } from "@/components/product/provider";
 
@@ -326,7 +327,7 @@ export function DistribuidorPage() {
       return;
     }
     setCaptionDraft(selected.captionBase);
-    setScheduledAt(selected.scheduledAt ? selected.scheduledAt.slice(0, 16) : "");
+    setScheduledAt(selected.scheduledAt ? isoToDatetimeLocal(selected.scheduledAt) : "");
     setSelectedChannels(selected.channels.filter(isActiveDistributionChannelId));
   }, [selected]);
 
@@ -377,7 +378,7 @@ export function DistribuidorPage() {
         updateDemoPost(selected.id, {
           captionBase: captionDraft,
           channels: selectedChannels,
-          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          scheduledAt: datetimeLocalToIso(scheduledAt),
         });
       }, "Pacote atualizado.");
       return;
@@ -389,7 +390,7 @@ export function DistribuidorPage() {
         body: JSON.stringify({
           captionBase: captionDraft,
           channels: selectedChannels,
-          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+          scheduledAt: datetimeLocalToIso(scheduledAt),
         }),
       });
       const payload = await parseJsonOrText<{ message?: string }>(response);
@@ -409,7 +410,7 @@ export function DistribuidorPage() {
           updateDemoPost(selected.id, {
             captionBase: captionDraft,
             channels: selectedChannels,
-            scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+            scheduledAt: datetimeLocalToIso(scheduledAt),
           });
           approveDemoPost(selected.id);
         },
@@ -426,7 +427,7 @@ export function DistribuidorPage() {
           body: JSON.stringify({
             captionBase: captionDraft,
             channels: selectedChannels,
-            scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+            scheduledAt: datetimeLocalToIso(scheduledAt),
           }),
         });
         const savedPayload = await parseJsonOrText<{ message?: string }>(saved);
