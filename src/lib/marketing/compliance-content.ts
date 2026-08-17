@@ -39,7 +39,7 @@ export const compliancePrivacy = {
     },
     {
       title: "LGPD & Isolamento de Dados",
-      body: "Anonimização total e segurança de infraestrutura. Não armazenamos dados pessoais de eleitores, garantindo 100% de aderência legal à LGPD. Além disso, a arquitetura garante o isolamento hermético de dados estratégicos, prompts e informações internas exclusivas de cada gabinete.",
+      body: "Não construímos base de eleitores: não coletamos dados para segmentação eleitoral nem montamos perfis individuais de cidadãos. Os dados pessoais que tratamos são os do próprio gabinete e os de contatos institucionais obtidos de registros públicos — cada categoria, com sua base legal, está descrita na Política de Privacidade. A arquitetura isola dados estratégicos, prompts e informações internas por gabinete.",
     },
   ],
 } as const;

@@ -9,7 +9,7 @@
  * Mudou o tratamento? Atualize aqui e a data de vigência abaixo.
  */
 
-export const PRIVACY_CONTACT_EMAIL = "privacidade@mandatodigital.ia.br";
+export const PRIVACY_CONTACT_EMAIL = "annafernandes@mandatodigital.ia.br";
 export const PRIVACY_EFFECTIVE_DATE = "17 de agosto de 2026";
 export const PRIVACY_VERSION = "1.0";
 
