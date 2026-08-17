@@ -89,7 +89,7 @@ describe("publishDueScheduledPosts", () => {
     expect(enqueuePublishPostJob).not.toHaveBeenCalled();
   });
 
-  it("pula canal ja publicado sem reenfileirar", async () => {
+  it("corrige o status do pacote ja publicado em vez de pular pra sempre", async () => {
     listScheduledDue.mockResolvedValue([
       post({ perChannelStatus: { instagram: { status: "published" } } }),
     ]);
@@ -98,6 +98,10 @@ describe("publishDueScheduledPosts", () => {
 
     expect(result.skipped).toBe(1);
     expect(enqueuePublishPostJob).not.toHaveBeenCalled();
+    expect(update).toHaveBeenCalledWith(
+      "post-1",
+      expect.objectContaining({ status: "published" }),
+    );
   });
 
   it("mantem o pacote agendado quando bate na quota (tenta no proximo tick)", async () => {

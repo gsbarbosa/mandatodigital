@@ -68,11 +68,18 @@ export async function publishDueScheduledPosts(input?: {
       (channel) => post.perChannelStatus[channel]?.status !== "published",
     );
     if (pending.length === 0) {
+      // Cura o registro em vez de pular para sempre: pacote com todos os
+      // canais publicados e status "scheduled" e resquicio do bug antigo em
+      // derivePostStatus, onde a flag de agendamento vencia o publicado.
+      await distributionPostStorage.update(post.id, {
+        status: "published",
+        lastError: "",
+      });
       result.skipped += 1;
       result.details.push({
         postId: post.id,
         outcome: "skipped",
-        reason: "Todos os canais ja publicados.",
+        reason: "Todos os canais ja publicados — status corrigido para published.",
       });
       continue;
     }

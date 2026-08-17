@@ -31,7 +31,7 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function derivePostStatus(
+export function derivePostStatus(
   channels: ChannelDeliveryState[],
   scheduled: boolean,
 ): DistributionPostStatus {
@@ -47,11 +47,14 @@ function derivePostStatus(
   if (failed > 0) {
     return "partial_failure";
   }
-  if (scheduled || scheduledCount === channels.length) {
-    return "scheduled";
-  }
+  // O que ja foi publicado vence a flag de agendamento. Checar `scheduled`
+  // antes disto prendia em "scheduled" todo pacote que tivesse scheduledAt,
+  // mesmo com os canais todos publicados — e ele nunca mais saia desse estado.
   if (published === channels.length) {
     return "published";
+  }
+  if (scheduled || scheduledCount === channels.length) {
+    return "scheduled";
   }
   return "publishing";
 }
