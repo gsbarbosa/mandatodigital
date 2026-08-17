@@ -215,6 +215,7 @@ export function createDemoPost(input: CreateDemoPostInput): DistributionPost {
     profileId: "demo",
     creativeProjectId: input.creativeProjectId,
     videoUrl: input.videoUrl,
+    videoStoragePath: "",
     captionBase,
     captionsByChannel: buildCaptionsByChannel(captionBase, channels),
     channels,

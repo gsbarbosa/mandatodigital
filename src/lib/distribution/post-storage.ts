@@ -69,6 +69,7 @@ function mapDoc(id: string, data: DocumentData): DistributionPost {
     profileId: String(data.profileId ?? ""),
     creativeProjectId: String(data.creativeProjectId ?? ""),
     videoUrl: String(data.videoUrl ?? ""),
+    videoStoragePath: String(data.videoStoragePath ?? ""),
     captionBase: String(data.captionBase ?? ""),
     captionsByChannel: mapCaptions(data),
     channels: mapChannels(data),
@@ -93,6 +94,7 @@ export type DistributionPostCreateInput = {
   profileId: string;
   creativeProjectId: string;
   videoUrl: string;
+  videoStoragePath?: string;
   captionBase: string;
   captionsByChannel?: DistributionPost["captionsByChannel"];
   channels: DistributionChannelId[];
@@ -122,6 +124,7 @@ export const distributionPostStorage = {
       profileId: input.profileId,
       creativeProjectId: input.creativeProjectId,
       videoUrl: input.videoUrl,
+      videoStoragePath: input.videoStoragePath?.trim() || "",
       captionBase: input.captionBase,
       captionsByChannel: input.captionsByChannel ?? {},
       channels: input.channels,
@@ -167,6 +170,8 @@ export const distributionPostStorage = {
         | "captionBase"
         | "captionsByChannel"
         | "channels"
+        | "videoUrl"
+        | "videoStoragePath"
         | "scheduledAt"
         | "distributionWindow"
         | "status"

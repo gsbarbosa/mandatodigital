@@ -41,6 +41,8 @@ export type DistributionPost = {
   profileId: string;
   creativeProjectId: string;
   videoUrl: string;
+  /** Path no Storage (`compliance/sealed/...`). A URL assinada expira em 7 dias. */
+  videoStoragePath: string;
   captionBase: string;
   captionsByChannel: Partial<Record<DistributionChannelId, string>>;
   channels: DistributionChannelId[];

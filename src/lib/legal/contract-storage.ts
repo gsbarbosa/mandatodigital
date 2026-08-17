@@ -45,13 +45,38 @@ export async function storeComplianceBuffer(input: {
     },
   });
 
+  const publicUrl = await signComplianceReadUrl(storagePath);
+  return { storagePath, publicUrl };
+}
+
+export async function signComplianceReadUrl(storagePath: string) {
+  const path = storagePath.trim();
+  if (!path) {
+    throw new Error("storagePath ausente para assinar o arquivo de compliance.");
+  }
+  const bucket = getFirebaseAdminBucket();
+  const file = bucket.file(path);
   const [signedUrl] = await file.getSignedUrl({
     version: "v4",
     action: "read",
     expires: Date.now() + COMPLIANCE_SIGNED_URL_TTL_MS,
   });
+  return signedUrl;
+}
 
-  return { storagePath, publicUrl: signedUrl };
+/** Renova a URL de leitura. GCS v4 dura no máximo 7 dias. */
+export async function refreshComplianceReadUrl(storagePath: string): Promise<string | null> {
+  const path = storagePath.trim();
+  if (!path) {
+    return null;
+  }
+  const bucket = getFirebaseAdminBucket();
+  const file = bucket.file(path);
+  const [exists] = await file.exists();
+  if (!exists) {
+    return null;
+  }
+  return signComplianceReadUrl(path);
 }
 
 export async function saveContractAcceptance(row: ContractAcceptanceRow) {

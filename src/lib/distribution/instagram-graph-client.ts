@@ -183,12 +183,15 @@ async function waitForContainerReady(input: {
     const payload = await graphFetch<{ status_code?: string; status?: string }>(
       `${graphBase()}/${input.containerId}?${params.toString()}`,
     );
-    const status = (payload.status_code || payload.status || "").toUpperCase();
+    const statusCode = (payload.status_code || "").toUpperCase();
+    const statusText = (payload.status || "").trim();
+    const status = statusCode || statusText.toUpperCase();
     if (status === "FINISHED" || status === "PUBLISHED") {
       return;
     }
     if (status === "ERROR" || status === "EXPIRED") {
-      throw new Error(`Container Instagram em estado ${status}.`);
+      const detail = statusText && statusText.toUpperCase() !== status ? `: ${statusText}` : "";
+      throw new Error(`Container Instagram em estado ${status}${detail}.`);
     }
     await input.sleep(input.intervalMs);
   }

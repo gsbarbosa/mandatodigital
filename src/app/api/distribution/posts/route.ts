@@ -12,6 +12,7 @@ import {
 } from "@/lib/distribution/channels";
 import { assertDistributionReady } from "@/lib/distribution/guard";
 import { distributionPostStorage } from "@/lib/distribution/post-storage";
+import { resolveFreshComplianceVideoUrl, refreshComplianceVideoUrlIfExpired } from "@/lib/distribution/fresh-video-url";
 import { creativeProjectStorage } from "@/lib/creative-project-storage";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
 
@@ -31,7 +32,26 @@ export async function GET() {
     }
     const ownerUserId = toDatabaseOwnerUserId(session.id);
     const posts = await distributionPostStorage.listByOwner(ownerUserId);
-    return NextResponse.json({ posts });
+    const withFreshUrls = await Promise.all(
+      posts.map(async (post) => {
+        const fresh = await refreshComplianceVideoUrlIfExpired({
+          videoUrl: post.videoUrl,
+          storagePath: post.videoStoragePath,
+        });
+        if (
+          fresh.videoUrl === post.videoUrl &&
+          (fresh.storagePath || "") === (post.videoStoragePath || "")
+        ) {
+          return post;
+        }
+        const updated = await distributionPostStorage.update(post.id, {
+          videoUrl: fresh.videoUrl,
+          videoStoragePath: fresh.storagePath ?? post.videoStoragePath,
+        });
+        return updated ?? { ...post, videoUrl: fresh.videoUrl, videoStoragePath: fresh.storagePath ?? "" };
+      }),
+    );
+    return NextResponse.json({ posts: withFreshUrls });
   });
 }
 
@@ -87,11 +107,21 @@ export async function POST(request: Request) {
       project.topic?.trim() ||
       "";
 
+    const sealedStoragePath =
+      typeof project.metadata?.sealedStoragePath === "string"
+        ? project.metadata.sealedStoragePath.trim()
+        : "";
+    const freshVideo = await resolveFreshComplianceVideoUrl({
+      videoUrl: project.videoUrl,
+      storagePath: sealedStoragePath || null,
+    });
+
     const post = await distributionPostStorage.create({
       ownerUserId,
       profileId: profile.id,
       creativeProjectId: project.id,
-      videoUrl: project.videoUrl,
+      videoUrl: freshVideo.videoUrl,
+      videoStoragePath: freshVideo.storagePath ?? "",
       captionBase,
       captionsByChannel: buildCaptionsByChannel(captionBase, channels),
       channels,

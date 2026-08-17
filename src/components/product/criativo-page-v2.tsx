@@ -709,7 +709,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         const statusRes = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
         const statusPayload = await parseJsonOrText<{
           status?: string;
-          result?: { sealedUrl?: string };
+          result?: { sealedUrl?: string; storagePath?: string };
           lastError?: string;
           message?: string;
         }>(statusRes);
@@ -721,7 +721,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           if (!sealedUrl) {
             throw new Error("Job de selo concluiu sem sealedUrl.");
           }
-          return { videoUrl: sealedUrl, sealed: true as const };
+          return {
+            videoUrl: sealedUrl,
+            sealed: true as const,
+            storagePath: statusPayload.result?.storagePath?.trim() || "",
+          };
         }
         if (statusPayload.status === "failed" || statusPayload.status === "dead") {
           throw new Error(
@@ -745,6 +749,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     });
     const payload = await parseJsonOrText<{
       sealedUrl?: string;
+      storagePath?: string;
       message?: string;
     }>(response);
     if (!response.ok || !payload.sealedUrl?.trim()) {
@@ -753,7 +758,11 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           "Nao foi possivel aplicar a marca d'agua TSE no video. O download sem selo nao e liberado.",
       );
     }
-    return { videoUrl: payload.sealedUrl.trim(), sealed: true as const };
+    return {
+      videoUrl: payload.sealedUrl.trim(),
+      sealed: true as const,
+      storagePath: payload.storagePath?.trim() || "",
+    };
   }
 
   async function persistCreativeProject(input: {
@@ -763,6 +772,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     status: "ready" | "failed";
     errorMessage?: string;
     sealed?: boolean;
+    sealedStoragePath?: string;
     technologies?: string[];
   }) {
     const response = await fetch("/api/creative-projects", {
@@ -791,6 +801,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           usedFreePrompt: useFreePromptAsTranscript,
           technologies: input.technologies ?? ["HeyGen"],
           sealed: input.sealed,
+          sealedStoragePath: input.sealedStoragePath,
         }),
       }),
     });
@@ -1883,6 +1894,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         captionUrl: result.captionUrl,
         status: "ready",
         sealed: sealed.sealed,
+        sealedStoragePath: sealed.storagePath,
         technologies:
           voiceProviderHint === "elevenlabs_audio" ||
           Boolean(nextElevenLabsVoiceId || resolvedElevenLabsVoiceId.trim())
