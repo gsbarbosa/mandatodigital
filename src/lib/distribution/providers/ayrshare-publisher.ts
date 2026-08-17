@@ -6,7 +6,7 @@ export class AyrsharePublisher implements SocialPublisher {
 
   async publish(input: PublishMediaInput): Promise<PublishResult> {
     const { batchId, results } = await ayrsharePublishPerChannel({
-      profileKey: input.profileKey,
+      profileKey: input.profileKey ?? "",
       videoUrl: input.videoUrl,
       captionsByChannel: input.captionsByChannel,
       channels: input.channels,
@@ -20,8 +20,4 @@ export class AyrsharePublisher implements SocialPublisher {
       channels: results,
     };
   }
-}
-
-export function getSocialPublisher(): SocialPublisher {
-  return new AyrsharePublisher();
 }

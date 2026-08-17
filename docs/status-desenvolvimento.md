@@ -2,7 +2,7 @@
 
 Documento vivo para acompanhar o que **já existe**, o que está **parcial** e o que **falta implementar**.
 
-**Última atualização:** 2026-08-13  
+**Última atualização:** 2026-08-16  
 **Produção:** https://mandatodigital--madatodigital.us-central1.hosted.app  
 **Branch principal:** `main`
 
@@ -40,7 +40,7 @@ Documentos relacionados:
 | `AUDITOR_FACTCHECK_ENABLED` | `true` |
 | `ASAAS_NFS_ENABLED` | `true` |
 | `ASYNC_SEAL` / `ASYNC_VOICE` / `PUBSUB_JOBS` | `false` (sync) |
-| `DISTRIBUTION_*` | `false` (fail-closed) |
+| `DISTRIBUTION_*` | `true` em **staging** (smoke Instagram); prod continua `false` até promover `main` |
 
 **Persistência:** Firestore + Firebase Storage (`npm run db:reset`).
 
@@ -60,6 +60,8 @@ Documentos relacionados:
 | Fila de jobs (LLM, social, fact-check async) | ❌ | Fase 3.1 |
 | Rate limit vídeos (ex.: 5/dia) | 🟡 | No free trial (convidado): 2 vídeos/avatar (generateMode) server-side |
 | `minInstances: 1` Cloud Run | ✅ | `apphosting.yaml` (`minInstances: 1`, `maxInstances: 10`) |
+| Logs estruturados (`appLog` JSON) | ✅ | Uma linha; Cloud Logging indexa `jsonPayload.event` |
+| Falha de geração vista no browser | ✅ | `POST /api/observability/client-event` → WARNING + auditoria `client_error` |
 | Cutover total → Firestore + Storage | ✅ | Sem Postgres/Supabase |
 
 ---
@@ -107,7 +109,8 @@ Documentos relacionados:
 | Lista e persistência `creative_projects` | ✅ | |
 | Roteiro via HeyGen transcript + contexto Curador | ✅ | |
 | Handoff Sentinela → Criativo (sinal por ID) | ✅ | `?sugestao=` |
-| Produção vídeo HeyGen | ✅ | |
+| Produção vídeo HeyGen | ✅ | Gate ElevenLabs não exige voiceId no treino; clone na geração |
+| Telemetria de falha no Criativo | ✅ | Beacon `video_generate_failed` (stage train/voice_prepare/create_video/…) |
 | Prompt livre (modo teste) | ✅ | Sem fact-check |
 | Badges pipeline nos sinais (manual/portal/semântico) | ✅ | Requer flags Sentinela |
 | Metadados TSE em `creative_projects.metadata` | 🟡 | Grava ao salvar criativo |
@@ -207,17 +210,18 @@ Referência detalhada: [noticias-do-dia.md](noticias-do-dia.md)
 
 | Item | Status | Notas |
 |------|--------|-------|
-| UI v2 (`/distribuidor`) | ✅ | Fila Go/No-go, Contas, Histórico (preview local) |
-| Fluxo Criativo → Fila | ✅ | CTA **Distribuir** grava pacote no store local |
-| Conexão OAuth (Ayrshare) | ⏸ | Backend fail-closed; Contas simula vínculo no browser |
+| UI v2 (`/distribuidor`) | ✅ | Fila Go/No-go, Contas, Histórico; Instagram-only |
+| Fluxo Criativo → Fila | ✅ | CTA **Distribuir** grava pacote (demo local ou API) |
+| Conexão OAuth (Instagram Login) | ✅ | Callback `/api/distribution/instagram/callback`; testers no app Meta |
 | Draft a partir do Criativo | ✅ | Caption/vídeo do criativo selado |
-| Publicação real (7 redes) | ⏸ | Código + worker prontos; flags off até smoke |
-| Janelas / `scheduledAt` | ✅ | UI + simulação scheduled/published |
-| Blackout eleitoral (72h / 24h) | ✅ | Data em Contas (local); gate real no backend |
-| Audit log distribuição | ⏸ | Só com backend ligado |
-| Feature flags | ✅ | `DISTRIBUTION_*` = false (fail-closed) |
+| Publicação real (Instagram Reels) | 🟡 | Adapter Graph + worker; **ligado em staging** para smoke; prod off até promover |
+| Janelas / `scheduledAt` | ✅ | UI + Graph não agenda (marca `scheduled`, não posta agora) |
+| Blackout eleitoral (72h / 24h) | ✅ | Data em Contas; gate real no backend |
+| Audit log distribuição | ✅ | Worker + approve/reject/retry |
+| Feature flags | 🟡 | `DISTRIBUTION_*` = true em staging; revisar antes de `staging` → `main` |
 
-Ver [adr-distribution-ayrshare.md](adr-distribution-ayrshare.md).
+Ver [adr-distribution-instagram.md](adr-distribution-instagram.md).
+
 
 ---
 
@@ -289,6 +293,7 @@ Referência detalhada: [billing-nfse.md](billing-nfse.md)
 
 | Data | Mudança |
 |------|---------|
+| 2026-08-16 | Observabilidade: `appLog` em JSON de uma linha; beacon de falha do Criativo (`client_error`); gate de voz ElevenLabs no treino |
 | 2026-08-13 | Nova tela "Notícias do Dia" (`/monitoramento/noticias-do-dia`) — mecanismo de busca isolado do Sentinela, nova seção 5.4 |
 | 2026-08-10 | Auditoria de docs: corrigida rota `/sentinela`→`/monitoramento`; flags `SENTINEL_LLM_THEME_VERIFY`/`SENTINEL_LLM_QUALITY_RANK`/`ASAAS_NFS_ENABLED` adicionadas à tabela; nova seção 7c Billing/NFS-e; docs de roadmap/parecer movidos pra `archive/` |
 | 2026-07-13 | Fase 3.3 implementada: path `elevenlabs_audio` (IVC+TTS→`audio_url`); conta única EL; fallback `heygen_clone`; BYOK backlog |

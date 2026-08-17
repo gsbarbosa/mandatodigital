@@ -7,10 +7,11 @@ cumprirem compliance TSE de ponta a ponta:
 - **Sentinela / Monitoramento** (`/monitoramento`) — radar de temas + oposição, sinais de notícias com evidência;
 - **Criativo** — roteiro + vídeo, com handoff dos sinais do Sentinela;
 - **Auditor / Validador** — fact-check automático antes de aprovar roteiro (compliance TSE);
-- **Distribuidor** — publicação nas redes via Ayrshare (fail-closed até smoke);
+- **Distribuidor** — publicação de Reels no Instagram via Graph (fail-closed até smoke);
 - **Compliance** — selo TSE, contrato + dossiê de transparência, blackout eleitoral 72h/24h;
 - **Cobrança** — pacote campanha parcelado (Asaas PIX/boleto) + NFS-e automática — ver [docs/billing-nfse.md](docs/billing-nfse.md);
-- **Painel `/admin`** — gestão interna (provedores, usuários, roadmap, billing) — ver [docs/painel-gestao.md](docs/painel-gestao.md).
+- **Painel `/admin`** — gestão interna (provedores, usuários, roadmap, billing) — ver [docs/painel-gestao.md](docs/painel-gestao.md);
+- **Marketing outbound `/admin/marketing`** — base de prospects públicos, segmentação e campanhas de e-mail — ver [docs/marketing-outbound.md](docs/marketing-outbound.md).
 
 Nasceu como o MVP de geração de texto abaixo ("Fluxo do MVP original") e cresceu pro produto acima; o fluxo original continua funcionando como base do Criativo.
 
@@ -23,7 +24,7 @@ Nasceu como o MVP de geração de texto abaixo ("Fluxo do MVP original") e cresc
 - Monitoramento social: `Apify` (Instagram, atrás de flag)
 - E-mail transacional: `Resend`
 - Cobrança: `Asaas` (PIX/boleto + NFS-e)
-- Distribuição social: `Ayrshare` (atrás de flag, fail-closed)
+- Distribuição social: Instagram Graph / Instagram Login (atrás de flag, fail-closed)
 
 Dev e producao exigem Firebase Admin (`FIREBASE_SERVICE_ACCOUNT_JSON` localmente; ADC no App Hosting).
 
@@ -61,10 +62,11 @@ Emissão automática após pagamento confirmado (`invoiceSettings` na assinatura
 - [Status de desenvolvimento (acompanhamento, vivo)](docs/status-desenvolvimento.md)
 - [Checklist roadmap (vivo)](docs/checklist-roadmap-05ago.md)
 - [Painel de gestão (/admin)](docs/painel-gestao.md)
+- [Marketing outbound (/admin/marketing)](docs/marketing-outbound.md)
 - [Sentinela — guia de uso (passo a passo)](docs/sentinela.md)
 - [Sentinela — arquitetura técnica (handoff)](docs/sentinela-arquitetura.md)
 - [Billing e NFS-e (Asaas)](docs/billing-nfse.md)
-- [Distribuidor — ADR (Ayrshare)](docs/adr-distribution-ayrshare.md)
+- [Distribuidor — ADR (Instagram Graph)](docs/adr-distribution-instagram.md)
 - [Jobs assíncronos — ADR (Pub/Sub)](docs/adr-async-jobs-pubsub.md)
 - [Firebase Storage — fase 1](docs/firebase-storage-fase1.md)
 - [E2E Sentinela (Playwright)](docs/e2e-sentinela.md)

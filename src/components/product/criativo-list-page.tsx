@@ -97,7 +97,7 @@ export function CriativoListPage() {
         throw new Error("O criativo precisa de vídeo antes de enviar ao Publicador.");
       }
 
-      // Backend Ayrshare permanece fail-closed; o fluxo de produto usa store local.
+      // Backend Instagram permanece fail-closed; o fluxo de produto usa store local.
       if (isDistributionDemoMode()) {
         const post = createDemoPost({
           creativeProjectId: project.id,

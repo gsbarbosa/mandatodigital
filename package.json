@@ -32,7 +32,8 @@
     "firebase:secrets:apply": "node scripts/firebase-secrets-guide.mjs --apply",
     "env:pull": "node scripts/pull-remote-env.mjs",
     "admin:set-flag": "node scripts/set-admin-flag.mjs",
-    "tse:seed": "npx vite-node --config vitest.config.ts scripts/seed-tse-candidates.ts"
+    "tse:seed": "npx vite-node --config vitest.config.ts scripts/seed-tse-candidates.ts",
+    "marketing:seed": "npx vite-node --config vitest.config.ts scripts/seed-marketing-contacts.ts"
   },
   "keywords": [
     "nextjs",

@@ -14,8 +14,9 @@ import type {
 import { isDistributionChannelId } from "@/lib/distribution/channels";
 import { checkElectoralBlackout } from "@/lib/distribution/blackout";
 import { socialConnectionStorage } from "@/lib/distribution/connection-storage";
+import { resolveInstagramPublishAuth } from "@/lib/distribution/instagram-credentials";
 import { distributionPostStorage } from "@/lib/distribution/post-storage";
-import { getSocialPublisher } from "@/lib/distribution/providers/ayrshare-publisher";
+import { getSocialPublisher } from "@/lib/distribution/providers/instagram-publisher";
 import type { ChannelDeliveryState, DistributionPostStatus } from "@/lib/distribution/types";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { resolveVideoSpeechForGeneration } from "@/lib/voice-provider-resolve";
@@ -282,8 +283,9 @@ export async function processPublishJob(jobId: string) {
     }
 
     const connection = await socialConnectionStorage.getByProfileId(post.profileId);
-    if (!connection?.ayrshareProfileKey) {
-      throw new Error("Contas sociais nao conectadas para este perfil.");
+    const instagramAuth = resolveInstagramPublishAuth(connection);
+    if (!instagramAuth) {
+      throw new Error("Conta Instagram nao conectada para este perfil.");
     }
 
     const blackout = checkElectoralBlackout();
@@ -302,7 +304,7 @@ export async function processPublishJob(jobId: string) {
     const channels = requested.length > 0 ? requested : post.channels;
     const retryFailedOnly = Boolean(payload.retryFailedOnly);
 
-    const toPublish = channels.filter((channel) => {
+    const pending = channels.filter((channel) => {
       const state = post.perChannelStatus[channel];
       if (state?.status === "published") {
         return false;
@@ -312,11 +314,35 @@ export async function processPublishJob(jobId: string) {
       }
       return true;
     });
+    const toPublish = pending.filter((channel) => channel === "instagram");
+    const skippedChannels = pending.filter((channel) => channel !== "instagram");
 
-    if (toPublish.length === 0) {
+    if (toPublish.length === 0 && skippedChannels.length === 0) {
       return await completeAsyncJob(jobId, {
         skipped: true,
         reason: "Nenhum canal pendente para publicar.",
+      });
+    }
+
+    if (toPublish.length === 0) {
+      const now = nowIso();
+      const perChannelStatus = { ...post.perChannelStatus };
+      for (const channel of skippedChannels) {
+        perChannelStatus[channel] = {
+          status: "skipped",
+          externalPostId: null,
+          postUrl: null,
+          error: "Canal fora do recorte Instagram.",
+          updatedAt: now,
+        };
+      }
+      await distributionPostStorage.update(post.id, {
+        perChannelStatus,
+        lastError: "Canal fora do recorte Instagram.",
+      });
+      return await completeAsyncJob(jobId, {
+        skipped: true,
+        reason: "Canal fora do recorte Instagram.",
       });
     }
 
@@ -335,7 +361,8 @@ export async function processPublishJob(jobId: string) {
       captionsByChannel: post.captionsByChannel,
       channels: toPublish,
       scheduledAt: scheduledAt ?? null,
-      profileKey: connection.ayrshareProfileKey,
+      instagramAccessToken: instagramAuth.accessToken,
+      instagramUserId: instagramAuth.igUserId,
       idempotencyKey: `${post.id}:${jobId}`,
     });
 
@@ -355,9 +382,20 @@ export async function processPublishJob(jobId: string) {
         updatedAt: now,
       };
     }
+    for (const channel of skippedChannels) {
+      perChannelStatus[channel] = {
+        status: "skipped",
+        externalPostId: null,
+        postUrl: null,
+        error: "Canal fora do recorte Instagram.",
+        updatedAt: now,
+      };
+    }
 
     const status = derivePostStatus(
-      Object.values(perChannelStatus).filter(Boolean) as ChannelDeliveryState[],
+      (Object.values(perChannelStatus).filter(Boolean) as ChannelDeliveryState[]).filter(
+        (channel) => channel.status !== "skipped",
+      ),
       Boolean(scheduledAt),
     );
 

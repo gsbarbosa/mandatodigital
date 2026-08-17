@@ -33,6 +33,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   content_generate: "Geracao de conteudo",
   creative_project_create: "Criativo criado",
   video_generate: "Geracao de video",
+  client_error: "Erro visto pelo usuario",
   seal_job: "Job de selagem",
   voice_job: "Job de voz",
   script_fact_check: "Fact-check",

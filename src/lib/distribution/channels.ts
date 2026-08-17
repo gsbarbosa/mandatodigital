@@ -1,4 +1,4 @@
-/** Canais de distribuição suportados (7 redes do marketing). */
+/** As 7 redes do Publicador. Só o Instagram conecta/publica neste recorte. */
 
 export const DISTRIBUTION_CHANNEL_IDS = [
   "instagram",
@@ -10,6 +10,11 @@ export const DISTRIBUTION_CHANNEL_IDS = [
   "twitter",
 ] as const;
 
+/** Canais que de fato conectam e publicam. A UI lista todas as 7. */
+export const ACTIVE_DISTRIBUTION_CHANNEL_IDS = ["instagram"] as const;
+
+export type ActiveDistributionChannelId = (typeof ACTIVE_DISTRIBUTION_CHANNEL_IDS)[number];
+
 export type DistributionChannelId = (typeof DISTRIBUTION_CHANNEL_IDS)[number];
 
 export type DistributionChannelDef = {
@@ -19,6 +24,12 @@ export type DistributionChannelDef = {
   ayrshare: string;
   captionLimit: number;
 };
+
+export function isActiveDistributionChannelId(
+  value: string,
+): value is ActiveDistributionChannelId {
+  return (ACTIVE_DISTRIBUTION_CHANNEL_IDS as readonly string[]).includes(value);
+}
 
 export const DISTRIBUTION_CHANNELS: readonly DistributionChannelDef[] = [
   { id: "instagram", label: "Instagram Reels", ayrshare: "instagram", captionLimit: 2200 },
@@ -46,6 +57,9 @@ const LEGACY_LABEL_TO_ID: Record<string, DistributionChannelId> = {
   LinkedIn: "linkedin",
   Threads: "threads",
 };
+
+export const ACTIVE_DISTRIBUTION_CHANNELS: readonly DistributionChannelDef[] =
+  DISTRIBUTION_CHANNELS.filter((channel) => isActiveDistributionChannelId(channel.id));
 
 export function isDistributionChannelId(value: string): value is DistributionChannelId {
   return (DISTRIBUTION_CHANNEL_IDS as readonly string[]).includes(value);

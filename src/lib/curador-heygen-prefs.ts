@@ -44,6 +44,29 @@ export function shouldInvalidateHeygenVoiceClone(
   return savedAudioAssetId !== currentAudioAssetId;
 }
 
+/**
+ * Depois de /api/heygen/train: no path `elevenlabs_audio` a clonagem é adiada
+ * para a geração do vídeo (IVC efêmero). Exigir voiceId aqui bloqueia o Criativo
+ * mesmo com o áudio já importado.
+ */
+export function isVoicePreparedForGeneration(input: {
+  hasVoiceAudioAsset: boolean;
+  voiceId?: string | null;
+  elevenLabsVoiceId?: string | null;
+  voiceProvider?: string | null;
+}): boolean {
+  if (!input.hasVoiceAudioAsset) {
+    return false;
+  }
+  if (String(input.voiceProvider ?? "").trim() === "elevenlabs_audio") {
+    return true;
+  }
+  return Boolean(
+    String(input.voiceId ?? "").trim() ||
+      String(input.elevenLabsVoiceId ?? "").trim(),
+  );
+}
+
 /** Invalida vínculo ElevenLabs quando a amostra de áudio mudou. */
 export function shouldInvalidateElevenLabsVoiceClone(
   prefs: CuradorHeygenPrefs,

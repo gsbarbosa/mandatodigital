@@ -33,6 +33,7 @@ const SECRET_TO_ENVS = {
   "firebase-service-account-json": ["FIREBASE_SERVICE_ACCOUNT_JSON"],
   "resend-api-key": ["RESEND_API_KEY"],
   "jobs-worker-shared-secret": ["JOBS_WORKER_SHARED_SECRET"],
+  "instagram-app-secret": ["INSTAGRAM_APP_SECRET"],
 };
 
 const ENV_PRESETS = {

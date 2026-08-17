@@ -7,8 +7,10 @@ export type PublishMediaInput = {
   captionsByChannel: Partial<Record<DistributionChannelId, string>>;
   channels: DistributionChannelId[];
   scheduledAt: string | null;
-  /** Profile key do tenant (Ayrshare). */
-  profileKey: string;
+  /** Profile key legado (Ayrshare). */
+  profileKey?: string;
+  instagramAccessToken?: string;
+  instagramUserId?: string;
   idempotencyKey: string;
 };
 

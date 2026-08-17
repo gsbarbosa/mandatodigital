@@ -5,7 +5,7 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
 import { buildCaptionsByChannel } from "@/lib/distribution/captions";
 import {
-  DISTRIBUTION_CHANNEL_IDS,
+  isActiveDistributionChannelId,
   type DistributionChannelId,
 } from "@/lib/distribution/channels";
 import { assertDistributionReady } from "@/lib/distribution/guard";
@@ -71,10 +71,16 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const body = patchSchema.parse(await request.json());
     const channels = (
-      body.channels?.filter((channelId): channelId is DistributionChannelId =>
-        (DISTRIBUTION_CHANNEL_IDS as readonly string[]).includes(channelId),
-      ) ?? existing.channels
+      body.channels
+        ? body.channels.filter(isActiveDistributionChannelId)
+        : existing.channels
     ) as DistributionChannelId[];
+    if (channels.length === 0) {
+      return NextResponse.json(
+        { message: "Selecione o Instagram para este recorte do Publicador." },
+        { status: 400 },
+      );
+    }
 
     const captionBase = body.captionBase?.trim() ?? existing.captionBase;
     const overrides = {

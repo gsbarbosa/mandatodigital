@@ -212,27 +212,27 @@ env:
     availability:
       - RUNTIME
 
-  # Distribuidor — fail-closed ate smoke + secrets Ayrshare
+  # Distribuidor — ligado em staging para smoke Instagram; revisar antes de promover main.
   - variable: DISTRIBUTION_ENABLED
-    value: "false"
+    value: "true"
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_DISTRIBUTION_ENABLED
-    value: "false"
+    value: "true"
     availability:
       - BUILD
       - RUNTIME
 
   - variable: DISTRIBUTION_PUBLISH_ENABLED
-    value: "false"
+    value: "true"
     availability:
       - BUILD
       - RUNTIME
 
   - variable: NEXT_PUBLIC_DISTRIBUTION_PUBLISH_ENABLED
-    value: "false"
+    value: "true"
     availability:
       - BUILD
       - RUNTIME
@@ -267,6 +267,15 @@ env:
   #   value: "mandatodigital"
   #   availability:
   #     - RUNTIME
+  # Instagram Graph. Cadastre o secret: npm run firebase:secrets:guide / --apply
+  - variable: INSTAGRAM_APP_ID
+    value: "1077558881595264"
+    availability:
+      - RUNTIME
+  - variable: INSTAGRAM_APP_SECRET
+    secret: instagram-app-secret
+    availability:
+      - RUNTIME
 
   # Asaas (boleto). Cadastre: npm run firebase:secrets:guide / --apply
   - variable: ASAAS_API_KEY

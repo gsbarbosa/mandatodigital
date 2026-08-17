@@ -344,20 +344,34 @@ export async function POST(request: Request) {
           "Voz clonada para foto real. Agora gere o video com a foto enviada em Configurar avatar.",
       };
 
+      const hasVoiceId = Boolean(voiceId);
+      const hasElevenLabsVoiceId = Boolean(elevenLabsVoiceId);
+      const voiceProvider = isElevenLabsAudioVoiceProvider()
+        ? "elevenlabs_audio"
+        : "heygen_clone";
+
       appLog("heygen", "train_completed", {
         profileId,
         mode,
         action: trainAction,
         trainingPhase,
         hasAvatarId: Boolean(avatarId),
+        hasVoiceId,
+        hasElevenLabsVoiceId,
         voiceAudioAssetId: voiceAudioAsset.id,
         caricatureAssetId: caricatureAsset?.id ?? null,
         avatarImageAssetId: avatarImageAsset?.id ?? null,
-        voiceProvider: isElevenLabsAudioVoiceProvider()
-          ? "elevenlabs_audio"
-          : "heygen_clone",
+        voiceProvider,
         durationMs: routeElapsed(),
       });
+      if (voiceProvider === "heygen_clone" && !hasVoiceId) {
+        appLog(
+          "heygen",
+          "train_completed_without_voice",
+          { profileId, mode, voiceAudioAssetId: voiceAudioAsset.id },
+          "warn",
+        );
+      }
 
       return NextResponse.json(
         {
@@ -375,9 +389,7 @@ export async function POST(request: Request) {
           caricatureAssetId: caricatureAsset?.id ?? null,
           avatarImageAssetId: avatarImageAsset?.id ?? null,
           voiceAudioAssetId: voiceAudioAsset.id,
-          voiceProvider: isElevenLabsAudioVoiceProvider()
-            ? "elevenlabs_audio"
-            : "heygen_clone",
+          voiceProvider,
           message: messageByMode[mode],
         },
         { status: 201 },

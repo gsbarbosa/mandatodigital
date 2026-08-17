@@ -24,7 +24,7 @@ export const COLLECTIONS = {
   ttsAudioPending: "ttsAudioPending",
   /** Seleção de voz ElevenLabs + prévias TTS (doc id = profileId). */
   profileVoiceSelections: "profileVoiceSelections",
-  /** Contas sociais conectadas (Ayrshare) por perfil político. */
+  /** Contas sociais conectadas (Instagram Graph) por perfil político. */
   socialConnections: "socialConnections",
   /** Pacotes de publicação do Distribuidor. */
   distributionPosts: "distributionPosts",
@@ -52,6 +52,18 @@ export const COLLECTIONS = {
    * e de propósito fora do `db:reset`.
    */
   tseCandidates2026: "tseCandidates2026",
+  /**
+   * Base de prospects do outbound (dirigentes partidários + parlamentares).
+   * Dado de referência público, populado por scripts/seed-marketing-contacts.ts
+   * e de propósito fora do `db:reset`. Ver docs/marketing-outbound.md.
+   */
+  marketingContacts: "marketingContacts",
+  /** Segmentos de público salvos no painel de marketing. */
+  marketingSegments: "marketingSegments",
+  /** Campanhas de e-mail/WhatsApp do painel de marketing. */
+  marketingCampaigns: "marketingCampaigns",
+  /** Registro por contato de cada disparo (trilha de acompanhamento). */
+  marketingSends: "marketingSends",
   /** Legado — lido só para migração soft; não gravar mais. */
   earlyAccessReservations: "earlyAccessReservations",
 } as const;

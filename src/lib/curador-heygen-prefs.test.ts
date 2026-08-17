@@ -5,6 +5,7 @@ import {
   formatHeyGenPurgeFailureMessage,
   formatProviderLimitHint,
   sanitizeProviderFacingMessage,
+  isVoicePreparedForGeneration,
   shouldInvalidateElevenLabsVoiceClone,
   shouldInvalidateHeygenVoiceClone,
 } from "./curador-heygen-prefs";
@@ -31,6 +32,51 @@ describe("shouldInvalidateHeygenVoiceClone", () => {
   it("invalida se ha voz salva sem vinculo de audio (estado legado)", () => {
     expect(
       shouldInvalidateHeygenVoiceClone({ heygenVoiceId: "v1" }, "audio-a"),
+    ).toBe(true);
+  });
+});
+
+describe("isVoicePreparedForGeneration", () => {
+  it("libera o path elevenlabs_audio sem voiceId (clone só na geração)", () => {
+    expect(
+      isVoicePreparedForGeneration({
+        hasVoiceAudioAsset: true,
+        voiceProvider: "elevenlabs_audio",
+      }),
+    ).toBe(true);
+  });
+
+  it("bloqueia elevenlabs_audio sem áudio no perfil", () => {
+    expect(
+      isVoicePreparedForGeneration({
+        hasVoiceAudioAsset: false,
+        voiceProvider: "elevenlabs_audio",
+      }),
+    ).toBe(false);
+  });
+
+  it("exige voiceId no path heygen_clone", () => {
+    expect(
+      isVoicePreparedForGeneration({
+        hasVoiceAudioAsset: true,
+        voiceProvider: "heygen_clone",
+      }),
+    ).toBe(false);
+    expect(
+      isVoicePreparedForGeneration({
+        hasVoiceAudioAsset: true,
+        voiceProvider: "heygen_clone",
+        voiceId: "hg-1",
+      }),
+    ).toBe(true);
+  });
+
+  it("aceita elevenLabsVoiceId mesmo sem provider explícito", () => {
+    expect(
+      isVoicePreparedForGeneration({
+        hasVoiceAudioAsset: true,
+        elevenLabsVoiceId: "el-1",
+      }),
     ).toBe(true);
   });
 });

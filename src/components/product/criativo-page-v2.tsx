@@ -42,6 +42,7 @@ import {
 } from "@/components/product/persona-shared";
 import {
   formatProviderLimitHint,
+  isVoicePreparedForGeneration,
   readCuradorHeygenPrefs,
   sanitizeProviderFacingMessage,
   shouldInvalidateHeygenVoiceClone,
@@ -50,6 +51,7 @@ import {
 } from "@/lib/curador-heygen-prefs";
 import { pickLatestCaricatureForVariant } from "@/lib/caricature-asset-variant";
 import { getCriativoGate, withGateReturnParam } from "@/lib/criativo-gate";
+import { reportClientObservabilityEvent } from "@/lib/observability/report-client-event";
 import {
   isConsentApproved,
   isTwinLookReadyForVideo,
@@ -915,6 +917,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     avatarGroupStatus?: string | null;
     trainingPhase?: HeyGenTrainingPhase;
     message?: string;
+    voiceProvider?: string | null;
   };
 
   async function requestHeyGenTrain(input?: {
@@ -1178,7 +1181,10 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   async function handleTrainHeyGen(options?: {
     mode?: "digital_twin" | "caricature" | "photo_real";
-  }): Promise<{ voiceId?: string; elevenLabsVoiceId?: string } | undefined> {
+  }): Promise<
+    | { voiceId?: string; elevenLabsVoiceId?: string; voiceProvider?: string }
+    | undefined
+  > {
     const trainMode =
       options?.mode ??
       (avatarTrack === "realistic"
@@ -1218,6 +1224,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       return {
         voiceId: payload.voiceId?.trim() || undefined,
         elevenLabsVoiceId: payload.elevenLabsVoiceId?.trim() || undefined,
+        voiceProvider: payload.voiceProvider?.trim() || undefined,
       };
     } catch (error) {
       setTrainingStarted(false);
@@ -1619,6 +1626,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
     setIsSealing(false);
     autoPollStartedRef.current = false;
     let startedVideoId: string | null = null;
+    let generateStage:
+      | "precheck"
+      | "train"
+      | "voice_prepare"
+      | "create_video"
+      | "poll_video"
+      | "seal" = "precheck";
+    let trainVoiceProvider = "";
+    let resolvedVoiceId = heygenVoiceId;
+    let resolvedElevenLabsVoiceId = elevenLabsVoiceId;
 
     const guestTrial = !isPremium;
 
@@ -1662,8 +1679,6 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       if (!useFreePromptAsTranscript && !scriptDraft.trim()) {
         throw new Error("Gere e aprove um roteiro antes de produzir o conteudo.");
       }
-      let resolvedVoiceId = heygenVoiceId;
-      let resolvedElevenLabsVoiceId = elevenLabsVoiceId;
       const selectedVoiceAudioAssetId = voiceAudioAssets[0]?.id?.trim() ?? "";
       const selectedAvatarImageAssetId = avatarImageAssets[0]?.id?.trim() ?? "";
       if (
@@ -1698,20 +1713,31 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           avatarTrack === "photo_real" || avatarTrack === "realistic"
             ? "photo_real"
             : "caricature";
+        generateStage = "train";
         const synced = await handleTrainHeyGen({ mode: trainMode });
+        trainVoiceProvider = synced?.voiceProvider?.trim() || "";
         if (synced?.voiceId) {
           resolvedVoiceId = synced.voiceId;
         }
         if (synced?.elevenLabsVoiceId) {
           resolvedElevenLabsVoiceId = synced.elevenLabsVoiceId;
         }
-        if (!resolvedVoiceId.trim() && !resolvedElevenLabsVoiceId.trim()) {
+        generateStage = "voice_prepare";
+        if (
+          !isVoicePreparedForGeneration({
+            hasVoiceAudioAsset: Boolean(selectedVoiceAudioAssetId),
+            voiceId: resolvedVoiceId,
+            elevenLabsVoiceId: resolvedElevenLabsVoiceId,
+            voiceProvider: synced?.voiceProvider,
+          })
+        ) {
           throw new Error(
             "Não foi possível preparar a voz na plataforma. Verifique o áudio enviado.",
           );
         }
       }
 
+      generateStage = "create_video";
       const response = await fetchHeygenApi("/api/heygen/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1761,6 +1787,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       let voiceProviderHint = payload.voiceProvider;
 
       if (!id && payload.jobId?.trim()) {
+        generateStage = "poll_video";
         const voiceJobId = payload.jobId.trim();
         const pollIntervalMs = 2500;
         const maxAttempts = 120;
@@ -1833,6 +1860,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       startedVideoId = id;
       setVideoId(id);
       setVideoStatus("pending");
+      generateStage = "poll_video";
       const result = await pollVideo(id);
 
       // HeyGen terminou: tira "Gerando...", mostra fase de selo (sem liberar URL sem watermark).
@@ -1840,6 +1868,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       setIsSealing(true);
       setVideoStatus("sealing");
       setVideoUrl(null);
+      generateStage = "seal";
 
       const sealed = await sealVideoIfPossible({
         heygenVideoId: id,
@@ -1862,6 +1891,26 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       });
       router.push("/criativo");
     } catch (error) {
+      if (
+        generateStage === "train" ||
+        generateStage === "voice_prepare" ||
+        generateStage === "create_video" ||
+        generateStage === "poll_video" ||
+        generateStage === "seal"
+      ) {
+        reportClientObservabilityEvent({
+          event: "video_generate_failed",
+          surface: "criativo",
+          stage: generateStage,
+          message:
+            error instanceof Error ? error.message : "A geracao do video falhou.",
+          avatarTrack,
+          voiceProvider: trainVoiceProvider || undefined,
+          hasVoiceAudioAsset: Boolean(voiceAudioAssets[0]?.id?.trim()),
+          hasVoiceId: Boolean(resolvedVoiceId.trim()),
+          hasElevenLabsVoiceId: Boolean(resolvedElevenLabsVoiceId.trim()),
+        });
+      }
       if (startedVideoId) {
         try {
           await persistCreativeProject({

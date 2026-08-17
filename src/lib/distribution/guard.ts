@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { isAyrshareConfigured } from "@/lib/distribution/ayrshare-client";
+import { isInstagramConfigured } from "@/lib/distribution/instagram-env";
 import { isDistributionEnabled } from "@/lib/feature-flags";
 
 export function distributionDisabledResponse() {
   return NextResponse.json(
     {
       message:
-        "Publicador desligado. Defina DISTRIBUTION_ENABLED=true apos configurar Ayrshare.",
+        "Publicador desligado. Defina DISTRIBUTION_ENABLED=true apos configurar o Instagram.",
     },
     { status: 503 },
   );
@@ -17,9 +17,12 @@ export function assertDistributionReady(): NextResponse | null {
   if (!isDistributionEnabled()) {
     return distributionDisabledResponse();
   }
-  if (!isAyrshareConfigured()) {
+  if (!isInstagramConfigured()) {
     return NextResponse.json(
-      { message: "AYRSHARE_API_KEY nao configurada no servidor." },
+      {
+        message:
+          "Instagram nao configurado. Defina INSTAGRAM_APP_ID/SECRET ou INSTAGRAM_ACCESS_TOKEN + INSTAGRAM_IG_USER_ID.",
+      },
       { status: 503 },
     );
   }
