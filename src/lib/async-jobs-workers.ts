@@ -14,6 +14,7 @@ import type {
 import { isDistributionChannelId } from "@/lib/distribution/channels";
 import { checkElectoralBlackout } from "@/lib/distribution/blackout";
 import { socialConnectionStorage } from "@/lib/distribution/connection-storage";
+import { resolveFreshComplianceVideoUrl } from "@/lib/distribution/fresh-video-url";
 import { resolveInstagramPublishAuth } from "@/lib/distribution/instagram-credentials";
 import { distributionPostStorage } from "@/lib/distribution/post-storage";
 import { getSocialPublisher } from "@/lib/distribution/providers/instagram-publisher";
@@ -346,9 +347,16 @@ export async function processPublishJob(jobId: string) {
       });
     }
 
+    const freshVideo = await resolveFreshComplianceVideoUrl({
+      videoUrl: post.videoUrl,
+      storagePath: post.videoStoragePath,
+    });
+
     await distributionPostStorage.update(post.id, {
       status: "publishing",
       lastError: "",
+      videoUrl: freshVideo.videoUrl,
+      videoStoragePath: freshVideo.storagePath ?? post.videoStoragePath,
     });
 
     const publisher = getSocialPublisher();
@@ -356,7 +364,7 @@ export async function processPublishJob(jobId: string) {
       payload.scheduledAt !== undefined ? payload.scheduledAt : post.scheduledAt;
 
     const result = await publisher.publish({
-      videoUrl: post.videoUrl,
+      videoUrl: freshVideo.videoUrl,
       caption: post.captionBase,
       captionsByChannel: post.captionsByChannel,
       channels: toPublish,

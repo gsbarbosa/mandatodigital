@@ -27,6 +27,7 @@ export type CreativeAiMetadata = {
   factCheckVerdict?: string;
   usedFreePrompt?: boolean;
   sealed?: boolean;
+  sealedStoragePath?: string;
   generatedAt: string;
 };
 
@@ -36,6 +37,7 @@ export function buildCreativeAiMetadata(input: {
   usedFreePrompt?: boolean;
   technologies?: string[];
   sealed?: boolean;
+  sealedStoragePath?: string;
 }): CreativeAiMetadata {
   return {
     aiGenerated: true,
@@ -46,6 +48,9 @@ export function buildCreativeAiMetadata(input: {
     usedFreePrompt: input.usedFreePrompt,
     sealed: input.sealed,
     generatedAt: new Date().toISOString(),
+    ...(input.sealedStoragePath?.trim()
+      ? { sealedStoragePath: input.sealedStoragePath.trim() }
+      : {}),
   };
 }
 

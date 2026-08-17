@@ -28,7 +28,8 @@ quente: o contrato `SocialPublisher` permanece, com adapter `InstagramGraphPubli
 
 - App Review da Meta (screencast + 1 publish real) continua **depois** do smoke no
   `@mandatodigital.app` (tester). Gabinetes que não são testers só depois do review.
-- `videoUrl` precisa ser URL que os servidores da Meta consigam baixar.
+- `videoUrl` precisa ser URL que os servidores da Meta consigam baixar. O worker
+  **renova a URL assinada do Storage** na hora do publish (GCS v4 expira em 7 dias).
 - Ayrshare permanece no repo como legado, fora do factory `getSocialPublisher()`.
 
 ## Fluxo
