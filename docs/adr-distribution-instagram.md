@@ -21,8 +21,8 @@ quente: o contrato `SocialPublisher` permanece, com adapter `InstagramGraphPubli
    `media_publish`. Graph não agenda: `scheduledAt` futuro marca `scheduled` e não posta agora.
 5. **Flags:** em staging `DISTRIBUTION_ENABLED` e `DISTRIBUTION_PUBLISH_ENABLED` ligados
    para smoke. Produção permanece fail-closed até promover `staging` → `main`.
-6. **Canais:** `DISTRIBUTION_CHANNEL_IDS` permanece com as 7 redes (legado/captions).
-   `ACTIVE_DISTRIBUTION_CHANNEL_IDS = ["instagram"]` governa UI, create post e worker.
+6. **Canais:** a UI lista as 7 redes. Só o Instagram conecta e publica
+   (`ACTIVE_DISTRIBUTION_CHANNEL_IDS = ["instagram"]` no OAuth, create post e worker).
 
 ## Consequências
 

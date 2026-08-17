@@ -1,4 +1,4 @@
-/** Canais conhecidos (legado + recorte atual). O Publicador ativo é só Instagram. */
+/** As 7 redes do Publicador. Só o Instagram conecta/publica neste recorte. */
 
 export const DISTRIBUTION_CHANNEL_IDS = [
   "instagram",
@@ -10,6 +10,7 @@ export const DISTRIBUTION_CHANNEL_IDS = [
   "twitter",
 ] as const;
 
+/** Canais que de fato conectam e publicam. A UI lista todas as 7. */
 export const ACTIVE_DISTRIBUTION_CHANNEL_IDS = ["instagram"] as const;
 
 export type ActiveDistributionChannelId = (typeof ACTIVE_DISTRIBUTION_CHANNEL_IDS)[number];

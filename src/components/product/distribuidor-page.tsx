@@ -15,8 +15,8 @@ import {
 } from "@/components/marketing/icons";
 import { parseJsonOrText } from "@/components/product/persona-shared";
 import {
-  ACTIVE_DISTRIBUTION_CHANNEL_IDS,
-  ACTIVE_DISTRIBUTION_CHANNELS,
+  DISTRIBUTION_CHANNELS,
+  isActiveDistributionChannelId,
   type DistributionChannelId,
 } from "@/lib/distribution/channels";
 import {
@@ -46,8 +46,11 @@ const CHANNEL_ICONS = {
 
 function ConnectedNetworksLogos() {
   return (
-    <span className="mt-1.5 flex flex-wrap items-center gap-1.5" aria-label="Instagram">
-      {ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => {
+    <span
+      className="mt-1.5 flex flex-wrap items-center gap-1.5"
+      aria-label="Instagram, Facebook, TikTok, YouTube, Threads, LinkedIn e X"
+    >
+      {DISTRIBUTION_CHANNELS.map((channel) => {
         const Icon = CHANNEL_ICONS[channel.id];
         return <Icon key={channel.id} size={14} className="text-md-text-muted" />;
       })}
@@ -165,9 +168,23 @@ export function DistribuidorPage() {
     [posts],
   );
 
-  const connectedCount = useMemo(
-    () => connections?.channels.filter((channel) => channel.connected).length ?? 0,
+  const accountChannels = useMemo(
+    () =>
+      DISTRIBUTION_CHANNELS.map((channel) => {
+        const row = connections?.channels.find((item) => item.id === channel.id);
+        return {
+          id: channel.id,
+          label: channel.label,
+          connected: Boolean(row?.connected),
+          displayName: row?.displayName ?? null,
+          connectable: isActiveDistributionChannelId(channel.id),
+        };
+      }),
     [connections],
+  );
+  const connectedCount = accountChannels.filter((channel) => channel.connected).length;
+  const instagramConnected = Boolean(
+    accountChannels.find((channel) => channel.id === "instagram")?.connected,
   );
 
   const loadAll = useCallback(
@@ -310,11 +327,7 @@ export function DistribuidorPage() {
     }
     setCaptionDraft(selected.captionBase);
     setScheduledAt(selected.scheduledAt ? selected.scheduledAt.slice(0, 16) : "");
-    setSelectedChannels(
-      selected.channels.filter((channel) =>
-        (ACTIVE_DISTRIBUTION_CHANNEL_IDS as readonly string[]).includes(channel),
-      ),
-    );
+    setSelectedChannels(selected.channels.filter(isActiveDistributionChannelId));
   }, [selected]);
 
   function runAction(action: () => void, successMessage: string, nextTab?: TabId) {
@@ -428,7 +441,7 @@ export function DistribuidorPage() {
           throw new Error(payload.message || "Nao foi possivel publicar.");
         }
       },
-      "Publicação enviada para o Instagram.",
+      "Publicação enviada.",
       "historico",
     );
   }
@@ -502,6 +515,9 @@ export function DistribuidorPage() {
   }
 
   function toggleChannel(id: DistributionChannelId) {
+    if (!isActiveDistributionChannelId(id)) {
+      return;
+    }
     setSelectedChannels((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
@@ -517,7 +533,7 @@ export function DistribuidorPage() {
       <div className="relative z-10 mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <ProductPageHeader
           title="Publicador"
-          description="Revise o vídeo, escolha o Instagram e acompanhe o disparo."
+          description="Revise o vídeo, escolha as redes e acompanhe o disparo coordenado."
         />
 
         {demoMode ? (
@@ -543,10 +559,7 @@ export function DistribuidorPage() {
             <ConnectedNetworksLogos />
             <p className="mt-2 text-2xl font-bold tabular-nums text-md-text">
               {connectedCount}
-              <span className="text-sm font-medium text-md-text-soft">
-                {" "}
-                / {ACTIVE_DISTRIBUTION_CHANNEL_IDS.length}
-              </span>
+              <span className="text-sm font-medium text-md-text-soft"> / 7</span>
             </p>
           </div>
           <div className="rounded-2xl border border-md-border bg-md-surface/40 px-4 py-4">
@@ -623,8 +636,9 @@ export function DistribuidorPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-md-text">Redes conectadas</h2>
                   <p className="mt-1 text-sm text-md-text-soft">
-                    Conecte o Instagram ao Mandato Digital para publicar Reels
-                    diretamente do painel.
+                    Conecte as suas redes sociais ao Mandato Digital para publicações
+                    diretamente do painel. As adaptações de conteúdo para cada rede é realizada
+                    automaticamente.
                   </p>
                 </div>
                 <button
@@ -633,11 +647,11 @@ export function DistribuidorPage() {
                   onClick={() => void connectAccounts()}
                   className="rounded-xl bg-[var(--distribuidor)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--distribuidor-hover)] disabled:opacity-50"
                 >
-                  {connectedCount > 0 ? "Reconectar Instagram" : "Conectar Instagram"}
+                  {instagramConnected ? "Reconectar contas" : "Conectar redes"}
                 </button>
               </div>
               <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-                {(connections?.channels ?? []).map((channel) => (
+                {accountChannels.map((channel) => (
                   <li
                     key={channel.id}
                     className="flex items-center justify-between rounded-xl border border-md-border bg-md-surface-inset/60 px-4 py-3"
@@ -647,7 +661,9 @@ export function DistribuidorPage() {
                       {channel.displayName ? (
                         <p className="mt-0.5 text-xs text-md-text-soft">{channel.displayName}</p>
                       ) : (
-                        <p className="mt-0.5 text-xs text-md-text-muted">Aguardando conexão</p>
+                        <p className="mt-0.5 text-xs text-md-text-muted">
+                          {channel.connectable ? "Aguardando conexão" : "Em breve"}
+                        </p>
                       )}
                     </div>
                     <span
@@ -657,7 +673,11 @@ export function DistribuidorPage() {
                           : "border-md-border text-md-text-muted"
                       }`}
                     >
-                      {channel.connected ? "Conectada" : "Pendente"}
+                      {channel.connected
+                        ? "Conectada"
+                        : channel.connectable
+                          ? "Pendente"
+                          : "Em breve"}
                     </span>
                   </li>
                 ))}
@@ -780,16 +800,17 @@ export function DistribuidorPage() {
                   <div>
                     <p className="text-sm text-md-text-soft">Canais</p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => {
+                      {DISTRIBUTION_CHANNELS.map((channel) => {
                         const active = selectedChannels.includes(channel.id);
-                        const connected = connections?.channels.find(
+                        const connected = accountChannels.find(
                           (row) => row.id === channel.id,
                         )?.connected;
+                        const connectable = isActiveDistributionChannelId(channel.id);
                         return (
                           <button
                             key={channel.id}
                             type="button"
-                            disabled={!isEditable(selected.status)}
+                            disabled={!isEditable(selected.status) || !connectable}
                             onClick={() => toggleChannel(channel.id)}
                             className={`rounded-full border px-3 py-1 text-xs transition disabled:opacity-50 ${
                               active
@@ -821,7 +842,7 @@ export function DistribuidorPage() {
                     {selected.channels.map((channel) => {
                       const state = selected.perChannelStatus[channel];
                       const label =
-                        ACTIVE_DISTRIBUTION_CHANNELS.find((item) => item.id === channel)?.label ??
+                        DISTRIBUTION_CHANNELS.find((item) => item.id === channel)?.label ??
                         channel;
                       return (
                         <div

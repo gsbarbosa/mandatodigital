@@ -3,9 +3,7 @@ import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
-import {
-  ACTIVE_DISTRIBUTION_CHANNELS,
-} from "@/lib/distribution/channels";
+import { DISTRIBUTION_CHANNELS } from "@/lib/distribution/channels";
 import {
   connectedChannelIds,
   newConnectionRefId,
@@ -37,7 +35,7 @@ export async function GET() {
       instagramUsername: connection?.instagramUsername
         ? `@${connection.instagramUsername.replace(/^@/, "")}`
         : null,
-      channels: ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => ({
+      channels: DISTRIBUTION_CHANNELS.map((channel) => ({
         id: channel.id,
         label: channel.label,
         connected: connected.has(channel.id),

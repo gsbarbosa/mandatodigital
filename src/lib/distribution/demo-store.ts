@@ -3,8 +3,8 @@
 import { buildCaptionsByChannel } from "@/lib/distribution/captions";
 import {
   ACTIVE_DISTRIBUTION_CHANNEL_IDS,
-  ACTIVE_DISTRIBUTION_CHANNELS,
   DISTRIBUTION_CHANNEL_IDS,
+  DISTRIBUTION_CHANNELS,
   type DistributionChannelId,
 } from "@/lib/distribution/channels";
 import type {
@@ -171,7 +171,7 @@ export function getDemoConnections(): DemoConnectionsSnapshot {
   const state = readState();
   return {
     electionDate: state.electionDate,
-    channels: ACTIVE_DISTRIBUTION_CHANNELS.map((channel) => ({
+    channels: DISTRIBUTION_CHANNELS.map((channel) => ({
       id: channel.id,
       label: channel.label,
       connected: Boolean(state.platforms[channel.id]?.connected),
