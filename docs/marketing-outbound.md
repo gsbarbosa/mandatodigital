@@ -6,6 +6,12 @@ segmentação de público e campanhas de e-mail/WhatsApp, com acompanhamento por
 Não é feature de cliente — é ferramenta nossa de aquisição. O público é dirigente partidário e
 parlamentar, não o usuário final do produto.
 
+Por que dentro do monólito e não em projeto separado: [adr-marketing-outbound-no-monolito.md](adr-marketing-outbound-no-monolito.md).
+
+**Status (17/ago/2026): em produção e validado ponta a ponta.** App publicado na Meta, webhook
+recebendo, IA respondendo. O ciclo completo foi exercitado com número real: lead perguntou "é
+pago?" às 18:29:33 e a resposta da Marina saiu às 18:29:37.
+
 ## Módulos
 
 | Aba | Função |
@@ -13,6 +19,7 @@ parlamentar, não o usuário final do produto.
 | Contatos | Base de prospects + filtro exploratório + contadores |
 | Segmentos | Filtros salvos e reutilizáveis, com contagem resolvida na hora |
 | Campanhas | Criação, prévia de público, disparo e trilha de envios |
+| Conversas | Threads do WhatsApp, janela de 24h e botão para assumir no braço (pausa a IA) |
 
 ## Modelo de dados
 
@@ -22,6 +29,7 @@ parlamentar, não o usuário final do produto.
 | `marketingSegments` | Definição de filtro salva |
 | `marketingCampaigns` | Campanha + status + estatísticas agregadas |
 | `marketingSends` | Um registro por contato por disparo (trilha) |
+| `marketingConversations` | Thread de WhatsApp por contato (doc id = telefone E.164) |
 
 As rules negam o client em tudo (`firestore.rules`) — só Admin SDK lê e escreve. Nenhuma das
 quatro está no `db:reset`: contato é dado de referência caro de reimportar, e campanha é
@@ -33,16 +41,17 @@ intencional.
 
 ## Base de contatos
 
-Populada por `npm run marketing:seed` a partir de duas fontes públicas. CSVs ficam em `.local/`
+Populada por `npm run marketing:seed` a partir de três fontes. CSVs ficam em `.local/`
 (fora do git).
 
 ```bash
-cp <export do SGIP3>.csv .local/diretorios-partidarios.csv
-cp consulta_cand_2026_BRASIL.csv .local/consulta_cand_2026_BRASIL.csv   # opcional, ver abaixo
+cp <export do SGIP3>.csv          .local/diretorios-partidarios.csv
+cp consulta_cand_2026_BRASIL.csv  .local/consulta_cand_2026_BRASIL.csv   # opcional, ver abaixo
+cp <enriquecido do Instagram>.csv .local/instagram-enriquecido.csv       # opcional
 
-npm run marketing:seed -- --dry-run     # só estatísticas
-npm run marketing:seed                  # grava
-npm run marketing:seed -- --only=camara # só uma fonte
+npm run marketing:seed -- --dry-run        # só estatísticas
+npm run marketing:seed                     # grava
+npm run marketing:seed -- --only=camara    # uma fonte só (diretorio|camara|instagram)
 ```
 
 O seed é idempotente: `createdAt` só é gravado em doc novo, então reimportar atualiza sem duplicar
@@ -71,13 +80,46 @@ CSV o seed roda igual, só não marca ninguém como candidato.
 
 O telefone do gabinete é fixo (Brasília), então esses contatos entram como **e-mail apenas**.
 
-### Números da última importação (11/ago/2026)
+### 3. Instagram enriquecido (CSV externo) — com validação obrigatória
+
+Planilha produzida fora daqui: perfil do Instagram do candidato → telefone/e-mail extraídos da bio
+e de links (linktree e afins).
+
+**Essa fonte erra com frequência, e erra de um jeito perigoso.** A associação linha↔candidato vem
+embaralhada: a coluna `INSTAGRAM_USERNAME` nem sempre corresponde ao `NM_URNA_CANDIDATO` da mesma
+linha, o mesmo telefone aparece atribuído a pessoas diferentes, e o link da bio às vezes é de um
+terceiro. O `CONFIDENCE_SCORE` vem 100 justamente nas linhas erradas — não serve de filtro.
+
+O risco concreto: mandar `md_intro_*` com o nome trocado para um desconhecido é o caminho curto
+para "denunciar spam", e isso derruba a nota de qualidade do número.
+
+Por isso a validação é código, não curadoria manual — `src/lib/outbound/instagram-enrichment.ts`,
+com teste para cada regra sobre casos reais da base:
+
+| Trava | Descarta quando |
+|---|---|
+| Nome ↔ handle | o `@` não é plausível para o nome do candidato |
+| Telefone exclusivo | o mesmo número é reivindicado por mais de um candidato |
+| DDD ↔ UF | o DDD não bate com a UF da candidatura |
+| Bio própria | o link da bio pertence a outra pessoa |
+
+Rodando sobre o CSV atual (1.849 linhas): **32 aprovados**, 69 reprovados por defeito (35 nome
+trocado, 18 bio de terceiro, 12 telefone compartilhado, 4 DDD) e 983 sem telefone utilizável.
+
+Aproveitamento de ~2%. É baixo de propósito: o custo de um falso positivo (mensagem com nome errado)
+é muito maior que o de um falso negativo (um contato a menos).
+
+### Números da última importação (17/ago/2026)
 
 | Fonte | Resultado |
 |---|---|
 | Diretórios partidários | 1.259 linhas → **744 contatos** (650 com WhatsApp, 31 suspensos, 273 com canal compartilhado) |
 | Câmara dos Deputados | 513 deputados, 513 com e-mail, **364 candidatos em 2026** |
-| **Total** | **1.257 contatos** |
+| Instagram enriquecido | 1.849 linhas → **32 aprovados** (69 reprovados por defeito, 983 sem telefone) |
+| **Total gravado** | **1.289 contatos** |
+
+Staging e produção compartilham o mesmo Firestore (projeto `madatodigital`), então o seed roda uma
+vez e vale para os dois.
 
 ## Disparo
 
@@ -118,10 +160,11 @@ variáveis abaixo, o disparo recusa e o webhook responde erro, em vez de fingir 
 O token **temporário de 24h** do painel serve só para o primeiro teste — para produção é preciso o
 token de system user, senão o disparo para de funcionar no dia seguinte.
 
-### Ativação em produção (ordem obrigatória)
+### Ativação em produção — já feita, registrada para reprodução
 
-Os secrets precisam existir **antes** de o `apphosting.yaml` referenciá-los: secret inexistente
-derruba o build inteiro do App Hosting, não só o WhatsApp.
+Feito em 17/ago/2026. O que vale guardar: **os secrets precisam existir antes** de o
+`apphosting.yaml` referenciá-los. Secret inexistente derruba o build inteiro do App Hosting, não só
+o WhatsApp — por isso as entradas subiram comentadas primeiro, em commit separado.
 
 ```bash
 # 1. token permanente (system user) já no .env.local — não o temporário de 24h
@@ -135,8 +178,31 @@ firebase apphosting:secrets:grantaccess --backend mandatodigital     --project m
 git merge chore/whatsapp-secrets-ativos && git push origin staging
 ```
 
-O branch `chore/whatsapp-secrets-ativos` já traz o `apphosting.yaml` com as três entradas
-descomentadas — foi separado justamente para não subir antes do passo 1.
+Requisitos que a Meta exige para publicar o app (sair do modo desenvolvimento):
+
+- **URL de política de privacidade** pública e sem login — é o único requisito bloqueante.
+  Usamos `https://mandatodigital.ia.br/politica-de-privacidade`.
+- Não há App Review para este caso de uso: Cloud API com número próprio e os escopos
+  `whatsapp_business_messaging` + `whatsapp_business_management` não passam por revisão.
+
+**Enquanto o app está em modo desenvolvimento o webhook não recebe mensagem real** — só os testes
+disparados pelo próprio painel da Meta. Isso não aparece em nenhuma validação de configuração: o
+handshake passa, a assinatura valida, e mesmo assim nada chega. Foi o último bloqueio encontrado.
+
+Publicar afeta **todos os casos de uso do app** (aqui: Threads, WhatsApp, Instagram e Página), não
+só o WhatsApp.
+
+O token de system user (`Nunca` expira) deve ser conferido antes de virar secret:
+
+```bash
+# escopos e expiração
+curl "https://graph.facebook.com/v25.0/debug_token?input_token=$TOKEN&access_token=$APP_ID|$APP_SECRET"
+# acesso à WABA — falha aqui = ativo não atribuído ao system user
+curl "https://graph.facebook.com/v25.0/$WABA_ID" -H "Authorization: Bearer $TOKEN"
+```
+
+O erro mais comum é criar o system user e gerar o token **sem atribuir a conta do WhatsApp como
+ativo**: o token nasce válido, com os escopos certos, e mesmo assim o envio falha por permissão.
 
 ### Cadastro do webhook no Meta
 
@@ -206,6 +272,30 @@ E.164) e o agente responde na hora, com a persona **Marina**.
 - **Sem agendamento** — disparo é manual, no clique.
 - Envio é síncrono na request; um volume grande dependeria de worker assíncrono
   (ver `docs/adr-async-jobs-pubsub.md`).
+
+## Pendências abertas
+
+- **`WHATSAPP_DEMO_LINK_URL` está vazio.** Todos os 9 templates terminam prometendo enviar algo
+  ("a página de um minuto", "o vídeo de 3 minutos") e esse material não existe. Hoje a IA contorna
+  dizendo que retorna depois — funciona, mas gasta o pico de interesse do lead. É a maior perda de
+  conversão conhecida do fluxo.
+- **Girar o app secret e o token**: ambos passaram por canal de chat durante a configuração e estão
+  valendo em produção. Rotacionar em Configurações → Básico → Redefinir, atualizar `.env.local`,
+  `npm run firebase:secrets:apply`, redeploy.
+- **A IA presume candidatura.** No primeiro teste real ela disse "sua pré-candidatura" sem que o
+  lead tivesse dito isso. Inofensivo com candidato, presunçoso com dirigente partidário que não
+  concorre — o prompt deveria usar `cargo`/`partido` do contato em vez de assumir.
+- **Status de entrega não é persistido** (ver Limites).
+
+## Primeiro disparo: o que a validação mostrou
+
+A lista inicial proposta tinha 31 handles do Instagram (28 únicos). Depois das travas de validação,
+**10 sobreviveram** — 14 caíram por nome trocado, 4 por telefone compartilhado (um número estava
+atribuído a **4 candidatos diferentes**), 1 por DDD de outro estado e 1 sem telefone.
+
+Vale como referência de expectativa: de uma lista enriquecida "pronta", algo em torno de um terço
+costuma ser aproveitável. E 10 é um primeiro lote melhor que 30 — número novo não deve estrear com
+volume frio, mesmo com qualidade GREEN.
 
 ## Próximas fontes de contato
 
