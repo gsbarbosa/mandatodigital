@@ -53,8 +53,8 @@ export const ACCOUNT_ENTITLEMENTS: Record<AccountTier, AccountEntitlements> = {
     avatarsPerMonth: 5,
     advancedDigitalTwinRender: false,
     complianceLegalPack: false,
-    multiNetworkPublish: false,
-    maxPublishNetworks: 0,
+    multiNetworkPublish: true,
+    maxPublishNetworks: 7,
     expandedSocialProfileCaps: true,
   },
   avancado: {
@@ -67,8 +67,8 @@ export const ACCOUNT_ENTITLEMENTS: Record<AccountTier, AccountEntitlements> = {
     avatarsPerMonth: 22,
     advancedDigitalTwinRender: true,
     complianceLegalPack: true,
-    multiNetworkPublish: false,
-    maxPublishNetworks: 0,
+    multiNetworkPublish: true,
+    maxPublishNetworks: 7,
     expandedSocialProfileCaps: true,
   },
   elite: {
@@ -115,4 +115,13 @@ export function getEntitlements(tier: AccountTier): AccountEntitlements {
 
 export function isPaidAccountTier(tier: AccountTier): boolean {
   return ACCOUNT_ENTITLEMENTS[tier].isPaid;
+}
+
+/**
+ * Publicador é exclusivo de assinante: qualquer plano pago entra, trial não.
+ * Inadimplente cai em trial via `resolveAccountTierFromBilling` e perde o acesso
+ * junto — não há exceção só para o Publicador.
+ */
+export function canUsePublisher(tier: AccountTier): boolean {
+  return ACCOUNT_ENTITLEMENTS[tier].multiNetworkPublish;
 }

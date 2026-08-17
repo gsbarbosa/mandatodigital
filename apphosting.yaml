@@ -246,11 +246,13 @@ env:
   #   availability:
   #     - RUNTIME
 
-  # Cadastre: npm run firebase:secrets:guide / --apply
-  # - variable: JOBS_WORKER_SHARED_SECRET
-  #   secret: jobs-worker-shared-secret
-  #   availability:
-  #     - RUNTIME
+  # Auth dos workers internos (/api/workers/*). Sem ele, em produção o
+  # assertJobsWorkerAuthorized recusa tudo — e o Cloud Scheduler do Distribuidor
+  # (agendados + refresh de token) não consegue chamar os endpoints.
+  - variable: JOBS_WORKER_SHARED_SECRET
+    secret: jobs-worker-shared-secret
+    availability:
+      - RUNTIME
   # - variable: AYRSHARE_API_KEY
   #   secret: ayrshare-api-key
   #   availability:

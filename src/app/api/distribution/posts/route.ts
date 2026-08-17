@@ -3,8 +3,9 @@ import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
+import { assertPublisherSubscription } from "@/lib/distribution/access";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
-import { buildCaptionsByChannel } from "@/lib/distribution/captions";
+import { adaptCaptionsByChannel } from "@/lib/distribution/caption-adapter";
 import {
   ACTIVE_DISTRIBUTION_CHANNEL_IDS,
   isActiveDistributionChannelId,
@@ -26,6 +27,10 @@ const createSchema = z.object({
 
 export async function GET() {
   return apiRoute(async () => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const session = await getSessionUser();
     if (!session?.id) {
       return NextResponse.json({ message: "Nao autenticado." }, { status: 401 });
@@ -57,6 +62,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   return apiRoute(async (repository) => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const blocked = assertDistributionReady();
     if (blocked) {
       return blocked;
@@ -116,6 +125,8 @@ export async function POST(request: Request) {
       storagePath: sealedStoragePath || null,
     });
 
+    const adapted = await adaptCaptionsByChannel({ captionBase, channels });
+
     const post = await distributionPostStorage.create({
       ownerUserId,
       profileId: profile.id,
@@ -123,7 +134,7 @@ export async function POST(request: Request) {
       videoUrl: freshVideo.videoUrl,
       videoStoragePath: freshVideo.storagePath ?? "",
       captionBase,
-      captionsByChannel: buildCaptionsByChannel(captionBase, channels),
+      captionsByChannel: adapted.captionsByChannel,
       channels,
       scheduledAt: body.scheduledAt ?? null,
       distributionWindow: body.distributionWindow ?? null,

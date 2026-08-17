@@ -125,6 +125,14 @@
       ]
     },
     {
+      "collectionGroup": "distributionPosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "userRegistrations",
       "queryScope": "COLLECTION",
       "fields": [

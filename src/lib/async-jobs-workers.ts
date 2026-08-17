@@ -289,7 +289,18 @@ export async function processPublishJob(jobId: string) {
       throw new Error("Conta Instagram nao conectada para este perfil.");
     }
 
-    const blackout = checkElectoralBlackout();
+    // Checa no instante em que a mídia de fato vai ao ar: agora para disparo
+    // imediato, no horário marcado quando o pacote ainda está agendado — senão
+    // um agendamento legítimo fora da janela seria bloqueado por cair dentro
+    // dela na hora do enfileiramento.
+    const scheduledMoment = post.scheduledAt ? new Date(post.scheduledAt) : null;
+    const blackout = checkElectoralBlackout({
+      at:
+        scheduledMoment && scheduledMoment.getTime() > Date.now()
+          ? scheduledMoment
+          : new Date(),
+      electionDate: connection?.electionDate,
+    });
     if (blackout.blocked) {
       await distributionPostStorage.update(post.id, {
         status: "blocked_blackout",

@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
+import {
+  assertPublisherSubscription,
+  resolvePublisherAccess,
+} from "@/lib/distribution/access";
 import { DISTRIBUTION_CHANNELS } from "@/lib/distribution/channels";
 import {
   connectedChannelIds,
@@ -25,12 +29,34 @@ export async function GET() {
       return NextResponse.json({ message: "Salve o perfil antes." }, { status: 400 });
     }
 
+    // Paywall aqui responde 200 moldado (e nao 402): a tela de Contas precisa
+    // renderizar o upsell com a lista de redes, nao tratar como erro.
+    const access = await resolvePublisherAccess();
+    if (!access.allowed) {
+      return NextResponse.json({
+        enabled: false,
+        subscribed: false,
+        tier: access.tier,
+        electionDate: null,
+        instagramUsername: null,
+        channels: DISTRIBUTION_CHANNELS.map((channel) => ({
+          id: channel.id,
+          label: channel.label,
+          connected: false,
+          displayName: null,
+        })),
+        linkAvailable: false,
+      });
+    }
+
     const stored = await socialConnectionStorage.getByProfileId(profile.id);
     const connection = overlayInstagramConnection(stored, profile.id);
     const connected = new Set(connectedChannelIds(connection));
 
     return NextResponse.json({
       enabled: isDistributionEnabled() && isInstagramConfigured(),
+      subscribed: true,
+      tier: access.tier,
       electionDate: connection?.electionDate ?? stored?.electionDate ?? null,
       instagramUsername: connection?.instagramUsername
         ? `@${connection.instagramUsername.replace(/^@/, "")}`
@@ -56,6 +82,10 @@ const patchSchema = z.object({
 
 export async function PATCH(request: Request) {
   return apiRoute(async (repository) => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     if (!isDistributionEnabled()) {
       return NextResponse.json(
         { message: "Publicador desligado (DISTRIBUTION_ENABLED)." },

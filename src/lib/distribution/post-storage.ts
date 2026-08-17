@@ -162,6 +162,24 @@ export const distributionPostStorage = {
     return snap.docs.map((doc) => mapDoc(doc.id, doc.data()));
   },
 
+  /**
+   * Pacotes que o publisher marcou como `scheduled` e cujo horário já chegou.
+   * O Graph não agenda do lado da Meta — quem retoma é o worker de agendados.
+   */
+  async listScheduledDue(input?: {
+    now?: Date;
+    limit?: number;
+  }): Promise<DistributionPost[]> {
+    const cutoff = (input?.now ?? new Date()).toISOString();
+    const snap = await col(COLLECTIONS.distributionPosts)
+      .where("status", "==", "scheduled")
+      .where("scheduledAt", "<=", cutoff)
+      .orderBy("scheduledAt", "asc")
+      .limit(input?.limit ?? 25)
+      .get();
+    return snap.docs.map((doc) => mapDoc(doc.id, doc.data()));
+  },
+
   async update(
     id: string,
     patch: Partial<

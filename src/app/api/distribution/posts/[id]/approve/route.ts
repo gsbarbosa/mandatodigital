@@ -4,6 +4,7 @@ import { AsyncJobQuotaError } from "@/lib/async-jobs-enqueue";
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
 import { creativeProjectStorage } from "@/lib/creative-project-storage";
+import { assertPublisherSubscription } from "@/lib/distribution/access";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { checkElectoralBlackout } from "@/lib/distribution/blackout";
 import {
@@ -24,6 +25,10 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, { params }: Params) {
   return apiRoute(async () => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const blocked = assertDistributionReady();
     if (blocked) {
       return blocked;
@@ -78,6 +83,7 @@ export async function POST(_request: Request, { params }: Params) {
 
     const blackout = checkElectoralBlackout({
       at: post.scheduledAt ? new Date(post.scheduledAt) : new Date(),
+      electionDate: stored?.electionDate,
     });
     if (blackout.blocked) {
       await distributionPostStorage.update(post.id, {
