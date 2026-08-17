@@ -6,7 +6,10 @@ set -euo pipefail
 
 PROJECT="${GCP_PROJECT:-madatodigital}"
 REGION="${GCP_REGION:-us-central1}"
-BASE_URL="${1:-${APP_BASE_URL:-https://mandatodigital-stg--madatodigital.us-central1.hosted.app}}"
+# Produção é o alvo padrão: os workers (publish, sweep de agendados, refresh de
+# token) rodam contra o Firestore único do projeto, então quem os executa deve
+# ser o backend estável. Passe a URL de staging como argumento para apontar lá.
+BASE_URL="${1:-${APP_BASE_URL:-https://mandatodigital--madatodigital.us-central1.hosted.app}}"
 WORKER_SECRET_NAME="${WORKER_SECRET_NAME:-jobs-worker-shared-secret}"
 
 echo "Project=$PROJECT BaseURL=$BASE_URL"

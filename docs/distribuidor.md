@@ -176,6 +176,23 @@ passado o vencimento não há refresh, só reconectar por OAuth.
 6. `DISTRIBUTION_PUBLISH_ENABLED=true` → primeiro disparo real.
 7. `npm run firebase:indexes:deploy`.
 
+## Ambientes (Firestore único)
+
+O projeto tem **uma** base: `projects/madatodigital/databases/(default)`, sem
+prefixo por ambiente em `collections.ts`. Staging e produção compartilham os
+mesmos dados — um pacote criado em staging é o mesmo que produção enxerga.
+
+Consequências que valem lembrar:
+
+- Os workers de fila (`publish`), sweep de agendados e refresh de token devem
+  apontar para **produção**, que é o backend estável. Quem executa não muda o
+  resultado (a base é a mesma), mas muda de quem a publicação depende.
+- `DISTRIBUTION_PUBLISH_ENABLED=true` vale para os dois backends. Um Go clicado
+  em staging publica de verdade, na conta real. Staging não é sandbox.
+- Um tópico Pub/Sub com duas subscriptions (uma por backend) entregaria a mesma
+  mensagem às duas e **duplicaria o Reel**. Por isso há uma subscription só,
+  apontando para produção.
+
 ## Pendências conhecidas
 
 - **Índice composto do sweep não deployado.** `listScheduledDue` consulta
