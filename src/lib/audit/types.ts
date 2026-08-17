@@ -7,6 +7,7 @@ export const AUDIT_ACTIONS = [
   "content_generate",
   "creative_project_create",
   "video_generate",
+  "client_error",
   "seal_job",
   "voice_job",
   "script_fact_check",

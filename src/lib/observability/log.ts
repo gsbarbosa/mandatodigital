@@ -1,6 +1,6 @@
 /**
  * Logger leve para Cloud Logging (App Hosting / Cloud Run).
- * Prefixo estável + JSON com IDs — sem secrets, roteiro, URLs assinadas ou PII.
+ * Prefixo estável + JSON em uma linha — sem secrets, roteiro, URLs assinadas ou PII.
  */
 
 export type LogLevel = "info" | "warn" | "error";
@@ -10,6 +10,12 @@ export type LogValue = string | number | boolean | null | undefined;
 export type LogFields = Record<string, LogValue>;
 
 const MAX_ERROR_CHARS = 360;
+
+const SEVERITY_BY_LEVEL: Record<LogLevel, "INFO" | "WARNING" | "ERROR"> = {
+  info: "INFO",
+  warn: "WARNING",
+  error: "ERROR",
+};
 
 function sanitizeFields(fields?: LogFields): Record<string, string | number | boolean | null> {
   if (!fields) {
@@ -48,29 +54,39 @@ export function startTimer() {
   return () => Date.now() - started;
 }
 
-/** Emite uma linha `[scope] event { ...fields }` legível no Cloud Logging. */
+export function buildAppLogEntry(
+  scope: string,
+  event: string,
+  fields?: LogFields,
+  level: LogLevel = "info",
+) {
+  return {
+    severity: SEVERITY_BY_LEVEL[level],
+    message: `[${scope}] ${event}`,
+    scope,
+    event,
+    ...sanitizeFields(fields),
+    ts: new Date().toISOString(),
+  };
+}
+
+/** Emite uma linha JSON com `severity` — Cloud Logging indexa `jsonPayload.event`. */
 export function appLog(
   scope: string,
   event: string,
   fields?: LogFields,
   level: LogLevel = "info",
 ) {
-  const payload = {
-    scope,
-    event,
-    ...sanitizeFields(fields),
-    ts: new Date().toISOString(),
-  };
-  const line = `[${scope}] ${event}`;
+  const line = JSON.stringify(buildAppLogEntry(scope, event, fields, level));
   if (level === "error") {
-    console.error(line, payload);
+    console.error(line);
     return;
   }
   if (level === "warn") {
-    console.warn(line, payload);
+    console.warn(line);
     return;
   }
-  console.info(line, payload);
+  console.info(line);
 }
 
 export function appLogError(

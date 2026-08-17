@@ -2,7 +2,7 @@
 
 Documento vivo para acompanhar o que **já existe**, o que está **parcial** e o que **falta implementar**.
 
-**Última atualização:** 2026-08-13  
+**Última atualização:** 2026-08-16  
 **Produção:** https://mandatodigital--madatodigital.us-central1.hosted.app  
 **Branch principal:** `main`
 
@@ -60,6 +60,8 @@ Documentos relacionados:
 | Fila de jobs (LLM, social, fact-check async) | ❌ | Fase 3.1 |
 | Rate limit vídeos (ex.: 5/dia) | 🟡 | No free trial (convidado): 2 vídeos/avatar (generateMode) server-side |
 | `minInstances: 1` Cloud Run | ✅ | `apphosting.yaml` (`minInstances: 1`, `maxInstances: 10`) |
+| Logs estruturados (`appLog` JSON) | ✅ | Uma linha; Cloud Logging indexa `jsonPayload.event` |
+| Falha de geração vista no browser | ✅ | `POST /api/observability/client-event` → WARNING + auditoria `client_error` |
 | Cutover total → Firestore + Storage | ✅ | Sem Postgres/Supabase |
 
 ---
@@ -107,7 +109,8 @@ Documentos relacionados:
 | Lista e persistência `creative_projects` | ✅ | |
 | Roteiro via HeyGen transcript + contexto Curador | ✅ | |
 | Handoff Sentinela → Criativo (sinal por ID) | ✅ | `?sugestao=` |
-| Produção vídeo HeyGen | ✅ | |
+| Produção vídeo HeyGen | ✅ | Gate ElevenLabs não exige voiceId no treino; clone na geração |
+| Telemetria de falha no Criativo | ✅ | Beacon `video_generate_failed` (stage train/voice_prepare/create_video/…) |
 | Prompt livre (modo teste) | ✅ | Sem fact-check |
 | Badges pipeline nos sinais (manual/portal/semântico) | ✅ | Requer flags Sentinela |
 | Metadados TSE em `creative_projects.metadata` | 🟡 | Grava ao salvar criativo |
@@ -290,6 +293,7 @@ Referência detalhada: [billing-nfse.md](billing-nfse.md)
 
 | Data | Mudança |
 |------|---------|
+| 2026-08-16 | Observabilidade: `appLog` em JSON de uma linha; beacon de falha do Criativo (`client_error`); gate de voz ElevenLabs no treino |
 | 2026-08-13 | Nova tela "Notícias do Dia" (`/monitoramento/noticias-do-dia`) — mecanismo de busca isolado do Sentinela, nova seção 5.4 |
 | 2026-08-10 | Auditoria de docs: corrigida rota `/sentinela`→`/monitoramento`; flags `SENTINEL_LLM_THEME_VERIFY`/`SENTINEL_LLM_QUALITY_RANK`/`ASAAS_NFS_ENABLED` adicionadas à tabela; nova seção 7c Billing/NFS-e; docs de roadmap/parecer movidos pra `archive/` |
 | 2026-07-13 | Fase 3.3 implementada: path `elevenlabs_audio` (IVC+TTS→`audio_url`); conta única EL; fallback `heygen_clone`; BYOK backlog |
