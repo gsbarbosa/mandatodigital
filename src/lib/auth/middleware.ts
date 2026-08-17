@@ -22,6 +22,9 @@ export async function updateSession(request: NextRequest) {
     pathname === "/conformidade" ||
     pathname === "/planos" ||
     pathname === "/dossie" ||
+    // Documento legal: precisa abrir sem login, inclusive para o App Review da
+    // Meta, que exige URL pública de política de privacidade.
+    pathname === "/politica-de-privacidade" ||
     pathname === "/vozdelas" ||
     pathname.startsWith("/vozdelas/") ||
     pathname === "/materialidade" ||

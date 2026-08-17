@@ -245,13 +245,13 @@ env:
       - RUNTIME
 
   # Painel /admin — acesso via flag isAdmin no cadastro do usuário, sem senha.
-  # ADMIN_SESSION_SECRET só deriva a chave de criptografia do cofre de provider secrets
-  # (recomendado; sem isto usa default de bootstrap + warning nos logs):
-  # Cadastre: npm run firebase:secrets:guide / --apply
-  # - variable: ADMIN_SESSION_SECRET
-  #   secret: admin-session-secret
-  #   availability:
-  #     - RUNTIME
+  # ADMIN_SESSION_SECRET deriva a chave que cifra o cofre de provider secrets (hoje, o
+  # token do Instagram) e assina o state do OAuth. Obrigatório: não há fallback no
+  # código, então sem ele o cofre falha alto em vez de abrir com chave conhecida.
+  - variable: ADMIN_SESSION_SECRET
+    secret: admin-session-secret
+    availability:
+      - RUNTIME
 
   # Auth dos workers internos (/api/workers/*). Sem ele, em produção o
   # assertJobsWorkerAuthorized recusa tudo — e o Cloud Scheduler do Distribuidor

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { MARKETING_FOOTER } from "@/lib/marketing/shared";
 
 export function MarketingFooter() {
@@ -17,6 +19,14 @@ export function MarketingFooter() {
           >
             {MARKETING_FOOTER.siteLabel}
           </a>
+          <p className="mt-2">
+            <Link
+              href="/politica-de-privacidade"
+              className="transition hover:text-md-text-muted"
+            >
+              Política de Privacidade
+            </Link>
+          </p>
           <p className="mt-2 text-xs text-md-text-soft">
             © {new Date().getFullYear()} Mandato Digital
           </p>

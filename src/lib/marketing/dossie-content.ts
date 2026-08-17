@@ -98,7 +98,7 @@ export const dossieSections: DossieSection[] = [
   {
     number: "6",
     title: "Privacidade e Isolamento de Dados (LGPD)",
-    body: "O Mandato Digital não armazena dados sensíveis ou pessoais de eleitores, garantindo anonimização e 100% de aderência à Lei Geral de Proteção de Dados (LGPD). A arquitetura da plataforma assegura o isolamento hermético das bases de dados de cada contratante, impedindo o cruzamento de prompts e estratégias entre gabinetes ou campanhas adversárias.",
+    body: "O Mandato Digital não constrói base de eleitores: não coletamos dados pessoais de cidadãos para segmentação eleitoral nem montamos perfis individuais. O tratamento que realizamos, com a base legal de cada categoria, está descrito na Política de Privacidade, conforme a Lei Geral de Proteção de Dados (LGPD). A arquitetura da plataforma assegura o isolamento das bases de dados de cada contratante, impedindo o cruzamento de prompts e estratégias entre gabinetes ou campanhas adversárias.",
   },
   {
     number: "7",

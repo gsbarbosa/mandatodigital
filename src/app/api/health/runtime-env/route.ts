@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isUsingDerivedAdminSessionSecret } from "@/lib/admin/credentials";
+import { isAdminSessionSecretConfigured } from "@/lib/admin/credentials";
 import {
   isAsyncSealEnabled,
   isAsyncVoiceEnabled,
@@ -31,7 +31,7 @@ export async function GET() {
     },
     readiness: {
       mode: "full_product",
-      adminSessionSecretFromEnv: !isUsingDerivedAdminSessionSecret(),
+      adminSessionSecretFromEnv: isAdminSessionSecretConfigured(),
       asyncJobsReady: isAsyncSealEnabled() && process.env.PUBSUB_JOBS_ENABLED === "true",
     },
   });
