@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
+import { assertPublisherSubscription } from "@/lib/distribution/access";
 import { getSessionUser } from "@/lib/auth/session";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { assertDistributionReady } from "@/lib/distribution/guard";
@@ -16,6 +17,10 @@ const bodySchema = z.object({
 
 export async function POST(request: Request, { params }: Params) {
   return apiRoute(async () => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const blocked = assertDistributionReady();
     if (blocked) {
       return blocked;

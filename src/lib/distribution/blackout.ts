@@ -47,10 +47,17 @@ export function getBlackoutWindow(electionDate: string): {
 
 /**
  * Verifica se `at` (default agora) cai no blackout da eleição.
- * A data da eleição é fixa (ELECTION_DATE) e vale para todos os candidatos.
+ * `electionDate` só existe para pleitos com data distinta (suplementar/municipal)
+ * gravada na conexão do perfil; sem ela vale a data geral do TSE (ELECTION_DATE),
+ * que é o caso de todos os candidatos de 2026.
  */
-export function checkElectoralBlackout(input?: { at?: Date }): BlackoutCheckResult {
-  const window = getBlackoutWindow(ELECTION_DATE)!;
+export function checkElectoralBlackout(input?: {
+  at?: Date;
+  electionDate?: string | null;
+}): BlackoutCheckResult {
+  const requested = input?.electionDate?.trim() || "";
+  const electionDate = requested && getBlackoutWindow(requested) ? requested : ELECTION_DATE;
+  const window = getBlackoutWindow(electionDate)!;
 
   const at = input?.at ?? new Date();
   if (at.getTime() < window.start.getTime() || at.getTime() > window.end.getTime()) {
@@ -59,8 +66,8 @@ export function checkElectoralBlackout(input?: { at?: Date }): BlackoutCheckResu
 
   return {
     blocked: true,
-    reason: `Blackout eleitoral ativo (${BLACKOUT_HOURS_BEFORE}h antes / ${BLACKOUT_HOURS_AFTER}h depois da eleição em ${ELECTION_DATE}). Publicação bloqueada.`,
-    electionDate: ELECTION_DATE,
+    reason: `Blackout eleitoral ativo (${BLACKOUT_HOURS_BEFORE}h antes / ${BLACKOUT_HOURS_AFTER}h depois da eleição em ${electionDate}). Publicação bloqueada.`,
+    electionDate,
     windowStart: window.start.toISOString(),
     windowEnd: window.end.toISOString(),
   };

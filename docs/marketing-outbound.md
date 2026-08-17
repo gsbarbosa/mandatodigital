@@ -118,6 +118,26 @@ variáveis abaixo, o disparo recusa e o webhook responde erro, em vez de fingir 
 O token **temporário de 24h** do painel serve só para o primeiro teste — para produção é preciso o
 token de system user, senão o disparo para de funcionar no dia seguinte.
 
+### Ativação em produção (ordem obrigatória)
+
+Os secrets precisam existir **antes** de o `apphosting.yaml` referenciá-los: secret inexistente
+derruba o build inteiro do App Hosting, não só o WhatsApp.
+
+```bash
+# 1. token permanente (system user) já no .env.local — não o temporário de 24h
+npm run firebase:secrets:apply
+
+# 2. liberar leitura para CADA backend que for usar
+firebase apphosting:secrets:grantaccess --backend mandatodigital-stg --project madatodigital
+firebase apphosting:secrets:grantaccess --backend mandatodigital     --project madatodigital
+
+# 3. só então publicar o yaml com as entradas ativas
+git merge chore/whatsapp-secrets-ativos && git push origin staging
+```
+
+O branch `chore/whatsapp-secrets-ativos` já traz o `apphosting.yaml` com as três entradas
+descomentadas — foi separado justamente para não subir antes do passo 1.
+
 ### Cadastro do webhook no Meta
 
 **Atenção: são dois backends.** `staging` publica em `mandatodigital-stg--…` e `main` em

@@ -31,7 +31,7 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function derivePostStatus(
+export function derivePostStatus(
   channels: ChannelDeliveryState[],
   scheduled: boolean,
 ): DistributionPostStatus {
@@ -47,11 +47,14 @@ function derivePostStatus(
   if (failed > 0) {
     return "partial_failure";
   }
-  if (scheduled || scheduledCount === channels.length) {
-    return "scheduled";
-  }
+  // O que ja foi publicado vence a flag de agendamento. Checar `scheduled`
+  // antes disto prendia em "scheduled" todo pacote que tivesse scheduledAt,
+  // mesmo com os canais todos publicados — e ele nunca mais saia desse estado.
   if (published === channels.length) {
     return "published";
+  }
+  if (scheduled || scheduledCount === channels.length) {
+    return "scheduled";
   }
   return "publishing";
 }
@@ -289,7 +292,18 @@ export async function processPublishJob(jobId: string) {
       throw new Error("Conta Instagram nao conectada para este perfil.");
     }
 
-    const blackout = checkElectoralBlackout();
+    // Checa no instante em que a mídia de fato vai ao ar: agora para disparo
+    // imediato, no horário marcado quando o pacote ainda está agendado — senão
+    // um agendamento legítimo fora da janela seria bloqueado por cair dentro
+    // dela na hora do enfileiramento.
+    const scheduledMoment = post.scheduledAt ? new Date(post.scheduledAt) : null;
+    const blackout = checkElectoralBlackout({
+      at:
+        scheduledMoment && scheduledMoment.getTime() > Date.now()
+          ? scheduledMoment
+          : new Date(),
+      electionDate: connection?.electionDate,
+    });
     if (blackout.blocked) {
       await distributionPostStorage.update(post.id, {
         status: "blocked_blackout",

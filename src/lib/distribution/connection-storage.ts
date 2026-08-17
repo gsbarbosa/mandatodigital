@@ -126,6 +126,37 @@ export const socialConnectionStorage = {
     return { ...existing, platforms: merged, updatedAt: now };
   },
 
+  /** Conexões com token do Instagram vencendo dentro da janela informada. */
+  async listInstagramTokensExpiringBefore(
+    cutoffIso: string,
+    limit = 50,
+  ): Promise<SocialConnection[]> {
+    const snap = await col(COLLECTIONS.socialConnections)
+      .where("instagramTokenExpiresAt", "<=", cutoffIso)
+      .orderBy("instagramTokenExpiresAt", "asc")
+      .limit(limit)
+      .get();
+    return snap.docs
+      .map((doc) => mapDoc(doc.id, doc.data()))
+      .filter((connection) => Boolean(connection.instagramTokenEncrypted));
+  },
+
+  async setInstagramToken(
+    profileId: string,
+    input: { instagramTokenEncrypted: string; instagramTokenExpiresAt: string },
+  ): Promise<SocialConnection | null> {
+    const existing = await this.getByProfileId(profileId);
+    if (!existing) {
+      return null;
+    }
+    const now = nowIso();
+    await col(COLLECTIONS.socialConnections).doc(profileId).set(
+      { ...input, updatedAt: now },
+      { merge: true },
+    );
+    return { ...existing, ...input, updatedAt: now };
+  },
+
   async setElectionDate(
     profileId: string,
     electionDate: string | null,

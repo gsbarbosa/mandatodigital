@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
-import { buildCaptionsByChannel } from "@/lib/distribution/captions";
+import { assertPublisherSubscription } from "@/lib/distribution/access";
+import { adaptCaptionsByChannel } from "@/lib/distribution/caption-adapter";
 import {
   isActiveDistributionChannelId,
   type DistributionChannelId,
@@ -32,6 +33,10 @@ async function loadOwnedPost(id: string, ownerUserId: string) {
 
 export async function GET(_request: Request, { params }: Params) {
   return apiRoute(async () => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const session = await getSessionUser();
     const ownerUserId = toDatabaseOwnerUserId(session!.id);
     const { id } = await params;
@@ -45,6 +50,10 @@ export async function GET(_request: Request, { params }: Params) {
 
 export async function PATCH(request: Request, { params }: Params) {
   return apiRoute(async () => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const blocked = assertDistributionReady();
     if (blocked) {
       return blocked;
@@ -88,10 +97,12 @@ export async function PATCH(request: Request, { params }: Params) {
       ...(body.captionsByChannel as Partial<Record<DistributionChannelId, string>> | undefined),
     };
 
+    const adapted = await adaptCaptionsByChannel({ captionBase, channels, overrides });
+
     const post = await distributionPostStorage.update(id, {
       captionBase,
       channels,
-      captionsByChannel: buildCaptionsByChannel(captionBase, channels, overrides),
+      captionsByChannel: adapted.captionsByChannel,
       scheduledAt: body.scheduledAt === undefined ? existing.scheduledAt : body.scheduledAt,
       distributionWindow:
         body.distributionWindow === undefined

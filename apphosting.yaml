@@ -207,8 +207,15 @@ env:
       - BUILD
       - RUNTIME
 
+  # Jobs assíncronos via Pub/Sub. Com false, enqueueAsyncJob cai no
+  # kickLocalWorker (fire-and-forget) e o publish do Reel — polling de até 180s
+  # — continua depois da resposta HTTP, sujeito ao throttle de CPU do Cloud Run.
+  # As três push subscriptions autenticam por OIDC (SA de compute do App
+  # Hosting, audience = APP_BASE_URL). Sem essa auth o worker recusaria o push
+  # e os jobs iriam para a DLQ — não ligue esta flag antes de conferir o
+  # oidcToken em `gcloud pubsub subscriptions describe`.
   - variable: PUBSUB_JOBS_ENABLED
-    value: "false"
+    value: "true"
     availability:
       - RUNTIME
 
@@ -246,11 +253,13 @@ env:
   #   availability:
   #     - RUNTIME
 
-  # Cadastre: npm run firebase:secrets:guide / --apply
-  # - variable: JOBS_WORKER_SHARED_SECRET
-  #   secret: jobs-worker-shared-secret
-  #   availability:
-  #     - RUNTIME
+  # Auth dos workers internos (/api/workers/*). Sem ele, em produção o
+  # assertJobsWorkerAuthorized recusa tudo — e o Cloud Scheduler do Distribuidor
+  # (agendados + refresh de token) não consegue chamar os endpoints.
+  - variable: JOBS_WORKER_SHARED_SECRET
+    secret: jobs-worker-shared-secret
+    availability:
+      - RUNTIME
   # - variable: AYRSHARE_API_KEY
   #   secret: ayrshare-api-key
   #   availability:
@@ -283,27 +292,20 @@ env:
     value: "1180191901853184"
     availability:
       - RUNTIME
-  # Os 3 abaixo são secrets e ficam comentados até existirem no Secret Manager —
-  # referenciar secret inexistente derruba o build inteiro do App Hosting.
-  # Ordem de ativação:
-  #   1. npm run firebase:secrets:apply   (cadastra whatsapp-*)
-  #   2. firebase apphosting:secrets:grantaccess --backend mandatodigital --project madatodigital
-  #   3. descomentar as 3 entradas abaixo e fazer deploy
-  # Enquanto comentados: o disparo por WhatsApp recusa e o webhook responde 500
-  # (fail-closed), sem afetar o resto do app.
-  # - variable: WHATSAPP_ACCESS_TOKEN
-  #   secret: whatsapp-access-token
-  #   availability:
-  #     - RUNTIME
+  # Token de system user (nao expira) — cadastrado no Secret Manager.
+  - variable: WHATSAPP_ACCESS_TOKEN
+    secret: whatsapp-access-token
+    availability:
+      - RUNTIME
   # Sem o app secret o webhook recusa tudo (não dá para provar que veio da Meta).
-  # - variable: WHATSAPP_APP_SECRET
-  #   secret: whatsapp-app-secret
-  #   availability:
-  #     - RUNTIME
-  # - variable: WHATSAPP_VERIFY_TOKEN
-  #   secret: whatsapp-verify-token
-  #   availability:
-  #     - RUNTIME
+  - variable: WHATSAPP_APP_SECRET
+    secret: whatsapp-app-secret
+    availability:
+      - RUNTIME
+  - variable: WHATSAPP_VERIFY_TOKEN
+    secret: whatsapp-verify-token
+    availability:
+      - RUNTIME
   # Link do material prometido nos templates; vazio = a IA não promete link.
   # - variable: WHATSAPP_DEMO_LINK_URL
   #   value: ""

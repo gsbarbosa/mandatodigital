@@ -12,6 +12,7 @@ import {
   pricingIntro,
   pricingPlans,
   pricingRestriction,
+  pricingTrialNote,
   pricingUrgencyBanner,
   type PricingAccent,
   type PricingPlan,
@@ -266,6 +267,13 @@ export function MarketingPricingPage() {
             <PlanCard key={plan.id} plan={plan} />
           ))}
         </div>
+
+        <p className="mx-auto mt-10 max-w-2xl text-center text-sm leading-relaxed text-md-text-soft">
+          <strong className="font-semibold text-[var(--sentinela-text)]">
+            {pricingTrialNote.emphasis}
+          </strong>{" "}
+          {pricingTrialNote.tail}
+        </p>
       </MarketingSection>
 
       <div className="mx-auto max-w-xl px-4 pb-8 sm:px-6">

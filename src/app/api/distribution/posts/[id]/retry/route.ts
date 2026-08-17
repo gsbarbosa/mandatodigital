@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 import { AsyncJobQuotaError } from "@/lib/async-jobs-enqueue";
 import { apiRoute } from "@/lib/auth/api-route";
+import { assertPublisherSubscription } from "@/lib/distribution/access";
 import { getSessionUser } from "@/lib/auth/session";
 import { appendDistributionAuditFireAndForget } from "@/lib/distribution/audit";
 import { checkElectoralBlackout } from "@/lib/distribution/blackout";
+import { socialConnectionStorage } from "@/lib/distribution/connection-storage";
 import { enqueuePublishPostJob } from "@/lib/distribution/enqueue-publish";
 import { assertDistributionReady } from "@/lib/distribution/guard";
 import { distributionPostStorage } from "@/lib/distribution/post-storage";
@@ -15,6 +17,10 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function POST(_request: Request, { params }: Params) {
   return apiRoute(async () => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const blocked = assertDistributionReady();
     if (blocked) {
       return blocked;
@@ -51,7 +57,10 @@ export async function POST(_request: Request, { params }: Params) {
       );
     }
 
-    const blackout = checkElectoralBlackout();
+    const connection = await socialConnectionStorage.getByProfileId(post.profileId);
+    const blackout = checkElectoralBlackout({
+      electionDate: connection?.electionDate,
+    });
     if (blackout.blocked) {
       return NextResponse.json({ message: blackout.reason }, { status: 423 });
     }

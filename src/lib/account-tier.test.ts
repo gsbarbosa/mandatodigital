@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  canUsePublisher,
   getEntitlements,
   isPaidAccountTier,
   resolveAccountTierFromBilling,
@@ -44,7 +45,7 @@ describe("account-tier", () => {
       isPaid: true,
       avatarsPerMonth: 5,
       maxScriptWords: 140,
-      multiNetworkPublish: false,
+      multiNetworkPublish: true,
     });
     expect(getEntitlements("avancado")).toMatchObject({
       avatarsPerMonth: 22,
@@ -57,6 +58,35 @@ describe("account-tier", () => {
       maxScriptWords: 420,
       multiNetworkPublish: true,
       maxPublishNetworks: 7,
+    });
+  });
+
+  describe("canUsePublisher", () => {
+    it("libera o Publicador em qualquer plano pago", () => {
+      expect(canUsePublisher("essencial")).toBe(true);
+      expect(canUsePublisher("avancado")).toBe(true);
+      expect(canUsePublisher("elite")).toBe(true);
+    });
+
+    it("bloqueia trial", () => {
+      expect(canUsePublisher("trial")).toBe(false);
+    });
+
+    it("inadimplente perde o Publicador (past_due cai em trial)", () => {
+      const tier = resolveAccountTierFromBilling({
+        billingStatus: "past_due",
+        planId: "elite",
+      });
+      expect(tier).toBe("trial");
+      expect(canUsePublisher(tier)).toBe(false);
+    });
+
+    it("plano pago sem cobranca ativa nao libera", () => {
+      const tier = resolveAccountTierFromBilling({
+        billingStatus: "pending_payment",
+        planId: "avancado",
+      });
+      expect(canUsePublisher(tier)).toBe(false);
     });
   });
 });

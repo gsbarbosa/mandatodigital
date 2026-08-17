@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { apiRoute } from "@/lib/auth/api-route";
 import { getSessionUser } from "@/lib/auth/session";
+import { assertPublisherSubscription } from "@/lib/distribution/access";
 import { socialConnectionStorage } from "@/lib/distribution/connection-storage";
 import { assertDistributionReady } from "@/lib/distribution/guard";
 import { buildInstagramAuthorizeUrl } from "@/lib/distribution/instagram-graph-client";
@@ -23,6 +24,10 @@ const linkSchema = z.object({
 
 export async function POST(request: Request) {
   return apiRoute(async (repository) => {
+    const paywall = await assertPublisherSubscription();
+    if (paywall) {
+      return paywall;
+    }
     const blocked = assertDistributionReady();
     if (blocked) {
       return blocked;

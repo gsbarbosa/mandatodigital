@@ -6,7 +6,10 @@ set -euo pipefail
 
 PROJECT="${GCP_PROJECT:-madatodigital}"
 REGION="${GCP_REGION:-us-central1}"
-BASE_URL="${1:-${APP_BASE_URL:-https://mandatodigital-stg--madatodigital.us-central1.hosted.app}}"
+# Produção é o alvo padrão: os workers (publish, sweep de agendados, refresh de
+# token) rodam contra o Firestore único do projeto, então quem os executa deve
+# ser o backend estável. Passe a URL de staging como argumento para apontar lá.
+BASE_URL="${1:-${APP_BASE_URL:-https://mandatodigital--madatodigital.us-central1.hosted.app}}"
 WORKER_SECRET_NAME="${WORKER_SECRET_NAME:-jobs-worker-shared-secret}"
 
 echo "Project=$PROJECT BaseURL=$BASE_URL"
@@ -36,6 +39,38 @@ create_push() {
 create_push "md-jobs-seal-push" "md-jobs-seal" "/api/workers/seal"
 create_push "md-jobs-voice-push" "md-jobs-voice" "/api/workers/voice"
 create_push "md-jobs-publish-push" "md-jobs-publish" "/api/workers/publish"
+
+# Cloud Scheduler do Distribuidor. O Instagram Graph nao agenda do lado da Meta:
+# sem o sweep de agendados o pacote fica preso em "scheduled" para sempre.
+# O refresh de token evita que publicar quebre 60 dias apos conectar.
+if [ -n "${JOBS_WORKER_SHARED_SECRET:-}" ]; then
+  gcloud services enable cloudscheduler.googleapis.com --project="$PROJECT" 2>/dev/null \
+    || echo "cloudscheduler.googleapis.com ja habilitado (ou sem permissao)"
+
+  create_scheduler() {
+    local name="$1"
+    local schedule="$2"
+    local path="$3"
+    local body="$4"
+    gcloud scheduler jobs create http "$name" \
+      --location="$REGION" \
+      --schedule="$schedule" \
+      --time-zone="America/Sao_Paulo" \
+      --uri="${BASE_URL}${path}" \
+      --http-method=POST \
+      --headers="Content-Type=application/json,Authorization=Bearer ${JOBS_WORKER_SHARED_SECRET}" \
+      --message-body="$body" \
+      --attempt-deadline=320s \
+      --project="$PROJECT" 2>/dev/null || echo "scheduler $name already exists"
+  }
+
+  create_scheduler "md-distribution-scheduled" "*/5 * * * *" \
+    "/api/workers/distribution-scheduled" '{"limit":25}'
+  create_scheduler "md-instagram-token-refresh" "0 4 * * *" \
+    "/api/workers/instagram-token-refresh" '{"windowDays":15,"limit":50}'
+else
+  echo "JOBS_WORKER_SHARED_SECRET nao exportado — pulei os Cloud Scheduler do Distribuidor."
+fi
 
 echo ""
 echo "Proximos passos manuais:"

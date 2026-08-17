@@ -187,15 +187,16 @@ export function AcessoPlanosPage() {
             {choosingPlan ? "Escolha seu plano" : "Planos e Preços"}
           </h1>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-md-text-soft">
-            {choosingPlan ? (
-              <>
-                Seus dados já estão salvos. Compare o que cada plano inclui e confirme para
-                liberar o acesso - <strong>sem cobrança ou compromisso</strong> no período de
-                testes
-              </>
-            ) : (
-              "Monitoramento em tempo real, avatares personalizados com voz do candidato, e compliance total com TSE. Tudo integrado em uma plataforma."
-            )}
+            {choosingPlan
+              ? "Seus dados já estão salvos. Compare o que cada plano inclui e confirme para liberar o acesso."
+              : "Monitoramento em tempo real, avatares personalizados com voz do candidato, e compliance total com TSE. Tudo integrado em uma plataforma."}
+          </p>
+          {/* Fora do ternário de propósito: vale nos dois estados da página. */}
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-md-text-soft">
+            <strong className="font-semibold text-[var(--sentinela-text)]">
+              Sem cobrança ou compromisso
+            </strong>{" "}
+            no período de testes.
           </p>
           {choosingPlan ? (
             <p className="mt-4 text-xs text-[var(--curador-text)]">

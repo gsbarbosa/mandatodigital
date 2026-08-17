@@ -116,6 +116,27 @@ export async function exchangeInstagramLongLivedToken(shortLivedToken: string) {
   };
 }
 
+/**
+ * Renova o token de longa duração. A Meta exige que ele tenha ao menos 24h de
+ * vida e ainda não esteja expirado — passou do prazo, só reconectando por OAuth.
+ */
+export async function refreshInstagramLongLivedToken(longLivedToken: string) {
+  const params = new URLSearchParams({
+    grant_type: "ig_refresh_token",
+    access_token: longLivedToken,
+  });
+  const payload = await graphFetch<{ access_token?: string; expires_in?: number }>(
+    `${GRAPH_HOST}/refresh_access_token?${params.toString()}`,
+  );
+  if (!payload.access_token) {
+    throw new Error("Instagram nao retornou token renovado.");
+  }
+  return {
+    accessToken: payload.access_token,
+    expiresIn: payload.expires_in ?? 60 * 60 * 24 * 60,
+  };
+}
+
 export type InstagramMeProfile = {
   user_id: string;
   username: string;

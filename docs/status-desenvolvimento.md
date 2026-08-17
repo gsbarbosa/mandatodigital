@@ -213,14 +213,17 @@ Referência detalhada: [noticias-do-dia.md](noticias-do-dia.md)
 | UI v2 (`/distribuidor`) | ✅ | Fila Go/No-go, Contas, Histórico; Instagram-only |
 | Fluxo Criativo → Fila | ✅ | CTA **Distribuir** grava pacote (demo local ou API) |
 | Conexão OAuth (Instagram Login) | ✅ | Callback `/api/distribution/instagram/callback`; testers no app Meta |
+| Acesso só para assinante | ✅ | Qualquer plano pago; trial e inadimplente veem paywall (402 nas rotas) |
 | Draft a partir do Criativo | ✅ | Caption/vídeo do criativo selado |
+| Captions adaptadas por rede | ✅ | `caption-adapter.ts` (LLM + fallback por truncamento) |
 | Publicação real (Instagram Reels) | 🟡 | Adapter Graph + worker; **ligado em staging** para smoke; prod off até promover |
 | Janelas / `scheduledAt` | ✅ | UI + Graph não agenda (marca `scheduled`, não posta agora) |
 | Blackout eleitoral (72h / 24h) | ✅ | Data em Contas; gate real no backend |
 | Audit log distribuição | ✅ | Worker + approve/reject/retry |
 | Feature flags | 🟡 | `DISTRIBUTION_*` = true em staging; revisar antes de `staging` → `main` |
 
-Ver [adr-distribution-instagram.md](adr-distribution-instagram.md).
+Spec viva em [distribuidor.md](distribuidor.md); decisão em
+[adr-distribution-instagram.md](adr-distribution-instagram.md).
 
 
 ---
