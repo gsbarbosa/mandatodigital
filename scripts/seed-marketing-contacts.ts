@@ -26,11 +26,17 @@ import {
   upsertMarketingContacts,
   type MarketingContactSeed,
 } from "../src/lib/outbound/contacts-storage";
-import { firstMobileE164 } from "../src/lib/outbound/phone";
+import {
+  REJECTION_LABELS,
+  validateEnrichedRow,
+  type RejectionReason,
+} from "../src/lib/outbound/instagram-enrichment";
+import { classifyPhone, firstMobileE164, splitPhoneField } from "../src/lib/outbound/phone";
 import type { ContactSource } from "../src/lib/outbound/types";
 
 const DEFAULT_DIRETORIO_CSV = ".local/diretorios-partidarios.csv";
 const DEFAULT_CANDIDATOS_CSV = ".local/consulta_cand_2026_BRASIL.csv";
+const DEFAULT_INSTAGRAM_CSV = ".local/instagram-enriquecido.csv";
 const CAMARA_API = "https://dadosabertos.camara.leg.br/api/v2/deputados";
 
 function loadEnvLocal() {
@@ -136,8 +142,14 @@ function normalizeName(value: string): string {
 }
 
 /** Doc id previsível e legível, com a origem no prefixo. */
+const ID_PREFIX: Record<ContactSource, string> = {
+  diretorio_partidario: "dir",
+  camara_deputados: "cam",
+  instagram_enriquecido: "ig",
+};
+
 function docId(source: ContactSource, key: string): string {
-  const prefix = source === "diretorio_partidario" ? "dir" : "cam";
+  const prefix = ID_PREFIX[source];
   const safe = key.toLowerCase().replace(/[^a-z0-9@._-]/g, "_");
   return `${prefix}_${safe}`;
 }
@@ -250,6 +262,124 @@ function buildDirectoryContacts(
   };
 }
 
+/** Telefones de uma linha do CSV enriquecido, já normalizados e só móveis. */
+function instagramPhones(row: Record<string, string>): string[] {
+  const brutos: string[] = [];
+
+  const comercial = (row.TELEFONE_COMERCIAL ?? "").trim();
+  // O campo às vezes traz uma URL (wa.link/…) em vez de número.
+  if (comercial && !/^https?:/i.test(comercial)) {
+    brutos.push(...splitPhoneField(comercial));
+  }
+  try {
+    for (const item of JSON.parse(row.TODOS_TELEFONES || "[]") as unknown[]) {
+      brutos.push(String(item));
+    }
+  } catch {
+    // campo malformado — ignora
+  }
+
+  const unicos = new Set<string>();
+  for (const bruto of brutos) {
+    const classificado = classifyPhone(bruto);
+    if (classificado?.isMobile) {
+      unicos.add(classificado.e164);
+    }
+  }
+  return [...unicos];
+}
+
+function parseJsonArray(value: string): string[] {
+  try {
+    return (JSON.parse(value || "[]") as unknown[]).map((item) => String(item));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Importa a base enriquecida via Instagram aplicando as travas de qualidade.
+ * Linha reprovada não vira contato — ver instagram-enrichment.ts para o porquê.
+ */
+function buildInstagramContacts(
+  filePath: string,
+  origin: string,
+): {
+  contacts: MarketingContactSeed[];
+  sourceRows: number;
+  rejected: Map<RejectionReason, number>;
+} {
+  const rows = readCsvAsObjects(filePath, { delimiter: ",", encoding: "utf-8" });
+
+  // Um telefone reivindicado por candidatos diferentes indica associação errada
+  // em pelo menos um deles — e não há como saber qual. Índice montado sobre a
+  // base inteira, antes de validar linha a linha.
+  const phoneOwners = new Map<string, Set<string>>();
+  for (const row of rows) {
+    const nome = (row.NM_URNA_CANDIDATO ?? "").trim();
+    if (!nome) continue;
+    for (const phone of instagramPhones(row)) {
+      const donos = phoneOwners.get(phone) ?? new Set<string>();
+      donos.add(nome);
+      phoneOwners.set(phone, donos);
+    }
+  }
+
+  const byPhone = new Map<string, MarketingContactSeed>();
+  const rejected = new Map<RejectionReason, number>();
+
+  for (const row of rows) {
+    const handle = (row.INSTAGRAM_USERNAME ?? "").trim();
+    const nome = (row.NM_URNA_CANDIDATO ?? "").trim();
+    const uf = (row.SG_UF ?? "").trim().toUpperCase();
+    if (!handle || !nome) continue;
+
+    const resultado = validateEnrichedRow(
+      {
+        handle,
+        candidateName: nome,
+        uf,
+        role: (row.DS_CARGO ?? "").trim(),
+        party: (row.SG_PARTIDO ?? "").trim(),
+        phones: instagramPhones(row),
+        bioLinks: parseJsonArray(row.LINKS_BIO ?? ""),
+      },
+      phoneOwners,
+    );
+
+    if (!resultado.ok) {
+      for (const motivo of resultado.reasons) {
+        rejected.set(motivo, (rejected.get(motivo) ?? 0) + 1);
+      }
+      continue;
+    }
+
+    if (byPhone.has(resultado.phone)) continue;
+
+    const party = (row.SG_PARTIDO ?? "").trim();
+    const cargo = (row.DS_CARGO ?? "").trim();
+
+    byPhone.set(resultado.phone, {
+      id: docId("instagram_enriquecido", resultado.phone),
+      name: nome,
+      email: (row.EMAIL_COMERCIAL ?? "").trim().toLowerCase(),
+      phoneE164: resultado.phone,
+      source: "instagram_enriquecido",
+      uf,
+      parties: party ? [party] : [],
+      roles: cargo ? [cargo] : [],
+      municipality: "",
+      // A fonte é a própria lista de candidaturas 2026.
+      isCandidate2026: true,
+      candidateRole: cargo,
+      suspended: false,
+      origin,
+    });
+  }
+
+  return { contacts: [...byPhone.values()], sourceRows: rows.length, rejected };
+}
+
 type CamaraDeputy = {
   id: number;
   nome: string;
@@ -325,6 +455,11 @@ async function main() {
 
   const wantsDirectory = only === "todos" || only === "diretorio";
   const wantsCamara = only === "todos" || only === "camara";
+  const wantsInstagram = only === "todos" || only === "instagram";
+  const instagramPath = path.resolve(
+    process.cwd(),
+    args.find((arg) => arg.startsWith("--instagram="))?.slice(12) || DEFAULT_INSTAGRAM_CSV,
+  );
   const contacts: MarketingContactSeed[] = [];
   const stamp = new Date().toISOString().slice(0, 10);
 
@@ -374,6 +509,28 @@ async function main() {
       `  candidatos em 2026 ... ${camaraContacts.filter((c) => c.isCandidate2026).length}`,
     );
     console.log("");
+  }
+
+  if (wantsInstagram) {
+    if (!fs.existsSync(instagramPath)) {
+      if (only === "instagram") {
+        console.error(`CSV enriquecido não encontrado: ${instagramPath}`);
+        process.exit(1);
+      }
+      console.warn(`Aviso: ${DEFAULT_INSTAGRAM_CSV} não encontrado — fonte Instagram pulada.`);
+    } else {
+      const result = buildInstagramContacts(instagramPath, `instagram_enriquecido_${stamp}`);
+      contacts.push(...result.contacts);
+
+      console.log(`Instagram enriquecido (${path.basename(instagramPath)})`);
+      console.log(`  linhas na fonte ...... ${result.sourceRows}`);
+      console.log(`  APROVADOS ............ ${result.contacts.length}`);
+      console.log(`  reprovados por:`);
+      for (const [motivo, quantidade] of [...result.rejected].sort((a, b) => b[1] - a[1])) {
+        console.log(`    ${String(quantidade).padStart(4)}  ${REJECTION_LABELS[motivo]}`);
+      }
+      console.log("");
+    }
   }
 
   console.log(`Total a gravar ......... ${contacts.length}`);

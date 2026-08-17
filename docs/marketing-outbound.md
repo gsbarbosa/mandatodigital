@@ -120,8 +120,17 @@ token de system user, senão o disparo para de funcionar no dia seguinte.
 
 ### Cadastro do webhook no Meta
 
-URL: `{APP_BASE_URL}/api/webhooks/whatsapp` — hoje
-`https://mandatodigital--madatodigital.us-central1.hosted.app/api/webhooks/whatsapp`
+**Atenção: são dois backends.** `staging` publica em `mandatodigital-stg--…` e `main` em
+`mandatodigital--…`. Push na `staging` **não** atualiza a URL de produção — confira em qual você
+está cadastrando o webhook.
+
+| Branch | Backend | URL do webhook |
+|---|---|---|
+| `staging` | `mandatodigital-stg` | `https://mandatodigital-stg--madatodigital.us-central1.hosted.app/api/webhooks/whatsapp` |
+| `main` | `mandatodigital` | `https://mandatodigital--madatodigital.us-central1.hosted.app/api/webhooks/whatsapp` |
+
+(`APP_BASE_URL` no `apphosting.yaml` aponta para a URL de prod nos dois backends — não sirva de
+referência para montar a URL do webhook em staging.)
 
 1. App → WhatsApp → Configuração → Webhook → Editar.
 2. Callback URL: a URL acima. Verify token: o valor de `WHATSAPP_VERIFY_TOKEN`.

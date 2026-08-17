@@ -8,12 +8,17 @@
  * Doc: docs/marketing-outbound.md
  */
 
-export const CONTACT_SOURCES = ["diretorio_partidario", "camara_deputados"] as const;
+export const CONTACT_SOURCES = [
+  "diretorio_partidario",
+  "camara_deputados",
+  "instagram_enriquecido",
+] as const;
 export type ContactSource = (typeof CONTACT_SOURCES)[number];
 
 export const CONTACT_SOURCE_LABELS: Record<ContactSource, string> = {
   diretorio_partidario: "Diretório partidário (TSE)",
   camara_deputados: "Câmara dos Deputados",
+  instagram_enriquecido: "Instagram (validado)",
 };
 
 export const CAMPAIGN_CHANNELS = ["email", "whatsapp"] as const;
