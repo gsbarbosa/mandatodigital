@@ -35,6 +35,10 @@ function mapCampaign(id: string, data: DocumentData | undefined): MarketingCampa
     subject: String(data.subject ?? ""),
     body: String(data.body ?? ""),
     templateName: String(data.templateName ?? ""),
+    templateLanguage: String(data.templateLanguage ?? "pt_BR"),
+    templateParams: Array.isArray(data.templateParams)
+      ? (data.templateParams as unknown[]).map((item) => String(item))
+      : [],
     status: isCampaignStatus(data.status) ? data.status : "rascunho",
     stats: {
       total: Number(stats.total ?? 0),
@@ -68,6 +72,8 @@ export type CampaignInput = {
   subject?: string;
   body?: string;
   templateName?: string;
+  templateLanguage?: string;
+  templateParams?: string[];
 };
 
 export async function createMarketingCampaign(input: CampaignInput): Promise<MarketingCampaign> {
@@ -89,6 +95,8 @@ export async function createMarketingCampaign(input: CampaignInput): Promise<Mar
     subject: (input.subject ?? "").trim(),
     body: input.body ?? "",
     templateName: (input.templateName ?? "").trim(),
+    templateLanguage: (input.templateLanguage ?? "pt_BR").trim() || "pt_BR",
+    templateParams: input.templateParams ?? [],
     status: "rascunho",
     stats: { total: 0, sent: 0, failed: 0 },
     lastError: "",
@@ -104,6 +112,8 @@ export async function createMarketingCampaign(input: CampaignInput): Promise<Mar
     subject: campaign.subject,
     body: campaign.body,
     templateName: campaign.templateName,
+    templateLanguage: campaign.templateLanguage,
+    templateParams: campaign.templateParams,
     status: campaign.status,
     stats: campaign.stats,
     lastError: campaign.lastError,
@@ -139,6 +149,12 @@ export async function updateMarketingCampaign(
     body: patch.body !== undefined ? patch.body : current.body,
     templateName:
       patch.templateName !== undefined ? patch.templateName.trim() : current.templateName,
+    templateLanguage:
+      patch.templateLanguage !== undefined
+        ? patch.templateLanguage.trim() || current.templateLanguage
+        : current.templateLanguage,
+    templateParams:
+      patch.templateParams !== undefined ? patch.templateParams : current.templateParams,
     updatedAt: nowIso(),
   };
 
@@ -150,6 +166,8 @@ export async function updateMarketingCampaign(
       subject: next.subject,
       body: next.body,
       templateName: next.templateName,
+      templateLanguage: next.templateLanguage,
+      templateParams: next.templateParams,
       updatedAt: next.updatedAt,
     },
     { merge: true },
@@ -199,6 +217,7 @@ function mapSend(id: string, data: DocumentData | undefined): MarketingSend | nu
     contactName: String(data.contactName ?? ""),
     status: isSendStatus(data.status) ? data.status : "falhou",
     error: String(data.error ?? ""),
+    providerMessageId: String(data.providerMessageId ?? ""),
     createdAt: String(data.createdAt ?? nowIso()),
   };
 }

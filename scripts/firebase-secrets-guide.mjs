@@ -27,6 +27,9 @@ const SECRET_MAP = [
   ["ASAAS_API_KEY", "asaas-api-key"],
   ["ASAAS_WEBHOOK_TOKEN", "asaas-webhook-token"],
   ["INSTAGRAM_APP_SECRET", "instagram-app-secret"],
+  ["WHATSAPP_ACCESS_TOKEN", "whatsapp-access-token"],
+  ["WHATSAPP_APP_SECRET", "whatsapp-app-secret"],
+  ["WHATSAPP_VERIFY_TOKEN", "whatsapp-verify-token"],
 ];
 
 function loadEnvFile(filePath) {

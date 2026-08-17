@@ -277,6 +277,39 @@ env:
     availability:
       - RUNTIME
 
+  # WhatsApp Cloud API — outbound do /admin/marketing (docs/marketing-outbound.md).
+  # Id do número não é segredo, então fica em texto puro.
+  - variable: WHATSAPP_PHONE_NUMBER_ID
+    value: "1180191901853184"
+    availability:
+      - RUNTIME
+  # Os 3 abaixo são secrets e ficam comentados até existirem no Secret Manager —
+  # referenciar secret inexistente derruba o build inteiro do App Hosting.
+  # Ordem de ativação:
+  #   1. npm run firebase:secrets:apply   (cadastra whatsapp-*)
+  #   2. firebase apphosting:secrets:grantaccess --backend mandatodigital --project madatodigital
+  #   3. descomentar as 3 entradas abaixo e fazer deploy
+  # Enquanto comentados: o disparo por WhatsApp recusa e o webhook responde 500
+  # (fail-closed), sem afetar o resto do app.
+  # - variable: WHATSAPP_ACCESS_TOKEN
+  #   secret: whatsapp-access-token
+  #   availability:
+  #     - RUNTIME
+  # Sem o app secret o webhook recusa tudo (não dá para provar que veio da Meta).
+  # - variable: WHATSAPP_APP_SECRET
+  #   secret: whatsapp-app-secret
+  #   availability:
+  #     - RUNTIME
+  # - variable: WHATSAPP_VERIFY_TOKEN
+  #   secret: whatsapp-verify-token
+  #   availability:
+  #     - RUNTIME
+  # Link do material prometido nos templates; vazio = a IA não promete link.
+  # - variable: WHATSAPP_DEMO_LINK_URL
+  #   value: ""
+  #   availability:
+  #     - RUNTIME
+
   # Asaas (boleto). Cadastre: npm run firebase:secrets:guide / --apply
   - variable: ASAAS_API_KEY
     secret: asaas-api-key

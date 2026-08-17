@@ -21,6 +21,9 @@ export const campaignInputSchema = z.object({
   subject: z.string().max(200).optional(),
   body: z.string().max(20000).optional(),
   templateName: z.string().max(120).optional(),
+  templateLanguage: z.string().max(10).optional(),
+  /** Preenchimento posicional do template: item 0 vira `{{1}}`. */
+  templateParams: z.array(z.string().max(300)).max(10).optional(),
 });
 
 export const campaignPatchSchema = campaignInputSchema.partial();

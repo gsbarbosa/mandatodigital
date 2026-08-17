@@ -121,6 +121,13 @@ export type MarketingCampaign = {
   body: string;
   /** Nome do template aprovado no Meta (WhatsApp). */
   templateName: string;
+  /** Idioma do template aprovado (Meta exige bater exatamente). */
+  templateLanguage: string;
+  /**
+   * Preenchimento posicional do template: o item 0 vira `{{1}}`. Cada entrada é
+   * um texto com variáveis (ex.: `"{{nome}}"`), renderizado por contato.
+   */
+  templateParams: string[];
   status: CampaignStatus;
   stats: CampaignStats;
   /** Preenchido quando o disparo falha por completo (ex.: Resend não configurado). */
@@ -140,8 +147,52 @@ export type MarketingSend = {
   contactName: string;
   status: SendStatus;
   error: string;
+  /** Id da mensagem no provedor (`wamid...`), para casar com o webhook. */
+  providerMessageId: string;
   createdAt: string;
 };
+
+export const CONVERSATION_ROLES = ["lead", "agente"] as const;
+export type ConversationRole = (typeof CONVERSATION_ROLES)[number];
+
+export type ConversationMessage = {
+  role: ConversationRole;
+  text: string;
+  /** `wamid` da Meta — usado também para idempotência do webhook. */
+  providerMessageId: string;
+  at: string;
+};
+
+/**
+ * Thread de conversa por contato (doc id = telefone E.164). Criada quando o
+ * lead responde ao disparo; é o estado que o agente de IA usa como histórico.
+ */
+export type MarketingConversation = {
+  id: string;
+  contactId: string;
+  contactName: string;
+  phoneE164: string;
+  campaignId: string;
+  messages: ConversationMessage[];
+  /**
+   * Última mensagem recebida do lead. A janela de 24h da Meta conta a partir
+   * daqui — fora dela só template reabre a conversa.
+   */
+  lastInboundAt: string;
+  /** Desliga a resposta automática desta thread (assumida por humano). */
+  agentPaused: boolean;
+  lastError: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** Janela de atendimento de 24h da Meta ainda aberta? */
+export function isWithinServiceWindow(lastInboundAt: string, now = Date.now()): boolean {
+  const last = Date.parse(lastInboundAt);
+  return Number.isFinite(last) && now - last < WINDOW_MS;
+}
 
 export function isContactSource(value: unknown): value is ContactSource {
   return CONTACT_SOURCES.includes(value as ContactSource);
