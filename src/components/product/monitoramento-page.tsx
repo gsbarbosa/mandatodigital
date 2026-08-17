@@ -737,21 +737,23 @@ export function MonitoramentoPage() {
                         ? "Não encontramos reportagens locais recentes nos temas selecionados nem outras notícias do município nesta rodada."
                         : emptyMessageForSphere(sphere)}
                   </p>
-                  {showNoticiasDoDiaLink && !municipalFallback ? (
-                    <VejaMaisNoticiasDoDiaLink />
-                  ) : null}
-                  <Link
-                    href={
-                      sphere === "adversarios"
-                        ? "/monitoramento/temas#adversarios"
-                        : sphere === "federal" || sphere === "estadual"
-                          ? "/monitoramento/temas#temas"
-                          : "/monitoramento/temas"
-                    }
-                    className="mt-3 inline-block text-sm font-medium text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80"
-                  >
-                    {emptyLinkLabelForSphere(sphere)}
-                  </Link>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {showNoticiasDoDiaLink && !municipalFallback ? (
+                      <VejaMaisNoticiasDoDiaLink className="text-sm font-medium text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80" />
+                    ) : null}
+                    <Link
+                      href={
+                        sphere === "adversarios"
+                          ? "/monitoramento/temas#adversarios"
+                          : sphere === "federal" || sphere === "estadual"
+                            ? "/monitoramento/temas#temas"
+                            : "/monitoramento/temas"
+                      }
+                      className="text-sm font-medium text-[var(--curador-text)] underline underline-offset-2 hover:opacity-80"
+                    >
+                      {emptyLinkLabelForSphere(sphere)}
+                    </Link>
+                  </div>
                 </div>
               ) : null}
             </section>
