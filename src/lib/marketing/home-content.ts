@@ -1,8 +1,8 @@
 import type { AgentAccent } from "@/lib/marketing/shared";
 
 export const homeHero = {
-  title: "A Tropa de Inteligência Artificial para sua (re)eleição.",
-  body: "Um ecossistema completo para monitorar, produzir, auditar e publicar a sua comunicação em ritmo industrial, preservando a sua personalidade e ideologia.",
+  title: "A tropa de IA do Candidato em 2026.",
+  body: "O plenário e o jornal ficaram para trás. A verdadeira briga é dentro do feed do eleitor. Nosso ecossistema completo de IA monitora, produz e publica sua comunicação para garantir que você vença onde importa.",
 } as const;
 
 export const homeFactToFeed = {

@@ -129,62 +129,54 @@ function EcosystemVisual() {
 export function MarketingHomePage() {
   return (
     <>
-      <section className="relative overflow-hidden border-b border-md-border/40">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-35"
-          style={{
-            backgroundImage: "url(/marketing/hero-bg.jpg)",
-            backgroundSize: "cover",
-            backgroundPosition: "right center",
-          }}
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-md-bg via-md-bg/95 to-md-bg/70"
-          aria-hidden
-        />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-12">
-          <div className="min-w-0">
-            <h1 className="text-4xl font-bold tracking-tight text-md-text sm:text-5xl lg:leading-tight">
-              A{" "}
-              <span className="text-emerald-400">Tropa de Inteligência Artificial</span> para
-              sua (re)eleição.
-            </h1>
-            <p className="mt-5 text-base leading-relaxed text-md-text-muted sm:text-lg">
-              Um ecossistema completo para{" "}
-              <span className="underline decoration-slate-500 underline-offset-4">monitorar</span>,{" "}
-              <span className="underline decoration-slate-500 underline-offset-4">produzir</span>,{" "}
-              <span className="underline decoration-slate-500 underline-offset-4">auditar</span> e{" "}
-              <span className="underline decoration-slate-500 underline-offset-4">publicar</span> a
-              sua comunicação em ritmo industrial, preservando a sua personalidade e ideologia.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href={MARKETING_CTA_HREF} className="primary-button">
-                {MARKETING_CTA_LABEL}
-              </Link>
-              <Link
-                href={"/ecossistema" as Route}
-                className="secondary-button inline-flex items-center"
-              >
-                Conheça o ecossistema
-              </Link>
+      <section className="relative overflow-hidden border-b border-md-border/40 bg-md-bg">
+        {/* Split em xl (não lg): abaixo de 1280 a coluna de texto fica estreita, a copy
+            estica a linha e o object-cover come as laterais da imagem. Empilhado é melhor. */}
+        <div className="grid xl:grid-cols-[minmax(0,42fr)_minmax(0,58fr)]">
+          <div className="flex items-center px-4 py-14 sm:px-6 sm:py-20 xl:py-24 xl:pl-20 2xl:pl-32">
+            {/* -translate-y: sobe o bloco acima do centro geométrico sem alterar a
+                altura da linha do grid (padding assimétrico esticaria a seção). */}
+            <div className="w-full min-w-0 max-w-2xl xl:-translate-y-8">
+              <h1 className="text-4xl font-bold tracking-tight text-md-text sm:text-5xl lg:text-6xl lg:leading-[1.08]">
+                A <span className="text-emerald-400">tropa de IA</span> do Candidato em{" "}
+                <span className="text-emerald-400">2026</span>.
+              </h1>
+              <p className="mt-6 text-base leading-relaxed text-md-text-muted sm:text-lg">
+                O plenário e o jornal ficaram para trás. A verdadeira briga é{" "}
+                <span className="text-emerald-400">dentro do feed do eleitor</span>. Nosso
+                ecossistema completo de IA monitora, produz e publica sua comunicação para
+                garantir que você vença onde importa.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href={MARKETING_CTA_HREF} className="primary-button">
+                  {MARKETING_CTA_LABEL}
+                </Link>
+                <Link
+                  href={"/ecossistema" as Route}
+                  className="secondary-button inline-flex items-center"
+                >
+                  Conheça o ecossistema
+                </Link>
+              </div>
             </div>
           </div>
 
-          <div className="relative mx-auto w-full min-w-0 max-w-xl lg:max-w-none">
-            <div className="absolute -inset-3 rounded-[2rem] bg-emerald-500/10 blur-2xl" aria-hidden />
-            <div className="relative overflow-hidden rounded-3xl border border-md-border/70 bg-md-bg/40 shadow-[0_24px_80px_rgba(0,0,0,0.45)] ring-1 ring-emerald-500/20">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/marketing/hero-tropa.webp"
-                alt="Tropa de agentes de IA do Mandato Digital"
-                width={1100}
-                height={757}
-                className="block h-auto w-full max-w-full object-cover"
-                decoding="async"
-                fetchPriority="high"
-              />
-            </div>
+          <div className="relative aspect-[3/2] w-full xl:aspect-auto xl:min-h-[42rem]">
+            {/* !h-full: .marketing-shell img força height:auto e vence a utilitária */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/marketing/hero-agentes.webp"
+              alt="Candidato diante do feed, cercado pelos agentes de IA do Mandato Digital: Sentinela, Curador, Criador, Distribuidor e Auditor"
+              width={1536}
+              height={1024}
+              className="absolute inset-0 !h-full w-full object-cover object-center"
+              decoding="async"
+              fetchPriority="high"
+            />
+            <div
+              className="pointer-events-none absolute inset-y-0 left-0 hidden w-32 bg-gradient-to-r from-md-bg via-md-bg/60 to-transparent xl:block"
+              aria-hidden
+            />
           </div>
         </div>
       </section>
