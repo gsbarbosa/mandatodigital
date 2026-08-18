@@ -68,6 +68,8 @@ if [ -n "${JOBS_WORKER_SHARED_SECRET:-}" ]; then
     "/api/workers/distribution-scheduled" '{"limit":25}'
   create_scheduler "md-instagram-token-refresh" "0 4 * * *" \
     "/api/workers/instagram-token-refresh" '{"windowDays":15,"limit":50}'
+  create_scheduler "md-outbound-autosend" "* * * * *" \
+    "/api/workers/outbound-autosend" '{}'
 else
   echo "JOBS_WORKER_SHARED_SECRET nao exportado — pulei os Cloud Scheduler do Distribuidor."
 fi

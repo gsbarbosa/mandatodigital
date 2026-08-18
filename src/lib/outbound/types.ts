@@ -263,8 +263,19 @@ export type MarketingConversation = {
    * daqui — fora dela só template reabre a conversa.
    */
   lastInboundAt: string;
-  /** Desliga a resposta automática desta thread (assumida por humano). */
+  /**
+   * Humano assumiu a thread: a IA continua sugerindo no painel, mas nunca
+   * envia — nem depois dos 3 minutos.
+   */
   agentPaused: boolean;
+  /** Texto gerado pela IA, ainda não enviado. Vazio = nada pendente. */
+  suggestedReply: string;
+  suggestedAt: string;
+  /**
+   * Quando a IA pode enviar sozinha. Vazio se a thread está assumida ou não
+   * há sugestão pendente.
+   */
+  autoSendAt: string;
   lastError: string;
   createdAt: string;
   updatedAt: string;
@@ -272,10 +283,39 @@ export type MarketingConversation = {
 
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
+/** Tempo que o operador tem para enviar a sugestão antes da IA mandar sozinha. */
+export const SUGGESTION_AUTO_SEND_MS = 3 * 60 * 1000;
+
 /** Janela de atendimento de 24h da Meta ainda aberta? */
 export function isWithinServiceWindow(lastInboundAt: string, now = Date.now()): boolean {
   const last = Date.parse(lastInboundAt);
   return Number.isFinite(last) && now - last < WINDOW_MS;
+}
+
+/** ISO do auto-envio, ou string vazia quando a IA está assumida (nunca envia). */
+export function computeSuggestionAutoSendAt(paused: boolean, nowMs = Date.now()): string {
+  if (paused) {
+    return "";
+  }
+  return new Date(nowMs + SUGGESTION_AUTO_SEND_MS).toISOString();
+}
+
+/** Sugestão vencida, thread não assumida — a IA deve enviar. */
+export function isSuggestionAutoSendDue(
+  conversation: Pick<MarketingConversation, "agentPaused" | "suggestedReply" | "autoSendAt">,
+  nowMs = Date.now(),
+): boolean {
+  if (conversation.agentPaused) {
+    return false;
+  }
+  if (!conversation.suggestedReply.trim()) {
+    return false;
+  }
+  if (!conversation.autoSendAt) {
+    return false;
+  }
+  const at = Date.parse(conversation.autoSendAt);
+  return Number.isFinite(at) && at <= nowMs;
 }
 
 export function isContactSource(value: unknown): value is ContactSource {
@@ -315,6 +355,7 @@ export function renderTemplate(template: string, contact: MarketingContact): str
     partido: contact.parties[0] ?? "",
     cargo: contact.candidateRole || contact.roles[0] || "",
     municipio: contact.municipality,
+    persona: "Anna",
   };
 
   return template.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_match, key: string) => {

@@ -84,7 +84,7 @@ no envio de contrato). Se um terceiro consumidor aparecer, aí sim vale extrair.
 ```
 src/lib/outbound/          tipos, phone, segment-filter, storages, dispatch,
                            whatsapp, whatsapp-webhook, conversation-agent,
-                           inbound-handler, operator-reply
+                           inbound-handler, operator-reply, outbound-autosend
 src/app/api/admin/marketing/   contacts, segments, campaigns (CRUD + send),
                                conversations (pause + reply do operador)
 src/app/api/webhooks/whatsapp/ handshake GET + recebimento POST

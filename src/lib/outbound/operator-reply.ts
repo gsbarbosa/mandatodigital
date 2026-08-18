@@ -1,7 +1,8 @@
 /**
  * Resposta humana pelo painel: texto livre via Cloud API, na janela de 24h.
  *
- * Enviar pausa a IA da thread — senão a Marina responderia em cima do operador.
+ * Enviar cancela a sugestão pendente (e o auto-envio de 3 min). Não pausa a
+ * IA — isso só acontece em "Assumir".
  */
 
 import {
@@ -48,7 +49,6 @@ export async function sendOperatorReply(
       text,
       providerMessageId: messageId,
       role: "humano",
-      pauseAgent: true,
     });
     return { messageId };
   } catch (error) {

@@ -8,9 +8,12 @@ parlamentar, não o usuário final do produto.
 
 Por que dentro do monólito e não em projeto separado: [adr-marketing-outbound-no-monolito.md](adr-marketing-outbound-no-monolito.md).
 
-**Status (17/ago/2026): em produção e validado ponta a ponta.** App publicado na Meta, webhook
-recebendo, IA respondendo. O ciclo completo foi exercitado com número real: lead perguntou "é
-pago?" às 18:29:33 e a resposta da Marina saiu às 18:29:37.
+**Status (18/ago/2026):** em produção. App publicado na Meta, webhook recebendo. A Marina
+gera sugestão no painel; se o humano não enviar em 3 min, a IA dispara sozinha. Com
+"Assumir", só sugere — nunca envia.
+
+Validação ponta a ponta anterior (17/ago): lead perguntou "é pago?" às 18:29:33 e a resposta
+saiu às 18:29:37 (fluxo antigo, envio imediato).
 
 ## Módulos
 
@@ -19,7 +22,7 @@ pago?" às 18:29:33 e a resposta da Marina saiu às 18:29:37.
 | Contatos | Base de prospects + filtro exploratório + contadores |
 | Segmentos | Filtros salvos e reutilizáveis, com contagem resolvida na hora |
 | Campanhas | Criação, prévia de público, disparo e trilha de envios |
-| Conversas | Threads do WhatsApp, janela de 24h e botão para assumir no braço (pausa a IA) |
+| Conversas | Threads do WhatsApp, sugestão da IA, auto-envio em 3 min, Assumir (só sugere) |
 
 ## Modelo de dados
 
@@ -188,7 +191,7 @@ O filtro avulso no painel continua existindo para exploração. O disparo usa os
 | Segmento | Canal | CTA / landing |
 |---|---|---|
 | VIP — contato pessoal | telefone / e-mail / indicação | — |
-| Alta relevância — humano se responder | WhatsApp, lote 5; pausar IA no primeiro "tenho interesse" | degustação |
+| Alta relevância — humano se responder | WhatsApp, lote 5; sugestão no painel, auto-envio em 3 min | degustação |
 | WA · Reeleição · F · Estadual/Distrital | WhatsApp | `/vozdelas/provas.html#recursos` + `/materialidade` |
 | WA · Reeleição · F · Federal | WhatsApp residual (quase tudo é VIP) | `/materialidade` |
 | WA · Reeleição · M · Estadual/Distrital | WhatsApp | `/materialidade` |
@@ -252,8 +255,9 @@ E-mail sai por Resend (`resend.batch.send`, 100 por chamada), reaproveitando o c
 secrets → env, igual a `src/lib/legal/email.ts`.
 
 Variáveis no assunto e no corpo: `{{nome}}` (primeiro nome, capitalizado — a base do TSE é toda
-caixa alta), `{{nome_completo}}`, `{{uf}}`, `{{partido}}`, `{{cargo}}`, `{{municipio}}`. Placeholder
-sem valor vira string vazia, nunca chega cru no destinatário.
+caixa alta), `{{persona}}` (Anna, nos templates de candidatas), `{{nome_completo}}`, `{{uf}}`,
+`{{partido}}`, `{{cargo}}`, `{{municipio}}`. Placeholder sem valor vira string vazia, nunca chega
+cru no destinatário.
 
 Proteções:
 
@@ -296,7 +300,9 @@ diferente faz a Meta rejeitar o envio, então confira antes de montar a campanha
 | Template | Params | Gatilho |
 |---|---|---|
 | `md_intro_adversario_v1` | 1 | resposta a ataque em ~20 min |
-| `md_intro_feito_candidatas_v1` | 1 | plataforma pensada para candidatas |
+| `md_intro_feito_candidatas_v1` | 1 | legado (Bom dia + Marina) — apagar quando o v3 estiver APPROVED |
+| `md_intro_feito_candidatas_v3` | 2 | **PENDING** — Olá *nome*, aqui é a *Anna*; foco em candidatas |
+| `md_intro_generico_v1` | 2 | **PENDING** — genérico, bullets + teste grátis |
 | `md_intro_tempo_volume_v1` | 1 | volume de vídeo por semana |
 | `md_followup_candidatas_v1` | 1 | follow-up do convite |
 | `md_intro_candidatas_curta_v1` | 3 | versão curta |
@@ -305,9 +311,22 @@ diferente faz a Meta rejeitar o envio, então confira antes de montar a campanha
 | `md_intro_vaga_sigla_v1` | 3 | escassez: 3 campanhas por partido/estado |
 | `md_intro_prova_v1` | 4 | prova de IA lendo notícia do dia |
 
-O template `md_intro_feito_candidatas_v1` está aprovado na persona **Anna** (1 parâmetro =
-primeiro nome). A IA que responde depois da primeira mensagem do lead continua sendo Marina —
-são personas diferentes de propósito (campanha vs. conversa).
+O template `md_intro_feito_candidatas_v1` (APPROVED) ainda diz "Bom dia" e "Marina". O sucessor
+`md_intro_feito_candidatas_v3` está **PENDING** na Meta:
+
+> Olá *{{1}}*, aqui é a *{{2}}*, do Mandato Digital.
+>
+> Montamos a primeira plataforma de campanha com foco em candidatas: estúdio sem equipe de
+> gravação, monitoramento 24h e registro documentado da candidatura.
+>
+> Posso te mandar a página de um minuto?
+
+`{{1}}` = primeiro nome, `{{2}}` = persona (Anna no disparo). "Olá" vale a qualquer hora — a Meta
+não deixa variável no começo/fim do texto. Quando o v3 for APPROVED, apagar o v1 (e o v2, se ainda
+existir em exclusão). A IA que responde depois do lead continua sendo **Marina**.
+
+`md_intro_generico_v1` (PENDING) é o intro para qualquer público: bullets, CTA de teste grátis
+sem cartão, botões *Sim. Seja breve* / *Não, obrigado*. Rodapé cinza da Meta com o opt-out.
 
 Persona da conversa: **Marina**. A maior parte dos outros templates também pede autorização para
 enviar um material ("página de um minuto" / "vídeo de 3 minutos") — material que ainda não existe,
@@ -407,6 +426,25 @@ tempo constante. Sem `WHATSAPP_APP_SECRET` a rota responde 500 e não processa n
 pública que dispara chamada de LLM e envio de mensagem, então aceitar payload não autenticado
 sairia caro. Reentrega da Meta é absorvida pela idempotência por `wamid`.
 
+### Disparo nomeado (agente)
+
+Fluxo operacional: você diz o **template** e os **nomes**; o agente mostra o preview (contato +
+texto como vai ficar) e **só envia depois da sua confirmação**. Não passa pelo botão de campanha
+do painel.
+
+```bash
+npm run marketing:dispatch -- --template=md_intro_feito_candidatas_v1 --names="Alana Passos, Sarah Poncio"
+npm run marketing:dispatch -- --template=feito --names="Alana Passos" --confirm
+```
+
+Sem `--confirm` nada é enviado. O script resolve a base (`marketingContacts`), recusa homônimo e
+quem não tem WhatsApp, avisa VIP, puxa o corpo oficial na Meta quando o token está no env, e
+grava a trilha em `marketingSends` (`campaignId` = `named:{template}`). Teto alinhado à semana 1:
+20 envios/dia.
+
+Agente/skill: [`.cursor/skills/whatsapp-outbound/SKILL.md`](../.cursor/skills/whatsapp-outbound/SKILL.md),
+[`.claude/agents/whatsapp-outbound.md`](../.claude/agents/whatsapp-outbound.md).
+
 ### Teste ponta a ponta
 
 ```bash
@@ -416,23 +454,32 @@ npm run whatsapp:test -- --to=5531992439177 --template=md_intro_vaga_sigla_v1 --
 ```
 
 O modo `--agente` não precisa de nenhuma credencial da Meta: serve para revisar tom e conteúdo da
-IA antes de falar com gente de verdade.
+IA antes de falar com gente de verdade. Para gente da base, use `marketing:dispatch` (acima), não
+o `--to=` avulso.
 
 ## Conversa com IA (pós-resposta)
 
 Quando o lead responde, o webhook grava a mensagem em `marketingConversations` (doc id = telefone
-E.164) e o agente responde na hora, com a persona **Marina**.
+E.164) e a Marina **gera uma sugestão — não envia**. O texto aparece na aba Conversas para o
+humano mandar.
 
+- **Auto-envio em 3 min**: se ninguém disparar a sugestão, a IA envia sozinha (`autoSendAt`).
+  O webhook não espera esses 3 minutos: grava a sugestão e devolve 200. Quem envia é
+  `POST /api/workers/outbound-autosend` (Cloud Scheduler a cada 1 min) e, de quebra, abrir a
+  aba Conversas também drena o que já venceu.
+- **Assumir (IA só sugere)**: a Marina continua gerando o texto no painel, mas **nunca envia**,
+  mesmo depois de 3 minutos (`autoSendAt` vazio). "Religar IA" com sugestão pendente reinicia
+  a contagem de 3 minutos.
+- **Envio humano** (sugestão como está, ou texto editado) cancela o auto-envio daquela
+  sugestão. Não pausa a IA — isso só o botão Assumir faz. A próxima mensagem do lead gera
+  uma sugestão nova.
 - **Janela de 24h**: a Meta só permite texto livre nas 24h após a última mensagem do lead. Fora
-  disso o agente não responde (só um template reabriria a conversa) — `isWithinServiceWindow`.
+  disso o agente não sugere (só um template reabriria a conversa) — `isWithinServiceWindow`.
 - **Idempotência por `wamid`**: a Meta reentrega o evento se a resposta demorar; sem isso a IA
-  responderia duas vezes à mesma frase.
-- **Assumir no braço**: "Pausar IA" na aba Conversas desliga a resposta automática daquela thread.
-  Com a conversa aberta, o operador escreve no campo e o texto sai pela Cloud API (`sendText`) —
-  a mesma janela de 24h da Meta. Enviar pausa a IA automaticamente, para ela não responder em cima.
+  geraria duas sugestões para a mesma frase.
 - **Guarda-corpos no prompt**: não inventar preço/prazo/funcionalidade, encerrar com cordialidade
   em pedido de opt-out, e não prometer link quando `WHATSAPP_DEMO_LINK_URL` está vazio.
-- Mídia (áudio/imagem) fica registrada mas não é respondida pela IA — vai para atendimento humano.
+- Mídia (áudio/imagem) fica registrada mas não gera sugestão — vai para atendimento humano.
 
 ## Limites conhecidos
 
