@@ -294,16 +294,16 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                   </p>
 
                   <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-md-text-soft mb-4">
-                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Ritmo Natural</div>
-                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Respire Normalmente</div>
-                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Entre 30 seg e 2 min</div>
-                    <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Gaguejar</div>
-                    <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Sem Ruído de Fundo</div>
+                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Ritmo natural, 30s a 2 min</div>
+                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Gravador nativo do celular (WAV/M4A/MP3)</div>
+                    <div className="flex items-center gap-1"><span className="text-[var(--sentinela-text)]">✓</span> Ambiente silencioso, 15–20 cm do microfone</div>
+                    <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Áudio de WhatsApp</div>
+                    <div className="flex items-center gap-1"><span className="text-red-400">✕</span> Ruído de fundo, eco ou fone de ligação</div>
                   </div>
 
                   <p className="text-xs text-md-text-soft mb-3">
-                    Caso não tenha um áudio com as condições acima, grave o roteiro abaixo a cerca de
-                    15-20cm do microfone, levemente inclinado para o lado.
+                    O melhor resultado vem de um arquivo do gravador do iPhone ou Android, não de
+                    nota de voz do WhatsApp. Se preferir, grave aqui na tela com o roteiro abaixo.
                   </p>
 
                   <div className="bg-md-bg p-4 rounded-xl border border-md-border overflow-y-auto max-h-40">
@@ -334,12 +334,14 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
                     <span className="text-sm font-medium text-md-text-muted group-hover:text-md-text">
                       {isUploadingVoiceAudioAsset ? "Enviando áudio..." : "Enviar arquivo de áudio"}
                     </span>
-                    <span className="text-[10px] text-md-text-soft mt-1">MP3, WAV, M4A (Até 2 minutos)</span>
+                    <span className="text-[10px] text-md-text-soft mt-1">
+                      Prefira WAV, M4A ou MP3 (até 2 min). Evite WhatsApp.
+                    </span>
                     <input
                       ref={audioInputRef}
                       type="file"
                       className="hidden"
-                      accept="audio/*"
+                      accept="audio/*,.opus,.ogg"
                       disabled={!consentAccepted || isUploadingVoiceAudioAsset}
                       onChange={(event) => {
                         const file = event.target.files?.[0];
@@ -378,6 +380,7 @@ export function AvatarTreinarPage({ tipo }: { tipo: AvatarTipo }) {
               profileId={profileId}
               voiceAudioAssetId={latestVoice?.id ?? null}
               consentAccepted={consentAccepted}
+              uploading={isUploadingVoiceAudioAsset}
               onMessage={setUploadMessage}
               onSelectedPreviewChange={setSelectedVoicePreviewId}
             />

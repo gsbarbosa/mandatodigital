@@ -167,6 +167,39 @@ async function elevenLabsFetch(path: string, init?: RequestInit) {
   }
 }
 
+function filenameFromAudioUrl(url: string, contentType: string) {
+  try {
+    const pathname = decodeURIComponent(new URL(url).pathname);
+    const base = pathname.split("/").pop() || "";
+    const ext = base.includes(".")
+      ? base.slice(base.lastIndexOf(".") + 1).toLowerCase()
+      : "";
+    if (
+      ["wav", "mp3", "m4a", "mp4", "ogg", "opus", "webm", "flac", "aac"].includes(
+        ext,
+      )
+    ) {
+      return `sample.${ext}`;
+    }
+  } catch {
+    // URL inválida — cai no content-type.
+  }
+
+  const mime = contentType.toLowerCase();
+  const ext = mime.includes("wav")
+    ? "wav"
+    : mime.includes("opus")
+      ? "opus"
+      : mime.includes("ogg")
+        ? "ogg"
+        : mime.includes("webm")
+          ? "webm"
+          : mime.includes("mp4") || mime.includes("m4a") || mime.includes("aac")
+            ? "m4a"
+            : "mp3";
+  return `sample.${ext}`;
+}
+
 async function downloadAudioFromUrl(url: string) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -174,32 +207,50 @@ async function downloadAudioFromUrl(url: string) {
   }
   const contentType = response.headers.get("content-type") ?? "audio/mpeg";
   const buffer = Buffer.from(await response.arrayBuffer());
-  const ext = contentType.includes("wav")
-    ? "wav"
-    : contentType.includes("ogg")
-      ? "ogg"
-      : "mp3";
-  return { buffer, contentType, filename: `sample.${ext}` };
+  return {
+    buffer,
+    contentType,
+    filename: filenameFromAudioUrl(url, contentType),
+  };
 }
 
 export type ElevenLabsCloneVoiceInput = {
   voiceName: string;
   /** URL publica da amostra (ex.: training asset). */
   audioUrl: string;
+  /**
+   * Default false: a limpeza da ElevenLabs achata harmônicos da amostra
+   * (pior em WhatsApp/WebM). Só ligar se a gravação for ruidosa de propósito.
+   */
   removeBackgroundNoise?: boolean;
 };
 
 /** Instant Voice Clone — POST /v1/voices/add (multipart). */
 export async function elevenLabsCloneVoice(input: ElevenLabsCloneVoiceInput) {
-  const { buffer, contentType, filename } = await downloadAudioFromUrl(input.audioUrl);
+  const downloaded = await downloadAudioFromUrl(input.audioUrl);
+  const { normalizeVoiceSampleForClone } = await import(
+    "@/lib/voice-audio-normalize"
+  );
+  const sample = await normalizeVoiceSampleForClone({
+    buffer: downloaded.buffer,
+    mimeType: downloaded.contentType,
+    filename: downloaded.filename,
+  });
+  const { appLog } = await import("@/lib/observability/log");
+  appLog("voice", "elevenlabs_clone_sample_ready", {
+    format: sample.format,
+    wasTranscoded: sample.wasTranscoded,
+    bytes: sample.buffer.byteLength,
+    removeBackgroundNoise: Boolean(input.removeBackgroundNoise),
+  });
   const form = new FormData();
   form.append("name", input.voiceName.trim() || "Mandato Voice");
   form.append(
     "files",
-    new Blob([new Uint8Array(buffer)], { type: contentType }),
-    filename,
+    new Blob([new Uint8Array(sample.buffer)], { type: sample.mimeType }),
+    sample.filename,
   );
-  if (input.removeBackgroundNoise !== false) {
+  if (input.removeBackgroundNoise) {
     form.append("remove_background_noise", "true");
   }
 

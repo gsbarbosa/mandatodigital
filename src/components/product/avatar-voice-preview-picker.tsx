@@ -12,6 +12,7 @@ type AvatarVoicePreviewPickerProps = {
   profileId: string | null;
   voiceAudioAssetId: string | null;
   consentAccepted: boolean;
+  uploading?: boolean;
   onMessage?: (message: string | null) => void;
   onSelectedPreviewChange?: (previewId: string | null) => void;
 };
@@ -20,6 +21,7 @@ export function AvatarVoicePreviewPicker({
   profileId,
   voiceAudioAssetId,
   consentAccepted,
+  uploading = false,
   onMessage,
   onSelectedPreviewChange,
 }: AvatarVoicePreviewPickerProps) {
@@ -114,7 +116,7 @@ export function AvatarVoicePreviewPicker({
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ voiceAudioAssetId }),
+        body: JSON.stringify({ voiceAudioAssetId, force: true }),
       });
       const data = (await response.json().catch(() => ({}))) as {
         selection?: ProfileVoiceSelection;
@@ -125,6 +127,9 @@ export function AvatarVoicePreviewPicker({
         return;
       }
       setSelection(data.selection);
+      if (data.selection.selectedPreviewId) {
+        syncLocalPrefs(data.selection);
+      }
       onMessage?.("Três prévias geradas. Ouça e escolha a voz ativa.");
     } catch {
       setError("Falha de rede ao gerar prévias de voz.");
@@ -174,6 +179,8 @@ export function AvatarVoicePreviewPicker({
   const hasPreviews = Boolean(selection?.previews?.length);
   const staleAsset =
     Boolean(selection) && selection!.voiceAudioAssetId !== voiceAudioAssetId;
+  const generateDisabled =
+    !consentAccepted || generating || loading || uploading || !profileId;
 
   return (
     <div
@@ -188,20 +195,24 @@ export function AvatarVoicePreviewPicker({
             parece com você. Ela será utilizada em todos os seus vídeos.
           </p>
         </div>
-        {!hasPreviews || staleAsset ? (
-          <button
-            type="button"
-            disabled={!consentAccepted || generating || loading || !profileId}
-            onClick={() => void handleGenerate()}
-            className={`shrink-0 inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
-              !consentAccepted || generating || loading || !profileId
-                ? "cursor-not-allowed border-md-border opacity-50 text-md-text-soft"
-                : "border-[var(--criativo-border)] bg-[var(--criativo-soft)] text-[var(--criativo-text)] hover:opacity-90"
-            }`}
-          >
-            {generating ? "Gerando prévias..." : "Gerar prévias"}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          disabled={generateDisabled}
+          onClick={() => void handleGenerate()}
+          className={`shrink-0 inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition ${
+            generateDisabled
+              ? "cursor-not-allowed border-md-border opacity-50 text-md-text-soft"
+              : "border-[var(--criativo-border)] bg-[var(--criativo-soft)] text-[var(--criativo-text)] hover:opacity-90"
+          }`}
+        >
+          {generating
+            ? "Gerando prévias..."
+            : uploading
+              ? "Enviando áudio..."
+              : hasPreviews && !staleAsset
+                ? "Gerar novamente"
+                : "Gerar prévias"}
+        </button>
       </div>
 
       {!consentAccepted ? (

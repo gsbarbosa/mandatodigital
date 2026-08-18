@@ -148,6 +148,28 @@ async function deleteVoiceBestEffort(voiceId: string) {
   }
 }
 
+/** Reusa prévias só no mesmo asset e quando o caller não pediu retreino. */
+export function shouldReuseExistingVoicePreviews(input: {
+  existing: ProfileVoiceSelection | null;
+  voiceAudioAssetId: string;
+  force?: boolean;
+}) {
+  if (input.force) {
+    return false;
+  }
+  const existing = input.existing;
+  if (!existing) {
+    return false;
+  }
+  if (existing.voiceAudioAssetId !== input.voiceAudioAssetId.trim()) {
+    return false;
+  }
+  if (!existing.previews.length || !existing.elevenLabsVoiceId.trim()) {
+    return false;
+  }
+  return true;
+}
+
 /** Invalida seleção ao trocar o áudio de origem (libera slot + limpa Storage). */
 export async function invalidateProfileVoiceSelection(profileId: string) {
   const existing = await getProfileVoiceSelection(profileId);
@@ -164,10 +186,13 @@ export async function generateVoicePreviews(input: {
   avatarName: string;
   voiceAudioAssetId: string;
   voiceAudioUrl: string;
+  /** Default true: POST de “Gerar prévias” sempre reclona o áudio atual. */
+  force?: boolean;
 }): Promise<ProfileVoiceSelection> {
   const profileId = input.profileId.trim();
   const voiceAudioAssetId = input.voiceAudioAssetId.trim();
   const voiceAudioUrl = input.voiceAudioUrl.trim();
+  const force = input.force !== false;
   if (!profileId || !voiceAudioAssetId || !voiceAudioUrl) {
     throw new Error("Dados incompletos para gerar prévias de voz.");
   }
@@ -176,14 +201,12 @@ export async function generateVoicePreviews(input: {
   appLog("voice", "voice_preview_generate_started", {
     profileId,
     voiceAudioAssetId,
+    force,
   });
 
   const existing = await getProfileVoiceSelection(profileId);
   if (
-    existing &&
-    existing.voiceAudioAssetId === voiceAudioAssetId &&
-    existing.previews.length > 0 &&
-    existing.elevenLabsVoiceId
+    shouldReuseExistingVoicePreviews({ existing, voiceAudioAssetId, force })
   ) {
     const withUrls = await getVoiceSelectionWithFreshUrls(profileId);
     if (withUrls) {
@@ -198,12 +221,7 @@ export async function generateVoicePreviews(input: {
 
   if (existing) {
     await deletePreviewFiles(existing.previews);
-    if (
-      existing.voiceAudioAssetId !== voiceAudioAssetId ||
-      !existing.elevenLabsVoiceId
-    ) {
-      await deleteVoiceBestEffort(existing.elevenLabsVoiceId);
-    }
+    await deleteVoiceBestEffort(existing.elevenLabsVoiceId);
   }
 
   try {
@@ -212,13 +230,11 @@ export async function generateVoicePreviews(input: {
         input.avatarName,
         voiceAudioAssetId,
       );
-      const sameAsset =
-        Boolean(existing) && existing!.voiceAudioAssetId === voiceAudioAssetId;
       const resolved = await resolveElevenLabsVoiceId({
-        requestedVoiceId: sameAsset ? existing!.elevenLabsVoiceId : null,
+        requestedVoiceId: null,
         voiceName,
         audioUrl: voiceAudioUrl,
-        forceReclone: Boolean(existing) && !sameAsset,
+        forceReclone: true,
       });
 
       const previews: VoicePreviewItem[] = [];
