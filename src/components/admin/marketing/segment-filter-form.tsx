@@ -6,6 +6,10 @@ import {
   CAMPAIGN_CHANNELS,
   CONTACT_SOURCE_LABELS,
   CONTACT_SOURCES,
+  OFFICE_KEY_LABELS,
+  OFFICE_KEYS,
+  RELEVANCE_TIER_LABELS,
+  RELEVANCE_TIERS,
   type SegmentFilter,
 } from "@/lib/outbound/types";
 
@@ -110,6 +114,44 @@ export function SegmentFilterForm({
         </div>
       ) : null}
 
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-md-text-soft">
+          Cargo
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {OFFICE_KEYS.map((office) => (
+            <button
+              key={office}
+              type="button"
+              className={chipClass(value.offices.includes(office))}
+              onClick={() => onChange({ ...value, offices: toggle(value.offices, office) })}
+            >
+              {OFFICE_KEY_LABELS[office]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-md-text-soft">
+          Relevância
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {RELEVANCE_TIERS.map((tier) => (
+            <button
+              key={tier}
+              type="button"
+              className={chipClass(value.relevanceTiers.includes(tier))}
+              onClick={() =>
+                onChange({ ...value, relevanceTiers: toggle(value.relevanceTiers, tier) })
+              }
+            >
+              {RELEVANCE_TIER_LABELS[tier]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-sm text-md-text-muted">
           <input
@@ -121,6 +163,84 @@ export function SegmentFilterForm({
             className="accent-cyan-500"
           />
           Só candidatos 2026
+        </label>
+        <label className="flex items-center gap-2 text-sm text-md-text-muted">
+          <input
+            type="checkbox"
+            checked={value.onlyWomen}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                onlyWomen: event.target.checked,
+                onlyMen: event.target.checked ? false : value.onlyMen,
+              })
+            }
+            className="accent-cyan-500"
+          />
+          Só mulheres
+        </label>
+        <label className="flex items-center gap-2 text-sm text-md-text-muted">
+          <input
+            type="checkbox"
+            checked={value.onlyMen}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                onlyMen: event.target.checked,
+                onlyWomen: event.target.checked ? false : value.onlyWomen,
+              })
+            }
+            className="accent-cyan-500"
+          />
+          Só homens
+        </label>
+        <label className="flex items-center gap-2 text-sm text-md-text-muted">
+          <input
+            type="checkbox"
+            checked={value.onlyReelection}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                onlyReelection: event.target.checked,
+                excludeReelection: event.target.checked ? false : value.excludeReelection,
+              })
+            }
+            className="accent-cyan-500"
+          />
+          Só reeleição
+        </label>
+        <label className="flex items-center gap-2 text-sm text-md-text-muted">
+          <input
+            type="checkbox"
+            checked={value.excludeReelection}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                excludeReelection: event.target.checked,
+                onlyReelection: event.target.checked ? false : value.onlyReelection,
+              })
+            }
+            className="accent-cyan-500"
+          />
+          Excluir reeleição
+        </label>
+        <label className="flex items-center gap-2 text-sm text-md-text-muted">
+          <input
+            type="checkbox"
+            checked={value.onlyPartyPresidents}
+            onChange={(event) => onChange({ ...value, onlyPartyPresidents: event.target.checked })}
+            className="accent-cyan-500"
+          />
+          Só presidentes de partido
+        </label>
+        <label className="flex items-center gap-2 text-sm text-md-text-muted">
+          <input
+            type="checkbox"
+            checked={value.excludeVip}
+            onChange={(event) => onChange({ ...value, excludeVip: event.target.checked })}
+            className="accent-cyan-500"
+          />
+          Excluir VIP (contato pessoal)
         </label>
         <label className="flex items-center gap-2 text-sm text-md-text-muted">
           <input

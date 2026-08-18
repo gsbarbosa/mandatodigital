@@ -24,10 +24,18 @@ function formatTime(value: string) {
       });
 }
 
+function messageLabel(role: MarketingConversation["messages"][number]["role"]) {
+  if (role === "lead") return "Lead";
+  if (role === "humano") return "Você";
+  return "Marina (IA)";
+}
+
 export function ConversationsTab() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [sendingId, setSendingId] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
@@ -70,9 +78,44 @@ export function ConversationsTab() {
         const payload = (await response.json()) as { message?: string };
         throw new Error(payload.message || "Falha ao alterar o agente.");
       }
+      if (!conversation.agentPaused) {
+        if (openId !== conversation.id) {
+          setDraft("");
+        }
+        setOpenId(conversation.id);
+      }
       setReloadToken((token) => token + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro.");
+    }
+  }
+
+  async function sendReply(conversation: MarketingConversation) {
+    const text = draft.trim();
+    if (!text || sendingId) {
+      return;
+    }
+
+    setSendingId(conversation.id);
+    try {
+      const response = await fetch(
+        `/api/admin/marketing/conversations/${encodeURIComponent(conversation.id)}/reply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        },
+      );
+      if (!response.ok) {
+        const payload = (await response.json()) as { message?: string };
+        throw new Error(payload.message || "Falha ao enviar.");
+      }
+      setDraft("");
+      setReloadToken((token) => token + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro.");
+    } finally {
+      setSendingId(null);
     }
   }
 
@@ -154,7 +197,10 @@ export function ConversationsTab() {
                 <div className="flex shrink-0 items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setOpenId(open ? null : conversation.id)}
+                    onClick={() => {
+                      setOpenId(open ? null : conversation.id);
+                      setDraft("");
+                    }}
                     className="text-xs text-md-text-soft underline-offset-2 hover:text-md-text hover:underline"
                   >
                     {open ? "Fechar" : "Ver conversa"}
@@ -170,22 +216,62 @@ export function ConversationsTab() {
               </div>
 
               {open ? (
-                <div className="space-y-2 border-t border-md-border px-4 py-4">
-                  {conversation.messages.map((message, index) => (
-                    <div
-                      key={`${message.providerMessageId}-${index}`}
-                      className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
-                        message.role === "lead"
-                          ? "bg-md-overlay-hover text-md-text-muted"
-                          : "ml-auto bg-cyan-500/15 text-cyan-100"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap">{message.text || "(sem texto — mídia)"}</p>
-                      <p className="mt-1 text-[10px] text-md-text-soft">
-                        {message.role === "lead" ? "Lead" : "Marina (IA)"} · {formatTime(message.at)}
+                <div className="space-y-3 border-t border-md-border px-4 py-4">
+                  <div className="space-y-2">
+                    {conversation.messages.map((message, index) => (
+                      <div
+                        key={`${message.providerMessageId}-${index}`}
+                        className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
+                          message.role === "lead"
+                            ? "bg-md-overlay-hover text-md-text-muted"
+                            : message.role === "humano"
+                              ? "ml-auto bg-amber-500/15 text-amber-100"
+                              : "ml-auto bg-cyan-500/15 text-cyan-100"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{message.text || "(sem texto — mídia)"}</p>
+                        <p className="mt-1 text-[10px] text-md-text-soft">
+                          {messageLabel(message.role)} · {formatTime(message.at)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <form
+                    className="space-y-2 pt-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void sendReply(conversation);
+                    }}
+                  >
+                    <textarea
+                      value={openId === conversation.id ? draft : ""}
+                      onChange={(event) => setDraft(event.target.value)}
+                      rows={3}
+                      maxLength={4000}
+                      disabled={!janelaAberta || sendingId === conversation.id}
+                      placeholder={
+                        janelaAberta
+                          ? "Escreva e envie pelo WhatsApp. Enviar pausa a IA nesta conversa."
+                          : "Janela de 24h fechada — só um template de campanha reabre a conversa."
+                      }
+                      className="w-full rounded-xl border border-md-border bg-md-surface px-3 py-2 text-sm text-md-text placeholder:text-md-text-soft disabled:opacity-60"
+                    />
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] text-md-text-soft">
+                        Sai pela Cloud API, como a Marina. Vale só enquanto a janela de 24h estiver aberta.
                       </p>
+                      <button
+                        type="submit"
+                        disabled={
+                          !janelaAberta || sendingId === conversation.id || !draft.trim()
+                        }
+                        className="rounded-xl bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-500/30 disabled:opacity-40"
+                      >
+                        {sendingId === conversation.id ? "Enviando…" : "Enviar"}
+                      </button>
                     </div>
-                  ))}
+                  </form>
                 </div>
               ) : null}
             </div>

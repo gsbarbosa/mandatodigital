@@ -16,6 +16,11 @@ function contact(overrides: Partial<MarketingContact> = {}): MarketingContact {
     municipality: "SÃO PAULO / SP",
     isCandidate2026: false,
     candidateRole: "",
+    gender: "",
+    isReelection: false,
+    instagramFollowers: 0,
+    relevanceScore: 0,
+    relevanceTier: "padrao",
     suspended: false,
     origin: "teste",
     createdAt: "2026-08-11T00:00:00.000Z",
@@ -65,6 +70,63 @@ describe("matchesSegment", () => {
     expect(matchesSegment(contact(), filter)).toBe(true);
   });
 
+  it("só mulheres exige gender F e exclui não classificado", () => {
+    const filter = { ...EMPTY_SEGMENT_FILTER, onlyWomen: true };
+    expect(matchesSegment(contact({ gender: "F" }), filter)).toBe(true);
+    expect(matchesSegment(contact({ gender: "M" }), filter)).toBe(false);
+    expect(matchesSegment(contact({ gender: "" }), filter)).toBe(false);
+  });
+
+  it("só homens exige gender M", () => {
+    const filter = { ...EMPTY_SEGMENT_FILTER, onlyMen: true };
+    expect(matchesSegment(contact({ gender: "M" }), filter)).toBe(true);
+    expect(matchesSegment(contact({ gender: "F" }), filter)).toBe(false);
+  });
+
+  it("reeleição e exclusão de incumbente são filtros opostos", () => {
+    const incumbent = contact({ isReelection: true });
+    expect(matchesSegment(incumbent, { ...EMPTY_SEGMENT_FILTER, onlyReelection: true })).toBe(true);
+    expect(matchesSegment(incumbent, { ...EMPTY_SEGMENT_FILTER, excludeReelection: true })).toBe(
+      false,
+    );
+    expect(
+      matchesSegment(contact({ isReelection: false }), {
+        ...EMPTY_SEGMENT_FILTER,
+        excludeReelection: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("presidente de partido casa pelo cargo, não pelo nome", () => {
+    const filter = { ...EMPTY_SEGMENT_FILTER, onlyPartyPresidents: true };
+    expect(matchesSegment(contact({ roles: ["PRESIDENTE"] }), filter)).toBe(true);
+    expect(matchesSegment(contact({ roles: ["TESOUREIRO"] }), filter)).toBe(false);
+    expect(matchesSegment(contact({ roles: ["VICE-PRESIDENTE"] }), filter)).toBe(false);
+  });
+
+  it("exclui VIP quando o filtro pede e inclui na lista VIP", () => {
+    const vip = contact({ relevanceTier: "vip", relevanceScore: 90 });
+    expect(matchesSegment(vip, EMPTY_SEGMENT_FILTER)).toBe(true);
+    expect(matchesSegment(vip, { ...EMPTY_SEGMENT_FILTER, excludeVip: true })).toBe(false);
+    expect(
+      matchesSegment(vip, {
+        ...EMPTY_SEGMENT_FILTER,
+        excludeVip: false,
+        relevanceTiers: ["vip"],
+      }),
+    ).toBe(true);
+  });
+
+  it("filtra cargo estadual/distrital pelo texto do cargo", () => {
+    const estadual = { ...EMPTY_SEGMENT_FILTER, offices: ["estadual" as const] };
+    expect(
+      matchesSegment(contact({ candidateRole: "DEPUTADO ESTADUAL" }), estadual),
+    ).toBe(true);
+    expect(
+      matchesSegment(contact({ candidateRole: "DEPUTADO DISTRITAL" }), estadual),
+    ).toBe(false);
+  });
+
   it("combina filtros de forma conjuntiva", () => {
     const filter = {
       ...EMPTY_SEGMENT_FILTER,
@@ -90,6 +152,10 @@ describe("coerceSegmentFilter", () => {
     expect(coerceSegmentFilter({})).toEqual(EMPTY_SEGMENT_FILTER);
   });
 
+  it("default de excludeVip desligado — filtro vazio continua sendo a base inteira", () => {
+    expect(coerceSegmentFilter({ onlyWomen: true }).excludeVip).toBe(false);
+  });
+
   it("descarta source inválida e normaliza UF", () => {
     const filter = coerceSegmentFilter({
       sources: ["diretorio_partidario", "inexistente"],
@@ -105,5 +171,10 @@ describe("coerceSegmentFilter", () => {
 
   it("mantém excludeSuspended=false explícito", () => {
     expect(coerceSegmentFilter({ excludeSuspended: false }).excludeSuspended).toBe(false);
+  });
+
+  it("descarta cargo inválido e aceita estadual/distrital", () => {
+    const filter = coerceSegmentFilter({ offices: ["estadual", "senador", "distrital"] });
+    expect(filter.offices).toEqual(["estadual", "distrital"]);
   });
 });

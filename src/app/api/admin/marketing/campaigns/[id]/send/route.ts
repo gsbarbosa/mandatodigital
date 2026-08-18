@@ -20,6 +20,7 @@ export async function POST(_request: Request, context: RouteContext) {
         ok: true,
         stats: result.stats,
         skippedAlreadySent: result.skippedAlreadySent,
+        remaining: result.remaining,
       });
     } catch (error) {
       // Recusa esperada (segmento vazio, canal desligado, teto) é 400, não 500.

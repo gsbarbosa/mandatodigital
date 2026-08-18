@@ -7,11 +7,15 @@
  * simples e mais barato. Ver "Limites" em docs/marketing-outbound.md.
  */
 
+import { isPartyPresidentRole } from "@/lib/outbound/relevance";
 import {
   EMPTY_SEGMENT_FILTER,
   isCampaignChannel,
   isContactSource,
+  isOfficeKey,
+  isRelevanceTier,
   type MarketingContact,
+  type OfficeKey,
   type SegmentFilter,
 } from "@/lib/outbound/types";
 
@@ -37,6 +41,15 @@ export function contactSupportsChannel(
   return true;
 }
 
+/** Cargo estadual/distrital/federal a partir do texto livre da fonte. */
+export function contactOffice(contact: MarketingContact): OfficeKey | null {
+  const text = normalize(`${contact.candidateRole} ${contact.roles.join(" ")}`);
+  if (text.includes("distrital")) return "distrital";
+  if (text.includes("estadual")) return "estadual";
+  if (text.includes("federal")) return "federal";
+  return null;
+}
+
 export function matchesSegment(contact: MarketingContact, filter: SegmentFilter): boolean {
   if (filter.sources.length > 0 && !filter.sources.includes(contact.source)) {
     return false;
@@ -48,6 +61,33 @@ export function matchesSegment(contact: MarketingContact, filter: SegmentFilter)
     return false;
   }
   if (filter.onlyCandidates2026 && !contact.isCandidate2026) {
+    return false;
+  }
+  if (filter.onlyWomen && contact.gender !== "F") {
+    return false;
+  }
+  if (filter.onlyMen && contact.gender !== "M") {
+    return false;
+  }
+  if (filter.onlyReelection && !contact.isReelection) {
+    return false;
+  }
+  if (filter.excludeReelection && contact.isReelection) {
+    return false;
+  }
+  if (filter.onlyPartyPresidents && !isPartyPresidentRole(contact.roles)) {
+    return false;
+  }
+  if (filter.offices.length > 0) {
+    const office = contactOffice(contact);
+    if (!office || !filter.offices.includes(office)) {
+      return false;
+    }
+  }
+  if (filter.relevanceTiers.length > 0 && !filter.relevanceTiers.includes(contact.relevanceTier)) {
+    return false;
+  }
+  if (filter.excludeVip && contact.relevanceTier === "vip") {
     return false;
   }
   if (filter.excludeSuspended && contact.suspended) {
@@ -92,6 +132,15 @@ export function coerceSegmentFilter(value: unknown): SegmentFilter {
     parties: stringArray(raw.parties),
     channel,
     onlyCandidates2026: Boolean(raw.onlyCandidates2026),
+    onlyWomen: Boolean(raw.onlyWomen),
+    onlyMen: Boolean(raw.onlyMen),
+    onlyReelection: Boolean(raw.onlyReelection),
+    excludeReelection: Boolean(raw.excludeReelection),
+    onlyPartyPresidents: Boolean(raw.onlyPartyPresidents),
+    offices: stringArray(raw.offices).filter(isOfficeKey),
+    relevanceTiers: stringArray(raw.relevanceTiers).filter(isRelevanceTier),
+    excludeVip:
+      raw.excludeVip === undefined ? EMPTY_SEGMENT_FILTER.excludeVip : Boolean(raw.excludeVip),
     excludeSuspended:
       raw.excludeSuspended === undefined
         ? EMPTY_SEGMENT_FILTER.excludeSuspended

@@ -83,8 +83,10 @@ no envio de contrato). Se um terceiro consumidor aparecer, aí sim vale extrair.
 
 ```
 src/lib/outbound/          tipos, phone, segment-filter, storages, dispatch,
-                           whatsapp, whatsapp-webhook, conversation-agent, inbound-handler
-src/app/api/admin/marketing/   contacts, segments, campaigns (CRUD + send), conversations
+                           whatsapp, whatsapp-webhook, conversation-agent,
+                           inbound-handler, operator-reply
+src/app/api/admin/marketing/   contacts, segments, campaigns (CRUD + send),
+                               conversations (pause + reply do operador)
 src/app/api/webhooks/whatsapp/ handshake GET + recebimento POST
 src/components/admin/marketing/ abas Contatos, Segmentos, Campanhas, Conversas
 scripts/seed-marketing-contacts.ts   ingestão das 3 fontes

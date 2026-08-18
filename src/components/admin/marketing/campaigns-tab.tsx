@@ -15,7 +15,7 @@ import {
 type CampaignDetail = {
   campaign: MarketingCampaign;
   sends: MarketingSend[];
-  audience: { total: number; skippedAlreadySent: number; sample: Array<{ name: string; destination: string }> } | null;
+  audience: { total: number; skippedAlreadySent: number; batchSize: number; thisBatch: number; sample: Array<{ name: string; destination: string }> } | null;
 };
 
 const STATUS_CLASS: Record<string, string> = {
@@ -48,6 +48,7 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
   const [templateName, setTemplateName] = useState("");
   const [templateLanguage, setTemplateLanguage] = useState("pt_BR");
   const [templateParams, setTemplateParams] = useState("");
+  const [batchSize, setBatchSize] = useState("5");
 
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -124,6 +125,8 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
             .split("|")
             .map((item) => item.trim())
             .filter(Boolean),
+          batchSize:
+            channel === "whatsapp" ? Number.parseInt(batchSize, 10) || 5 : undefined,
         }),
       });
       const payload = (await response.json()) as { message?: string };
@@ -145,8 +148,9 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
   }
 
   async function handleSend(campaign: MarketingCampaign) {
+    const lote = campaign.batchSize > 0 ? campaign.batchSize : campaign.channel === "whatsapp" ? 5 : 500;
     const confirmed = window.confirm(
-      `Disparar "${campaign.name}" agora? Isso envia mensagem real para o público do segmento.`,
+      `Enviar o próximo lote de "${campaign.name}" (até ${lote} destinatários)? Quem já recebeu esta campanha é pulado.`,
     );
     if (!confirmed) {
       return;
@@ -161,12 +165,15 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
       const payload = (await response.json()) as {
         message?: string;
         stats?: { sent: number; failed: number };
+        remaining?: number;
       };
       if (!response.ok) {
         throw new Error(payload.message || "Falha no disparo.");
       }
+      const remaining = payload.remaining ?? 0;
       setNotice(
-        `Disparo concluído: ${payload.stats?.sent ?? 0} enviados, ${payload.stats?.failed ?? 0} falhas.`,
+        `Lote enviado: ${payload.stats?.sent ?? 0} ok, ${payload.stats?.failed ?? 0} falhas.` +
+          (remaining > 0 ? ` Restam ${remaining} nesta campanha — clique de novo para o próximo lote.` : " Segmento esgotado nesta campanha."),
       );
       setError(null);
       await load();
@@ -289,6 +296,21 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
               <code>{"{{nome}}"}</code>, <code>{"{{uf}}"}</code>, <code>{"{{partido}}"}</code>,{" "}
               <code>{"{{cargo}}"}</code>, <code>{"{{municipio}}"}</code>.
             </p>
+            <label className="block text-xs text-md-text-soft">
+              Lote por disparo
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={batchSize}
+                onChange={(event) => setBatchSize(event.target.value)}
+                className="mt-1 w-32 rounded-xl border border-md-border bg-md-surface px-3 py-2 text-sm text-md-text"
+              />
+            </label>
+            <p className="text-xs text-md-text-soft">
+              Cada clique envia só esse tanto. Redisparar atinge o próximo lote, sem repetir quem já
+              recebeu. Teto do canal: 50 no WhatsApp.
+            </p>
           </div>
         )}
 
@@ -357,7 +379,7 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
                     onClick={() => void handleSend(campaign)}
                     className="rounded-xl bg-cyan-500/20 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/30 disabled:opacity-40"
                   >
-                    Disparar
+                    Disparar lote
                   </button>
                   <button
                     type="button"
@@ -375,10 +397,13 @@ export function CampaignsTab({ segments }: { segments: SegmentWithCount[] }) {
                   {detail.audience ? (
                     <div className="mb-4 rounded-xl bg-md-overlay-hover px-3 py-2 text-xs text-md-text-muted">
                       <p>
-                        Público atual: <strong className="text-md-text">{detail.audience.total}</strong>{" "}
-                        contatos
+                        Pendentes: <strong className="text-md-text">{detail.audience.total}</strong>
+                        {" · "}
+                        este lote:{" "}
+                        <strong className="text-md-text">{detail.audience.thisBatch}</strong> de{" "}
+                        {detail.audience.batchSize}
                         {detail.audience.skippedAlreadySent > 0
-                          ? ` (${detail.audience.skippedAlreadySent} já receberam e serão pulados)`
+                          ? ` (${detail.audience.skippedAlreadySent} já receberam)`
                           : ""}
                       </p>
                       {detail.audience.sample.length > 0 ? (

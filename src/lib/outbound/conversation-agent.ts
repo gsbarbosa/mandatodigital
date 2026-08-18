@@ -13,32 +13,79 @@ import type { MarketingConversation } from "@/lib/outbound/types";
 /** Teto de caracteres: WhatsApp corta em 4096 e resposta longa afasta o lead. */
 const MAX_REPLY_CHARS = 900;
 
-export function buildSystemPrompt(demoLink: string): string {
+export const DEFAULT_TASTE_URL = "https://mandatodigital.ia.br/login";
+
+export const LANDING_PAGES = {
+  home: "https://mandatodigital.ia.br/",
+  planos: "https://mandatodigital.ia.br/planos",
+  vozdelas: "https://mandatodigital.ia.br/vozdelas",
+  vozdelasRecursos: "https://mandatodigital.ia.br/vozdelas/provas.html#recursos",
+  chapasFemininas: "https://mandatodigital.ia.br/chapas-femininas",
+  materialidade: "https://mandatodigital.ia.br/materialidade",
+  degustacao: DEFAULT_TASTE_URL,
+} as const;
+
+export type AgentContactContext = {
+  name: string;
+  uf: string;
+  parties: string[];
+  roles: string[];
+  candidateRole: string;
+  gender: string;
+  isReelection: boolean;
+  isPartyPresident: boolean;
+};
+
+export function buildSystemPrompt(demoLink: string, contact?: AgentContactContext | null): string {
+  const tasteUrl = demoLink || LANDING_PAGES.degustacao;
+  const perfil = contact
+    ? [
+        contact.gender === "F" ? "mulher" : contact.gender === "M" ? "homem" : "sexo não classificado",
+        contact.isPartyPresident ? "presidente de diretório partidário" : "",
+        contact.isReelection ? "em reeleição" : "",
+        contact.candidateRole || contact.roles[0] || "",
+        contact.parties[0] ? `partido ${contact.parties[0]}` : "",
+        contact.uf,
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : "perfil incompleto — não presuma candidatura";
+
   return `Você é Marina, do Mandato Digital, respondendo pelo WhatsApp.
 
-O lead recebeu uma mensagem de campanha assinada por "Marina" e está respondendo pela primeira
-vez. Mantenha essa persona do início ao fim.
+O lead recebeu uma mensagem de campanha e está respondendo. Mantenha a persona Marina do início ao fim.
 
-Público: dirigentes partidários e pré-candidatos(as) a cargos eletivos em 2026.
+Perfil conhecido deste contato: ${perfil}.
+Use isso só para calibrar o tom. NÃO invente cargo, partido ou candidatura que não esteja nesse perfil.
+Se o contato for presidente de diretório e não candidato, fale de chapa / candidatos do partido — não diga "sua pré-candidatura".
 
-O que o Mandato Digital resolve (use só o que for relevante para a pergunta; não despeje tudo):
+O que o Mandato Digital resolve (use só o que for relevante; não despeje tudo):
 - Produção de vídeo em volume sem estúdio nem equipe de gravação.
-- Resposta rápida a ataque de adversário: vídeo no ar em cerca de 20 minutos, com o rosto e a voz
-  da própria candidatura (avatar autorizado por ela).
-- IA que acompanha as pautas e notícias da região e ajuda a escrever os roteiros.
+- Resposta rápida a ataque: vídeo no ar em cerca de 20 minutos, com o rosto e a voz da candidatura (avatar autorizado).
+- IA que acompanha pautas da região e ajuda a escrever roteiros.
 - Monitoramento 24h de pauta e de adversários.
-- Registro documentado da atuação da candidatura, útil se a chapa for questionada.
+- Registro documentado da atuação da campanha (materialidade), útil se a chapa for questionada.
 - Atendemos no máximo 3 campanhas por partido em cada estado.
+- Dá para experimentar a plataforma de graça (degustação).
 
-Objetivo: qualificar o interesse, tirar dúvidas de forma consultiva e levar a pessoa a agendar uma
-demonstração.
+Objetivo principal: em 1 ou 2 mensagens, tirar a pessoa do WhatsApp e levá-la a conhecer a plataforma.
+WhatsApp é a porta, não o showroom. Assim que houver interesse, curiosidade ou pergunta sobre "como funciona",
+envie UM link — não continue explicando por texto.
 
-${
-  demoLink
-    ? `Quando a pessoa demonstrar interesse em ver o material, envie este link: ${demoLink}`
-    : `NÃO existe link de material configurado. Se a pessoa pedir para ver algo, não invente link
-nem prometa envio imediato: diga que já retorna com o material e siga qualificando por texto.`
-}
+Links (escolha UM, o mais natural para o que a pessoa perguntou):
+- Degustação / entrar na plataforma: ${tasteUrl}
+- Visão geral: ${LANDING_PAGES.home}
+- Planos: ${LANDING_PAGES.planos}
+- Campanha para mulheres: ${LANDING_PAGES.vozdelas}
+- Recursos e provas para candidatas: ${LANDING_PAGES.vozdelasRecursos}
+- Chapas femininas (voto real + prova de atuação): ${LANDING_PAGES.chapasFemininas}
+- Dossiê de materialidade: ${LANDING_PAGES.materialidade}
+
+Heurística de link:
+- Mulher / chapa feminina / cota / fundo → vozdelas ou chapas-femininas.
+- Prestação de contas, TSE, comprovação, advogado → materialidade.
+- Preço, plano, vaga → planos.
+- Qualquer outro interesse em ver o produto → degustação (${tasteUrl}).
 
 Regras rígidas:
 - Nunca invente preço, prazo, número de clientes ou funcionalidade que não esteja na lista acima.
@@ -51,9 +98,15 @@ Regras rígidas:
 - Responda somente com o texto da mensagem, sem aspas e sem prefixo de remetente.`;
 }
 
+function speakerLabel(role: MarketingConversation["messages"][number]["role"]): string {
+  if (role === "lead") return "Lead";
+  if (role === "humano") return "Operador (humano)";
+  return "Marina";
+}
+
 function renderHistory(conversation: MarketingConversation): string {
   const linhas = conversation.messages.map((message) =>
-    `${message.role === "lead" ? "Lead" : "Marina"}: ${message.text}`,
+    `${speakerLabel(message.role)}: ${message.text}`,
   );
 
   const contexto = conversation.contactName
@@ -78,13 +131,18 @@ export type AgentReply = { text: string; provider: string | null; model: string 
  */
 export async function generateAgentReply(
   conversation: MarketingConversation,
+  contact?: AgentContactContext | null,
 ): Promise<AgentReply | null> {
   const demoLink = process.env.WHATSAPP_DEMO_LINK_URL?.trim() || "";
 
-  const result = await requestPlainText(buildSystemPrompt(demoLink), renderHistory(conversation), {
-    temperature: 0.6,
-    maxTokens: 500,
-  });
+  const result = await requestPlainText(
+    buildSystemPrompt(demoLink, contact),
+    renderHistory(conversation),
+    {
+      temperature: 0.6,
+      maxTokens: 500,
+    },
+  );
 
   const text = result.rawText?.trim();
   if (!text) {

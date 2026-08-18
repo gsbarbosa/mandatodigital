@@ -7,6 +7,8 @@ import {
   CAMPAIGN_CHANNEL_LABELS,
   CONTACT_SOURCE_LABELS,
   EMPTY_SEGMENT_FILTER,
+  OFFICE_KEY_LABELS,
+  RELEVANCE_TIER_LABELS,
   type MarketingSegment,
   type SegmentFilter,
 } from "@/lib/outbound/types";
@@ -30,6 +32,30 @@ function describeFilter(filter: SegmentFilter): string {
   }
   if (filter.onlyCandidates2026) {
     parts.push("candidatos 2026");
+  }
+  if (filter.onlyWomen) {
+    parts.push("só mulheres");
+  }
+  if (filter.onlyMen) {
+    parts.push("só homens");
+  }
+  if (filter.onlyReelection) {
+    parts.push("reeleição");
+  }
+  if (filter.excludeReelection) {
+    parts.push("sem incumbente");
+  }
+  if (filter.onlyPartyPresidents) {
+    parts.push("presidentes de partido");
+  }
+  if (filter.offices.length > 0) {
+    parts.push(filter.offices.map((office) => OFFICE_KEY_LABELS[office]).join(" + "));
+  }
+  if (filter.relevanceTiers.length > 0) {
+    parts.push(filter.relevanceTiers.map((tier) => RELEVANCE_TIER_LABELS[tier]).join(" + "));
+  }
+  if (filter.excludeVip) {
+    parts.push("sem VIP");
   }
   if (filter.search) {
     parts.push(`busca: "${filter.search}"`);

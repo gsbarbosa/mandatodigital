@@ -77,7 +77,7 @@ export const privacySections: readonly PrivacySection[] = [
       {
         label: "Dados de pagamento",
         detail:
-          "Processados pela Asaas, nossa operadora financeira. Não armazenamos número de cartão em nossos servidores — recebemos apenas status da cobrança e identificadores da transação.",
+          "Processados por um operador de pagamentos contratado (ver seção 4). Não armazenamos número de cartão em nossos servidores — recebemos apenas status da cobrança e identificadores da transação.",
         extra: "Base legal: execução de contrato (art. 7º, V).",
       },
       {
@@ -131,42 +131,42 @@ export const privacySections: readonly PrivacySection[] = [
     ],
     rows: [
       {
-        label: "Google Cloud / Firebase",
+        label: "Operador 1",
         detail: "Hospedagem, banco de dados, arquivos e autenticação.",
         extra: "Estados Unidos",
       },
       {
-        label: "OpenAI e Anthropic",
+        label: "Operador 2",
         detail: "Geração de texto e verificação de fatos.",
         extra: "Estados Unidos",
       },
       {
-        label: "HeyGen",
+        label: "Operador 3",
         detail: "Geração de vídeo com avatar a partir da imagem do titular.",
         extra: "Estados Unidos",
       },
       {
-        label: "ElevenLabs",
+        label: "Operador 4",
         detail: "Síntese e clonagem de voz.",
         extra: "Estados Unidos",
       },
       {
-        label: "Meta (Instagram Graph e WhatsApp Business)",
+        label: "Operador 5",
         detail: "Publicação das peças aprovadas e envio de mensagens.",
         extra: "Estados Unidos",
       },
       {
-        label: "Apify e SerpAPI",
+        label: "Operador 6",
         detail: "Coleta de conteúdo público para o monitoramento de pautas.",
         extra: "Estados Unidos",
       },
       {
-        label: "Resend",
+        label: "Operador 7",
         detail: "Envio de e-mails transacionais.",
         extra: "Estados Unidos",
       },
       {
-        label: "Asaas",
+        label: "Operador 8",
         detail: "Cobrança, boleto e emissão de nota fiscal.",
         extra: "Brasil",
       },
@@ -183,17 +183,7 @@ export const privacySections: readonly PrivacySection[] = [
     id: "direitos",
     title: "6. Seus direitos",
     body: [
-      "O art. 18 da LGPD garante a você, a qualquer momento e sem custo:",
-    ],
-    bullets: [
-      "confirmação de que tratamos seus dados e acesso a eles",
-      "correção de dados incompletos, inexatos ou desatualizados",
-      "anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desconformidade",
-      "portabilidade a outro fornecedor, mediante requisição expressa",
-      "eliminação dos dados tratados com base no seu consentimento",
-      "informação sobre com quem compartilhamos seus dados",
-      "revogação do consentimento, inclusive o de imagem e voz",
-      "oposição a tratamento fundado em legítimo interesse — é o caso da base de prospects",
+      "A qualquer momento, e sem qualquer custo, você pode solicitar a exclusão ou remoção da sua conta e dos dados pessoais que tratamos a seu respeito, bastando enviar o pedido pelos canais de contato indicados nesta política.",
     ],
   },
   {

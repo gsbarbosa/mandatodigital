@@ -39,6 +39,7 @@ function mapCampaign(id: string, data: DocumentData | undefined): MarketingCampa
     templateParams: Array.isArray(data.templateParams)
       ? (data.templateParams as unknown[]).map((item) => String(item))
       : [],
+    batchSize: Number.isFinite(Number(data.batchSize)) ? Math.max(0, Math.trunc(Number(data.batchSize))) : 0,
     status: isCampaignStatus(data.status) ? data.status : "rascunho",
     stats: {
       total: Number(stats.total ?? 0),
@@ -74,6 +75,7 @@ export type CampaignInput = {
   templateName?: string;
   templateLanguage?: string;
   templateParams?: string[];
+  batchSize?: number;
 };
 
 export async function createMarketingCampaign(input: CampaignInput): Promise<MarketingCampaign> {
@@ -97,6 +99,7 @@ export async function createMarketingCampaign(input: CampaignInput): Promise<Mar
     templateName: (input.templateName ?? "").trim(),
     templateLanguage: (input.templateLanguage ?? "pt_BR").trim() || "pt_BR",
     templateParams: input.templateParams ?? [],
+    batchSize: input.batchSize ?? (input.channel === "whatsapp" ? 5 : 0),
     status: "rascunho",
     stats: { total: 0, sent: 0, failed: 0 },
     lastError: "",
@@ -114,6 +117,7 @@ export async function createMarketingCampaign(input: CampaignInput): Promise<Mar
     templateName: campaign.templateName,
     templateLanguage: campaign.templateLanguage,
     templateParams: campaign.templateParams,
+    batchSize: campaign.batchSize,
     status: campaign.status,
     stats: campaign.stats,
     lastError: campaign.lastError,
@@ -155,6 +159,7 @@ export async function updateMarketingCampaign(
         : current.templateLanguage,
     templateParams:
       patch.templateParams !== undefined ? patch.templateParams : current.templateParams,
+    batchSize: patch.batchSize !== undefined ? patch.batchSize : current.batchSize,
     updatedAt: nowIso(),
   };
 
@@ -168,6 +173,7 @@ export async function updateMarketingCampaign(
       templateName: next.templateName,
       templateLanguage: next.templateLanguage,
       templateParams: next.templateParams,
+      batchSize: next.batchSize,
       updatedAt: next.updatedAt,
     },
     { merge: true },
