@@ -1,7 +1,7 @@
 /**
  * Parsing e autenticação do webhook da WhatsApp Cloud API.
  *
- * Funções puras (testáveis) — o efeito colateral (responder o lead) fica na
+ * Funções puras (testáveis) — o efeito colateral (sugerir/enviar) fica na
  * rota. O payload da Meta é profundamente aninhado e mistura mensagens com
  * status de entrega no mesmo formato, daí o normalizador aqui.
  */

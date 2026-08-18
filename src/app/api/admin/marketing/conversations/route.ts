@@ -1,9 +1,12 @@
 import { adminApiRoute } from "@/lib/admin/api-route";
 import { listConversations } from "@/lib/outbound/conversations-storage";
+import { flushDueSuggestedReplies } from "@/lib/outbound/outbound-autosend";
 import { isWhatsappConfigured } from "@/lib/outbound/whatsapp";
 
 export async function GET() {
   return adminApiRoute(async () => {
+    await flushDueSuggestedReplies().catch(() => undefined);
+
     const [conversations, whatsappReady] = await Promise.all([
       listConversations(),
       isWhatsappConfigured(),

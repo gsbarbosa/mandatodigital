@@ -8,7 +8,7 @@ const bodySchema = z.object({ paused: z.boolean() });
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-/** Assumir a conversa no braço: desliga a resposta automática desta thread. */
+/** Assumir a conversa: a IA só sugere no painel e nunca envia sozinha. */
 export async function POST(request: Request, context: RouteContext) {
   return adminApiRoute(async () => {
     const { id } = await context.params;

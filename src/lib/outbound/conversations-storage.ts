@@ -4,7 +4,9 @@ import type { DocumentData } from "firebase-admin/firestore";
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import {
+  computeSuggestionAutoSendAt,
   isConversationRole,
+  isSuggestionAutoSendDue,
   type ConversationMessage,
   type ConversationRole,
   type MarketingConversation,
@@ -40,6 +42,9 @@ function mapDoc(id: string, data: DocumentData | undefined): MarketingConversati
     messages,
     lastInboundAt: String(data.lastInboundAt ?? ""),
     agentPaused: Boolean(data.agentPaused),
+    suggestedReply: String(data.suggestedReply ?? ""),
+    suggestedAt: String(data.suggestedAt ?? ""),
+    autoSendAt: String(data.autoSendAt ?? ""),
     lastError: String(data.lastError ?? ""),
     createdAt: String(data.createdAt ?? nowIso()),
     updatedAt: String(data.updatedAt ?? nowIso()),
@@ -101,6 +106,9 @@ export async function appendInboundMessage(input: {
       messages: [...(current?.messages ?? []), message].slice(-MAX_MESSAGES),
       lastInboundAt: now,
       agentPaused: current?.agentPaused ?? false,
+      suggestedReply: "",
+      suggestedAt: "",
+      autoSendAt: "",
       lastError: "",
       createdAt: current?.createdAt ?? now,
       updatedAt: now,
@@ -149,6 +157,9 @@ export async function appendOutboundMessage(input: {
         messages,
         updatedAt: now,
         lastError: "",
+        suggestedReply: "",
+        suggestedAt: "",
+        autoSendAt: "",
         ...(input.pauseAgent ? { agentPaused: true } : {}),
       },
       { merge: true },
@@ -163,7 +174,104 @@ export async function setConversationError(phoneE164: string, message: string): 
 }
 
 export async function setAgentPaused(phoneE164: string, paused: boolean): Promise<void> {
+  const ref = col(COLLECTIONS.marketingConversations).doc(phoneE164);
+  const now = nowIso();
+
+  await col(COLLECTIONS.marketingConversations).firestore.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    const current = mapDoc(phoneE164, snapshot.data());
+    const autoSendAt =
+      paused || !current?.suggestedReply.trim()
+        ? ""
+        : computeSuggestionAutoSendAt(false, Date.parse(now));
+
+    tx.set(
+      ref,
+      {
+        agentPaused: paused,
+        autoSendAt,
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+  });
+}
+
+export async function setPendingSuggestion(
+  phoneE164: string,
+  input: { text: string; paused: boolean; nowMs?: number },
+): Promise<{ suggestedAt: string; autoSendAt: string }> {
+  const nowMs = input.nowMs ?? Date.now();
+  const suggestedAt = new Date(nowMs).toISOString();
+  const autoSendAt = computeSuggestionAutoSendAt(input.paused, nowMs);
+
   await col(COLLECTIONS.marketingConversations)
     .doc(phoneE164)
-    .set({ agentPaused: paused, updatedAt: nowIso() }, { merge: true });
+    .set(
+      {
+        suggestedReply: input.text,
+        suggestedAt,
+        autoSendAt,
+        lastError: "",
+        updatedAt: nowIso(),
+      },
+      { merge: true },
+    );
+
+  return { suggestedAt, autoSendAt };
+}
+
+/**
+ * Tira a sugestão da fila de auto-envio (transação). `null` se outro processo
+ * já enviou, o humano assumiu, ou o prazo ainda não venceu.
+ */
+export async function claimDueSuggestion(
+  phoneE164: string,
+  nowMs = Date.now(),
+): Promise<{ text: string; suggestedAt: string; autoSendAt: string } | null> {
+  const ref = col(COLLECTIONS.marketingConversations).doc(phoneE164);
+
+  return col(COLLECTIONS.marketingConversations).firestore.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    const current = mapDoc(phoneE164, snapshot.data());
+    if (!current || !isSuggestionAutoSendDue(current, nowMs)) {
+      return null;
+    }
+
+    const claimed = {
+      text: current.suggestedReply,
+      suggestedAt: current.suggestedAt,
+      autoSendAt: current.autoSendAt,
+    };
+
+    tx.set(
+      ref,
+      {
+        suggestedReply: "",
+        suggestedAt: "",
+        autoSendAt: "",
+        updatedAt: nowIso(),
+      },
+      { merge: true },
+    );
+
+    return claimed;
+  });
+}
+
+export async function restoreSuggestion(
+  phoneE164: string,
+  suggestion: { text: string; suggestedAt: string; autoSendAt: string },
+): Promise<void> {
+  await col(COLLECTIONS.marketingConversations)
+    .doc(phoneE164)
+    .set(
+      {
+        suggestedReply: suggestion.text,
+        suggestedAt: suggestion.suggestedAt,
+        autoSendAt: suggestion.autoSendAt,
+        updatedAt: nowIso(),
+      },
+      { merge: true },
+    );
 }

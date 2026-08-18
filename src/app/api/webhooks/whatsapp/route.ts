@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
   if (!appSecret) {
     // Fail-closed: sem segredo não dá para provar que veio da Meta, e o webhook
-    // é uma URL pública que dispara chamada de LLM e envio de mensagem.
+    // é uma URL pública que dispara chamada de LLM.
     appLogError("marketing", "whatsapp_app_secret_missing", new Error("sem WHATSAPP_APP_SECRET"));
     return new NextResponse("app secret não configurado", { status: 500 });
   }

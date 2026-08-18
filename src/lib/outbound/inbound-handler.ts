@@ -1,6 +1,7 @@
 /**
- * Fluxo de uma mensagem recebida: registra na thread, gera a resposta da IA e
- * envia de volta pelo WhatsApp.
+ * Fluxo de uma mensagem recebida: registra na thread, gera a sugestão da IA e
+ * deixa no painel para envio humano. O envio automático (se ninguém mandar em
+ * 3 min) fica a cargo de `flushDueSuggestedReplies`.
  *
  * Separado da rota para poder ser exercitado sem HTTP (ver
  * `npm run whatsapp:test`).
@@ -10,23 +11,20 @@ import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import { appLog, appLogError } from "@/lib/observability/log";
 import { generateAgentReply, type AgentContactContext } from "@/lib/outbound/conversation-agent";
 import {
-  appendAgentMessage,
   appendInboundMessage,
   setConversationError,
+  setPendingSuggestion,
 } from "@/lib/outbound/conversations-storage";
 import { isPartyPresidentRole } from "@/lib/outbound/relevance";
 import { isWithinServiceWindow } from "@/lib/outbound/types";
-import { resolveWhatsappConfig, sendText } from "@/lib/outbound/whatsapp";
 import { normalizeWaId, type InboundMessage } from "@/lib/outbound/whatsapp-webhook";
 
 export type InboundOutcome =
   | { status: "duplicada" }
   | { status: "sem_texto" }
-  | { status: "agente_pausado" }
   | { status: "fora_da_janela" }
   | { status: "sem_resposta_llm" }
-  | { status: "erro_envio"; error: string }
-  | { status: "respondida"; reply: string };
+  | { status: "sugerida"; reply: string; autoSendAt: string };
 
 /** Busca o contato pelo telefone para personalizar a conversa (best-effort). */
 async function findContactByPhone(phoneE164: string): Promise<{
@@ -85,18 +83,8 @@ export async function handleInboundMessage(message: InboundMessage): Promise<Inb
     return { status: "sem_texto" };
   }
 
-  if (conversation.agentPaused) {
-    return { status: "agente_pausado" };
-  }
-
   if (!isWithinServiceWindow(conversation.lastInboundAt)) {
     return { status: "fora_da_janela" };
-  }
-
-  const config = await resolveWhatsappConfig();
-  if (!config) {
-    await setConversationError(phoneE164, "WhatsApp não configurado para responder.");
-    return { status: "erro_envio", error: "WhatsApp não configurado." };
   }
 
   const reply = await generateAgentReply(conversation, contact?.context);
@@ -106,19 +94,23 @@ export async function handleInboundMessage(message: InboundMessage): Promise<Inb
   }
 
   try {
-    const { messageId } = await sendText({ config, to: phoneE164, body: reply.text });
-    await appendAgentMessage({ phoneE164, text: reply.text, providerMessageId: messageId });
-    appLog("marketing", "whatsapp_agente_respondeu", {
+    const pending = await setPendingSuggestion(phoneE164, {
+      text: reply.text,
+      paused: conversation.agentPaused,
+    });
+    appLog("marketing", "whatsapp_agente_sugeriu", {
       phoneE164,
       provider: reply.provider,
       model: reply.model,
       chars: reply.text.length,
+      autoSendAt: pending.autoSendAt || null,
+      agentPaused: conversation.agentPaused,
     });
-    return { status: "respondida", reply: reply.text };
+    return { status: "sugerida", reply: reply.text, autoSendAt: pending.autoSendAt };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "Falha ao enviar resposta.";
+    const detail = error instanceof Error ? error.message : "Falha ao gravar sugestão.";
     await setConversationError(phoneE164, detail);
-    appLogError("marketing", "whatsapp_agente_falhou", error, { phoneE164 });
-    return { status: "erro_envio", error: detail };
+    appLogError("marketing", "whatsapp_agente_sugestao_falhou", error, { phoneE164 });
+    return { status: "sem_resposta_llm" };
   }
 }
