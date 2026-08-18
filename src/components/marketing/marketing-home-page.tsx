@@ -23,6 +23,7 @@ import {
   homeAssembly,
   homeEcosystemSummary,
   homeFactToFeed,
+  homeHero,
   homeScale,
   homeVacuum,
   homeWhy,
@@ -126,60 +127,114 @@ function EcosystemVisual() {
   );
 }
 
+const HERO_ALT =
+  "Candidato diante do feed do eleitor cercado pelos agentes de IA do Mandato Digital: Sentinela, Curador, Criador, Distribuidor e Auditor";
+
+/**
+ * Fundo do hero. Reproduz a cor de canto da própria arte (~#00020c), então
+ * qualquer sobra fora da caixa de aspect-ratio (telas mais largas que o
+ * xl:max-w) emenda sem costura visível.
+ */
+const HERO_BACKDROP = "linear-gradient(to bottom, #00020c 0%, #010a18 65%, #05101f 100%)";
+
+function HeroCopy() {
+  return (
+    <>
+      <h1 className="m-0 text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl xl:text-5xl xl:leading-[1.12] 2xl:text-7xl 2xl:leading-[1.05]">
+        {homeHero.title.lead} <span className="text-emerald-400">{homeHero.title.accent}</span>{" "}
+        {homeHero.title.tail} <span className="text-emerald-400">{homeHero.title.year}</span>.
+      </h1>
+      <p className="mt-5 text-base leading-relaxed text-slate-300 sm:text-lg xl:mt-5 xl:text-base 2xl:text-lg">
+        {homeHero.body.line1}
+        <br />
+        {homeHero.body.line2Lead}{" "}
+        <span className="font-semibold text-emerald-400">{homeHero.body.line2Accent}</span>.
+        <br />
+        {homeHero.body.line3}
+        <br />
+        <span className="xl:whitespace-nowrap">{homeHero.body.line4}</span>
+      </p>
+      <div className="mt-8 flex flex-wrap gap-3 xl:mt-8">
+        <Link href={MARKETING_CTA_HREF} className="primary-button">
+          {MARKETING_CTA_LABEL}
+        </Link>
+        <Link href={"/ecossistema" as Route} className="secondary-button inline-flex items-center text-white">
+          Conheça o ecossistema
+        </Link>
+      </div>
+    </>
+  );
+}
+
+/**
+ * Hero da home.
+ *
+ * xl+: uma única caixa com aspect-ratio TRAVADO no da própria arte (1672:941)
+ * — cover nunca corta nada porque a proporção da caixa é idêntica à da
+ * imagem, só escala como um bloco só. O texto é filho dessa caixa,
+ * posicionado em % (não em px/rem), então acompanha a arte 1:1 em qualquer
+ * largura: cresce e encolhe junto, sem o salto de breakpoint que existia
+ * quando texto e imagem eram elementos irmãos dimensionados por conta
+ * própria. O retângulo em %% cai no vão escuro entre a borda e o robô
+ * Sentinela — testado de 1280 a 2200px sem tocar em nenhum card/prédio.
+ *
+ * <xl: empilhado — texto em fluxo normal, a arte inteira abaixo.
+ */
+function HomeHero() {
+  return (
+    <section
+      className="relative overflow-hidden border-b border-white/5"
+      style={{ background: HERO_BACKDROP }}
+    >
+      {/*
+        aspect-[1672/843] (em vez do 1672/941 nativo) + bg-bottom: a arte não
+        tem folga própria pra "subir" dentro da caixa (cover já cobre 100%
+        dela, sem sobra). O jeito de subir o conteúdo visível é recortar a
+        faixa de céu vazio do topo — encurtando a caixa e prendendo o
+        recorte pela base, só o topo é cortado. Os 98px cortados (941→843)
+        foram calculados pra a cabeça do Sentinela cair exatamente na mesma
+        altura do topo do texto (top-[6.4%] abaixo).
+      */}
+      <div
+        className="relative hidden w-full xl:mx-auto xl:block xl:max-w-[2200px]"
+        style={{ aspectRatio: "1672 / 843" }}
+      >
+        <div
+          role="img"
+          aria-label={HERO_ALT}
+          className="absolute inset-0 bg-cover bg-bottom bg-no-repeat"
+          style={{ backgroundImage: "url(/marketing/home/hero-2026-wide.webp)" }}
+        />
+        {/*
+          top-[6.4%]: mesmo respiro em px do ajuste anterior (65% de corte no
+          espaço do menu), só recalculado pra a caixa mais baixa de agora.
+        */}
+        <div className="absolute left-[4%] top-[6.4%] w-[39%]">
+          <HeroCopy />
+        </div>
+      </div>
+
+      <div className="xl:hidden">
+        <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-16">
+          <div className="min-w-0 max-w-xl">
+            <HeroCopy />
+          </div>
+          <div
+            role="img"
+            aria-label={HERO_ALT}
+            className="mt-10 aspect-[1400/991] w-full bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: "url(/marketing/home/hero-2026-mobile.webp)" }}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function MarketingHomePage() {
   return (
     <>
-      <section className="relative overflow-hidden border-b border-md-border/40 bg-md-bg">
-        {/* Split em xl (não lg): abaixo de 1280 a coluna de texto fica estreita, a copy
-            estica a linha e o object-cover come as laterais da imagem. Empilhado é melhor. */}
-        <div className="grid xl:grid-cols-[minmax(0,42fr)_minmax(0,58fr)]">
-          <div className="flex items-center px-4 py-14 sm:px-6 sm:py-20 xl:py-24 xl:pl-20 2xl:pl-32">
-            {/* -translate-y: sobe o bloco acima do centro geométrico sem alterar a
-                altura da linha do grid (padding assimétrico esticaria a seção). */}
-            <div className="w-full min-w-0 max-w-2xl xl:-translate-y-8">
-              <h1 className="text-4xl font-bold tracking-tight text-md-text sm:text-5xl lg:text-6xl lg:leading-[1.08]">
-                A <span className="text-emerald-400">tropa de IA</span> do Candidato em{" "}
-                <span className="text-emerald-400">2026</span>.
-              </h1>
-              <p className="mt-6 text-base leading-relaxed text-md-text-muted sm:text-lg">
-                O plenário e o jornal ficaram para trás. A verdadeira briga é{" "}
-                <span className="text-emerald-400">dentro do feed do eleitor</span>. Nosso
-                ecossistema completo de IA monitora, produz e publica sua comunicação para
-                garantir que você vença onde importa.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href={MARKETING_CTA_HREF} className="primary-button">
-                  {MARKETING_CTA_LABEL}
-                </Link>
-                <Link
-                  href={"/ecossistema" as Route}
-                  className="secondary-button inline-flex items-center"
-                >
-                  Conheça o ecossistema
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative aspect-[3/2] w-full xl:aspect-auto xl:min-h-[42rem]">
-            {/* !h-full: .marketing-shell img força height:auto e vence a utilitária */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/marketing/hero-agentes.webp"
-              alt="Candidato diante do feed, cercado pelos agentes de IA do Mandato Digital: Sentinela, Curador, Criador, Distribuidor e Auditor"
-              width={1536}
-              height={1024}
-              className="absolute inset-0 !h-full w-full object-cover object-center"
-              decoding="async"
-              fetchPriority="high"
-            />
-            <div
-              className="pointer-events-none absolute inset-y-0 left-0 hidden w-32 bg-gradient-to-r from-md-bg via-md-bg/60 to-transparent xl:block"
-              aria-hidden
-            />
-          </div>
-        </div>
-      </section>
+      <HomeHero />
 
       <MarketingSection
         title={

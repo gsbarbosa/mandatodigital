@@ -1,8 +1,26 @@
 import type { AgentAccent } from "@/lib/marketing/shared";
 
+/** Trechos separados porque o hero destaca `accent` em verde no meio da frase. */
 export const homeHero = {
-  title: "A tropa de IA do Candidato em 2026.",
-  body: "O plenário e o jornal ficaram para trás. A verdadeira briga é dentro do feed do eleitor. Nosso ecossistema completo de IA monitora, produz e publica sua comunicação para garantir que você vença onde importa.",
+  title: {
+    lead: "A",
+    accent: "tropa de IA",
+    tail: "do Candidato em",
+    year: "2026",
+  },
+  /**
+   * Quebrado em 3 blocos (em vez de deixar o navegador quebrar a linha
+   * sozinho) pra bater na mesma largura do título no hero — sem isso, a
+   * primeira linha do parágrafo (fonte menor) fica bem mais larga que
+   * qualquer linha do título e o bloco de texto perde a moldura retangular.
+   */
+  body: {
+    line1: "O plenário e o jornal ficaram para trás.",
+    line2Lead: "A verdadeira briga é",
+    line2Accent: "dentro do feed do eleitor",
+    line3: "Nosso ecossistema completo de IA monitora, produz e publica sua",
+    line4: "comunicação para garantir que você vença onde importa.",
+  },
 } as const;
 
 export const homeFactToFeed = {
