@@ -7,11 +7,13 @@
  * simples e mais barato. Ver "Limites" em docs/marketing-outbound.md.
  */
 
+import { isPartyPresidentRole } from "@/lib/outbound/relevance";
 import {
   EMPTY_SEGMENT_FILTER,
   isCampaignChannel,
   isContactSource,
   isOfficeKey,
+  isRelevanceTier,
   type MarketingContact,
   type OfficeKey,
   type SegmentFilter,
@@ -64,11 +66,29 @@ export function matchesSegment(contact: MarketingContact, filter: SegmentFilter)
   if (filter.onlyWomen && contact.gender !== "F") {
     return false;
   }
+  if (filter.onlyMen && contact.gender !== "M") {
+    return false;
+  }
+  if (filter.onlyReelection && !contact.isReelection) {
+    return false;
+  }
+  if (filter.excludeReelection && contact.isReelection) {
+    return false;
+  }
+  if (filter.onlyPartyPresidents && !isPartyPresidentRole(contact.roles)) {
+    return false;
+  }
   if (filter.offices.length > 0) {
     const office = contactOffice(contact);
     if (!office || !filter.offices.includes(office)) {
       return false;
     }
+  }
+  if (filter.relevanceTiers.length > 0 && !filter.relevanceTiers.includes(contact.relevanceTier)) {
+    return false;
+  }
+  if (filter.excludeVip && contact.relevanceTier === "vip") {
+    return false;
   }
   if (filter.excludeSuspended && contact.suspended) {
     return false;
@@ -113,7 +133,14 @@ export function coerceSegmentFilter(value: unknown): SegmentFilter {
     channel,
     onlyCandidates2026: Boolean(raw.onlyCandidates2026),
     onlyWomen: Boolean(raw.onlyWomen),
+    onlyMen: Boolean(raw.onlyMen),
+    onlyReelection: Boolean(raw.onlyReelection),
+    excludeReelection: Boolean(raw.excludeReelection),
+    onlyPartyPresidents: Boolean(raw.onlyPartyPresidents),
     offices: stringArray(raw.offices).filter(isOfficeKey),
+    relevanceTiers: stringArray(raw.relevanceTiers).filter(isRelevanceTier),
+    excludeVip:
+      raw.excludeVip === undefined ? EMPTY_SEGMENT_FILTER.excludeVip : Boolean(raw.excludeVip),
     excludeSuspended:
       raw.excludeSuspended === undefined
         ? EMPTY_SEGMENT_FILTER.excludeSuspended

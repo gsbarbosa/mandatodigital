@@ -8,12 +8,13 @@
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import { appLog, appLogError } from "@/lib/observability/log";
-import { generateAgentReply } from "@/lib/outbound/conversation-agent";
+import { generateAgentReply, type AgentContactContext } from "@/lib/outbound/conversation-agent";
 import {
   appendAgentMessage,
   appendInboundMessage,
   setConversationError,
 } from "@/lib/outbound/conversations-storage";
+import { isPartyPresidentRole } from "@/lib/outbound/relevance";
 import { isWithinServiceWindow } from "@/lib/outbound/types";
 import { resolveWhatsappConfig, sendText } from "@/lib/outbound/whatsapp";
 import { normalizeWaId, type InboundMessage } from "@/lib/outbound/whatsapp-webhook";
@@ -28,14 +29,35 @@ export type InboundOutcome =
   | { status: "respondida"; reply: string };
 
 /** Busca o contato pelo telefone para personalizar a conversa (best-effort). */
-async function findContactByPhone(phoneE164: string) {
+async function findContactByPhone(phoneE164: string): Promise<{
+  id: string;
+  context: AgentContactContext;
+} | null> {
   const snapshot = await col(COLLECTIONS.marketingContacts)
     .where("phoneE164", "==", phoneE164)
     .limit(1)
     .get();
 
   const doc = snapshot.docs[0];
-  return doc ? { id: doc.id, name: String(doc.data().name ?? "") } : null;
+  if (!doc) {
+    return null;
+  }
+  const data = doc.data();
+  const roles = Array.isArray(data.roles) ? data.roles.map((item) => String(item)) : [];
+  const parties = Array.isArray(data.parties) ? data.parties.map((item) => String(item)) : [];
+  return {
+    id: doc.id,
+    context: {
+      name: String(data.name ?? ""),
+      uf: String(data.uf ?? ""),
+      parties,
+      roles,
+      candidateRole: String(data.candidateRole ?? ""),
+      gender: String(data.gender ?? ""),
+      isReelection: Boolean(data.isReelection),
+      isPartyPresident: isPartyPresidentRole(roles),
+    },
+  };
 }
 
 export async function handleInboundMessage(message: InboundMessage): Promise<InboundOutcome> {
@@ -47,7 +69,7 @@ export async function handleInboundMessage(message: InboundMessage): Promise<Inb
     text: message.text,
     providerMessageId: message.providerMessageId,
     contactId: contact?.id,
-    contactName: contact?.name || message.profileName,
+    contactName: contact?.context.name || message.profileName,
   });
 
   // Já processada: a Meta reentrega o mesmo evento quando a resposta demora.
@@ -77,7 +99,7 @@ export async function handleInboundMessage(message: InboundMessage): Promise<Inb
     return { status: "erro_envio", error: "WhatsApp não configurado." };
   }
 
-  const reply = await generateAgentReply(conversation);
+  const reply = await generateAgentReply(conversation, contact?.context);
   if (!reply) {
     await setConversationError(phoneE164, "LLM não retornou resposta.");
     return { status: "sem_resposta_llm" };

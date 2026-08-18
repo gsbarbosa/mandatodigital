@@ -147,6 +147,105 @@ candidatas no vocativo feminino não pode ir para nome trocado nem para homem.
 Depois do lote Pasta1, mulheres com WhatsApp classificadas: **233** (125 estaduais, 97 federais,
 7 distritais, 2 senadoras, 2 suplentes). Diretório continua sem sexo.
 
+### Fontes do Drive (`mandatodigital-base`) e o que fazer com cada uma
+
+A pasta de origem tem quatro arquivos. O cruzamento com a base já importada:
+
+| Arquivo | O que é | Já na base? | Uso |
+|---|---|---|---|
+| `Pasta1.csv` (1.080 linhas) | Instagram + WhatsApp de candidatos 2026, com gênero | Sim, 651 aprovados pelas travas | Público operacional de WhatsApp |
+| `Presidentes_e_Adm_Partidos_Consolidado.xlsx` | Mesmo export SGIP3 (1.259 linhas, ~857 presidentes) | Sim, via `diretorio_partidario` | Filtrar `onlyPartyPresidents` — não reimportar |
+| `Candidatos_em_Reeleicao.xlsx` | 345 federais + 600 estaduais/distritais em mandato e recandidatos | **Não como flag** | Enriquecer `isReelection` |
+| `Suplentes_Mais_VotadosScraper_2022.xlsx` | 498 suplentes 2022 + scraper Instagram (CEL_58) | CEL_58 ≈ o lote 1 antigo (2% de aproveitamento) | **Não importar.** Lista futura quando houver telefone confiável |
+
+A coluna `Tentando reeleicao` do Pasta1 está corrompida (vem `#N/D` ou o nome de outra pessoa). Reeleição só vale pela planilha dedicada, cruzada por nome normalizado + UF. Só **66** das 1.080 linhas do Pasta1 são incumbentes — o WhatsApp da reeleição é pequeno; o restante dos 945 incumbentes é e-mail de gabinete ou contato pessoal.
+
+```bash
+npm run marketing:enrich -- --dry-run   # cruza reeleição + followers e pontua
+npm run marketing:enrich
+npm run marketing:segments              # cria/atualiza os 11 segmentos canônicos
+```
+
+### Relevância (VIP vs disparo)
+
+Calculada em `src/lib/outbound/relevance.ts` e gravada em `relevanceScore` / `relevanceTier`.
+
+VIP **não recebe template em massa** — o custo de um WhatsApp frio (assessoria, denúncia, presidente de partido grande) é maior que o de um falso negativo. Critério absoluto, não só corte de score:
+
+- Deputado federal em reeleição
+- Senador / governador
+- Presidente de partido grande (PL, PT, MDB, UNIÃO, PP, PSD, REPUBLICANOS, PSB, PDT, PSDB, PODE)
+- ≥ 400 mil seguidores no Instagram (celebridade digital: Sikêra Jr e afins)
+
+Alta: reeleição estadual/distrital, presidente de partido menor, candidata com ≥ 50 mil seguidores. Média/padrão: o restante com WhatsApp.
+
+Mulher **sem mandato e sem audiência não sobe de faixa só por ser mulher** — a cota de 30% não é atalho de relevância. Continua em segmento próprio (tom e landing diferentes).
+
+### Segmentos canônicos
+
+O filtro avulso no painel continua existindo para exploração. O disparo usa os segmentos abaixo (`excludeVip` ligado em todos os `WA ·`):
+
+| Segmento | Canal | CTA / landing |
+|---|---|---|
+| VIP — contato pessoal | telefone / e-mail / indicação | — |
+| Alta relevância — humano se responder | WhatsApp, lote 5; pausar IA no primeiro "tenho interesse" | degustação |
+| WA · Reeleição · F · Estadual/Distrital | WhatsApp | `/vozdelas/provas.html#recursos` + `/materialidade` |
+| WA · Reeleição · F · Federal | WhatsApp residual (quase tudo é VIP) | `/materialidade` |
+| WA · Reeleição · M · Estadual/Distrital | WhatsApp | `/materialidade` |
+| WA · Reeleição · M · Federal | WhatsApp residual | `/planos` |
+| WA · Candidatas · Estadual/Distrital | WhatsApp | `/vozdelas` ou `/chapas-femininas` |
+| WA · Candidatas · Federal | WhatsApp | `/vozdelas/provas.html#recursos` |
+| WA · Candidatos · Estadual/Distrital | WhatsApp | `/` + degustação (`/login`) |
+| WA · Candidatos · Federal | WhatsApp | `/planos` |
+| WA · Presidentes de partido | WhatsApp | `/planos` (3 campanhas por sigla/UF) |
+
+### Cadência anti-spam
+
+Número novo, qualidade GREEN, tier baixo. O disparo agora **embaralha** o restante e **espalha UF** no lote (`dispatch-batch.ts`) — o mesmo clique não manda cinco paulistas seguidos, e o próximo clique usa outro seed.
+
+Operação (manual, dois turnos por dia):
+
+| Semana | Teto / dia | Lotes | Janela BRT |
+|---|---|---|---|
+| 1 | 20 | 4 × 5 | 9h–11h30 e 14h–17h30, dias úteis |
+| 2 | 35 | 7 × 5 | idem, se qualidade continuar GREEN |
+| 3 | 50 | 10 × 5 | teto técnico do canal; não subir sem o tier da Meta subir |
+
+Regras: não gastar o dia num segmento só; intercalar candidatas / candidatos / presidentes / reeleição; um contato = um template de abertura; VIP fora. Intervalo de 1,2s entre mensagens já está no código.
+
+### Templates por segmento
+
+Os 9 aprovados cobrem parte do mapa. Onde o texto promete "página de um minuto" / "vídeo de 3 minutos" que **não existe**, não usar — a Marina hoje gasta o pico de interesse pedindo para esperar. Submeter versões novas com o landing real:
+
+| Segmento | Reusar agora | Submeter (CTA no corpo) |
+|---|---|---|
+| Candidatas (não incumbentes) | `md_intro_feito_candidatas_v1` / `md_intro_candidatas_soft_v1` | apontar `/vozdelas` ou `/chapas-femininas` |
+| Presidentes | `md_intro_vaga_sigla_v1` | apontar `/planos` |
+| Reeleição | `md_intro_materialidade_v1` (se o texto não prometer material fantasma) | `md_intro_reeleicao_v1` → `/materialidade` |
+| Candidatos homens | `md_intro_prova_v1` / `md_intro_tempo_volume_v1` | `md_intro_degusta_v1` → `/login` |
+| Follow-up 48h (quem abriu e não respondeu) | `md_followup_candidatas_v1` só no público mulher | um follow-up neutro por público |
+
+Textos sugeridos para submissão na Meta (1 parâmetro = primeiro nome). Corpo curto, um CTA, sem
+prometer material que não existe:
+
+**Candidatas (estadual/distrital)** — `md_intro_vozdelas_v1` → vozdelas
+> Oi {{1}}, aqui é a Marina do Mandato Digital. Montamos uma plataforma para candidatas produzirem vídeo com a própria voz, monitorarem a pauta da região e comprovarem atuação se a chapa for questionada. Posso te mandar a página? https://mandatodigital.ia.br/vozdelas
+
+**Candidatas (federal)** — `md_intro_chapas_v1` → chapas-femininas
+> Oi {{1}}, Marina do Mandato Digital. Para campanha de mulher, o jogo é voto de verdade e prova de verdade — conteúdo no ritmo da base e registro do que foi feito. Dá para ver os dois lados aqui: https://mandatodigital.ia.br/chapas-femininas
+
+**Reeleição (F e M, estadual)** — `md_intro_reeleicao_v1` → materialidade
+> Oi {{1}}, Marina do Mandato Digital. Quem já tem mandato precisa de volume de comunicação e de materialidade se a campanha for questionada. Preparei um dossiê modelo de 1 minuto: https://mandatodigital.ia.br/materialidade
+
+**Candidatos homens** — `md_intro_degusta_v1` → login/degustação
+> Oi {{1}}, Marina do Mandato Digital. A gente produz vídeo da candidatura em volume, com o seu rosto e a sua voz, a partir da pauta do dia — sem estúdio. Quer experimentar de graça? https://mandatodigital.ia.br/login
+
+**Presidentes** — `md_intro_vaga_sigla_v1` já existe; se for resubmeter, terminar em `/planos`.
+
+Enquanto a Meta não aprova os novos, usar os aprovados que **não** prometem vídeo/página fantasma (`md_intro_feito_candidatas_v1`, `md_intro_vaga_sigla_v1`) e deixar a Marina enviar o landing na primeira resposta.
+
+Configurar `WHATSAPP_DEMO_LINK_URL=https://mandatodigital.ia.br/login` (degustação). A Marina agora escolhe o landing conforme o perfil e tira o lead do WhatsApp em 1–2 turnos.
+
 ## Disparo
 
 E-mail sai por Resend (`resend.batch.send`, 100 por chamada), reaproveitando o cofre de provider
@@ -340,6 +439,8 @@ E.164) e o agente responde na hora, com a persona **Marina**.
 - **Teto de 50 destinatários por disparo no WhatsApp** (`MAX_WHATSAPP_RECIPIENTS_PER_DISPATCH`),
   com 1,2s entre mensagens. O lote da campanha (padrão 5) fica abaixo disso de propósito: número
   novo começa em tier baixo e rajada fria derruba a nota de qualidade.
+- **O lote é aleatório e espalhado por UF** (`pickDispatchBatch`). A prévia do painel mostra o
+  mesmo recorte que o clique vai enviar (seed = campanha + já enviados).
 - **Status de entrega chega mas não é gravado**: o webhook separa `statuses`, porém hoje só loga.
   A trilha registra "a API aceitou o envio", não "foi entregue/lido".
 - **E-mail não tem webhook**: sem abertura, clique ou bounce.
@@ -352,10 +453,8 @@ E.164) e o agente responde na hora, com a persona **Marina**.
 
 ## Pendências abertas
 
-- **`WHATSAPP_DEMO_LINK_URL` está vazio.** Todos os 9 templates terminam prometendo enviar algo
-  ("a página de um minuto", "o vídeo de 3 minutos") e esse material não existe. Hoje a IA contorna
-  dizendo que retorna depois — funciona, mas gasta o pico de interesse do lead. É a maior perda de
-  conversão conhecida do fluxo.
+- **`WHATSAPP_DEMO_LINK_URL`**: se vazio, a Marina cai na degustação (`/login`) e nos landings
+  listados no prompt. Configure o env para forçar um único destino.
 - **Girar o app secret e o token**: ambos passaram por canal de chat durante a configuração e estão
   valendo em produção. Rotacionar em Configurações → Básico → Redefinir, atualizar `.env.local`,
   `npm run firebase:secrets:apply`, redeploy.

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { CAMPAIGN_CHANNELS, CONTACT_SOURCES } from "@/lib/outbound/types";
+import { CAMPAIGN_CHANNELS, CONTACT_SOURCES, RELEVANCE_TIERS } from "@/lib/outbound/types";
 
 export const segmentFilterSchema = z.object({
   sources: z.array(z.enum(CONTACT_SOURCES)).default([]),
@@ -11,7 +11,13 @@ export const segmentFilterSchema = z.object({
   channel: z.enum(CAMPAIGN_CHANNELS).nullable().default(null),
   onlyCandidates2026: z.boolean().default(false),
   onlyWomen: z.boolean().default(false),
+  onlyMen: z.boolean().default(false),
+  onlyReelection: z.boolean().default(false),
+  excludeReelection: z.boolean().default(false),
+  onlyPartyPresidents: z.boolean().default(false),
   offices: z.array(z.enum(["estadual", "distrital", "federal"])).default([]),
+  relevanceTiers: z.array(z.enum(RELEVANCE_TIERS)).default([]),
+  excludeVip: z.boolean().default(false),
   excludeSuspended: z.boolean().default(true),
   search: z.string().max(120).default(""),
 });

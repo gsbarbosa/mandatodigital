@@ -184,6 +184,10 @@ async function main() {
     isCandidate2026: true;
     candidateRole: string;
     gender: ContactGender;
+    isReelection: false;
+    instagramFollowers: number;
+    relevanceScore: 0;
+    relevanceTier: "padrao";
     suspended: false;
     origin: string;
   }> = [];
@@ -243,6 +247,8 @@ async function main() {
       overlapIg.push(`${display} (${resultado.phone})`);
     }
 
+    const followers = Number.parseInt((row.followers_count ?? "").replace(/\D/g, ""), 10);
+
     approved.push({
       id: `ig_${resultado.phone}`,
       name: display,
@@ -256,6 +262,10 @@ async function main() {
       isCandidate2026: true,
       candidateRole: cargo,
       gender,
+      isReelection: false,
+      instagramFollowers: Number.isFinite(followers) ? followers : 0,
+      relevanceScore: 0,
+      relevanceTier: "padrao",
       suspended: false,
       origin,
     });

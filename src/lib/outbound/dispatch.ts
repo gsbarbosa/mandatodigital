@@ -13,6 +13,7 @@ import {
 } from "@/lib/outbound/campaigns-storage";
 import { listMarketingContacts } from "@/lib/outbound/contacts-storage";
 import { applySegment } from "@/lib/outbound/segment-filter";
+import { pickDispatchBatch } from "@/lib/outbound/dispatch-batch";
 import { getMarketingSegment } from "@/lib/outbound/segments-storage";
 import {
   renderTemplate,
@@ -268,7 +269,9 @@ export async function dispatchCampaign(campaign: MarketingCampaign): Promise<Dis
   }
 
   const { recipients, skippedAlreadySent } = await resolveRecipients(campaign);
-  const lote = recipients.slice(0, effectiveBatchSize(campaign));
+  const batchSize = effectiveBatchSize(campaign);
+  const seed = `${campaign.id}:${campaign.stats.total}:${campaign.stats.sent}`;
+  const lote = pickDispatchBatch(recipients, batchSize, seed);
   const remaining = recipients.length - lote.length;
 
   if (lote.length === 0) {
@@ -341,14 +344,15 @@ export async function previewCampaignAudience(campaign: MarketingCampaign): Prom
 }> {
   const { recipients, skippedAlreadySent } = await resolveRecipients(campaign);
   const batchSize = effectiveBatchSize(campaign);
-  const thisBatch = Math.min(recipients.length, batchSize);
+  const seed = `${campaign.id}:${campaign.stats.total}:${campaign.stats.sent}`;
+  const lote = pickDispatchBatch(recipients, batchSize, seed);
 
   return {
     total: recipients.length,
     skippedAlreadySent,
     batchSize,
-    thisBatch,
-    sample: recipients.slice(0, thisBatch).map((contact) => ({
+    thisBatch: lote.length,
+    sample: lote.map((contact) => ({
       name: contact.name,
       destination: campaign.channel === "email" ? contact.email : contact.phoneE164,
     })),

@@ -256,6 +256,10 @@ function buildDirectoryContacts(
       isCandidate2026: false,
       candidateRole: "",
       gender: "",
+      isReelection: false,
+      instagramFollowers: 0,
+      relevanceScore: 0,
+      relevanceTier: "padrao",
       suspended,
       origin,
     });
@@ -384,6 +388,10 @@ function buildInstagramContacts(
       isCandidate2026: true,
       candidateRole: cargo,
       gender: fromIndex?.gender || genderFromTse(row.DS_GENERO ?? ""),
+      isReelection: false,
+      instagramFollowers: 0,
+      relevanceScore: 0,
+      relevanceTier: "padrao",
       suspended: false,
       origin,
     });
@@ -445,6 +453,10 @@ function buildCamaraContacts(
         isCandidate2026: Boolean(candidate),
         candidateRole: candidate?.role ?? "",
         gender: candidate?.gender ?? "",
+        isReelection: false,
+        instagramFollowers: 0,
+        relevanceScore: 0,
+        relevanceTier: "padrao",
         suspended: false,
         origin,
       };
