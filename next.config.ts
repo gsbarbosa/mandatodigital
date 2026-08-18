@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ffmpeg-static", "pdfkit"],
   outputFileTracingIncludes: {
     "/api/profile/training-assets/**": ["./node_modules/ffmpeg-static/**/*"],
+    "/api/profile/voice-previews": ["./node_modules/ffmpeg-static/**/*"],
     "/api/heygen/**": ["./node_modules/ffmpeg-static/**/*"],
     "/api/media/seal": [
       "./node_modules/ffmpeg-static/**/*",
@@ -29,6 +30,7 @@ const nextConfig: NextConfig = {
       "./assets/seals/guest-test-seal.png",
     ],
     "/api/jobs/**": ["./node_modules/ffmpeg-static/**/*"],
+    "/api/workers/voice": ["./node_modules/ffmpeg-static/**/*"],
   },
   experimental: {
     proxyClientMaxBodySize: "200mb",

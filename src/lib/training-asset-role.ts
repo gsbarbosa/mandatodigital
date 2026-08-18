@@ -24,7 +24,7 @@ export function trainingAssetUploadRequirementMessage(trainingRole: TrainingAsse
     case "avatar_caricature":
       return "Envie uma imagem PNG, JPEG ou WebP.";
     case "voice_audio":
-      return "Envie um áudio MP3, WAV ou M4A.";
+      return "Envie um áudio WAV, M4A ou MP3. Nota de voz do WhatsApp reduz a fidelidade.";
     case "consent":
     case "dataset":
       return "Envie um vídeo MP4, MOV ou WebM (até 50 MB). O servidor comprime automaticamente para o treino.";

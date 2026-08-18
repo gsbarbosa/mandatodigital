@@ -2,7 +2,7 @@
 
 Documento vivo para acompanhar o que **já existe**, o que está **parcial** e o que **falta implementar**.
 
-**Última atualização:** 2026-08-16  
+**Última atualização:** 2026-08-18  
 **Produção:** https://mandatodigital--madatodigital.us-central1.hosted.app  
 **Branch principal:** `main`
 
@@ -88,7 +88,7 @@ Documentos relacionados:
 |------|--------|-------|
 | UI v2 (`/curador-v2`) | ✅ | |
 | Perfil, tom, arquétipo, glossário | ✅ | |
-| Upload áudio / foto / vídeo de treino | ✅ | |
+| Upload áudio / foto / vídeo de treino | ✅ | Áudio de voz: Opus/OGG vira WAV no clone; gravador sem AGC/echo; orientar WAV/M4A nativo, não WhatsApp |
 | HeyGen — gêmeo digital (vídeo) | ✅ | |
 | HeyGen — avatar foto (`photo_real`) | ✅ | |
 | HeyGen — caricatura (OpenAI + HeyGen) | ✅ | |
@@ -296,6 +296,7 @@ Referência detalhada: [billing-nfse.md](billing-nfse.md)
 
 | Data | Mudança |
 |------|---------|
+| 2026-08-18 | Voz: clone ElevenLabs normaliza Opus/OGG (WhatsApp) para WAV; retreino sempre reclona o áudio atual; seleção invalidada ao substituir o áudio; gravador sem DSP de ligação; clone sem `remove_background_noise` por padrão |
 | 2026-08-16 | Observabilidade: `appLog` em JSON de uma linha; beacon de falha do Criativo (`client_error`); gate de voz ElevenLabs no treino |
 | 2026-08-13 | Nova tela "Notícias do Dia" (`/monitoramento/noticias-do-dia`) — mecanismo de busca isolado do Sentinela, nova seção 5.4 |
 | 2026-08-10 | Auditoria de docs: corrigida rota `/sentinela`→`/monitoramento`; flags `SENTINEL_LLM_THEME_VERIFY`/`SENTINEL_LLM_QUALITY_RANK`/`ASAAS_NFS_ENABLED` adicionadas à tabela; nova seção 7c Billing/NFS-e; docs de roadmap/parecer movidos pra `archive/` |

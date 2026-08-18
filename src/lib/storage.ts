@@ -5,6 +5,7 @@ import {
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 import { migrateFlatSentinelThemes, unionSentinelThemes } from "@/lib/sentinel-profile-themes";
+import { invalidateProfileVoiceSelection } from "@/lib/voice-preview";
 
 import type {
   ContentRequestInput,
@@ -882,6 +883,20 @@ const firestoreRepository: Repository = {
       batch.set(col(COLLECTIONS.profileTrainingAssets).doc(asset.id), asset);
     }
     await batch.commit();
+
+    const voiceProfileIds = [
+      ...new Set(
+        assets
+          .filter((asset) => asset.trainingRole === "voice_audio" && asset.profileId)
+          .map((asset) => asset.profileId as string),
+      ),
+    ];
+    if (voiceProfileIds.length) {
+      await Promise.allSettled(
+        voiceProfileIds.map((profileId) => invalidateProfileVoiceSelection(profileId)),
+      );
+    }
+
     return assets;
   },
 

@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import {
+  VOICE_RECORDER_AUDIO_BITS_PER_SECOND,
+  VOICE_RECORDER_AUDIO_CONSTRAINTS,
+} from "@/lib/voice-recorder-constraints";
+
 type AvatarVoiceRecorderProps = {
   disabled?: boolean;
   busy?: boolean;
@@ -33,7 +38,25 @@ function extensionForMime(mimeType: string) {
   return "webm";
 }
 
-function formatClock(totalSeconds: number) {
+function createMediaRecorder(stream: MediaStream, mimeType: string) {
+  const withBitrate: MediaRecorderOptions = {
+    audioBitsPerSecond: VOICE_RECORDER_AUDIO_BITS_PER_SECOND,
+  };
+  if (mimeType) {
+    withBitrate.mimeType = mimeType;
+  }
+  try {
+    return new MediaRecorder(stream, withBitrate);
+  } catch {
+    try {
+      return mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+    } catch {
+      return new MediaRecorder(stream);
+    }
+  }
+}
   const safe = Math.max(0, Math.floor(totalSeconds));
   const minutes = Math.floor(safe / 60);
   const seconds = safe % 60;
@@ -93,20 +116,14 @@ export function AvatarVoiceRecorder({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
+        audio: { ...VOICE_RECORDER_AUDIO_CONSTRAINTS },
       });
       streamRef.current = stream;
       chunksRef.current = [];
 
       const mimeType = pickRecorderMimeType();
       mimeTypeRef.current = mimeType;
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
+      const recorder = createMediaRecorder(stream, mimeType);
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
@@ -222,7 +239,7 @@ export function AvatarVoiceRecorder({
         )}
       </div>
       <p className="text-[10px] text-md-text-soft">
-        Grave o roteiro ao lado (30s–2min). O envio começa ao parar a gravação.
+        Grave 30s–2 min em ambiente silencioso, sem fone de ligação. O envio começa ao parar.
       </p>
       {error ? (
         <p className="text-[11px] text-amber-300/90" role="alert">

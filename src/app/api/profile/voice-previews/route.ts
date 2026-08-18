@@ -32,8 +32,10 @@ export async function POST(request: Request) {
   return apiRoute(async (repository) => {
     const body = (await request.json().catch(() => ({}))) as {
       voiceAudioAssetId?: string;
+      force?: boolean;
     };
     const voiceAudioAssetId = String(body.voiceAudioAssetId ?? "").trim();
+    const force = body.force !== false;
 
     const dashboard = await repository.getDashboard();
     const profile = dashboard.profile;
@@ -75,6 +77,7 @@ export async function POST(request: Request) {
         avatarName,
         voiceAudioAssetId,
         voiceAudioUrl,
+        force,
       });
       return NextResponse.json({ selection });
     } catch (error) {
