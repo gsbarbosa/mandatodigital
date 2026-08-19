@@ -11,6 +11,8 @@ import {
   tryConsumeGuestVideoQuota,
 } from "@/lib/guest-usage-storage";
 import { toDatabaseOwnerUserId } from "@/lib/owner-user-id";
+import { resolveSessionAccountTier } from "@/lib/account-tier.server";
+import { spokenTranscriptForAccount } from "@/lib/trial-fixed-script";
 import {
   AsyncJobQuotaError,
   enqueueVoiceCreateVideoJob,
@@ -30,7 +32,10 @@ const bodySchema = z.object({
     imageUrl: z.string().min(1),
     title: z.string().optional(),
     caricatureAssetId: z.string().optional(),
+    caricatureVariant: z.string().optional(),
   }),
+  personaArchetypes: z.array(z.string()).optional(),
+  voiceTones: z.array(z.string()).optional(),
 });
 
 /**
@@ -62,9 +67,31 @@ export async function POST(request: Request) {
       }
 
       try {
+        const account = await resolveSessionAccountTier(sessionUser.email);
+        const spoken = spokenTranscriptForAccount({
+          guestQuotas: !premium || account.entitlements.guestQuotas,
+          generateMode: body.createVideo.generateMode,
+          caricatureVariant: body.createVideo.caricatureVariant,
+          requestedTranscript: body.transcript,
+          archetype: body.personaArchetypes?.[0],
+          tone: body.voiceTones?.[0],
+        });
         const enqueued = await enqueueVoiceCreateVideoJob({
           ownerUserId,
-          payload: body,
+          payload: {
+            transcript: spoken.transcript,
+            avatarName: body.avatarName,
+            voiceAudioAssetId: body.voiceAudioAssetId,
+            voiceAudioUrl: body.voiceAudioUrl,
+            requestedElevenLabsVoiceId: body.requestedElevenLabsVoiceId,
+            requestedHeygenVoiceId: body.requestedHeygenVoiceId,
+            createVideo: {
+              generateMode: body.createVideo.generateMode,
+              imageUrl: body.createVideo.imageUrl,
+              title: body.createVideo.title,
+              caricatureAssetId: body.createVideo.caricatureAssetId,
+            },
+          },
         });
         return NextResponse.json(
           { jobId: enqueued.jobId, status: enqueued.status, type: "voice_tts" },
