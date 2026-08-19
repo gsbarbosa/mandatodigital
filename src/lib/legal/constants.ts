@@ -5,7 +5,7 @@ export const EATEASY = {
   razaoSocial: "EATEASY SERVICOS DIGITAIS LTDA",
   cnpj: "48.142.514/0001-08",
   nire: "31213497978",
-  sede: "Av. Raja Gabaglia, nº 1000, Sala 409, Gutierrez, Belo Horizonte - MG, CEP 30.441-070",
+  sede: "Av. Getúlio Vargas, 671, sala 500, Savassi, Belo Horizonte - MG",
   representante: "Thiago Pereira Lemos Ribeiro",
   local: "Belo Horizonte",
 } as const;
