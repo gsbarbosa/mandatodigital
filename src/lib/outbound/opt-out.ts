@@ -17,6 +17,10 @@ const OPT_OUT_EXACT = new Set([
   "não obrigado",
   "nao, obrigado",
   "não, obrigado",
+  "nao obrigada",
+  "não obrigada",
+  "nao, obrigada",
+  "não, obrigada",
 ]);
 
 const OPT_OUT_PHRASES = [

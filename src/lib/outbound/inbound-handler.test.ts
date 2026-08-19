@@ -147,6 +147,22 @@ describe("handleInboundMessage", () => {
     expect(setPendingSuggestion).not.toHaveBeenCalled();
   });
 
+  it("no clique Não, obrigada grava opt-out e não chama a Marina", async () => {
+    const result = await handleInboundMessage({
+      from: "5531999999999",
+      text: "Não, obrigada",
+      providerMessageId: "wamid.btn-neg",
+      profileName: "Maria",
+      kind: "button",
+    });
+
+    expect(result).toEqual({ status: "opt_out" });
+    expect(setContactOptOut).toHaveBeenCalled();
+    expect(generateAgentReply).not.toHaveBeenCalled();
+    expect(setPendingSuggestion).not.toHaveBeenCalled();
+    expect(sendText).not.toHaveBeenCalled();
+  });
+
   it("no clique Pode mandar do v3 envia a resposta pré-moldada na hora", async () => {
     resolveWhatsappConfig.mockResolvedValue({ accessToken: "t", phoneNumberId: "1", graphVersion: "v21.0" });
     sendText.mockResolvedValue({ messageId: "wamid.out" });
