@@ -1,15 +1,23 @@
 /**
- * Leitura/escrita da base de prospects do outbound (`marketingContacts`).
+ * Base de contatos do outbound (`marketingContacts`).
  *
- * Dado público (dirigentes partidários do TSE + parlamentares em exercício),
- * mas as rules negam o client — só Admin SDK lê. Escrita vem do seed
- * (scripts/seed-marketing-contacts.ts), não do painel.
+ * Só entra quem já foi disparado (ou pediu opt-out). A lista de trabalho
+ * continua no CSV até o envio. Doc: docs/marketing-outbound.md
  */
 
 import type { DocumentData } from "firebase-admin/firestore";
 
 import { COLLECTIONS, col } from "@/lib/firebase/collections";
-import { isContactSource, isRelevanceTier, type ContactGender, type ContactSource, type MarketingContact } from "@/lib/outbound/types";
+import {
+  contactIdFromPhone,
+  EMPTY_DISPATCH_META,
+  isContactSource,
+  isRelevanceTier,
+  isSendStatus,
+  type ContactSource,
+  type MarketingContact,
+  type SendStatus,
+} from "@/lib/outbound/types";
 
 const UPSERT_BATCH_SIZE = 450; // Firestore aceita 500 writes por batch.
 
@@ -51,6 +59,13 @@ function mapDoc(id: string, data: DocumentData | undefined): MarketingContact | 
     relevanceTier: isRelevanceTier(data.relevanceTier) ? data.relevanceTier : "padrao",
     suspended: Boolean(data.suspended),
     origin: String(data.origin ?? "").trim(),
+    instagram: String(data.instagram ?? "").replace(/^@/, "").trim(),
+    optOut: Boolean(data.optOut),
+    optOutAt: String(data.optOutAt ?? ""),
+    lastTemplate: String(data.lastTemplate ?? ""),
+    lastSentAt: String(data.lastSentAt ?? ""),
+    lastStatus: isSendStatus(data.lastStatus) ? data.lastStatus : "",
+    lastProviderMessageId: String(data.lastProviderMessageId ?? ""),
     createdAt: String(data.createdAt ?? nowIso()),
     updatedAt: String(data.updatedAt ?? nowIso()),
   };
@@ -74,6 +89,7 @@ export type MarketingContactStats = {
   withWhatsapp: number;
   candidates2026: number;
   suspended: number;
+  optOut: number;
   bySource: Record<string, number>;
   byUf: Record<string, number>;
   parties: string[];
@@ -88,12 +104,14 @@ export function summarizeContacts(contacts: MarketingContact[]): MarketingContac
   let withWhatsapp = 0;
   let candidates2026 = 0;
   let suspended = 0;
+  let optOut = 0;
 
   for (const contact of contacts) {
     if (contact.email) withEmail += 1;
     if (contact.phoneE164) withWhatsapp += 1;
     if (contact.isCandidate2026) candidates2026 += 1;
     if (contact.suspended) suspended += 1;
+    if (contact.optOut) optOut += 1;
 
     bySource[contact.source] = (bySource[contact.source] ?? 0) + 1;
     if (contact.uf) {
@@ -110,6 +128,7 @@ export function summarizeContacts(contacts: MarketingContact[]): MarketingContac
     withWhatsapp,
     candidates2026,
     suspended,
+    optOut,
     bySource,
     byUf,
     parties: [...parties].sort((a, b) => a.localeCompare(b, "pt-BR")),
@@ -159,4 +178,123 @@ export async function upsertMarketingContacts(
   }
 
   return { created, updated };
+}
+
+export async function getContactByPhone(phoneE164: string): Promise<MarketingContact | null> {
+  const id = contactIdFromPhone(phoneE164);
+  if (id) {
+    const byId = await col(COLLECTIONS.marketingContacts).doc(id).get();
+    const mapped = mapDoc(byId.id, byId.data());
+    if (mapped) {
+      return mapped;
+    }
+  }
+
+  const snapshot = await col(COLLECTIONS.marketingContacts)
+    .where("phoneE164", "==", phoneE164)
+    .limit(1)
+    .get();
+  const doc = snapshot.docs[0];
+  return doc ? mapDoc(doc.id, doc.data()) : null;
+}
+
+/**
+ * Grava (ou atualiza) o contato no disparo. Não reabre opt-out. Campos de
+ * perfil só entram na criação — follow-up não apaga o que já estava.
+ */
+export async function recordDispatchContact(input: {
+  contact: MarketingContact;
+  templateName: string;
+  status: SendStatus;
+  providerMessageId: string;
+}): Promise<void> {
+  const id = input.contact.id || contactIdFromPhone(input.contact.phoneE164);
+  if (!id) {
+    throw new Error("Contato sem telefone — não grava disparo.");
+  }
+
+  const ref = col(COLLECTIONS.marketingContacts).doc(id);
+  const now = nowIso();
+
+  await ref.firestore.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    const current = mapDoc(id, snapshot.data());
+    const { id: _id, createdAt: _created, updatedAt: _updated, ...profile } = input.contact;
+
+    const payload: Record<string, unknown> = {
+      lastTemplate: input.templateName,
+      lastSentAt: now,
+      lastStatus: input.status,
+      lastProviderMessageId: input.providerMessageId,
+      updatedAt: now,
+    };
+
+    if (!current) {
+      tx.set(ref, {
+        ...EMPTY_DISPATCH_META,
+        ...profile,
+        ...payload,
+        phoneE164: input.contact.phoneE164,
+        source: input.contact.source || "whatsapp_disparo",
+        createdAt: now,
+      });
+      return;
+    }
+
+    tx.set(
+      ref,
+      {
+        ...payload,
+        ...(current.optOut ? { optOut: true, optOutAt: current.optOutAt } : {}),
+      },
+      { merge: true },
+    );
+  });
+}
+
+export async function setContactOptOut(
+  phoneE164: string,
+  extras?: { name?: string },
+): Promise<void> {
+  const id = contactIdFromPhone(phoneE164);
+  if (!id) return;
+
+  const ref = col(COLLECTIONS.marketingContacts).doc(id);
+  const now = nowIso();
+  const snapshot = await ref.get();
+  const current = mapDoc(id, snapshot.data());
+
+  await ref.set(
+    {
+      phoneE164,
+      optOut: true,
+      optOutAt: current?.optOutAt || now,
+      updatedAt: now,
+      ...(snapshot.exists
+        ? {}
+        : {
+            ...EMPTY_DISPATCH_META,
+            name: extras?.name ?? "",
+            email: "",
+            source: "whatsapp_disparo",
+            uf: "",
+            parties: [],
+            roles: [],
+            municipality: "",
+            isCandidate2026: false,
+            candidateRole: "",
+            gender: "",
+            isReelection: false,
+            instagramFollowers: 0,
+            relevanceScore: 0,
+            relevanceTier: "padrao",
+            suspended: false,
+            origin: "opt-out",
+            optOut: true,
+            optOutAt: now,
+            createdAt: now,
+          }),
+    },
+    { merge: true },
+  );
 }

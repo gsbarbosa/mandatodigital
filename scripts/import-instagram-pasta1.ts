@@ -18,7 +18,7 @@ import {
   type RejectionReason,
 } from "../src/lib/outbound/instagram-enrichment";
 import { classifyPhone } from "../src/lib/outbound/phone";
-import type { ContactGender, MarketingContact } from "../src/lib/outbound/types";
+import { EMPTY_DISPATCH_META, type ContactGender, type MarketingContact } from "../src/lib/outbound/types";
 
 const DEFAULT_FILE = "/Users/gstvbba/Downloads/Pasta1.csv";
 
@@ -268,6 +268,7 @@ async function main() {
       relevanceTier: "padrao",
       suspended: false,
       origin,
+      ...EMPTY_DISPATCH_META,
     });
   }
 

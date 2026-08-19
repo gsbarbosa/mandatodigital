@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { applySegment, coerceSegmentFilter, matchesSegment } from "@/lib/outbound/segment-filter";
-import { EMPTY_SEGMENT_FILTER, type MarketingContact } from "@/lib/outbound/types";
+import { EMPTY_SEGMENT_FILTER, EMPTY_DISPATCH_META, type MarketingContact } from "@/lib/outbound/types";
 
 function contact(overrides: Partial<MarketingContact> = {}): MarketingContact {
   return {
@@ -23,6 +23,7 @@ function contact(overrides: Partial<MarketingContact> = {}): MarketingContact {
     relevanceTier: "padrao",
     suspended: false,
     origin: "teste",
+    ...EMPTY_DISPATCH_META,
     createdAt: "2026-08-11T00:00:00.000Z",
     updatedAt: "2026-08-11T00:00:00.000Z",
     ...overrides,

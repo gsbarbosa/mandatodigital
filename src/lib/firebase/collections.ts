@@ -53,9 +53,8 @@ export const COLLECTIONS = {
    */
   tseCandidates2026: "tseCandidates2026",
   /**
-   * Base de prospects do outbound (dirigentes partidários + parlamentares).
-   * Dado de referência público, populado por scripts/seed-marketing-contacts.ts
-   * e de propósito fora do `db:reset`. Ver docs/marketing-outbound.md.
+   * Contatos do outbound. Só entra quem já foi disparado (ou opt-out).
+   * Lista de trabalho fica no CSV até o envio. Ver docs/marketing-outbound.md.
    */
   marketingContacts: "marketingContacts",
   /** Segmentos de público salvos no painel de marketing. */

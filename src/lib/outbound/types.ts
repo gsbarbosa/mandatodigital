@@ -12,6 +12,7 @@ export const CONTACT_SOURCES = [
   "diretorio_partidario",
   "camara_deputados",
   "instagram_enriquecido",
+  "whatsapp_disparo",
 ] as const;
 export type ContactSource = (typeof CONTACT_SOURCES)[number];
 
@@ -19,6 +20,7 @@ export const CONTACT_SOURCE_LABELS: Record<ContactSource, string> = {
   diretorio_partidario: "Diretório partidário (TSE)",
   camara_deputados: "Câmara dos Deputados",
   instagram_enriquecido: "Instagram (validado)",
+  whatsapp_disparo: "WhatsApp (disparo)",
 };
 
 export const OFFICE_KEYS = ["estadual", "distrital", "federal"] as const;
@@ -110,8 +112,34 @@ export type MarketingContact = {
   suspended: boolean;
   /** Origem + data do import, para rastrear de onde o registro veio. */
   origin: string;
+  /** Handle do Instagram, sem @. */
+  instagram: string;
+  /** Pediu para parar — nunca mais template. */
+  optOut: boolean;
+  optOutAt: string;
+  /** Último template tentado (abertura ou follow-up). */
+  lastTemplate: string;
+  lastSentAt: string;
+  lastStatus: SendStatus | "";
+  lastProviderMessageId: string;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Doc id estável: um contato = um WhatsApp. */
+export function contactIdFromPhone(phoneE164: string): string {
+  const digits = phoneE164.replace(/\D/g, "");
+  return digits ? `wa_${digits}` : "";
+}
+
+export const EMPTY_DISPATCH_META = {
+  instagram: "",
+  optOut: false,
+  optOutAt: "",
+  lastTemplate: "",
+  lastSentAt: "",
+  lastStatus: "" as SendStatus | "",
+  lastProviderMessageId: "",
 };
 
 /**

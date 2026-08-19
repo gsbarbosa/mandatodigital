@@ -83,6 +83,7 @@ describe("parseWebhookPayload", () => {
         text: "tenho interesse",
         providerMessageId: "wamid.ABC",
         profileName: "Gustavo",
+        kind: "text",
       },
     ]);
   });
@@ -110,6 +111,35 @@ describe("parseWebhookPayload", () => {
     };
 
     expect(parseWebhookPayload(payload).messages[0]?.text).toBe("Quero ver");
+    expect(parseWebhookPayload(payload).messages[0]?.kind).toBe("interactive");
+  });
+
+  it("marca clique de botão de template", () => {
+    const payload = {
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                messages: [
+                  {
+                    from: "5511999999999",
+                    id: "wamid.TPL",
+                    type: "button",
+                    button: { text: "Sim. Seja breve", payload: "sim" },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(parseWebhookPayload(payload).messages[0]).toMatchObject({
+      text: "Sim. Seja breve",
+      kind: "button",
+    });
   });
 
   it("separa status de entrega das mensagens", () => {
@@ -151,6 +181,7 @@ describe("parseWebhookPayload", () => {
     expect(parseWebhookPayload(payload).messages[0]).toMatchObject({
       providerMessageId: "wamid.AUD",
       text: "",
+      kind: "media",
     });
   });
 });

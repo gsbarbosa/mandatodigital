@@ -8,12 +8,16 @@
 
 import crypto from "node:crypto";
 
+export type InboundKind = "text" | "button" | "interactive" | "media";
+
 export type InboundMessage = {
   from: string;
   text: string;
   providerMessageId: string;
   /** Nome do perfil do WhatsApp, quando a Meta envia. */
   profileName: string;
+  /** Origem do inbound — botão de template vs texto digitado. */
+  kind: InboundKind;
 };
 
 export type DeliveryStatus = {
@@ -86,6 +90,21 @@ function extractText(message: NonNullable<NonNullable<GraphChange["value"]>["mes
   ).trim();
 }
 
+function extractKind(
+  message: NonNullable<NonNullable<GraphChange["value"]>["messages"]>[number],
+): InboundKind {
+  if (message.type === "button" || message.button) {
+    return "button";
+  }
+  if (message.type === "interactive" || message.interactive) {
+    return "interactive";
+  }
+  if (message.type === "text" || message.text) {
+    return "text";
+  }
+  return "media";
+}
+
 export function parseWebhookPayload(payload: unknown): ParsedWebhook {
   const messages: InboundMessage[] = [];
   const statuses: DeliveryStatus[] = [];
@@ -115,6 +134,7 @@ export function parseWebhookPayload(payload: unknown): ParsedWebhook {
             text,
             providerMessageId,
             profileName: profileByWaId.get(from) ?? "",
+            kind: extractKind(message),
           });
         }
       }
