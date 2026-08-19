@@ -10,7 +10,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { listMarketingContacts, upsertMarketingContacts } from "../src/lib/outbound/contacts-storage";
+import {
+  listMarketingContacts,
+  upsertMarketingContacts,
+  type MarketingContactSeed,
+} from "../src/lib/outbound/contacts-storage";
 import {
   handleMatchesName,
   REJECTION_LABELS,
@@ -171,26 +175,7 @@ async function main() {
   }
 
   const rejected = new Map<RejectionReason, number>();
-  const approved: Array<{
-    id: string;
-    name: string;
-    email: string;
-    phoneE164: string;
-    source: "instagram_enriquecido";
-    uf: string;
-    parties: string[];
-    roles: string[];
-    municipality: string;
-    isCandidate2026: true;
-    candidateRole: string;
-    gender: ContactGender;
-    isReelection: false;
-    instagramFollowers: number;
-    relevanceScore: 0;
-    relevanceTier: "padrao";
-    suspended: false;
-    origin: string;
-  }> = [];
+  const approved: MarketingContactSeed[] = [];
   const skippedNoHandle: string[] = [];
   let women = 0;
   let men = 0;

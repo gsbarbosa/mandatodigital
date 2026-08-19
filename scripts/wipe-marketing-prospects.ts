@@ -7,7 +7,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { COLLECTIONS, col } from "../src/lib/firebase/collections";
+import { COLLECTIONS, col, type AppCollectionName } from "../src/lib/firebase/collections";
 
 const TARGETS = [
   COLLECTIONS.marketingContacts,
@@ -34,7 +34,7 @@ function loadEnvLocal() {
   }
 }
 
-async function deleteCollection(name: string): Promise<number> {
+async function deleteCollection(name: AppCollectionName): Promise<number> {
   const collection = col(name);
   let deleted = 0;
 

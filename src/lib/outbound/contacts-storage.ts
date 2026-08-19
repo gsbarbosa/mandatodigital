@@ -14,6 +14,7 @@ import {
   isContactSource,
   isRelevanceTier,
   isSendStatus,
+  type ContactGender,
   type ContactSource,
   type MarketingContact,
   type SendStatus,
