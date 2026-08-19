@@ -60,6 +60,8 @@ const nextConfig: NextConfig = {
       { source: "/chapas-femininas/", destination: "/chapas-femininas/index.html" },
       { source: "/teste-gratis", destination: "/teste-gratis/index.html" },
       { source: "/teste-gratis/", destination: "/teste-gratis/index.html" },
+      { source: "/na-pratica", destination: "/na-pratica/index.html" },
+      { source: "/na-pratica/", destination: "/na-pratica/index.html" },
     ];
   },
 };

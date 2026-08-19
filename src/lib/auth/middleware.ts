@@ -32,7 +32,9 @@ export async function updateSession(request: NextRequest) {
     pathname === "/chapas-femininas" ||
     pathname.startsWith("/chapas-femininas/") ||
     pathname === "/teste-gratis" ||
-    pathname.startsWith("/teste-gratis/");
+    pathname.startsWith("/teste-gratis/") ||
+    pathname === "/na-pratica" ||
+    pathname.startsWith("/na-pratica/");
   const isDevRoute =
     process.env.NODE_ENV !== "production" &&
     (pathname === "/dev-login" || pathname === "/api/dev/login");
