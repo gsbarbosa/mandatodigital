@@ -146,7 +146,7 @@
   .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
   .hero-note { font-size: 13px; color: var(--ink-soft); margin: 14px 0 40px; }
 
-  .hero-visual { position: relative; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 1282 / 977; width: 100%; }
+  .hero-visual { position: relative; border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); aspect-ratio: 16 / 9; width: 100%; }
   .hero-visual img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
 
   .hero-stats { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line-soft); }
@@ -268,12 +268,17 @@
 
   /* ---------- footer ---------- */
   footer { border-top: 1px solid var(--line-soft); padding: 40px 0 56px; }
+  .foot-lgpd { font-size: 12px; line-height: 1.6; color: var(--ink-soft); max-width: 680px; margin: 0 0 32px; }
+  .foot-lgpd a { color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
   .foot-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; }
-  .foot-legal { font-size: 11.5px; line-height: 1.6; color: var(--ink-soft); max-width: 560px; }
+  .foot-company { font-size: 12px; line-height: 1.6; color: var(--ink-soft); }
+  .foot-company p { margin: 4px 0 0; }
+  .foot-company .foot-company-name { margin: 0; font-weight: 600; }
   .foot-links { font-size: 12.5px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
   @media (min-width: 641px) { .foot-links { align-items: flex-end; } }
   .foot-links a { text-decoration: none; }
   .foot-links a:hover { text-decoration: underline; }
+  .foot-copyright { margin: 0; font-size: 12px; color: var(--ink-soft); }
 
   .icon-wrap { display: inline-flex; align-items: center; justify-content: center; }
 </style>
@@ -304,13 +309,13 @@
           Testar grátis, sem cartão
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
-        <a class="btn-secondary" href="#beneficios">Ver os 3 benefícios</a>
+        <a class="btn-secondary" href="#beneficios">Pilares da plataforma</a>
       </div>
       <p class="hero-note">Sem cobrança ou compromisso no período de testes. Vagas limitadas por Lote.</p>
     </div>
 
     <div class="hero-visual reveal">
-      <img src="/na-pratica/assets/images/hero-sala-operacao.webp" alt="Sala de operação de campanha com telas mostrando conteúdo gerado por IA, treinamento de voz e painel de audiência, com dois profissionais acompanhando os dashboards" loading="eager">
+      <img src="/na-pratica/assets/images/hero-sala-operacao.webp" alt="Laptop e celular mostrando dezenas de peças de conteúdo em vídeo geradas pela plataforma, com métricas de alcance, publicações e engajamento" loading="eager">
     </div>
 
     <div class="hero-stats reveal">
@@ -332,8 +337,8 @@
     <div class="benefit reveal" style="margin-bottom: 88px;">
       <div class="benefit-media">
         <div class="glow" style="background: var(--criativo-soft);"></div>
-        <div class="frame" style="aspect-ratio: 757/620;">
-          <img src="/na-pratica/assets/images/criativo-conteudo-gerado.webp" alt="Laptop e celular mostrando o painel de conteúdo gerado pela plataforma, com dezenas de peças em vídeo e métricas de alcance e engajamento">
+        <div class="frame" style="aspect-ratio: 1352/768;">
+          <img src="/na-pratica/assets/images/criativo-gemeo-digital-app.webp" alt="Tela do Gêmeo Digital na plataforma, com o avatar treinado e as opções de criar conteúdo a partir do monitoramento de notícias ou de forma independente">
         </div>
       </div>
       <div class="benefit-copy">
@@ -342,14 +347,15 @@
           <span class="label criativo-tone">Estúdio sem equipe de gravação</span>
         </div>
         <h3>Vídeo de campanha todo dia, sem depender de gravação</h3>
-        <p class="lead">O Agente Criativo escreve o roteiro, gera o vídeo com a sua voz e o seu rosto — sob a sua autorização — e entrega pronto para publicar. Sem estúdio, sem equipe de filmagem, sem esperar agenda de ninguém.</p>
+        <p class="lead">A plataforma escreve o roteiro, gera o vídeo com a sua voz e o seu rosto — sob a sua autorização — e entrega publicado nas principais redes sociais.</p>
         <div class="benefit-chips">
-          <span class="chip">Roteiros e captions</span>
+          <span class="chip">Roteiros</span>
           <span class="chip">Gêmeo Digital</span>
-          <span class="chip">Avatares caricato e 3D</span>
+          <span class="chip">Avatar 3D</span>
+          <span class="chip">Avatar Caricato</span>
         </div>
-        <a class="more-link criativo-tone" href="/ecossistema/criativo">
-          Conhecer o Agente Criativo
+        <a class="more-link criativo-tone" href="/na-pratica/agentes/criativo.html">
+          Mais detalhes
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
       </div>
@@ -359,8 +365,8 @@
     <div class="benefit flip reveal" style="margin-bottom: 88px;">
       <div class="benefit-media">
         <div class="glow" style="background: var(--sentinela-soft);"></div>
-        <div class="frame" style="aspect-ratio: 16/9;">
-          <img src="/marketing/sentinela/ops-brasil.jpg" alt="Console de monitoramento do Agente Sentinela acompanhando notícias e redes sociais em tempo real">
+        <div class="frame" style="aspect-ratio: 985/640;">
+          <img src="/na-pratica/assets/images/sentinela-selecao-municipio-app.webp" alt="Tela de configuração do monitoramento na plataforma, com seleção do Estado e dos municípios de interesse da campanha">
         </div>
       </div>
       <div class="benefit-copy">
@@ -375,8 +381,8 @@
           <span class="chip">Pautas quentes do dia</span>
           <span class="chip">Perfis de adversários</span>
         </div>
-        <a class="more-link sentinela-tone" href="/ecossistema/sentinela">
-          Conhecer o Agente Sentinela
+        <a class="more-link sentinela-tone" href="/na-pratica/agentes/sentinela.html">
+          Mais detalhes
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </a>
       </div>
@@ -462,20 +468,18 @@
 </section>
 
 <footer>
-  <div class="wrap foot-row">
-    <div>
-      <div class="brand" style="margin-bottom: 10px;">
-        <svg width="22" height="22" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path fill="currentColor" d="M0 44V4L10 10V44H0z"/><path fill="currentColor" d="M13 44V16L23 9.5V44H13z"/><path fill="currentColor" d="M26 44V6.5L37 -1V44H26z" transform="translate(0,1)"/>
-          <path fill="#00B86B" d="M38.5 9H46A17 19 0 0 1 46 47H38.5V39.5H43.5A10 11 0 0 0 43.5 16.5H38.5V9Z"/>
-        </svg>
-        <span>Mandato<span class="word-digital"> Digital</span></span>
+  <div class="wrap">
+    <p class="foot-lgpd">Seus dados de contato podem ter sido obtidos a partir de fontes públicas e oficiais (TSE, Câmara dos Deputados, Assembleias Legislativas) para fins de prospecção comercial legítima, conforme a Lei Geral de Proteção de Dados (LGPD). Você pode solicitar a exclusão dos seus dados a qualquer momento em <a href="mailto:privacidade@mandatodigital.com.br">privacidade@mandatodigital.com.br</a>.</p>
+    <div class="foot-row">
+      <div class="foot-company">
+        <p class="foot-company-name">EATEASY SERVIÇOS DIGITAIS LTDA</p>
+        <p>CNPJ: 48.142.514/0001-08</p>
+        <p>Av. Getúlio Vargas 671, sala 500, Savassi, Belo Horizonte, MG</p>
       </div>
-      <p class="foot-legal">Página de apresentação comercial da plataforma Mandato Digital — não substitui a prestação de contas ao TSE/SPCE nem certifica resultado eleitoral. EATEASY SERVIÇOS DIGITAIS LTDA — CNPJ 48.142.514/0001-08.</p>
-    </div>
-    <div class="foot-links">
-      <a href="/" class="tone-accent">Conhecer o site institucional</a>
-      <a href="/politica-de-privacidade">Política de Privacidade</a>
+      <div class="foot-links">
+        <a href="https://www.mandatodigital.ia.br" class="tone-accent">Site Institucional</a>
+        <p class="foot-copyright">© 2026 Mandato Digital</p>
+      </div>
     </div>
   </div>
 </footer>
