@@ -146,6 +146,7 @@ const ID_PREFIX: Record<ContactSource, string> = {
   diretorio_partidario: "dir",
   camara_deputados: "cam",
   instagram_enriquecido: "ig",
+  whatsapp_disparo: "wa",
 };
 
 function docId(source: ContactSource, key: string): string {
