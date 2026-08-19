@@ -14,7 +14,7 @@ export function RegistrationShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-md-app-bg text-md-text-soft">
       <header className="border-b border-md-border bg-md-bg/90">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <BrandLogo markSize={18} fontSize={16} priority />
+          <BrandLogo priority />
           <div className="flex items-center gap-3">
             <AppearanceToggle className="hidden sm:flex min-w-[168px]" />
             {sessionUser?.email ? (

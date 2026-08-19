@@ -552,7 +552,7 @@ function NavSidebarPanel({
               handleLinkNavigate();
             }}
           >
-            <BrandLogo markSize={20} fontSize={18} priority />
+            <BrandLogo priority />
             <span
               className="text-[10px] font-normal tracking-wide text-md-text-soft select-none leading-none"
               aria-label={`Versão ${APP_VERSION}`}
@@ -872,14 +872,18 @@ export function NavSidebar({
 
   return (
     <>
-      <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-md-border bg-md-app-bg/95 px-4 backdrop-blur-md lg:hidden">
+      <header className="relative isolate flex h-14 shrink-0 items-center justify-between gap-3 border-b border-md-border px-4 lg:hidden">
+        <div
+          className="pointer-events-none absolute inset-0 -z-10 bg-md-app-bg/95 backdrop-blur-md"
+          aria-hidden
+        />
         <Link
           href="/monitoramento"
-          className="min-w-0 no-underline"
+          className="relative shrink-0 overflow-visible no-underline"
           aria-label="Mandato Digital — monitoramento"
           onClick={() => onLogoSecretClick?.()}
         >
-          <BrandLogo markSize={18} fontSize={16} priority />
+          <BrandLogo priority />
         </Link>
         <button
           type="button"

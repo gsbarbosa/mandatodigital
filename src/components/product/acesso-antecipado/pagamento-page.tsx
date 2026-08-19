@@ -127,7 +127,7 @@ export function AcessoPagamentoPage() {
     <div className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center px-1 py-8">
       <div className="rounded-2xl border border-[var(--curador-border)] bg-md-surface p-6 shadow-sm sm:p-8">
         <div className="mb-6 flex justify-center">
-          <BrandLogo markSize={24} fontSize={22} priority />
+          <BrandLogo priority />
         </div>
 
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[var(--curador-border)] bg-[var(--curador-soft)] px-3 py-1 text-xs font-semibold text-[var(--curador-text)]">

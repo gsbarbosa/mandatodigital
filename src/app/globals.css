@@ -230,6 +230,7 @@ body {
 /* Marca Proposta 2 (SVG): barras/wordmark adaptam ao tema. */
 .brand-logo-mark {
   color: #f1f5f9;
+  overflow: visible;
 }
 
 .brand-logo-word-mandato {

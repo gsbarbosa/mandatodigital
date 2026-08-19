@@ -19,14 +19,20 @@ export function MarketingHeader({ isAuthenticated = false }: { isAuthenticated?:
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-md-border bg-md-bg/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+    <header className="sticky top-0 z-40 isolate border-b border-md-border">
+      {/* Blur no fundo, não no lockup: backdrop-filter no mesmo elemento
+          rasteriza o SVG e o D verde vira um artefato pixelado. */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10 bg-md-bg/90 backdrop-blur-md"
+        aria-hidden
+      />
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link
           href={"/" as Route}
-          className="min-w-0 shrink-0"
+          className="shrink-0 overflow-visible"
           aria-label="Mandato Digital — início"
         >
-          <BrandLogo markSize={18} fontSize={16} priority />
+          <BrandLogo priority />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
