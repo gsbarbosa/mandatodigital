@@ -7,22 +7,26 @@
  * `npm run whatsapp:test`).
  */
 
-import { COLLECTIONS, col } from "@/lib/firebase/collections";
 import { appLog, appLogError } from "@/lib/observability/log";
 import { generateAgentReply, type AgentContactContext } from "@/lib/outbound/conversation-agent";
+import { resolveCannedPositiveReply } from "@/lib/outbound/canned-positive-reply";
 import {
   appendInboundMessage,
+  setAgentPaused,
   setConversationError,
   setPendingSuggestion,
 } from "@/lib/outbound/conversations-storage";
+import { getContactByPhone, setContactOptOut } from "@/lib/outbound/contacts-storage";
+import { isOptOutText } from "@/lib/outbound/opt-out";
 import { isPartyPresidentRole } from "@/lib/outbound/relevance";
-import { isWithinServiceWindow } from "@/lib/outbound/types";
+import { firstName, isWithinServiceWindow } from "@/lib/outbound/types";
 import { normalizeWaId, type InboundMessage } from "@/lib/outbound/whatsapp-webhook";
 
 export type InboundOutcome =
   | { status: "duplicada" }
   | { status: "sem_texto" }
   | { status: "fora_da_janela" }
+  | { status: "opt_out" }
   | { status: "sem_resposta_llm" }
   | { status: "sugerida"; reply: string; autoSendAt: string };
 
@@ -30,30 +34,26 @@ export type InboundOutcome =
 async function findContactByPhone(phoneE164: string): Promise<{
   id: string;
   context: AgentContactContext;
+  optOut: boolean;
+  lastTemplate: string;
 } | null> {
-  const snapshot = await col(COLLECTIONS.marketingContacts)
-    .where("phoneE164", "==", phoneE164)
-    .limit(1)
-    .get();
-
-  const doc = snapshot.docs[0];
-  if (!doc) {
+  const contact = await getContactByPhone(phoneE164);
+  if (!contact) {
     return null;
   }
-  const data = doc.data();
-  const roles = Array.isArray(data.roles) ? data.roles.map((item) => String(item)) : [];
-  const parties = Array.isArray(data.parties) ? data.parties.map((item) => String(item)) : [];
   return {
-    id: doc.id,
+    id: contact.id,
+    optOut: contact.optOut,
+    lastTemplate: contact.lastTemplate,
     context: {
-      name: String(data.name ?? ""),
-      uf: String(data.uf ?? ""),
-      parties,
-      roles,
-      candidateRole: String(data.candidateRole ?? ""),
-      gender: String(data.gender ?? ""),
-      isReelection: Boolean(data.isReelection),
-      isPartyPresident: isPartyPresidentRole(roles),
+      name: contact.name,
+      uf: contact.uf,
+      parties: contact.parties,
+      roles: contact.roles,
+      candidateRole: contact.candidateRole,
+      gender: contact.gender,
+      isReelection: contact.isReelection,
+      isPartyPresident: isPartyPresidentRole(contact.roles),
     },
   };
 }
@@ -83,11 +83,31 @@ export async function handleInboundMessage(message: InboundMessage): Promise<Inb
     return { status: "sem_texto" };
   }
 
+  if (isOptOutText(message.text) || contact?.optOut) {
+    await setContactOptOut(phoneE164, {
+      name: contact?.context.name || message.profileName,
+    });
+    await setAgentPaused(phoneE164, true);
+    appLog("marketing", "whatsapp_opt_out", { phoneE164 });
+    return { status: "opt_out" };
+  }
+
   if (!isWithinServiceWindow(conversation.lastInboundAt)) {
     return { status: "fora_da_janela" };
   }
 
-  const reply = await generateAgentReply(conversation, contact?.context);
+  const leadMessageCount = conversation.messages.filter((item) => item.role === "lead").length;
+  const canned = resolveCannedPositiveReply({
+    kind: message.kind,
+    buttonText: message.text,
+    lastTemplate: contact?.lastTemplate ?? "",
+    leadMessageCount,
+    firstName: firstName(contact?.context.name || message.profileName),
+  });
+
+  const reply = canned
+    ? { text: canned, provider: "canned", model: "positive-button" }
+    : await generateAgentReply(conversation, contact?.context);
   if (!reply) {
     await setConversationError(phoneE164, "LLM não retornou resposta.");
     return { status: "sem_resposta_llm" };
@@ -105,6 +125,7 @@ export async function handleInboundMessage(message: InboundMessage): Promise<Inb
       chars: reply.text.length,
       autoSendAt: pending.autoSendAt || null,
       agentPaused: conversation.agentPaused,
+      canned: Boolean(canned),
     });
     return { status: "sugerida", reply: reply.text, autoSendAt: pending.autoSendAt };
   } catch (error) {

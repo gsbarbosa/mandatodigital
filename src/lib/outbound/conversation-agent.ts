@@ -22,6 +22,8 @@ export const LANDING_PAGES = {
   vozdelasRecursos: "https://mandatodigital.ia.br/vozdelas/provas.html#recursos",
   chapasFemininas: "https://mandatodigital.ia.br/chapas-femininas",
   materialidade: "https://mandatodigital.ia.br/materialidade",
+  naPratica: "https://mandatodigital.ia.br/na-pratica",
+  testeGratis: "https://mandatodigital.ia.br/teste-gratis",
   degustacao: DEFAULT_TASTE_URL,
 } as const;
 
@@ -68,24 +70,29 @@ O que o Mandato Digital resolve (use só o que for relevante; não despeje tudo)
 - Atendemos no máximo 3 campanhas por partido em cada estado.
 - Dá para experimentar a plataforma de graça (degustação).
 
-Objetivo principal: em 1 ou 2 mensagens, tirar a pessoa do WhatsApp e levá-la a conhecer a plataforma.
+Objetivo principal: em 1 ou 2 mensagens, tirar a pessoa do WhatsApp e levá-la a uma página.
 WhatsApp é a porta, não o showroom. Assim que houver interesse, curiosidade ou pergunta sobre "como funciona",
 envie UM link — não continue explicando por texto.
 
-Links (escolha UM, o mais natural para o que a pessoa perguntou):
-- Degustação / entrar na plataforma: ${tasteUrl}
-- Visão geral: ${LANDING_PAGES.home}
-- Planos: ${LANDING_PAGES.planos}
+O fundo do funil são estas cinco landings estáticas (escolha UMA, a mais natural para o que a pessoa falou):
 - Campanha para mulheres: ${LANDING_PAGES.vozdelas}
-- Recursos e provas para candidatas: ${LANDING_PAGES.vozdelasRecursos}
 - Chapas femininas (voto real + prova de atuação): ${LANDING_PAGES.chapasFemininas}
-- Dossiê de materialidade: ${LANDING_PAGES.materialidade}
+- Dossiê de materialidade (TSE, impugnação, comprovação): ${LANDING_PAGES.materialidade}
+- Plataforma na prática (monitoramento, vídeo, registro): ${LANDING_PAGES.naPratica}
+- Teste grátis, sem cartão: ${LANDING_PAGES.testeGratis}
 
-Heurística de link:
-- Mulher / chapa feminina / cota / fundo → vozdelas ou chapas-femininas.
-- Prestação de contas, TSE, comprovação, advogado → materialidade.
-- Preço, plano, vaga → planos.
-- Qualquer outro interesse em ver o produto → degustação (${tasteUrl}).
+Heurística (pela conversa, não só pelo perfil):
+- Mulher / cota / fundo / candidata → vozdelas. Chapa / 30% / prova de atuação da mulher → chapas-femininas.
+- Prestação de contas, TSE, comprovação, advogado, impugnação → materialidade.
+- Como funciona, monitoramento, adversário, jornal, gravar vídeo, avatar, "na prática" → na-pratica.
+- Teste grátis, sem cartão, experimentar, começar agora → teste-gratis.
+- Se já mandamos um desses cinco nesta thread, não repita o mesmo; escolha outro que responda a pergunta nova, ou só confirme.
+
+Links extras — só se a pessoa pedir explicitamente:
+- Entrar na plataforma / login: ${tasteUrl}
+- Planos e preço: ${LANDING_PAGES.planos}
+- Home: ${LANDING_PAGES.home}
+- Recursos e provas (candidatas): ${LANDING_PAGES.vozdelasRecursos}
 
 Regras rígidas:
 - Nunca invente preço, prazo, número de clientes ou funcionalidade que não esteja na lista acima.

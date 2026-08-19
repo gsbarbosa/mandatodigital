@@ -28,15 +28,17 @@ saiu às 18:29:37 (fluxo antigo, envio imediato).
 
 | Collection | Conteúdo |
 |---|---|
-| `marketingContacts` | Prospects (doc id = `dir_<canal>` ou `cam_<id do deputado>`) |
+| `marketingContacts` | Quem já recebeu disparo (doc id = `wa_<e164>`). Opt-out, último template, status |
 | `marketingSegments` | Definição de filtro salva |
 | `marketingCampaigns` | Campanha + status + estatísticas agregadas |
 | `marketingSends` | Um registro por contato por disparo (trilha) |
 | `marketingConversations` | Thread de WhatsApp por contato (doc id = telefone E.164) |
 
-As rules negam o client em tudo (`firestore.rules`) — só Admin SDK lê e escreve. Nenhuma das
-quatro está no `db:reset`: contato é dado de referência caro de reimportar, e campanha é
-histórico operacional nosso.
+As rules negam o client em tudo (`firestore.rules`) — só Admin SDK lê e escreve. Campanha/envio
+são histórico operacional; **contato só entra no disparo** (ou no opt-out). A lista de trabalho
+(scraper + Pasta1) fica no CSV até a Meta aceitar o envio.
+
+**Não** rode `marketing:seed` para reconstituir a poça antiga. Wipe: `npm run marketing:wipe-prospects -- --confirm`.
 
 **Segmento é filtro, não lista congelada.** A campanha resolve o público no momento do disparo,
 contra a base atual. Reimportar contatos muda o alcance de uma campanha ainda não enviada — isso é
@@ -210,7 +212,7 @@ Operação (manual, dois turnos por dia):
 
 | Semana | Teto / dia | Lotes | Janela BRT |
 |---|---|---|---|
-| 1 | 20 | 4 × 5 | 9h–11h30 e 14h–17h30, dias úteis |
+| 1 | 50 | espalhado por UF | 9h–11h30 e 14h–17h30, dias úteis |
 | 2 | 35 | 7 × 5 | idem, se qualidade continuar GREEN |
 | 3 | 50 | 10 × 5 | teto técnico do canal; não subir sem o tier da Meta subir |
 
@@ -247,7 +249,19 @@ prometer material que não existe:
 
 Enquanto a Meta não aprova os novos, usar os aprovados que **não** prometem vídeo/página fantasma (`md_intro_feito_candidatas_v1`, `md_intro_vaga_sigla_v1`) e deixar a Marina enviar o landing na primeira resposta.
 
-Configurar `WHATSAPP_DEMO_LINK_URL=https://mandatodigital.ia.br/login` (degustação). A Marina agora escolhe o landing conforme o perfil e tira o lead do WhatsApp em 1–2 turnos.
+Configurar `WHATSAPP_DEMO_LINK_URL=https://mandatodigital.ia.br/login` (entrar na plataforma, só se
+o lead pedir). O fundo do funil da Marina são as cinco landings estáticas; ela escolhe UMA conforme
+a conversa:
+
+| Landing | Quando |
+|---|---|
+| `/vozdelas` | candidata / cota / fundo |
+| `/chapas-femininas` | chapa feminina / prova de atuação da mulher |
+| `/materialidade` | TSE, impugnação, comprovação |
+| `/na-pratica` | como funciona, monitoramento, vídeo, avatar |
+| `/teste-gratis` | teste grátis, sem cartão, experimentar |
+
+`/login`, `/planos` e a home só se a pessoa pedir para entrar ou perguntar preço.
 
 ## Disparo
 
@@ -348,7 +362,7 @@ curl "https://graph.facebook.com/v25.0/1736757104132656/message_templates?fields
 | `WHATSAPP_VERIFY_TOKEN` | Você escolhe; repete no painel ao cadastrar o webhook | Handshake do webhook |
 | `WHATSAPP_APP_SECRET` | App → Configurações → Básico → "Chave secreta do aplicativo" | Validar assinatura |
 | `APP_BASE_URL` | Já configurado no `apphosting.yaml` | Montar a URL do webhook |
-| `WHATSAPP_DEMO_LINK_URL` | Opcional | Link que a IA envia; vazio = ela não promete link |
+| `WHATSAPP_DEMO_LINK_URL` | Opcional | URL de `/login` se o lead pedir para entrar; as cinco landings estáticas estão sempre no prompt |
 
 O token **temporário de 24h** do painel serve só para o primeiro teste — para produção é preciso o
 token de system user, senão o disparo para de funcionar no dia seguinte.
@@ -439,8 +453,15 @@ npm run marketing:dispatch -- --template=feito --names="Alana Passos" --confirm
 
 Sem `--confirm` nada é enviado. O script resolve a base (`marketingContacts`), recusa homônimo e
 quem não tem WhatsApp, avisa VIP, puxa o corpo oficial na Meta quando o token está no env, e
-grava a trilha em `marketingSends` (`campaignId` = `named:{template}`). Teto alinhado à semana 1:
-20 envios/dia.
+grava a trilha em `marketingSends` (`campaignId` = `named:{template}`) **e** cria/atualiza o
+contato em `marketingContacts` (template, status, opt-out). Teto do dia: 50.
+
+Lista de trabalho para o primeiro lote de candidatas:
+
+```bash
+npm run marketing:dispatch -- --template=md_intro_feito_candidatas_v3 --from-csv --limit=50
+npm run marketing:dispatch -- --template=md_intro_feito_candidatas_v3 --from-csv --limit=50 --confirm
+```
 
 Agente/skill: [`.cursor/skills/whatsapp-outbound/SKILL.md`](../.cursor/skills/whatsapp-outbound/SKILL.md),
 [`.claude/agents/whatsapp-outbound.md`](../.claude/agents/whatsapp-outbound.md).
@@ -463,6 +484,11 @@ Quando o lead responde, o webhook grava a mensagem em `marketingConversations` (
 E.164) e a Marina **gera uma sugestão — não envia**. O texto aparece na aba Conversas para o
 humano mandar.
 
+- **Primeira resposta do botão positivo**: se o primeiro inbound for o clique no botão positivo
+  do último template enviado, **não passa pela LLM**. O texto pré-moldado do catálogo
+  (`cannedPositiveReply` em `whatsapp-templates.ts`) vira a sugestão — `[Maria]` é o primeiro
+  nome. Hoje só o `md_intro_feito_candidatas_v3` tem esse texto (link `/vozdelas`). Botão
+  negativo, texto digitado ou segunda mensagem seguem a Marina. O auto-envio de 3 min vale igual.
 - **Auto-envio em 3 min**: se ninguém disparar a sugestão, a IA envia sozinha (`autoSendAt`).
   O webhook não espera esses 3 minutos: grava a sugestão e devolve 200. Quem envia é
   `POST /api/workers/outbound-autosend` (Cloud Scheduler a cada 1 min) e, de quebra, abrir a
@@ -478,7 +504,9 @@ humano mandar.
 - **Idempotência por `wamid`**: a Meta reentrega o evento se a resposta demorar; sem isso a IA
   geraria duas sugestões para a mesma frase.
 - **Guarda-corpos no prompt**: não inventar preço/prazo/funcionalidade, encerrar com cordialidade
-  em pedido de opt-out, e não prometer link quando `WHATSAPP_DEMO_LINK_URL` está vazio.
+  em pedido de opt-out. Fundo do funil = as cinco landings estáticas (`/vozdelas`,
+  `/chapas-femininas`, `/materialidade`, `/na-pratica`, `/teste-gratis`). `/login` só se o lead
+  pedir para entrar.
 - Mídia (áudio/imagem) fica registrada mas não gera sugestão — vai para atendimento humano.
 
 ## Limites conhecidos
@@ -500,8 +528,8 @@ humano mandar.
 
 ## Pendências abertas
 
-- **`WHATSAPP_DEMO_LINK_URL`**: se vazio, a Marina cai na degustação (`/login`) e nos landings
-  listados no prompt. Configure o env para forçar um único destino.
+- **`WHATSAPP_DEMO_LINK_URL`**: opcional. Só substitui o `/login` se o lead pedir para entrar.
+  As cinco landings estáticas estão no prompt mesmo com a variável vazia.
 - **Girar o app secret e o token**: ambos passaram por canal de chat durante a configuração e estão
   valendo em produção. Rotacionar em Configurações → Básico → Redefinir, atualizar `.env.local`,
   `npm run firebase:secrets:apply`, redeploy.
