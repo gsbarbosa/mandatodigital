@@ -17,7 +17,7 @@ export const privacyController = {
   razaoSocial: "EATEASY SERVIÇOS DIGITAIS LTDA",
   cnpj: "48.142.514/0001-08",
   endereco:
-    "Av. Raja Gabaglia, nº 1000, Sala 409, Gutierrez, Belo Horizonte - MG, CEP 30.441-070",
+    "Av. Getúlio Vargas, 671, sala 500, Savassi, Belo Horizonte - MG",
   marca: "Mandato Digital",
 } as const;
 
