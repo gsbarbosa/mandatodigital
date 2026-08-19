@@ -32,6 +32,36 @@ function tokens(normalized: string): string[] {
   return normalized.split(" ").filter(Boolean);
 }
 
+function phoneDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+/** Query que parece telefone (DDD+número, com ou sem 55). */
+function nationalPhone(value: string): string | null {
+  let digits = phoneDigits(value);
+  if (digits.startsWith("55") && digits.length >= 12) {
+    digits = digits.slice(2);
+  }
+  if (digits.length === 10 || digits.length === 11) {
+    return digits;
+  }
+  return null;
+}
+
+function matchByPhone(contacts: MarketingContact[], query: string): NameMatch | null {
+  const wanted = nationalPhone(query);
+  if (!wanted) return null;
+
+  const hits = contacts.filter((contact) => nationalPhone(contact.phoneE164) === wanted);
+  if (hits.length === 0) {
+    return { query, status: "missing", candidates: [] };
+  }
+  if (hits.length > 1) {
+    return { query, status: "ambiguous", candidates: hits.slice(0, 8) };
+  }
+  return { query, status: "ok", contact: hits[0]! };
+}
+
 function scoreCandidate(query: string, contact: MarketingContact): number {
   const name = normalizePersonName(contact.name);
   const q = normalizePersonName(query);
@@ -68,6 +98,11 @@ export function matchContactsByName(
   queries: string[],
 ): NameMatch[] {
   return queries.map((query) => {
+    const byPhone = matchByPhone(contacts, query);
+    if (byPhone) {
+      return byPhone;
+    }
+
     const ranked = contacts
       .map((contact) => ({ contact, score: scoreCandidate(query, contact) }))
       .filter((row) => row.score >= MIN_SCORE)

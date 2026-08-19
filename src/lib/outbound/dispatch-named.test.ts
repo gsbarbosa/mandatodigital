@@ -75,6 +75,16 @@ describe("matchContactsByName", () => {
     const [row] = matchContactsByName(base, ["Sikera Junior"]);
     expect(row?.status).toBe("missing");
   });
+
+  it("casa por telefone nacional ou E.164", () => {
+    const [row] = matchContactsByName(base, ["31 99999-0001"]);
+    expect(row?.status).toBe("ok");
+    if (row?.status === "ok") {
+      expect(row.contact.id).toBe("c1");
+    }
+    const [e164] = matchContactsByName(base, ["5531999990001"]);
+    expect(e164?.status).toBe("ok");
+  });
 });
 
 describe("templates + preview", () => {
