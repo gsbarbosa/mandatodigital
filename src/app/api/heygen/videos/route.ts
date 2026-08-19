@@ -12,6 +12,7 @@ import {
   tryConsumeGuestVideoQuota,
 } from "@/lib/guest-usage-storage";
 import { maxScriptWordsForTier, maxVideoSecondsLabelForTier } from "@/lib/plan-limits";
+import { spokenTranscriptForAccount } from "@/lib/trial-fixed-script";
 import { getStorageOwnerUserId } from "@/lib/storage-context";
 import {
   formatHeyGenError,
@@ -95,6 +96,9 @@ export async function POST(request: Request) {
         freePrompt?: string;
         generateMode?: "avatar" | "caricature" | "photo_real";
         caricatureAssetId?: string;
+        caricatureVariant?: string;
+        personaArchetypes?: string[];
+        voiceTones?: string[];
         avatarImageAssetId?: string;
         voiceAudioAssetId?: string;
       };
@@ -137,19 +141,6 @@ export async function POST(request: Request) {
         premium: await isPremiumAccountMode((await getSessionUser())?.email),
       });
 
-      if (!topic && !explicitTranscript) {
-        appLog(
-          "heygen",
-          "video_generate_rejected",
-          { profileId, reason: "missing_topic_or_transcript" },
-          "warn",
-        );
-        return NextResponse.json(
-          { message: "Informe o tema do video ou um roteiro completo (prompt livre)." },
-          { status: 400 },
-        );
-      }
-
       // Free trial (convidado): limite server-side por generateMode.
       const sessionForQuota = await getSessionUser();
       const premium = await isPremiumAccountMode(sessionForQuota?.email);
@@ -175,13 +166,42 @@ export async function POST(request: Request) {
         appLogError("heygen", "account_tier_lookup_failed", error, { profileId });
         return null;
       });
+      const guestQuotas = account?.entitlements.guestQuotas ?? !premium;
+      const spoken = spokenTranscriptForAccount({
+        guestQuotas,
+        generateMode,
+        caricatureVariant: String(body.caricatureVariant ?? "").trim() || null,
+        requestedTranscript: explicitTranscript,
+        archetype:
+          body.personaArchetypes?.[0] || dashboard.profile?.personaArchetypes?.[0] || null,
+        tone: body.voiceTones?.[0] || dashboard.profile?.voiceTones?.[0] || null,
+      });
+      const generationTranscript = spoken.transcript;
+
+      if (!topic && !generationTranscript) {
+        appLog(
+          "heygen",
+          "video_generate_rejected",
+          { profileId, reason: "missing_topic_or_transcript" },
+          "warn",
+        );
+        return NextResponse.json(
+          { message: "Informe o tema do video ou um roteiro completo (prompt livre)." },
+          { status: 400 },
+        );
+      }
+
       const maxScriptWords = maxScriptWordsForTier(account?.tier ?? "trial");
       const durationLabel = maxVideoSecondsLabelForTier(account?.tier ?? "trial").replace(
         /^até\s+/i,
         "",
       );
 
-      if (explicitTranscript && countTranscriptWords(explicitTranscript) > maxScriptWords) {
+      if (
+        !spoken.usedTrialFixedScript &&
+        explicitTranscript &&
+        countTranscriptWords(explicitTranscript) > maxScriptWords
+      ) {
         appLog(
           "heygen",
           "video_generate_rejected",
@@ -255,20 +275,24 @@ export async function POST(request: Request) {
           imageAsset = caricResult.asset;
         }
 
-        const baseTranscript = explicitTranscript
-          ? explicitTranscript
-          : await buildAvatarVideoTranscript({
-              topic,
-              profile: dashboard.profile,
-              maxWords: maxScriptWords,
-              durationLabel,
-            });
+        const baseTranscript = spoken.usedTrialFixedScript
+          ? generationTranscript
+          : explicitTranscript
+            ? explicitTranscript
+            : await buildAvatarVideoTranscript({
+                topic,
+                profile: dashboard.profile,
+                maxWords: maxScriptWords,
+                durationLabel,
+              });
 
-        const transcript = explicitTranscript
+        const transcript = spoken.usedTrialFixedScript
           ? baseTranscript
-          : freePrompt
-            ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
-            : baseTranscript;
+          : explicitTranscript
+            ? baseTranscript
+            : freePrompt
+              ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
+              : baseTranscript;
 
         const walletCheck = await checkHeyGenWalletForVideo({
           transcript,
@@ -505,20 +529,24 @@ export async function POST(request: Request) {
         );
       }
 
-      const baseTranscript = explicitTranscript
-        ? explicitTranscript
-        : await buildAvatarVideoTranscript({
-            topic,
-            profile: dashboard.profile,
-            maxWords: maxScriptWords,
-            durationLabel,
-          });
+      const baseTranscript = spoken.usedTrialFixedScript
+        ? generationTranscript
+        : explicitTranscript
+          ? explicitTranscript
+          : await buildAvatarVideoTranscript({
+              topic,
+              profile: dashboard.profile,
+              maxWords: maxScriptWords,
+              durationLabel,
+            });
 
-      const transcript = explicitTranscript
+      const transcript = spoken.usedTrialFixedScript
         ? baseTranscript
-        : freePrompt
-          ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
-          : baseTranscript;
+        : explicitTranscript
+          ? baseTranscript
+          : freePrompt
+            ? `${baseTranscript}\n\nInstrucoes adicionais (prompt livre):\n${freePrompt}`
+            : baseTranscript;
 
       const appBaseUrl = resolveAppBaseUrl(request);
       const callbackUrl = appBaseUrl.startsWith("https://")

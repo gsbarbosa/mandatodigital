@@ -94,6 +94,11 @@ import {
 } from "@/lib/guest-limits";
 import { useAccountTier } from "@/components/product/use-account-tier";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
+import { TrialGenerateConfirmModal } from "@/components/product/trial-generate-confirm-modal";
+import {
+  trialAvatarScriptKindFromProduction,
+  trialFixedAvatarScript,
+} from "@/lib/trial-fixed-script";
 import { PLAN_SELECTION_PATH } from "@/lib/registration-gate";
 
 const FREE_PROMPT_RESPONSIBILITY_CONSENT_TEXT =
@@ -172,6 +177,7 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSealing, setIsSealing] = useState(false);
+  const [trialGenerateOpen, setTrialGenerateOpen] = useState(false);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -1613,15 +1619,22 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       showUserError(setVideoError, new Error(creditsExhaustedMessage));
       return;
     }
-    if (!isPremium && videoUsage) {
-      const used = guestVideosUsedForBucket(
-        videoUsage.videosByAvatar,
-        guestVideoBucketFromAvatarTrack(avatarTrack),
-      );
-      if (used >= videoUsage.videosPerAvatarLimit) {
-        showUserError(setVideoError, new Error(guestVideosExhaustedMessage(videoUsage.videosPerAvatarLimit)));
-        return;
+    if (!isPremium) {
+      if (videoUsage) {
+        const used = guestVideosUsedForBucket(
+          videoUsage.videosByAvatar,
+          guestVideoBucketFromAvatarTrack(avatarTrack),
+        );
+        if (used >= videoUsage.videosPerAvatarLimit) {
+          showUserError(
+            setVideoError,
+            new Error(guestVideosExhaustedMessage(videoUsage.videosPerAvatarLimit)),
+          );
+          return;
+        }
       }
+      setTrialGenerateOpen(true);
+      return;
     }
     generateLockRef.current = true;
     void handleGenerate();
@@ -1749,6 +1762,24 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
       }
 
       generateStage = "create_video";
+      const trialScriptKind = trialAvatarScriptKindFromProduction({
+        generateMode:
+          avatarTrack === "caricature"
+            ? "caricature"
+            : avatarTrack === "photo_real" || avatarTrack === "realistic"
+              ? "photo_real"
+              : "avatar",
+        caricatureVariant:
+          activeProductionTemplate === "caricature_mascot_3d" ? "mascot_3d" : "editorial",
+      });
+      const spokenTranscript = guestTrial
+        ? trialFixedAvatarScript(trialScriptKind, {
+            archetype: creativeForm.personaArchetypes[0],
+            tone: creativeForm.voiceTones[0],
+          })
+        : useFreePromptAsTranscript
+          ? free
+          : scriptDraft.trim();
       const response = await fetchHeygenApi("/api/heygen/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1773,11 +1804,15 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
           avatarImageAssetId: selectedAvatarImageAssetId || undefined,
           caricatureAssetId:
             avatarTrack === "caricature" ? selectedCaricatureAssetId.trim() || undefined : undefined,
+          caricatureVariant:
+            activeProductionTemplate === "caricature_mascot_3d" ? "mascot_3d" : undefined,
+          personaArchetypes: creativeForm.personaArchetypes,
+          voiceTones: creativeForm.voiceTones,
           name: useFreePromptAsTranscript
             ? `Criativo - prompt livre - ${profileForm.fullName || "Politico"}`
             : `Criativo - ${profileForm.fullName || "Politico"} - ${topic || scriptTopicSnapshot}`,
-          transcript: useFreePromptAsTranscript ? free : scriptDraft.trim(),
-          freePrompt: useFreePromptAsTranscript ? undefined : free || undefined,
+          transcript: spokenTranscript,
+          freePrompt: guestTrial || useFreePromptAsTranscript ? undefined : free || undefined,
         }),
       });
 
@@ -2917,6 +2952,16 @@ export function CriativoPageV2({ mode = "padrao" }: { mode?: CriativoPageMode } 
         }}
       />
     ) : null}
+    <TrialGenerateConfirmModal
+      open={trialGenerateOpen}
+      busy={isGenerating}
+      onCancel={() => setTrialGenerateOpen(false)}
+      onConfirm={() => {
+        setTrialGenerateOpen(false);
+        generateLockRef.current = true;
+        void handleGenerate();
+      }}
+    />
     </>
   );
 }

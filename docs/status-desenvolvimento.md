@@ -228,12 +228,16 @@ Spec viva em [distribuidor.md](distribuidor.md); decisão em
 
 ---
 
-## 7b. Modo DEMO (removido)
+## 7b. Modo DEMO (removido) / trial
 
-O `DEMO_MODE`/degustação foi removido. O cadastro sem plano explícito agora entra direto no
-**free trial (convidado)**, com cotas equivalentes absorvidas por `guest-limits.ts` /
-`guest-usage-storage.ts` (3 saves de tema, 2 vídeos/avatar, créditos do Sentinela). Selo TSE,
-tarja de campanha e limites de roteiro por plano continuam permanentes (não dependiam do modo demo).
+O `DEMO_MODE`/degustação foi removido. O cadastro sem plano explícito entra no
+**free trial (convidado)**, com cotas em `guest-limits.ts` / `guest-usage-storage.ts`
+(3 saves de tema, 2 vídeos/avatar, créditos do Sentinela).
+
+No trial o HeyGen **não lê o roteiro do Curador**: usa o texto padrão de
+`trial-fixed-script.ts` (o mesmo da degustação: apresentação do avatar + flavor de
+tom/arquétipo). Planos pagos seguem com o roteiro aprovado. Selo TSE, tarja de
+campanha e teto de palavras por plano continuam permanentes.
 
 ---
 
