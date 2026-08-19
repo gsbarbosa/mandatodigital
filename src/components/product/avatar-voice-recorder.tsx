@@ -57,6 +57,8 @@ function createMediaRecorder(stream: MediaStream, mimeType: string) {
     }
   }
 }
+
+function formatClock(totalSeconds: number) {
   const safe = Math.max(0, Math.floor(totalSeconds));
   const minutes = Math.floor(safe / 60);
   const seconds = safe % 60;
