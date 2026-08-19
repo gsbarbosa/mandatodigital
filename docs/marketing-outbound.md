@@ -454,7 +454,7 @@ npm run marketing:dispatch -- --template=feito --names="Alana Passos" --confirm
 Sem `--confirm` nada é enviado. O script resolve a base (`marketingContacts`), recusa homônimo e
 quem não tem WhatsApp, avisa VIP, puxa o corpo oficial na Meta quando o token está no env, e
 grava a trilha em `marketingSends` (`campaignId` = `named:{template}`) **e** cria/atualiza o
-contato em `marketingContacts` (template, status, opt-out). Teto do dia: 50.
+contato em `marketingContacts` (template, status, opt-out). Teto do dia: 100.
 
 Lista de trabalho para o primeiro lote de candidatas:
 
@@ -488,7 +488,8 @@ humano mandar.
   do último template enviado, **não passa pela LLM** e **envia na hora**. O texto pré-moldado
   do catálogo (`cannedPositiveReply`) usa `[Maria]` como primeiro nome. No
   `md_intro_feito_candidatas_v3` o botão na Meta é **Pode mandar** (negativo: **Não, obrigada**)
-  e o texto manda o link `/vozdelas`. **Não, obrigada** / **Não, obrigado** gravam `optOut` e
+  e o texto manda o link `/vozdelas`. No `md_intro_generico_v1` o positivo é **Sim. Seja breve**
+  e o texto manda `/na-pratica`. **Não, obrigada** / **Não, obrigado** gravam `optOut` e
   pausam a Marina. Texto digitado ou segunda mensagem seguem a Marina (sugestão + auto-envio
   em 3 min).
 - **Auto-envio em 3 min**: se ninguém disparar a sugestão, a IA envia sozinha (`autoSendAt`).

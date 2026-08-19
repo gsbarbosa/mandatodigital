@@ -66,7 +66,11 @@ export const WHATSAPP_TEMPLATE_CATALOG: WhatsappTemplateCatalogEntry[] = [
     audience: "Genérico (qualquer público com WhatsApp)",
     approved: false,
     body: "Olá {{1}}. Sou {{2}}, do Mandato Digital.\n\nCriamos a primeira *plataforma de campanha* que entrega:\n• estúdio sem equipe de gravação\n• monitoramento 24h de adversários e mídias\n• registro documentado da candidatura\n\nQuer saber mais? Dá para testar grátis e sem cartão.",
-    notes: "PENDING. CTA teste grátis sem cartão. Botões: Sim. Seja breve / Não, obrigado (Meta não aceita emoji no botão). Não disparar até APPROVED.",
+    notes:
+      "Botões na Meta: Sim. Seja breve / Não, obrigado. Clique positivo dispara a resposta pré-moldada (link /na-pratica) na hora, sem LLM. Só disparar se APPROVED.",
+    positiveButtonLabels: ["Sim. Seja breve", "Sim, Seja breve", "Sim"],
+    cannedPositiveReply:
+      "[Maria], segue o link de degustação para você conhecer a plataforma na prática - ver como monitoramos adversários, jornais, redes sociais e gravamos vídeos sobre essas pautas com o seu posicionamento, através do seu avatar de IA. Tudo registrado para fundamentar eventuais impugnações das chapas. Aqui está: https://mandatodigital.ia.br/na-pratica. Me conta depois o que achou!",
   },
   {
     name: "md_intro_candidatas_soft_v1",

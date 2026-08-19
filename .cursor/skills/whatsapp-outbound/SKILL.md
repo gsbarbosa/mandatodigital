@@ -62,7 +62,7 @@ Prontos: N
 Nada foi enviado. Confirma?
 ```
 
-Destaque VIP, sem telefone, suspenso, já enviado, opt-out, teto do dia (50).
+Destaque VIP, sem telefone, suspenso, já enviado, opt-out, teto do dia (100).
 
 ### 3. Esperar
 
@@ -92,7 +92,7 @@ Spec: `docs/marketing-outbound.md`.
 - VIP (federal em reeleição, senador, presidente de partido grande, ≥400k
   followers) entra no preview com aviso. Só envia se o usuário nomeou essa
   pessoa **e** confirmou o lote.
-- Cadência: teto **50/dia**, lote espalhado por UF, dias úteis. O script corta
+- Cadência: teto **100/dia**, lote espalhado por UF, dias úteis. O script corta
   o que passar do teto.
 - Primeiro lote de candidatas: `--from-csv --limit=50` lê Pasta1 + scrape
   (não a poça antiga do Firestore). Contato só é gravado no envio.
