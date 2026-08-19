@@ -245,6 +245,43 @@ html[data-theme="light"] .brand-logo-word-mandato {
   color: #0a2540;
 }
 
+/*
+ * Hero da home (marketing-home-page.tsx): a arte dark é full-bleed (bg-cover)
+ * porque tem folga generosa de céu vazio nas bordas pra absorver o corte do
+ * aspect-ratio da caixa. A arte light (fundo transparente, robôs colados nas
+ * bordas de cima/baixo/lados) não tem essa folga — cobrir com bg-cover corta
+ * cabeça de robô. Por isso ela usa bg-size: contain (nunca corta, só sobra
+ * uma faixa transparente que se funde no gradiente por trás) em vez de
+ * herdar o bg-cover/bg-bottom/bg-right das classes Tailwind no elemento.
+ */
+.marketing-hero-backdrop {
+  background: linear-gradient(to bottom, #00020c 0%, #010a18 65%, #05101f 100%);
+}
+
+html[data-theme="light"] .marketing-hero-backdrop {
+  background: linear-gradient(to bottom, #eef2f7 0%, #f6f9fc 65%, #f8fafc 100%);
+}
+
+.hero-art-wide {
+  background-image: url(/marketing/home/hero-2026-wide.webp);
+}
+
+html[data-theme="light"] .hero-art-wide {
+  background-image: url(/marketing/home/hero-2026-wide-light.webp);
+  background-size: contain;
+  background-position: right center;
+}
+
+.hero-art-mobile {
+  background-image: url(/marketing/home/hero-2026-mobile.webp);
+}
+
+html[data-theme="light"] .hero-art-mobile {
+  background-image: url(/marketing/home/hero-2026-mobile-light.webp);
+  background-size: contain;
+  background-position: right center;
+}
+
 /* Tech background grid (Form04) */
 body::before {
   content: "";

@@ -17,7 +17,7 @@ const base = {
 describe("resolveCannedPositiveReply", () => {
   it("preenche o primeiro nome no texto do v3", () => {
     const reply = resolveCannedPositiveReply(base);
-    expect(reply).toContain("Maria, vou te mandar o link de degustação");
+    expect(reply).toContain("Maria, segue o link de degustação");
     expect(reply).toContain("https://mandatodigital.ia.br/vozdelas");
     expect(reply).not.toContain("[Maria]");
   });

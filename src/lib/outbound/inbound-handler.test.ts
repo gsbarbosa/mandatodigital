@@ -181,7 +181,7 @@ describe("handleInboundMessage", () => {
 
     expect(result.status).toBe("enviada");
     if (result.status === "enviada") {
-      expect(result.reply).toContain("Maria, vou te mandar o link de degustação");
+      expect(result.reply).toContain("Maria, segue o link de degustação");
       expect(result.reply).toContain("https://mandatodigital.ia.br/vozdelas");
     }
     expect(generateAgentReply).not.toHaveBeenCalled();

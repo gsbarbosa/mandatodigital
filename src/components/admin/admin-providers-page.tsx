@@ -166,6 +166,21 @@ function ProviderUsageMeter({ usage }: { usage: ProviderUsageSnapshot }) {
     );
   }
 
+  if (usage.kind === "uncapped") {
+    return (
+      <div className="mt-2 space-y-2 text-md-text-muted">
+        <p className="text-2xl font-semibold tabular-nums text-md-text">
+          {formatUsageValue(usage.used, usage.unit)}
+        </p>
+        <p className="text-xs text-md-text-soft">
+          Gasto no mês (UTC), não é saldo prepaid. Sem spend limit na org — a
+          API não expõe crédito restante para esta key. A key está viva se o
+          card acima estiver configurado.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-2 space-y-2 text-md-text-muted">
       <p>

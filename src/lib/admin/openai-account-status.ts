@@ -146,18 +146,19 @@ export function buildOpenAiUsageSnapshot(input: {
       percentUsed: Math.min(100, (used / limit) * 100),
       exhausted: used >= limit,
       unit: "USD",
+      kind: "quota",
     };
   }
 
-  // Sem hard limit — mostra gasto acumulado do mês como “uso” sem teto real.
   return {
     label: "Gasto do mês (MTD)",
     used,
-    limit: Math.max(used, 0.01),
+    limit: 0,
     remaining: 0,
-    percentUsed: used > 0 ? 100 : 0,
+    percentUsed: 0,
     exhausted: false,
     unit: "USD",
+    kind: "uncapped",
   };
 }
 
@@ -236,6 +237,8 @@ export async function fetchOpenAiAccountDetails(input: {
       account.spendLimitUsd = spendLimitUsd;
       account.spendInterval = limit.interval;
       account.spendEnforcement = limit.enforcement;
+    } else if (limitRes.status === 404) {
+      account.spendLimitUsd = "não configurado";
     } else {
       account.spendLimitError = limitRes.message || `HTTP ${limitRes.status}`;
     }
