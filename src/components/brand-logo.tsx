@@ -1,3 +1,9 @@
+/** Lockup do header da home — use em toda página de venda/app. */
+export const BRAND_HEADER_LOGO = {
+  markSize: 24,
+  fontSize: 20,
+} as const;
+
 type BrandLogoProps = {
   className?: string;
   /** Altura do monograma em px — deve ≈ fontSize (cap-height óptica). */
@@ -11,21 +17,29 @@ type BrandLogoProps = {
   fluid?: boolean;
 };
 
-/** Monograma MD — viewBox 64×48, geometria do protótipo inicial. */
+/**
+ * Monograma MD — 3 barras + D verde.
+ * viewBox 66×48 (2 unidades de folga à direita): o arco externo do D chega em
+ * x≈63; em 64×48 o browser recorta o anti-alias e o D vira um “C” pixelado.
+ */
+const MONOGRAM_VB_W = 66;
+const MONOGRAM_VB_H = 48;
+
 function MdMonogram({ size, className }: { size: number; className?: string }) {
   const height = size;
-  const width = Math.round((size * 64) / 48);
+  const width = Math.round((size * MONOGRAM_VB_W) / MONOGRAM_VB_H);
 
   return (
     <svg
-      viewBox="0 0 64 48"
+      viewBox={`0 0 ${MONOGRAM_VB_W} ${MONOGRAM_VB_H}`}
       width={width}
       height={height}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
+      overflow="visible"
       className={["brand-logo-mark shrink-0 block", className].filter(Boolean).join(" ")}
-      style={{ width, height }}
+      style={{ width, height, overflow: "visible" }}
     >
       <path fill="currentColor" d="M0 48V5L10 11V48H0z" />
       <path fill="currentColor" d="M13 48V17L23 10.5V48H13z" />
@@ -44,20 +58,19 @@ function MdMonogram({ size, className }: { size: number; className?: string }) {
  */
 export function BrandLogo({
   className,
-  markSize,
-  fontSize,
+  markSize = BRAND_HEADER_LOGO.markSize,
+  fontSize = BRAND_HEADER_LOGO.fontSize,
   width,
   fluid = false,
 }: BrandLogoProps) {
   const resolvedFont =
-    fontSize ??
-    (width != null ? Math.max(14, Math.round(width * 0.1)) : fluid ? 16 : 15);
-  const resolvedMark = markSize ?? resolvedFont;
+    width != null ? Math.max(14, Math.round(width * 0.1)) : fluid ? 16 : fontSize;
+  const resolvedMark = width != null || fluid ? resolvedFont : markSize;
 
   return (
     <span
       className={[
-        "brand-logo inline-flex items-center gap-2",
+        "brand-logo inline-flex items-center gap-2 overflow-visible",
         fluid ? "w-full max-w-full" : undefined,
         className,
       ]
