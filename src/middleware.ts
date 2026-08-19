@@ -9,6 +9,6 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // Landings estáticas em public/ — assets, não rotas de app.
-    "/((?!_next/static|_next/image|favicon.ico|geo/|vozdelas/|materialidade/|chapas-femininas/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2|html|pdf)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|geo/|vozdelas/|materialidade/|chapas-femininas/|na-pratica/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2|html|pdf)$).*)",
   ],
 };
