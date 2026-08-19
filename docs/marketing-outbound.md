@@ -488,8 +488,9 @@ humano mandar.
   do último template enviado, **não passa pela LLM** e **envia na hora**. O texto pré-moldado
   do catálogo (`cannedPositiveReply`) usa `[Maria]` como primeiro nome. No
   `md_intro_feito_candidatas_v3` o botão na Meta é **Pode mandar** (negativo: **Não, obrigada**)
-  e o texto manda o link `/vozdelas`. Botão negativo, texto digitado ou segunda mensagem seguem
-  a Marina (sugestão + auto-envio em 3 min).
+  e o texto manda o link `/vozdelas`. **Não, obrigada** / **Não, obrigado** gravam `optOut` e
+  pausam a Marina. Texto digitado ou segunda mensagem seguem a Marina (sugestão + auto-envio
+  em 3 min).
 - **Auto-envio em 3 min**: se ninguém disparar a sugestão, a IA envia sozinha (`autoSendAt`).
   O webhook não espera esses 3 minutos: grava a sugestão e devolve 200. Quem envia é
   `POST /api/workers/outbound-autosend` (Cloud Scheduler a cada 1 min) e, de quebra, abrir a

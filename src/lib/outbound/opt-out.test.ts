@@ -7,6 +7,8 @@ describe("isOptOutText", () => {
     expect(isOptOutText("Parar")).toBe(true);
     expect(isOptOutText("STOP")).toBe(true);
     expect(isOptOutText("Não, obrigado.")).toBe(true);
+    expect(isOptOutText("Não, obrigada")).toBe(true);
+    expect(isOptOutText("não, obrigada.")).toBe(true);
     expect(isOptOutText("não tenho interesse")).toBe(true);
   });
 
