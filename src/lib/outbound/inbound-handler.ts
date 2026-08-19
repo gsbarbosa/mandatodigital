@@ -1,16 +1,14 @@
 /**
- * Fluxo de uma mensagem recebida: registra na thread, gera a sugestão da IA e
- * deixa no painel para envio humano. O envio automático (se ninguém mandar em
- * 3 min) fica a cargo de `flushDueSuggestedReplies`.
- *
- * Separado da rota para poder ser exercitado sem HTTP (ver
- * `npm run whatsapp:test`).
+ * Fluxo de uma mensagem recebida: registra na thread e, no caso geral, gera
+ * sugestão da Marina (auto-envio em 3 min). Clique no botão positivo do
+ * template com resposta pré-moldada envia na hora, sem LLM.
  */
 
 import { appLog, appLogError } from "@/lib/observability/log";
 import { generateAgentReply, type AgentContactContext } from "@/lib/outbound/conversation-agent";
 import { resolveCannedPositiveReply } from "@/lib/outbound/canned-positive-reply";
 import {
+  appendAgentMessage,
   appendInboundMessage,
   setAgentPaused,
   setConversationError,
@@ -20,6 +18,7 @@ import { getContactByPhone, setContactOptOut } from "@/lib/outbound/contacts-sto
 import { isOptOutText } from "@/lib/outbound/opt-out";
 import { isPartyPresidentRole } from "@/lib/outbound/relevance";
 import { firstName, isWithinServiceWindow } from "@/lib/outbound/types";
+import { resolveWhatsappConfig, sendText } from "@/lib/outbound/whatsapp";
 import { normalizeWaId, type InboundMessage } from "@/lib/outbound/whatsapp-webhook";
 
 export type InboundOutcome =
@@ -28,6 +27,7 @@ export type InboundOutcome =
   | { status: "fora_da_janela" }
   | { status: "opt_out" }
   | { status: "sem_resposta_llm" }
+  | { status: "enviada"; reply: string }
   | { status: "sugerida"; reply: string; autoSendAt: string };
 
 /** Busca o contato pelo telefone para personalizar a conversa (best-effort). */
@@ -111,6 +111,33 @@ export async function handleInboundMessage(message: InboundMessage): Promise<Inb
   if (!reply) {
     await setConversationError(phoneE164, "LLM não retornou resposta.");
     return { status: "sem_resposta_llm" };
+  }
+
+  if (canned) {
+    const config = await resolveWhatsappConfig();
+    if (!config) {
+      await setConversationError(phoneE164, "WhatsApp não configurado para responder.");
+      return { status: "sem_resposta_llm" };
+    }
+    try {
+      const { messageId } = await sendText({ config, to: phoneE164, body: canned });
+      await appendAgentMessage({
+        phoneE164,
+        text: canned,
+        providerMessageId: messageId,
+      });
+      appLog("marketing", "whatsapp_canned_enviou", {
+        phoneE164,
+        chars: canned.length,
+        lastTemplate: contact?.lastTemplate ?? "",
+      });
+      return { status: "enviada", reply: canned };
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Falha ao enviar resposta pronta.";
+      await setConversationError(phoneE164, detail);
+      appLogError("marketing", "whatsapp_canned_envio_falhou", error, { phoneE164 });
+      return { status: "sem_resposta_llm" };
+    }
   }
 
   try {

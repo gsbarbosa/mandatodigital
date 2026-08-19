@@ -21,6 +21,7 @@ import {
   pickProspectBatch,
   prospectToContact,
 } from "../src/lib/outbound/csv-prospects";
+import { classifyPhone } from "../src/lib/outbound/phone";
 
 function loadEnvLocal() {
   const envPath = path.join(process.cwd(), ".env.local");
@@ -49,6 +50,38 @@ function hasFlag(name: string): boolean {
   return process.argv.slice(2).includes(`--${name}`);
 }
 
+function loadPhoneContacts(raw: string, asName: string) {
+  const queries = raw.split(/[\n,;]+/).map((item) => item.trim()).filter(Boolean);
+  if (queries.length === 0) {
+    throw new Error("Informe pelo menos um telefone em --phones.");
+  }
+  const names = asName
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (names.length > 1 && names.length !== queries.length) {
+    throw new Error(
+      `--as-name tem ${names.length} nomes e --phones tem ${queries.length} números. Tem que bater 1:1.`,
+    );
+  }
+  return queries.map((query, index) => {
+    const classified = classifyPhone(query);
+    if (!classified?.isMobile) {
+      throw new Error(`Número inválido ou não-móvel: ${query}`);
+    }
+    const name = (names.length === 1 ? names[0] : names[index]) || "Gustavo";
+    return prospectToContact({
+      instagram: "",
+      name,
+      gender: "",
+      uf: "",
+      parties: [],
+      candidateRole: "",
+      phoneE164: classified.e164,
+    });
+  });
+}
+
 async function loadCsvContacts(limit: number) {
   const pastaPath = path.resolve(
     arg("pasta1") || "/Users/gstvbba/Downloads/Pasta1.csv",
@@ -74,24 +107,34 @@ async function main() {
   const templateRaw = arg("template") || "";
   const fromCsv = hasFlag("from-csv");
   const namesRaw = arg("names") || "";
+  const phonesRaw = arg("phones") || "";
   const limit = Number.parseInt(arg("limit") || "50", 10);
 
-  if (!templateRaw || (!fromCsv && !namesRaw)) {
+  if (!templateRaw || (!fromCsv && !namesRaw && !phonesRaw)) {
     console.error(
       'Uso: npm run marketing:dispatch -- --template=md_intro_feito_candidatas_v3 --names="Nome 1, Nome 2"',
     );
     console.error(
       "      ou: npm run marketing:dispatch -- --template=feito --from-csv --limit=50",
     );
+    console.error(
+      '      ou: npm run marketing:dispatch -- --template=feito --phones="31993717447,31992439177" --as-name=Gustavo',
+    );
     console.error("      acrescente --confirm somente depois de revisar o preview.");
     process.exitCode = 1;
     return;
   }
 
-  const csvContacts = fromCsv ? await loadCsvContacts(Number.isFinite(limit) ? limit : 50) : undefined;
+  const csvContacts = fromCsv
+    ? await loadCsvContacts(Number.isFinite(limit) ? limit : 50)
+    : phonesRaw
+      ? loadPhoneContacts(phonesRaw, arg("as-name") || "Gustavo")
+      : undefined;
   const preview = await previewNamedWhatsappDispatch({
     templateRaw,
-    namesRaw: fromCsv ? csvContacts!.map((item) => `${item.name} ${item.uf}`.trim()).join(", ") : namesRaw,
+    namesRaw: csvContacts
+      ? csvContacts.map((item) => item.phoneE164 || `${item.name} ${item.uf}`.trim()).join(", ")
+      : namesRaw,
     contacts: csvContacts,
   });
   const text = formatNamedPreview(preview);

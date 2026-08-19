@@ -4,6 +4,7 @@ import { handleInboundMessage } from "@/lib/outbound/inbound-handler";
 import type { MarketingConversation } from "@/lib/outbound/types";
 
 const appendInboundMessage = vi.fn();
+const appendAgentMessage = vi.fn();
 const setPendingSuggestion = vi.fn();
 const setConversationError = vi.fn();
 const setAgentPaused = vi.fn();
@@ -11,6 +12,7 @@ const getContactByPhone = vi.fn();
 const setContactOptOut = vi.fn();
 const generateAgentReply = vi.fn();
 const sendText = vi.fn();
+const resolveWhatsappConfig = vi.fn();
 
 vi.mock("@/lib/firebase/collections", () => ({
   COLLECTIONS: { marketingContacts: "marketingContacts" },
@@ -30,6 +32,7 @@ vi.mock("@/lib/observability/log", () => ({
 
 vi.mock("@/lib/outbound/conversations-storage", () => ({
   appendInboundMessage: (...args: unknown[]) => appendInboundMessage(...args),
+  appendAgentMessage: (...args: unknown[]) => appendAgentMessage(...args),
   setPendingSuggestion: (...args: unknown[]) => setPendingSuggestion(...args),
   setConversationError: (...args: unknown[]) => setConversationError(...args),
   setAgentPaused: (...args: unknown[]) => setAgentPaused(...args),
@@ -46,7 +49,7 @@ vi.mock("@/lib/outbound/conversation-agent", () => ({
 
 vi.mock("@/lib/outbound/whatsapp", () => ({
   sendText: (...args: unknown[]) => sendText(...args),
-  resolveWhatsappConfig: vi.fn(),
+  resolveWhatsappConfig: (...args: unknown[]) => resolveWhatsappConfig(...args),
 }));
 
 function conversation(overrides: Partial<MarketingConversation> = {}): MarketingConversation {
@@ -144,7 +147,9 @@ describe("handleInboundMessage", () => {
     expect(setPendingSuggestion).not.toHaveBeenCalled();
   });
 
-  it("no clique positivo do v3 usa a resposta pré-moldada e não chama a LLM", async () => {
+  it("no clique Pode mandar do v3 envia a resposta pré-moldada na hora", async () => {
+    resolveWhatsappConfig.mockResolvedValue({ accessToken: "t", phoneNumberId: "1", graphVersion: "v21.0" });
+    sendText.mockResolvedValue({ messageId: "wamid.out" });
     getContactByPhone.mockResolvedValue({
       id: "c1",
       name: "MARIA SILVA",
@@ -161,25 +166,27 @@ describe("handleInboundMessage", () => {
       conversation({
         contactName: "MARIA SILVA",
         messages: [
-          { role: "lead", text: "Sim. Seja breve", providerMessageId: "wamid.btn", at: new Date().toISOString() },
+          { role: "lead", text: "Pode mandar", providerMessageId: "wamid.btn", at: new Date().toISOString() },
         ],
       }),
     );
 
     const result = await handleInboundMessage({
       from: "5531999999999",
-      text: "Sim. Seja breve",
+      text: "Pode mandar",
       providerMessageId: "wamid.btn",
       profileName: "Maria",
       kind: "button",
     });
 
-    expect(result.status).toBe("sugerida");
-    if (result.status === "sugerida") {
+    expect(result.status).toBe("enviada");
+    if (result.status === "enviada") {
       expect(result.reply).toContain("Maria, vou te mandar o link de degustação");
       expect(result.reply).toContain("https://mandatodigital.ia.br/vozdelas");
     }
     expect(generateAgentReply).not.toHaveBeenCalled();
-    expect(sendText).not.toHaveBeenCalled();
+    expect(setPendingSuggestion).not.toHaveBeenCalled();
+    expect(sendText).toHaveBeenCalled();
+    expect(appendAgentMessage).toHaveBeenCalled();
   });
 });

@@ -8,7 +8,7 @@ import {
 
 const base = {
   kind: "button" as const,
-  buttonText: "Sim. Seja breve",
+  buttonText: "Pode mandar",
   lastTemplate: "md_intro_feito_candidatas_v3",
   leadMessageCount: 1,
   firstName: "Maria",
@@ -26,12 +26,16 @@ describe("resolveCannedPositiveReply", () => {
     expect(resolveCannedPositiveReply({ ...base, buttonText: "Sim" })).toBeTruthy();
   });
 
+  it("aceita Sim. Seja breve (rótulo antigo)", () => {
+    expect(resolveCannedPositiveReply({ ...base, buttonText: "Sim. Seja breve" })).toBeTruthy();
+  });
+
   it("ignora texto digitado, mesmo que seja Sim", () => {
     expect(resolveCannedPositiveReply({ ...base, kind: "text", buttonText: "Sim" })).toBeNull();
   });
 
   it("ignora o botão negativo", () => {
-    expect(resolveCannedPositiveReply({ ...base, buttonText: "Não, obrigado" })).toBeNull();
+    expect(resolveCannedPositiveReply({ ...base, buttonText: "Não, obrigada" })).toBeNull();
   });
 
   it("só vale na primeira mensagem do lead", () => {
