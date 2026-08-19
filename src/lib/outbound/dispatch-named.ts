@@ -20,7 +20,7 @@ import {
 } from "@/lib/outbound/whatsapp-templates";
 import { resolveWhatsappConfig, sendTemplate } from "@/lib/outbound/whatsapp";
 
-export const NAMED_DISPATCH_DAILY_CAP = 50;
+export const NAMED_DISPATCH_DAILY_CAP = 100;
 /** Piso/teto do intervalo aleatório entre envios (anti-rajada). */
 export const NAMED_DISPATCH_INTERVAL_MIN_MS = 20_000;
 export const NAMED_DISPATCH_INTERVAL_MAX_MS = 60_000;

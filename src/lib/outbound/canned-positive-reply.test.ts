@@ -45,6 +45,17 @@ describe("resolveCannedPositiveReply", () => {
   it("não aplica em template sem resposta pré-moldada", () => {
     expect(resolveCannedPositiveReply({ ...base, lastTemplate: "md_intro_vaga_sigla_v1" })).toBeNull();
   });
+
+  it("no genérico manda /na-pratica no clique Sim. Seja breve", () => {
+    const reply = resolveCannedPositiveReply({
+      ...base,
+      buttonText: "Sim. Seja breve",
+      lastTemplate: "md_intro_generico_v1",
+    });
+    expect(reply).toBe(
+      "Maria, segue o link de degustação para você conhecer a plataforma na prática - ver como monitoramos adversários, jornais, redes sociais e gravamos vídeos sobre essas pautas com o seu posicionamento, através do seu avatar de IA. Tudo registrado para fundamentar eventuais impugnações das chapas. Aqui está: https://mandatodigital.ia.br/na-pratica. Me conta depois o que achou!",
+    );
+  });
 });
 
 describe("fillCannedFirstName", () => {
