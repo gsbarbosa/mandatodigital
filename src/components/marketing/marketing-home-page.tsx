@@ -130,21 +130,14 @@ function EcosystemVisual() {
 const HERO_ALT =
   "Candidato diante do feed do eleitor cercado pelos agentes de IA do Mandato Digital: Sentinela, Curador, Criador, Distribuidor e Auditor";
 
-/**
- * Fundo do hero. Reproduz a cor de canto da própria arte (~#00020c), então
- * qualquer sobra fora da caixa de aspect-ratio (telas mais largas que o
- * xl:max-w) emenda sem costura visível.
- */
-const HERO_BACKDROP = "linear-gradient(to bottom, #00020c 0%, #010a18 65%, #05101f 100%)";
-
 function HeroCopy() {
   return (
     <>
-      <h1 className="m-0 text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl xl:text-5xl xl:leading-[1.12] 2xl:text-7xl 2xl:leading-[1.05]">
+      <h1 className="m-0 text-4xl font-bold leading-tight tracking-tight text-md-text sm:text-5xl xl:text-5xl xl:leading-[1.12] 2xl:text-7xl 2xl:leading-[1.05]">
         {homeHero.title.lead} <span className="text-emerald-400">{homeHero.title.accent}</span>{" "}
         {homeHero.title.tail} <span className="text-emerald-400">{homeHero.title.year}</span>.
       </h1>
-      <p className="mt-5 text-base leading-relaxed text-slate-300 sm:text-lg xl:mt-5 xl:text-base 2xl:text-lg">
+      <p className="mt-5 text-base leading-relaxed text-md-text-muted sm:text-lg xl:mt-5 xl:text-base 2xl:text-lg">
         {homeHero.body.line1}
         <br />
         {homeHero.body.line2Lead}{" "}
@@ -158,7 +151,7 @@ function HeroCopy() {
         <Link href={MARKETING_CTA_HREF} className="primary-button">
           {MARKETING_CTA_LABEL}
         </Link>
-        <Link href={"/ecossistema" as Route} className="secondary-button inline-flex items-center text-white">
+        <Link href={"/ecossistema" as Route} className="secondary-button inline-flex items-center">
           Conheça o ecossistema
         </Link>
       </div>
@@ -182,10 +175,7 @@ function HeroCopy() {
  */
 function HomeHero() {
   return (
-    <section
-      className="relative overflow-hidden border-b border-white/5"
-      style={{ background: HERO_BACKDROP }}
-    >
+    <section className="marketing-hero-backdrop relative overflow-hidden border-b border-md-border">
       {/*
         aspect-[1672/843] (em vez do 1672/941 nativo) + bg-bottom: a arte não
         tem folga própria pra "subir" dentro da caixa (cover já cobre 100%
@@ -202,8 +192,7 @@ function HomeHero() {
         <div
           role="img"
           aria-label={HERO_ALT}
-          className="absolute inset-0 bg-cover bg-bottom bg-no-repeat"
-          style={{ backgroundImage: "url(/marketing/home/hero-2026-wide.webp)" }}
+          className="hero-art-wide absolute inset-0 bg-cover bg-bottom bg-no-repeat"
         />
         {/*
           top-[6.4%]: mesmo respiro em px do ajuste anterior (65% de corte no
@@ -222,8 +211,7 @@ function HomeHero() {
           <div
             role="img"
             aria-label={HERO_ALT}
-            className="mt-10 aspect-[1400/991] w-full bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: "url(/marketing/home/hero-2026-mobile.webp)" }}
+            className="hero-art-mobile mt-10 aspect-[1400/991] w-full bg-cover bg-right bg-no-repeat"
           />
         </div>
       </div>
