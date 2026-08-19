@@ -73,6 +73,7 @@ Emissão automática após pagamento confirmado (`invoiceSettings` na assinatura
 - [E2E Sentinela (Playwright)](docs/e2e-sentinela.md)
 - [SPEC — Remodelagem UI/UX e navegacao (implementada)](docs/spec-remodelagem-ui-navegacao.md)
 - [Integrações e secrets (agente Claude Code)](.claude/agents/integracoes.md)
+- [Disparo WhatsApp outbound (agente)](.claude/agents/whatsapp-outbound.md)
 
 ## Deploy no Firebase App Hosting
 

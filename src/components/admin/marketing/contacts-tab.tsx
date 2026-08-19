@@ -88,7 +88,7 @@ export function ContactsTab({
           <StatCard label="Com e-mail" value={stats.withEmail} />
           <StatCard label="Com WhatsApp" value={stats.withWhatsapp} />
           <StatCard label="Candidatos 2026" value={stats.candidates2026} />
-          <StatCard label="Suspensos" value={stats.suspended} />
+          <StatCard label="Opt-out" value={stats.optOut} />
         </div>
       ) : null}
 
@@ -131,13 +131,14 @@ export function ContactsTab({
                 <th className="px-4 py-3 font-semibold">Cargo</th>
                 <th className="px-4 py-3 font-semibold">Origem</th>
                 <th className="px-4 py-3 font-semibold">Canais</th>
+                <th className="px-4 py-3 font-semibold">Último disparo</th>
               </tr>
             </thead>
             <tbody>
               {!loading && (data?.contacts.length ?? 0) === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-md-text-soft">
-                    Nenhum contato no filtro. Rodou o seed? (`npm run marketing:seed`)
+                  <td colSpan={6} className="px-4 py-8 text-center text-md-text-soft">
+                    Nenhum contato ainda. Eles entram aqui só depois do primeiro disparo.
                   </td>
                 </tr>
               ) : null}
@@ -157,9 +158,9 @@ export function ContactsTab({
                         candidato 2026
                       </span>
                     ) : null}
-                    {contact.suspended ? (
-                      <span className="ml-2 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-200">
-                        suspenso
+                    {contact.optOut ? (
+                      <span className="ml-2 rounded-full bg-rose-500/15 px-2 py-0.5 text-[10px] font-semibold text-rose-200">
+                        opt-out
                       </span>
                     ) : null}
                   </td>
@@ -168,6 +169,11 @@ export function ContactsTab({
                     {[contact.email ? "e-mail" : null, contact.phoneE164 ? "WhatsApp" : null]
                       .filter(Boolean)
                       .join(" + ") || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-md-text-soft">
+                    {contact.lastTemplate
+                      ? `${contact.lastTemplate} · ${contact.lastStatus || "—"}`
+                      : "—"}
                   </td>
                 </tr>
               ))}

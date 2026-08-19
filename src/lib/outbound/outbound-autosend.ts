@@ -11,6 +11,7 @@ import {
   restoreSuggestion,
   setConversationError,
 } from "@/lib/outbound/conversations-storage";
+import { getContactByPhone } from "@/lib/outbound/contacts-storage";
 import { isSuggestionAutoSendDue, isWithinServiceWindow } from "@/lib/outbound/types";
 import { resolveWhatsappConfig, sendText } from "@/lib/outbound/whatsapp";
 
@@ -43,6 +44,12 @@ export async function flushDueSuggestedReplies(
 
   for (const conversation of due) {
     if (!isWithinServiceWindow(conversation.lastInboundAt, nowMs)) {
+      result.skipped += 1;
+      continue;
+    }
+
+    const worked = await getContactByPhone(conversation.phoneE164);
+    if (worked?.optOut) {
       result.skipped += 1;
       continue;
     }

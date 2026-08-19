@@ -251,3 +251,14 @@ export async function listCampaignSends(campaignId: string): Promise<MarketingSe
     .filter((send): send is MarketingSend => Boolean(send))
     .sort((a, b) => a.contactName.localeCompare(b.contactName, "pt-BR"));
 }
+
+/** Trilha completa de WhatsApp — usada no teto diário do disparo nomeado. */
+export async function listWhatsappSends(): Promise<MarketingSend[]> {
+  const snapshot = await col(COLLECTIONS.marketingSends)
+    .where("channel", "==", "whatsapp")
+    .get();
+
+  return snapshot.docs
+    .map((doc) => mapSend(doc.id, doc.data()))
+    .filter((send): send is MarketingSend => Boolean(send));
+}

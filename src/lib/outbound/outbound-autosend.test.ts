@@ -8,6 +8,7 @@ const claimDueSuggestion = vi.fn();
 const restoreSuggestion = vi.fn();
 const appendAgentMessage = vi.fn();
 const setConversationError = vi.fn();
+const getContactByPhone = vi.fn();
 const resolveWhatsappConfig = vi.fn();
 const sendText = vi.fn();
 
@@ -22,6 +23,10 @@ vi.mock("@/lib/outbound/conversations-storage", () => ({
   restoreSuggestion: (...args: unknown[]) => restoreSuggestion(...args),
   appendAgentMessage: (...args: unknown[]) => appendAgentMessage(...args),
   setConversationError: (...args: unknown[]) => setConversationError(...args),
+}));
+
+vi.mock("@/lib/outbound/contacts-storage", () => ({
+  getContactByPhone: (...args: unknown[]) => getContactByPhone(...args),
 }));
 
 vi.mock("@/lib/outbound/whatsapp", () => ({
@@ -62,6 +67,7 @@ describe("flushDueSuggestedReplies", () => {
       autoSendAt: "2026-08-18T12:03:00.000Z",
     });
     sendText.mockResolvedValue({ messageId: "wamid.out" });
+    getContactByPhone.mockResolvedValue(null);
   });
 
   it("envia a sugestão vencida como Marina", async () => {

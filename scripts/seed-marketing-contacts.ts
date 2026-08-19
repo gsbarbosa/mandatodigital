@@ -32,7 +32,7 @@ import {
   type RejectionReason,
 } from "../src/lib/outbound/instagram-enrichment";
 import { classifyPhone, firstMobileE164, splitPhoneField } from "../src/lib/outbound/phone";
-import type { ContactSource } from "../src/lib/outbound/types";
+import { EMPTY_DISPATCH_META, type ContactSource } from "../src/lib/outbound/types";
 
 const DEFAULT_DIRETORIO_CSV = ".local/diretorios-partidarios.csv";
 const DEFAULT_CANDIDATOS_CSV = ".local/consulta_cand_2026_BRASIL.csv";
@@ -262,6 +262,7 @@ function buildDirectoryContacts(
       relevanceTier: "padrao",
       suspended,
       origin,
+      ...EMPTY_DISPATCH_META,
     });
   }
 
@@ -394,6 +395,7 @@ function buildInstagramContacts(
       relevanceTier: "padrao",
       suspended: false,
       origin,
+      ...EMPTY_DISPATCH_META,
     });
   }
 
@@ -459,12 +461,16 @@ function buildCamaraContacts(
         relevanceTier: "padrao",
         suspended: false,
         origin,
+        ...EMPTY_DISPATCH_META,
       };
     });
 }
 
 async function main() {
   loadEnvLocal();
+  console.error(
+    "Aviso: o modelo operacional agora só grava contato no disparo. Este seed reconstitui a poça antiga.",
+  );
 
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");

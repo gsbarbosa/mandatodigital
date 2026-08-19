@@ -119,7 +119,9 @@ async function resolveRecipients(
     previousSends.filter((send) => send.status === "enviado").map((send) => send.contactId),
   );
 
-  const recipients = inSegment.filter((contact) => !alreadySent.has(contact.id));
+  const recipients = inSegment.filter(
+    (contact) => !alreadySent.has(contact.id) && !contact.optOut,
+  );
 
   return { recipients, skippedAlreadySent: inSegment.length - recipients.length };
 }
