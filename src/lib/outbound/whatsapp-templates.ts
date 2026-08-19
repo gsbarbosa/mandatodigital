@@ -53,8 +53,8 @@ export const WHATSAPP_TEMPLATE_CATALOG: WhatsappTemplateCatalogEntry[] = [
     approved: true,
     body: "Olá *{{1}}*, aqui é a *{{2}}*, do Mandato Digital.\n\nMontamos a primeira plataforma de campanha com foco em candidatas: estúdio sem equipe de gravação, monitoramento 24h e registro documentado da candidatura.\n\nPosso te mandar a página de um minuto?",
     notes:
-      "{{1}}=primeiro nome, {{2}}=persona (Anna). Botão positivo dispara a resposta pré-moldada (link /vozdelas), sem LLM.",
-    positiveButtonLabels: ["Sim. Seja breve", "Sim"],
+      "{{1}}=primeiro nome, {{2}}=persona (Anna). Botão positivo na Meta: Pode mandar. Clique dispara a resposta pré-moldada (link /vozdelas) na hora, sem LLM.",
+    positiveButtonLabels: ["Pode mandar", "Sim. Seja breve", "Sim"],
     cannedPositiveReply:
       "[Maria], vou te mandar o link de degustação para você conhecer a plataforma na prática - ver como monitoramos adversários, jornais, redes sociais e gravamos vídeos sobre essas pautas com o seu posicionamento, através do seu avatar de IA. Tudo registrado para fundamentar eventuais impugnações das chapas. Aqui está: https://mandatodigital.ia.br/vozdelas. Me conta depois o que achou!",
   },

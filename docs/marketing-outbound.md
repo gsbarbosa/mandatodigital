@@ -485,10 +485,11 @@ E.164) e a Marina **gera uma sugestão — não envia**. O texto aparece na aba 
 humano mandar.
 
 - **Primeira resposta do botão positivo**: se o primeiro inbound for o clique no botão positivo
-  do último template enviado, **não passa pela LLM**. O texto pré-moldado do catálogo
-  (`cannedPositiveReply` em `whatsapp-templates.ts`) vira a sugestão — `[Maria]` é o primeiro
-  nome. Hoje só o `md_intro_feito_candidatas_v3` tem esse texto (link `/vozdelas`). Botão
-  negativo, texto digitado ou segunda mensagem seguem a Marina. O auto-envio de 3 min vale igual.
+  do último template enviado, **não passa pela LLM** e **envia na hora**. O texto pré-moldado
+  do catálogo (`cannedPositiveReply`) usa `[Maria]` como primeiro nome. No
+  `md_intro_feito_candidatas_v3` o botão na Meta é **Pode mandar** (negativo: **Não, obrigada**)
+  e o texto manda o link `/vozdelas`. Botão negativo, texto digitado ou segunda mensagem seguem
+  a Marina (sugestão + auto-envio em 3 min).
 - **Auto-envio em 3 min**: se ninguém disparar a sugestão, a IA envia sozinha (`autoSendAt`).
   O webhook não espera esses 3 minutos: grava a sugestão e devolve 200. Quem envia é
   `POST /api/workers/outbound-autosend` (Cloud Scheduler a cada 1 min) e, de quebra, abrir a
