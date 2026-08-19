@@ -69,8 +69,21 @@ describe("openai-account-status", () => {
       monthSpendUsd: 35,
       spendLimitUsd: 100,
     });
+    expect(usage?.kind).toBe("quota");
     expect(usage?.remaining).toBe(65);
     expect(usage?.percentUsed).toBe(35);
     expect(usage?.exhausted).toBe(false);
+  });
+
+  it("sem spend limit não finge cota estourada", () => {
+    const usage = buildOpenAiUsageSnapshot({
+      monthSpendUsd: 2.97,
+      spendLimitUsd: null,
+    });
+    expect(usage?.kind).toBe("uncapped");
+    expect(usage?.percentUsed).toBe(0);
+    expect(usage?.exhausted).toBe(false);
+    expect(usage?.used).toBe(2.97);
+    expect(usage?.limit).toBe(0);
   });
 });
