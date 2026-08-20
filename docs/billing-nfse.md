@@ -30,16 +30,24 @@ Vencimentos: 1ª parcela na data escolhida no checkout, 2ª e 3ª em `+1` e `+2`
 ```text
 [Candidato] escolhe plano + método (pix|boleto) na modal de checkout
   ▼
-Modal: CNPJ de campanha + aceite clickwrap (Contrato + Dossiê)
+Modal de adesão (checkout-contract-modal):
+  1. Digita CNPJ → GET /api/legal/cnpj-lookup (Brasil API; rate limit compartilhado)
+  2. Nome/endereço travados se a Receita trouxe dado; senão inputs com fallback do cadastro
+  3. Responsável financeiro sempre editável
+  4. "Ver contrato completo" → POST /api/legal/contract-preview (texto nominal Contrato + Dossiê)
+  5. Checkbox clickwrap + "Aceitar e pagar"
   ▼
 POST /api/billing/checkout
   1. Exige cadastro completo (isUserRegistrationComplete)
-  2. Se ainda não houver aceite para o plano: processContractAcceptance (CNPJ TSE + PDF + audit log)
+  2. Se ainda não houver aceite para o plano: deriveContractFields + processContractAcceptance
+     (trava no servidor — cliente não sobrescreve razão social/endereço da Receita;
+      financialResponsible e fallbacks só quando a consulta não trouxe dado)
   3. Bloqueia se já existe pacote ativo/pendente (hasOpenBillingPackage) — exceto smoke
-  3. resolveAsaasBillingCustomer → asaasEnsureCustomer (cria/atualiza customer no Asaas)
-  4. asaasCreatePayment (parcela 1) + agenda parcelas 2 e 3
-  5. PIX → asaasGetPixQrCode (QR + copia-e-cola) | Boleto → link + linha digitável
-  6. Grava no cadastro: asaasCustomerId, asaasInstallmentId, asaasPrimaryPaymentId,
+  4. resolveAsaasBillingCustomer → asaasEnsureCustomer (cria/atualiza customer no Asaas)
+     (endereço: Receita e/ou campaignAddress do contrato aceito, depois cadastro)
+  5. asaasCreatePayment (parcela 1) + agenda parcelas 2 e 3
+  6. PIX → asaasGetPixQrCode | Boleto → link + linha digitável
+  7. Grava no cadastro: asaasCustomerId, asaasInstallmentId, asaasPrimaryPaymentId,
      billingFirstDueDate, billingMethod, billingStatus="pending_payment"
   ▼
 [Asaas] cobra o candidato (fora do app)

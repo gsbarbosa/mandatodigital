@@ -14,8 +14,10 @@ export const maxDuration = 60;
 const bodySchema = z.object({
   cnpj: z.string().min(14),
   accepted: z.literal(true),
-  campaignName: z.string().min(2),
-  campaignAddress: z.string().min(5),
+  /** Fallback: so usado se a Receita nao trouxer razao social. */
+  campaignNameFallback: z.string().optional(),
+  /** Fallback: so usado se a Receita nao trouxer endereco fiscal. */
+  campaignAddressFallback: z.string().optional(),
   financialResponsible: z.string().min(2),
   email: z.string().email(),
   planId: z.enum(["essencial", "avancado", "elite"]),

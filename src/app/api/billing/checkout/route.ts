@@ -42,6 +42,11 @@ const bodySchema = z.object({
   method: z.enum(["pix", "boleto"]).default("pix"),
   cnpj: z.string().min(14).optional(),
   accepted: z.literal(true).optional(),
+  financialResponsible: z.string().min(2).optional(),
+  /** Fallback: so usado se a Receita nao trouxer razao social. */
+  campaignName: z.string().min(1).optional(),
+  /** Fallback: so usado se a Receita nao trouxer endereco fiscal. */
+  campaignAddress: z.string().min(1).optional(),
 });
 
 export async function POST(request: Request) {
@@ -81,11 +86,17 @@ export async function POST(request: Request) {
             { status: 400 },
           );
         }
-        if (!registration.address?.trim()) {
+        if (!body.financialResponsible?.trim()) {
+          return NextResponse.json(
+            { message: "Informe o responsavel financeiro do contrato." },
+            { status: 400 },
+          );
+        }
+        if (!registration.address?.trim() && !body.campaignAddress?.trim()) {
           return NextResponse.json(
             {
               message:
-                "Endereço da campanha ausente. Complete em Dados Pessoais antes do checkout.",
+                "Endereço da campanha ausente. Complete em Dados Pessoais ou informe no contrato.",
             },
             { status: 400 },
           );
@@ -102,9 +113,11 @@ export async function POST(request: Request) {
             body: {
               cnpj: body.cnpj,
               accepted: true,
-              campaignName: registration.fullName,
-              campaignAddress: registration.address,
-              financialResponsible: registration.fullName,
+              campaignNameFallback:
+                body.campaignName?.trim() || registration.fullName,
+              campaignAddressFallback:
+                body.campaignAddress?.trim() || registration.address,
+              financialResponsible: body.financialResponsible.trim(),
               email,
               planId: body.planId,
               party: registration.party || undefined,

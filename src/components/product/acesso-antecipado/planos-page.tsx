@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
 import { APP_HOME_PATH } from "@/lib/app-home";
-import { CheckoutContractModal } from "@/components/product/acesso-antecipado/checkout-contract-modal";
+import { CheckoutContractModal, type CheckoutContractConfirmPayload } from "@/components/product/acesso-antecipado/checkout-contract-modal";
 import {
   earlyAccessPlans,
   useEarlyAccess,
@@ -140,7 +140,7 @@ export function AcessoPlanosPage() {
   async function handleCheckout(
     planId: EarlyAccessPlanId,
     method: "pix" | "boleto" = "pix",
-    cnpjDigits: string | null = null,
+    contractPayload: CheckoutContractConfirmPayload | null = null,
   ) {
     setErrorMessage(null);
     setCheckoutError(null);
@@ -171,12 +171,21 @@ export function AcessoPlanosPage() {
         writePlanIntent(planId);
       }
 
-      const needsContract =
-        contractPlanId !== planId || !contractCnpj;
+      const cnpjDigits = contractPayload?.cnpjDigits ?? null;
+      const needsContract = contractPlanId !== planId || !contractCnpj;
       const checkoutBody: Record<string, unknown> = { planId, method };
       if (needsContract && cnpjDigits) {
         checkoutBody.cnpj = cnpjDigits;
         checkoutBody.accepted = true;
+        if (contractPayload?.financialResponsible) {
+          checkoutBody.financialResponsible = contractPayload.financialResponsible;
+        }
+        if (contractPayload?.campaignName) {
+          checkoutBody.campaignName = contractPayload.campaignName;
+        }
+        if (contractPayload?.campaignAddress) {
+          checkoutBody.campaignAddress = contractPayload.campaignAddress;
+        }
       }
 
       const response = await fetch("/api/billing/checkout", {
@@ -568,8 +577,8 @@ export function AcessoPlanosPage() {
             setPendingCheckout(null);
             setCheckoutError(null);
           }}
-          onConfirm={(cnpjDigits) => {
-            void handleCheckout(pendingCheckout.planId, pendingCheckout.method, cnpjDigits);
+          onConfirm={(payload) => {
+            void handleCheckout(pendingCheckout.planId, pendingCheckout.method, payload);
           }}
         />
       ) : null}
