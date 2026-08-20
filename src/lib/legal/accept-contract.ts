@@ -1,6 +1,8 @@
 import {
   assertElectoralCnpj,
+  formatAddressFromLookup,
   lookupCnpjBrasilApi,
+  type CnpjLookupResult,
 } from "@/lib/legal/cnpj-natureza";
 import { PLAN_LABELS, PLAN_PRICES_CENTS } from "@/lib/legal/constants";
 import {
@@ -22,8 +24,10 @@ import { formatCampaignCnpj } from "@/lib/legal/cnpj-format";
 export type ContractAcceptanceInput = {
   cnpj: string;
   accepted: true;
-  campaignName: string;
-  campaignAddress: string;
+  /** Usado só se a Receita não trouxer razão social. */
+  campaignNameFallback?: string;
+  /** Usado só se a Receita não trouxer endereço fiscal completo. */
+  campaignAddressFallback?: string;
   financialResponsible: string;
   email: string;
   planId: EarlyAccessPlanId;
@@ -41,6 +45,15 @@ export type ContractAcceptanceResult = {
   dossierPdfUrl: string;
   emailSent: boolean;
   emailSkipReason?: string;
+};
+
+export type DerivedContractFields = {
+  campaignName: string;
+  campaignAddress: string;
+  campaignCnpj: string;
+  naturezaJuridica: string;
+  campaignNameLocked: boolean;
+  campaignAddressLocked: boolean;
 };
 
 export class ContractAcceptanceError extends Error {
@@ -64,6 +77,52 @@ export function needsContractAcceptanceForCheckout(
   return existing.planId !== planId;
 }
 
+export async function deriveContractFields(input: {
+  cnpjDigits: string;
+  fallbackCampaignName: string;
+  fallbackCampaignAddress: string;
+  party?: string;
+}): Promise<DerivedContractFields> {
+  let lookup: CnpjLookupResult;
+  try {
+    lookup = await lookupCnpjBrasilApi(input.cnpjDigits);
+  } catch (error) {
+    throw new ContractAcceptanceError(
+      error instanceof Error
+        ? error.message
+        : "Falha ao consultar CNPJ na Receita Federal.",
+      502,
+    );
+  }
+  try {
+    assertElectoralCnpj(lookup);
+  } catch (error) {
+    throw new ContractAcceptanceError(
+      error instanceof Error ? error.message : "CNPJ nao elegivel.",
+      422,
+    );
+  }
+
+  const razaoSocial = lookup.razaoSocial.trim();
+  const lookedUpAddress = formatAddressFromLookup(lookup);
+  const campaignNameLocked = Boolean(razaoSocial);
+  const campaignNameBase = razaoSocial || input.fallbackCampaignName.trim();
+  // Partido só no fallback (nome do cadastro). Razão social da Receita já é nominal.
+  const campaignName =
+    !campaignNameLocked && input.party?.trim()
+      ? `${campaignNameBase} (${input.party.trim()})`
+      : campaignNameBase;
+
+  return {
+    campaignName,
+    campaignAddress: lookedUpAddress || input.fallbackCampaignAddress.trim(),
+    campaignCnpj: formatCampaignCnpj(input.cnpjDigits),
+    naturezaJuridica: lookup.naturezaJuridica,
+    campaignNameLocked,
+    campaignAddressLocked: Boolean(lookedUpAddress),
+  };
+}
+
 export async function processContractAcceptance(input: {
   request: Request;
   ownerUserId: string;
@@ -75,31 +134,42 @@ export async function processContractAcceptance(input: {
     throw new ContractAcceptanceError("CNPJ invalido.", 400);
   }
 
-  const lookup = await lookupCnpjBrasilApi(digits);
-  try {
-    assertElectoralCnpj(lookup);
-  } catch (error) {
+  const derived = await deriveContractFields({
+    cnpjDigits: digits,
+    fallbackCampaignName: body.campaignNameFallback?.trim() || "",
+    fallbackCampaignAddress: body.campaignAddressFallback?.trim() || "",
+    party: body.party,
+  });
+
+  if (!derived.campaignName.trim()) {
     throw new ContractAcceptanceError(
-      error instanceof Error ? error.message : "CNPJ nao elegivel.",
-      422,
+      "Nome da campanha ausente. Informe o nome ou use um CNPJ com razao social na Receita.",
+      400,
     );
+  }
+  if (!derived.campaignAddress.trim()) {
+    throw new ContractAcceptanceError(
+      "Endereco da campanha ausente. Informe o endereco ou use um CNPJ com endereco fiscal na Receita.",
+      400,
+    );
+  }
+
+  const financialResponsible = body.financialResponsible.trim();
+  if (financialResponsible.length < 2) {
+    throw new ContractAcceptanceError("Informe o responsavel financeiro.", 400);
   }
 
   const acceptanceId = crypto.randomUUID();
   const acceptedAt = new Date();
   const ip = extractClientIp(request);
   const userAgent = extractUserAgent(request);
-  const campaignCnpj = formatCampaignCnpj(digits);
-  const campaignName = body.party?.trim()
-    ? `${body.campaignName.trim()} (${body.party.trim()})`
-    : body.campaignName.trim();
 
   const fill = {
     acceptanceId,
-    campaignName,
-    campaignCnpj,
-    campaignAddress: body.campaignAddress.trim(),
-    financialResponsible: body.financialResponsible.trim(),
+    campaignName: derived.campaignName,
+    campaignCnpj: derived.campaignCnpj,
+    campaignAddress: derived.campaignAddress,
+    financialResponsible,
     planId: body.planId,
     ip,
     userAgent,
@@ -131,7 +201,7 @@ export async function processContractAcceptance(input: {
   try {
     const mail = await sendContractAcceptanceEmail({
       to: body.email,
-      campaignName: body.campaignName.trim(),
+      campaignName: derived.campaignName,
       planName: PLAN_LABELS[body.planId],
       acceptanceId,
       attachments: [
@@ -150,14 +220,14 @@ export async function processContractAcceptance(input: {
   const row: ContractAcceptanceRow = {
     id: acceptanceId,
     ownerUserId,
-    campaignName,
-    campaignCnpj,
-    campaignAddress: body.campaignAddress.trim(),
-    financialResponsible: body.financialResponsible.trim(),
+    campaignName: derived.campaignName,
+    campaignCnpj: derived.campaignCnpj,
+    campaignAddress: derived.campaignAddress,
+    financialResponsible,
     email: body.email,
     planId: body.planId,
     amountCents: PLAN_PRICES_CENTS[body.planId],
-    naturezaJuridica: lookup.naturezaJuridica,
+    naturezaJuridica: derived.naturezaJuridica,
     ip,
     userAgent,
     acceptedAt: acceptedAt.toISOString(),
@@ -180,21 +250,23 @@ export async function processContractAcceptance(input: {
     userAgent,
     payload: {
       acceptanceId,
-      cnpj: campaignCnpj,
+      cnpj: derived.campaignCnpj,
       ip,
       userAgent,
       contractHash: contractDoc.hash,
       dossierHash: dossierDoc.hash,
-      naturezaJuridica: lookup.naturezaJuridica,
+      naturezaJuridica: derived.naturezaJuridica,
+      campaignNameLocked: derived.campaignNameLocked,
+      campaignAddressLocked: derived.campaignAddressLocked,
       emailSent,
     },
   });
 
   return {
     acceptanceId,
-    cnpj: campaignCnpj,
+    cnpj: derived.campaignCnpj,
     acceptedAt: row.acceptedAt,
-    naturezaJuridica: lookup.naturezaJuridica,
+    naturezaJuridica: derived.naturezaJuridica,
     contractHash: contractDoc.hash,
     dossierHash: dossierDoc.hash,
     contractPdfUrl: contractStored.publicUrl,

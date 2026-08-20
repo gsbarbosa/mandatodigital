@@ -1,3 +1,5 @@
+import { addressFromCnpjLookup } from "@/lib/billing/asaas-customer-address";
+
 export type CnpjLookupResult = {
   cnpj: string;
   razaoSocial: string;
@@ -9,6 +11,30 @@ export type CnpjLookupResult = {
   uf?: string;
   cep?: string;
 };
+
+/** Linha legível pro contrato; null = sem dado suficiente pra travar o campo. */
+export function formatAddressFromLookup(lookup: CnpjLookupResult): string | null {
+  const asaas = addressFromCnpjLookup(lookup);
+  if (!asaas) {
+    return null;
+  }
+  const cepDigits = asaas.postalCode;
+  const cepLabel =
+    cepDigits.length === 8
+      ? `${cepDigits.slice(0, 5)}-${cepDigits.slice(5)}`
+      : cepDigits;
+  const cityUf = [lookup.municipio?.trim(), lookup.uf?.trim()]
+    .filter(Boolean)
+    .join(" - ");
+  const parts = [
+    asaas.address,
+    asaas.addressNumber,
+    asaas.province,
+    cityUf || null,
+    cepLabel ? `CEP ${cepLabel}` : null,
+  ].filter((part): part is string => Boolean(part && part.trim()));
+  return parts.length >= 2 ? parts.join(", ") : null;
+}
 
 const ALLOWED_NATUREZA_PATTERNS = [
   /comit[eé]\s+financeiro/i,

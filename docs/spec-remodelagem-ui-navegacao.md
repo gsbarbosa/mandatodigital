@@ -33,7 +33,7 @@ Candidato/parlamentar logado (fase de acesso antecipado, eleição out/2026).
 | Gerar pauta independente | `/independente` | Criativo em modo independente |
 | Compliance TSE | `/compliance` | Página institucional |
 | Minha conta → Dados Pessoais | `/acesso-antecipado/dados` | Cadastro travado |
-| Minha conta → Contratar plano | `/acesso-antecipado/planos` | Plano + modal de contrato (CNPJ + clickwrap) antes da cobrança |
+| Minha conta → Contratar plano | `/acesso-antecipado/planos` | Plano + modal (CNPJ Receita, campos travados/editáveis, preview nominal Contrato+Dossiê, clickwrap) antes da cobrança |
 | Minha conta → Meus pagamentos | `/acesso-antecipado/pagamento` | PIX/boleto e status das parcelas |
 
 Fora do menu (rotas preservadas): `/curador` (= "Personalizar", acessado pelo hub de avatares),
@@ -77,7 +77,7 @@ O backend não tem conceito de "esfera" nem de planos/reserva. Mapeamentos adota
 6. **Independente** = `CriativoPageV2` em `mode="independente"`: sem banner Sentinela/tema/roteiro,
    texto do usuário vira transcript (semântica free-prompt existente → fact-check `skipped` no
    backend), checkbox TSE obrigatório, arquétipo/tom (máx 1 cada), seletor de produção existente.
-7. **Minha conta** (`/acesso-antecipado/*`): cadastro no backend; aceite de contrato (CNPJ + clickwrap) na **modal de checkout** em Planos, antes de `POST /api/billing/checkout`. Cache local (`localStorage`) mantém espelho da reserva/CNPJ para UX.
+7. **Minha conta** (`/acesso-antecipado/*`): cadastro no backend; aceite de contrato na **modal de checkout** em Planos — consulta CNPJ (Brasil API), trava nome/endereço quando a Receita traz dado, preview nominal de Contrato+Dossiê, clickwrap, depois `POST /api/billing/checkout`. Cache local (`localStorage`) mantém espelho da reserva/CNPJ para UX.
 
 ## Decisões de produto incorporadas (aprovadas em sessão)
 
