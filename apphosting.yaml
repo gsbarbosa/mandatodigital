@@ -173,7 +173,7 @@ env:
       - RUNTIME
 
   - variable: EMAIL_FROM
-    value: Mandato Digital <tribeiro81@gmail.com>
+    value: Mandato Digital <annafernandes@mandatodigital.ia.br>
     availability:
       - RUNTIME
 

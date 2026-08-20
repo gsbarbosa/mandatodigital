@@ -28,7 +28,21 @@ export type RenderedLegalDocument = {
   text: string;
   hash: string;
   acceptedAtLabel: string;
+  /** Metadados injetados no rodapé do PDF (carimbo digital). */
+  stamp: {
+    acceptanceId: string;
+    contractReference: string;
+    ip: string;
+    userAgent: string;
+    /** Hash SHA-256 do contrato vinculado — só no dossiê. */
+    linkedContractHash?: string;
+  };
 };
+
+function formatContractReference(acceptanceId: string) {
+  const compact = acceptanceId.replace(/-/g, "").slice(0, 12).toUpperCase();
+  return `MD-${compact}`;
+}
 
 function buildContractBody(input: ContractFillInput & { acceptedAtLabel: string }) {
   const planName = PLAN_LABELS[input.planId];
@@ -108,14 +122,16 @@ CLÁUSULA DÉCIMA PRIMEIRA – DO FORO
 ${EATEASY.local}, ${input.acceptedAtLabel}
 
 (Assinatura Eletrônica do Contratante registrada via Aceite no Sistema)
-(Assinatura Eletrônica da EatEasy registrada via Sistema)
-(Logs Técnicos: IP ${input.ip} | User Agent ${input.userAgent} | Data e Hora do Aceite ${input.acceptedAtLabel})
-(Hash SHA-256 do texto: ver carimbo no PDF)
-(Referência do aceite: ${input.acceptanceId})
-(Versão do template: ${CONTRACT_TEMPLATE_VERSION})`;
+(Assinatura Eletrônica da EatEasy registrada via Sistema)`;
 }
 
-function buildDossierBody(input: ContractFillInput & { acceptedAtLabel: string; contractHash: string }) {
+function buildDossierBody(
+  input: ContractFillInput & {
+    acceptedAtLabel: string;
+    contractHash: string;
+    contractReference: string;
+  },
+) {
   return `DOSSIÊ DE TRANSPARÊNCIA E CONFORMIDADE ELEITORAL
 
 Emitente: ${EATEASY.razaoSocial}
@@ -157,28 +173,34 @@ DECLARAÇÃO FINAL
 A ${EATEASY.razaoSocial} atesta a veracidade das informações técnicas acima descritas. O sistema se compromete a fornecer os relatórios de uso e a materialidade digital do serviço para a adequada instrução do Sistema de Prestação de Contas Eleitorais (SPCE).
 
 Data de emissão: ${input.acceptedAtLabel}
-Contrato de Referência: ${input.acceptanceId}
+Contrato de Referência: ${input.contractReference}
 Campanha Contratante: ${input.campaignName} — ${input.campaignCnpj}
 Hash do Contrato (SHA-256): ${input.contractHash}
 Versão do template: ${DOSSIER_TEMPLATE_VERSION}
 
 Assinado digitalmente por:
 ${EATEASY.representante}
-Sócio-Administrador / Representante Legal ${EATEASY.razaoSocial}
-
-(Carimbo de Autenticidade Digital: IP ${input.ip} | UA ${input.userAgent} | Timestamp ${input.acceptedAtLabel})`;
+Sócio-Administrador / Representante Legal ${EATEASY.razaoSocial}`;
 }
 
 export function renderContractDocument(input: ContractFillInput): RenderedLegalDocument {
   const acceptedAt = input.acceptedAt ?? new Date();
   const acceptedAtLabel = formatAcceptedAt(acceptedAt);
+  const contractReference = formatContractReference(input.acceptanceId);
   const text = buildContractBody({ ...input, acceptedAtLabel });
+  const hash = sha256Hex(text);
   return {
     version: CONTRACT_TEMPLATE_VERSION,
     title: "Contrato de Licenciamento SaaS — Mandato Digital",
     text,
-    hash: sha256Hex(text),
+    hash,
     acceptedAtLabel,
+    stamp: {
+      acceptanceId: input.acceptanceId,
+      contractReference,
+      ip: input.ip,
+      userAgent: input.userAgent,
+    },
   };
 }
 
@@ -188,12 +210,26 @@ export function renderDossierDocument(
 ): RenderedLegalDocument {
   const acceptedAt = input.acceptedAt ?? new Date();
   const acceptedAtLabel = formatAcceptedAt(acceptedAt);
-  const text = buildDossierBody({ ...input, acceptedAtLabel, contractHash });
+  const contractReference = formatContractReference(input.acceptanceId);
+  const text = buildDossierBody({
+    ...input,
+    acceptedAtLabel,
+    contractHash,
+    contractReference,
+  });
+  const hash = sha256Hex(text);
   return {
     version: DOSSIER_TEMPLATE_VERSION,
     title: "Dossiê de Transparência e Conformidade Eleitoral",
     text,
-    hash: sha256Hex(text),
+    hash,
     acceptedAtLabel,
+    stamp: {
+      acceptanceId: input.acceptanceId,
+      contractReference,
+      ip: input.ip,
+      userAgent: input.userAgent,
+      linkedContractHash: contractHash,
+    },
   };
 }

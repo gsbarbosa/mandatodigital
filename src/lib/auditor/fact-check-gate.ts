@@ -25,8 +25,10 @@ export function normalizeFactCheckVerdict<T extends Pick<FactCheckResult, "verdi
 }
 
 /**
- * Gate de aprovação do roteiro. Fail-closed: só libera verified sem claims
- * unsupported/contradicted. Prompt livre (skipped) não passa por aqui.
+ * Gate de aprovação do roteiro. Fail-closed para contradição, fato checável
+ * sem fonte e fallback da LLM. Opinião/proposta de campanha (inconclusive
+ * sem claims unproven) não bloqueia — o validador não tem o que checar.
+ * Prompt livre (skipped) não passa por aqui.
  */
 export function evaluateFactCheckForApproval(result: FactCheckResult): FactCheckApprovalDecision {
   if (isFactCheckHeuristicFallback(result)) {
@@ -48,7 +50,7 @@ export function evaluateFactCheckForApproval(result: FactCheckResult): FactCheck
     (claim) => claim.verdict === "unsupported" || claim.verdict === "contradicted",
   );
 
-  if (result.verdict === "disputed" || result.verdict === "inconclusive" || unproven.length > 0) {
+  if (result.verdict === "disputed" || unproven.length > 0) {
     return {
       ok: false,
       message: result.summary.trim() || UNPROVEN_MESSAGE,

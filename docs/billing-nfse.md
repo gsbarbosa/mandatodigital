@@ -28,15 +28,26 @@ Vencimentos: 1ª parcela na data escolhida no checkout, 2ª e 3ª em `+1` e `+2`
 ## 2. Fluxo
 
 ```text
-[Candidato] escolhe plano + método (pix|boleto)
+[Candidato] escolhe plano + método (pix|boleto) na modal de checkout
+  ▼
+Modal de adesão (checkout-contract-modal):
+  1. Digita CNPJ → GET /api/legal/cnpj-lookup (Brasil API; rate limit compartilhado)
+  2. Nome/endereço travados se a Receita trouxe dado; senão inputs com fallback do cadastro
+  3. Responsável financeiro sempre editável
+  4. "Ver contrato completo" → POST /api/legal/contract-preview (texto nominal Contrato + Dossiê)
+  5. Checkbox clickwrap + "Aceitar e pagar"
   ▼
 POST /api/billing/checkout
   1. Exige cadastro completo (isUserRegistrationComplete)
-  2. Bloqueia se já existe pacote ativo/pendente (hasOpenBillingPackage) — exceto smoke
-  3. resolveAsaasBillingCustomer → asaasEnsureCustomer (cria/atualiza customer no Asaas)
-  4. asaasCreatePayment (parcela 1) + agenda parcelas 2 e 3
-  5. PIX → asaasGetPixQrCode (QR + copia-e-cola) | Boleto → link + linha digitável
-  6. Grava no cadastro: asaasCustomerId, asaasInstallmentId, asaasPrimaryPaymentId,
+  2. Se ainda não houver aceite para o plano: deriveContractFields + processContractAcceptance
+     (trava no servidor — cliente não sobrescreve razão social/endereço da Receita;
+      financialResponsible e fallbacks só quando a consulta não trouxe dado)
+  3. Bloqueia se já existe pacote ativo/pendente (hasOpenBillingPackage) — exceto smoke
+  4. resolveAsaasBillingCustomer → asaasEnsureCustomer (cria/atualiza customer no Asaas)
+     (endereço: Receita e/ou campaignAddress do contrato aceito, depois cadastro)
+  5. asaasCreatePayment (parcela 1) + agenda parcelas 2 e 3
+  6. PIX → asaasGetPixQrCode | Boleto → link + linha digitável
+  7. Grava no cadastro: asaasCustomerId, asaasInstallmentId, asaasPrimaryPaymentId,
      billingFirstDueDate, billingMethod, billingStatus="pending_payment"
   ▼
 [Asaas] cobra o candidato (fora do app)
@@ -66,7 +77,7 @@ Definido em [`plan-pricing.ts`](../src/lib/billing/plan-pricing.ts) (`BillingSta
 | `past_due` | Parcela vencida sem pagamento (`OVERDUE` no Asaas) |
 | `canceled` | Pacote cancelado |
 
-**Gate de acesso** ([`payment-access.ts`](../src/lib/billing/payment-access.ts)): `pending_payment`/`past_due` bloqueiam a plataforma inteira, exceto a tela de pagamento e `/acesso-antecipado/cnpj`. Alerta "vence em breve" quando a próxima parcela em aberto está a ≤5 dias (`DUE_SOON_ALERT_DAYS`).
+**Gate de acesso** ([`payment-access.ts`](../src/lib/billing/payment-access.ts)): `pending_payment`/`past_due` bloqueiam a plataforma inteira, exceto **Meus pagamentos**. Alerta "vence em breve" quando a próxima parcela em aberto está a ≤5 dias (`DUE_SOON_ALERT_DAYS`).
 
 ---
 

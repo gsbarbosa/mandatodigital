@@ -56,10 +56,14 @@ export function formatAuthClientError(message: string) {
     );
   }
 
-  if (normalized.includes("unauthorized-domain")) {
+  if (
+    normalized.includes("unauthorized-domain") ||
+    normalized.includes("unauthorized-continue-uri")
+  ) {
     return (
-      "Dominio nao autorizado no Firebase. Em Authentication → Settings → Authorized domains, " +
-      "adicione o host em que voce abriu o app (ex.: madatodigital.web.app ou localhost)."
+      "Dominio nao autorizado no Firebase. Abra o login em https://mandatodigital.ia.br/login " +
+      "(sem www). Em Authentication → Settings → Authorized domains, o apex mandatodigital.ia.br " +
+      "precisa estar na lista."
     );
   }
 

@@ -28,6 +28,9 @@ describe("legal templates", () => {
 
     const dossier = renderDossierDocument(fill, contract.hash);
     expect(dossier.text).toContain(contract.hash);
-    expect(dossier.text).toContain(fill.acceptanceId);
+    expect(dossier.text).toContain("MD-111111111111");
+    expect(dossier.text).not.toContain("(Carimbo de Autenticidade Digital:");
+    expect(dossier.stamp.linkedContractHash).toBe(contract.hash);
+    expect(contract.text).not.toContain("ver carimbo no PDF");
   });
 });

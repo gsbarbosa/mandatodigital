@@ -141,6 +141,17 @@ export function tsePrefillRateLimitKey(ownerUserId: string) {
 }
 
 /**
+ * Consulta CNPJ (Brasil API) no checkout: lookup + preview compartilham o
+ * mesmo bucket — uma sessão de adesão não deve consumir duas cotas.
+ */
+export const CNPJ_LOOKUP_MAX_PER_DAY = 40;
+export const CNPJ_LOOKUP_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export function cnpjLookupRateLimitKey(ownerUserId: string) {
+  return `cnpj-lookup:${ownerUserId.trim() || "anonymous"}`;
+}
+
+/**
  * Notícias do Dia: teto de refreshes / usuário / dia. Orçamento próprio,
  * separado do SENTINEL_PLATFORM_REFRESH_MAX_PER_DAY — os dois mecanismos de
  * busca são independentes e não competem pela mesma cota.

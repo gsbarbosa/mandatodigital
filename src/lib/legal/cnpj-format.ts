@@ -1,0 +1,8 @@
+export function formatCampaignCnpj(digits: string) {
+  const d = digits.replace(/\D/g, "").slice(0, 14);
+  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+}
+
+export function digitsOnlyCnpj(value: string) {
+  return value.replace(/\D/g, "").slice(0, 14);
+}

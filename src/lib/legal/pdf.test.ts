@@ -1,23 +1,49 @@
 import { describe, expect, it } from "vitest";
 
+import { renderContractDocument, renderDossierDocument } from "@/lib/legal/templates";
 import { renderLegalPdf } from "@/lib/legal/pdf";
-import { renderContractDocument } from "@/lib/legal/templates";
 
-describe("legal pdf", () => {
-  it("gera buffer PDF nao vazio", async () => {
-    const doc = renderContractDocument({
-      acceptanceId: "22222222-2222-2222-2222-222222222222",
-      campaignName: "Campanha PDF",
+describe("renderLegalPdf", () => {
+  it("gera pdf com carimbo no rodape", async () => {
+    const document = renderContractDocument({
+      acceptanceId: "11111111-1111-1111-1111-111111111111",
+      campaignName: "Campanha Teste",
       campaignCnpj: "12.345.678/0001-90",
-      campaignAddress: "Rua B, 2",
-      financialResponsible: "Beltrano",
+      campaignAddress: "Rua A, 1 - BH/MG",
+      financialResponsible: "Fulano",
       planId: "essencial",
-      ip: "127.0.0.1",
+      ip: "203.0.113.10",
       userAgent: "vitest",
       acceptedAt: new Date("2026-07-10T15:00:00.000Z"),
     });
-    const pdf = await renderLegalPdf(doc);
-    expect(pdf.byteLength).toBeGreaterThan(500);
-    expect(pdf.subarray(0, 4).toString("utf8")).toBe("%PDF");
+
+    const pdf = await renderLegalPdf(document);
+    const countMatch = pdf.toString("latin1").match(/\/Count (\d+)/);
+
+    expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
+    expect(pdf.length).toBeGreaterThan(2_000);
+    expect(document.stamp.contractReference).toBe("MD-111111111111");
+    expect(document.hash).toHaveLength(64);
+    expect(Number(countMatch?.[1] ?? 0)).toBeGreaterThan(0);
+    expect(Number(countMatch?.[1] ?? 99)).toBeLessThanOrEqual(6);
+  });
+
+  it("gera dossie em poucas paginas", async () => {
+    const fill = {
+      acceptanceId: "11111111-1111-1111-1111-111111111111",
+      campaignName: "Campanha Teste",
+      campaignCnpj: "12.345.678/0001-90",
+      campaignAddress: "Rua A, 1 - BH/MG",
+      financialResponsible: "Fulano",
+      planId: "avancado" as const,
+      ip: "203.0.113.10",
+      userAgent: "vitest",
+      acceptedAt: new Date("2026-07-10T15:00:00.000Z"),
+    };
+    const contract = renderContractDocument(fill);
+    const dossier = renderDossierDocument(fill, contract.hash);
+    const pdf = await renderLegalPdf(dossier);
+    const countMatch = pdf.toString("latin1").match(/\/Count (\d+)/);
+    expect(Number(countMatch?.[1] ?? 99)).toBeLessThanOrEqual(6);
   });
 });

@@ -1,7 +1,7 @@
 import { AcessoPlanosPage } from "@/components/product/acesso-antecipado/planos-page";
 
 export const metadata = {
-  title: "Planos e Preços",
+  title: "Contratar plano",
 };
 
 export default function AcessoPlanosRoute() {

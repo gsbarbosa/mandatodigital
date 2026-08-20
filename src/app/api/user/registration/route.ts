@@ -8,6 +8,7 @@ import { digitsOnly, isValidCpf, isValidPhoneBr } from "@/lib/br-input";
 import { mergeProfileInputForSave } from "@/lib/profile-save";
 import { profileInputSchema } from "@/lib/schemas";
 import { FREE_TRIAL_DEFAULT_PLAN_ID } from "@/lib/registration-gate";
+import { getLatestContractAcceptanceForOwner } from "@/lib/legal/contract-storage";
 import {
   assignUserRegistrationPlan,
   completeUserRegistration,
@@ -132,6 +133,10 @@ export async function GET() {
         })
       : await getUserRegistrationForOwner();
 
+    const contract = session
+      ? await getLatestContractAcceptanceForOwner(session.id)
+      : null;
+
     return NextResponse.json({
       registration: stored,
       /** Compat com UI de early-access (planos/CNPJ/cache local). */
@@ -139,6 +144,8 @@ export async function GET() {
       profileId: stored?.profileId ?? null,
       authEmail: session?.email?.trim() || null,
       needsPlanSelection: needsPlanSelection(stored),
+      contractPlanId: contract?.planId ?? null,
+      contractCnpj: contract?.campaignCnpj ?? null,
     });
   });
 }

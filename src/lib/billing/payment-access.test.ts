@@ -17,9 +17,8 @@ describe("payment-access", () => {
     expect(isBillingAccessBlocked("trial")).toBe(false);
   });
 
-  it("libera só Meus pagamentos e CNPJ", () => {
+  it("libera só Meus pagamentos", () => {
     expect(isPaymentLockAllowedPath("/acesso-antecipado/pagamento")).toBe(true);
-    expect(isPaymentLockAllowedPath("/acesso-antecipado/cnpj")).toBe(true);
     expect(isPaymentLockAllowedPath("/acesso-antecipado/planos")).toBe(false);
     expect(isPaymentLockAllowedPath("/monitoramento")).toBe(false);
   });
