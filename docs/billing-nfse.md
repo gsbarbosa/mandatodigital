@@ -28,11 +28,14 @@ Vencimentos: 1ª parcela na data escolhida no checkout, 2ª e 3ª em `+1` e `+2`
 ## 2. Fluxo
 
 ```text
-[Candidato] escolhe plano + método (pix|boleto)
+[Candidato] escolhe plano + método (pix|boleto) na modal de checkout
+  ▼
+Modal: CNPJ de campanha + aceite clickwrap (Contrato + Dossiê)
   ▼
 POST /api/billing/checkout
   1. Exige cadastro completo (isUserRegistrationComplete)
-  2. Bloqueia se já existe pacote ativo/pendente (hasOpenBillingPackage) — exceto smoke
+  2. Se ainda não houver aceite para o plano: processContractAcceptance (CNPJ TSE + PDF + audit log)
+  3. Bloqueia se já existe pacote ativo/pendente (hasOpenBillingPackage) — exceto smoke
   3. resolveAsaasBillingCustomer → asaasEnsureCustomer (cria/atualiza customer no Asaas)
   4. asaasCreatePayment (parcela 1) + agenda parcelas 2 e 3
   5. PIX → asaasGetPixQrCode (QR + copia-e-cola) | Boleto → link + linha digitável
@@ -66,7 +69,7 @@ Definido em [`plan-pricing.ts`](../src/lib/billing/plan-pricing.ts) (`BillingSta
 | `past_due` | Parcela vencida sem pagamento (`OVERDUE` no Asaas) |
 | `canceled` | Pacote cancelado |
 
-**Gate de acesso** ([`payment-access.ts`](../src/lib/billing/payment-access.ts)): `pending_payment`/`past_due` bloqueiam a plataforma inteira, exceto a tela de pagamento e `/acesso-antecipado/cnpj`. Alerta "vence em breve" quando a próxima parcela em aberto está a ≤5 dias (`DUE_SOON_ALERT_DAYS`).
+**Gate de acesso** ([`payment-access.ts`](../src/lib/billing/payment-access.ts)): `pending_payment`/`past_due` bloqueiam a plataforma inteira, exceto **Meus pagamentos**. Alerta "vence em breve" quando a próxima parcela em aberto está a ≤5 dias (`DUE_SOON_ALERT_DAYS`).
 
 ---
 

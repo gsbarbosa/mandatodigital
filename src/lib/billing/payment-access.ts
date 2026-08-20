@@ -1,10 +1,7 @@
 import { BILLING_PAYMENT_PATH } from "@/lib/registration-gate";
 
 /** Rotas liberadas com plataforma travada por inadimplência / pagamento pendente. */
-export const PAYMENT_LOCK_ALLOWED_PATHS = [
-  BILLING_PAYMENT_PATH,
-  "/acesso-antecipado/cnpj",
-] as const;
+export const PAYMENT_LOCK_ALLOWED_PATHS = [BILLING_PAYMENT_PATH] as const;
 
 export const DUE_SOON_ALERT_DAYS = 5;
 
@@ -14,7 +11,7 @@ export type PaymentInstallmentLike = {
 };
 
 export type PaymentAccessSnapshot = {
-  /** Bloqueia uso da plataforma (exceto Meus pagamentos / CNPJ). */
+  /** Bloqueia uso da plataforma (exceto Meus pagamentos). */
   blocked: boolean;
   /** Alerta ≤ 5 dias do próximo boleto em aberto. */
   dueSoon: boolean;

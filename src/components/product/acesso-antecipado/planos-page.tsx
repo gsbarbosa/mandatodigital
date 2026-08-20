@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 
 import { APP_HOME_PATH } from "@/lib/app-home";
+import { CheckoutContractModal } from "@/components/product/acesso-antecipado/checkout-contract-modal";
 import {
   earlyAccessPlans,
   useEarlyAccess,
@@ -14,6 +15,7 @@ import {
   type EarlyAccessReservation,
 } from "@/lib/early-access";
 import { BILLING_PAYMENT_PATH, REGISTRATION_REQUIRED_PATH } from "@/lib/registration-gate";
+import { formatCampaignCnpj } from "@/lib/legal/cnpj-format";
 
 const COMPARISON_ROWS: Array<{
   section?: string;
@@ -47,10 +49,13 @@ export function AcessoPlanosPage() {
   const [hasRemainingInstallments, setHasRemainingInstallments] = useState(false);
   const [registeredPlanId, setRegisteredPlanId] = useState<EarlyAccessPlanId | null>(null);
   const [smokeTestAvailable, setSmokeTestAvailable] = useState(false);
+  const [contractPlanId, setContractPlanId] = useState<EarlyAccessPlanId | null>(null);
+  const [contractCnpj, setContractCnpj] = useState<string | null>(null);
   const [pendingCheckout, setPendingCheckout] = useState<{
     planId: EarlyAccessPlanId;
     method: "pix" | "boleto";
   } | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const selectedPlanId = earlyAccess.reservation?.planId ?? registeredPlanId;
 
   useEffect(() => {
@@ -67,6 +72,8 @@ export function AcessoPlanosPage() {
             needsPlanSelection?: boolean;
             reservation?: EarlyAccessReservation | null;
             registration?: { planId?: EarlyAccessPlanId | "" };
+            contractPlanId?: EarlyAccessPlanId | null;
+            contractCnpj?: string | null;
           };
           if (!cancelled) {
             setNeedsPlan(Boolean(payload.needsPlanSelection));
@@ -76,6 +83,19 @@ export function AcessoPlanosPage() {
             const planFromReg = payload.reservation?.planId || payload.registration?.planId;
             if (planFromReg === "essencial" || planFromReg === "avancado" || planFromReg === "elite") {
               setRegisteredPlanId(planFromReg);
+            }
+            if (
+              payload.contractPlanId === "essencial" ||
+              payload.contractPlanId === "avancado" ||
+              payload.contractPlanId === "elite"
+            ) {
+              setContractPlanId(payload.contractPlanId);
+            } else {
+              setContractPlanId(null);
+            }
+            setContractCnpj(payload.contractCnpj?.trim() || null);
+            if (payload.contractCnpj) {
+              updateEarlyAccess({ cnpj: payload.contractCnpj });
             }
           }
         }
@@ -117,8 +137,13 @@ export function AcessoPlanosPage() {
     router.push(`${REGISTRATION_REQUIRED_PATH}?plan=${planId}` as Route);
   }
 
-  async function handleCheckout(planId: EarlyAccessPlanId, method: "pix" | "boleto" = "pix") {
+  async function handleCheckout(
+    planId: EarlyAccessPlanId,
+    method: "pix" | "boleto" = "pix",
+    cnpjDigits: string | null = null,
+  ) {
     setErrorMessage(null);
+    setCheckoutError(null);
     setCheckoutPlanId(planId);
     try {
       // Garante plano no cadastro se ainda estiver escolhendo.
@@ -146,16 +171,25 @@ export function AcessoPlanosPage() {
         writePlanIntent(planId);
       }
 
+      const needsContract =
+        contractPlanId !== planId || !contractCnpj;
+      const checkoutBody: Record<string, unknown> = { planId, method };
+      if (needsContract && cnpjDigits) {
+        checkoutBody.cnpj = cnpjDigits;
+        checkoutBody.accepted = true;
+      }
+
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId, method }),
+        body: JSON.stringify(checkoutBody),
       });
       const payload = (await response.json().catch(() => null)) as {
         message?: string;
       } | null;
       if (response.status === 409) {
+        setPendingCheckout(null);
         router.push(BILLING_PAYMENT_PATH as Route);
         return;
       }
@@ -163,12 +197,24 @@ export function AcessoPlanosPage() {
         throw new Error(payload?.message || "Nao foi possivel gerar a cobranca.");
       }
 
+      if (cnpjDigits) {
+        const formattedCnpj = formatCampaignCnpj(cnpjDigits);
+        updateEarlyAccess({
+          cnpj: formattedCnpj,
+          cnpjSignedAt: new Date().toISOString(),
+        });
+        setContractPlanId(planId);
+        setContractCnpj(formattedCnpj);
+      }
+
+      setPendingCheckout(null);
       router.push(BILLING_PAYMENT_PATH as Route);
       router.refresh();
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Nao foi possivel gerar a cobranca.",
-      );
+      const message =
+        error instanceof Error ? error.message : "Nao foi possivel gerar a cobranca.";
+      setCheckoutError(message);
+      setErrorMessage(message);
     } finally {
       setCheckoutPlanId(null);
     }
@@ -184,7 +230,7 @@ export function AcessoPlanosPage() {
       <div className="max-w-6xl mx-auto relative z-10 px-4 sm:px-6 lg:px-8 pt-12">
         <header className="mb-12 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-md-text md:text-3xl">
-            {choosingPlan ? "Escolha seu plano" : "Planos e Preços"}
+            {choosingPlan ? "Escolha seu plano" : "Contratar plano"}
           </h1>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-relaxed text-md-text-soft">
             {choosingPlan
@@ -507,45 +553,25 @@ export function AcessoPlanosPage() {
       </div>
 
       {pendingCheckout ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-md-app-bg/75 backdrop-blur-[2px] px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="checkout-confirm-title"
-        >
-          <div className="w-full max-w-sm rounded-2xl border border-md-border bg-md-surface px-6 py-5 shadow-lg">
-            <h2 id="checkout-confirm-title" className="text-base font-semibold text-md-text">
-              Confirmar plano
-            </h2>
-            <p className="mt-2 text-sm text-md-text-soft">
-              Você selecionou o plano{" "}
-              <strong className="text-md-text">
-                {earlyAccessPlans.find((item) => item.id === pendingCheckout.planId)?.name}
-              </strong>
-              . Ao confirmar, vamos gerar a cobrança para você.
-            </p>
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setPendingCheckout(null)}
-                className="flex-1 rounded-xl border border-md-border px-4 py-2.5 text-sm font-medium text-md-text-soft hover:bg-md-overlay-hover"
-              >
-                Não confirmar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const target = pendingCheckout;
-                  setPendingCheckout(null);
-                  void handleCheckout(target.planId, target.method);
-                }}
-                className="flex-1 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-sm font-semibold text-md-text"
-              >
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
+        <CheckoutContractModal
+          planId={pendingCheckout.planId}
+          method={pendingCheckout.method}
+          reservation={earlyAccess.reservation}
+          contractPlanId={contractPlanId}
+          contractCnpj={contractCnpj}
+          submitting={Boolean(checkoutPlanId)}
+          error={checkoutError}
+          onClose={() => {
+            if (checkoutPlanId) {
+              return;
+            }
+            setPendingCheckout(null);
+            setCheckoutError(null);
+          }}
+          onConfirm={(cnpjDigits) => {
+            void handleCheckout(pendingCheckout.planId, pendingCheckout.method, cnpjDigits);
+          }}
+        />
       ) : null}
     </div>
   );

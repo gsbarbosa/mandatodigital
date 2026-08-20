@@ -12,7 +12,6 @@ import { APP_VERSION } from "@/lib/app-version";
 import { isDevAccountModeEmail } from "@/lib/dev-account-mode";
 import { isPaymentLockAllowedPath } from "@/lib/billing/payment-access";
 import { BILLING_PAYMENT_PATH } from "@/lib/registration-gate";
-import { useEarlyAccess } from "@/lib/early-access";
 import { useGuestCreditsGate } from "@/components/product/use-guest-credits-gate";
 import { usePaymentAccess } from "./use-payment-access";
 import { useOnboarding } from "./onboarding-provider";
@@ -23,7 +22,6 @@ import {
   AvatarNavIcon,
   CaricatoIcon,
   ChevronDownIcon,
-  CnpjIcon,
   ComplianceIcon,
   CriativoIcon,
   DadosPessoaisIcon,
@@ -194,7 +192,7 @@ const NAV_SINGLES_SECONDARY: Array<NavChild & { icon: NavIcon }> = [
   { label: "Blindagem Documental", href: "/auditoria", icon: AuditoriaIcon },
 ];
 
-const EARLY_ACCESS_LABEL = "Acesso antecipado";
+const ACCOUNT_MENU_LABEL = "Minha conta";
 
 /** Sem `flex`/`hidden` aqui — o display é controlado pelo estado mobile/desktop. */
 const ASIDE_SURFACE =
@@ -217,7 +215,7 @@ function activeBlockLabel(pathname: string): string | null {
     }
   }
   if (pathname.startsWith("/acesso-antecipado")) {
-    return EARLY_ACCESS_LABEL;
+    return ACCOUNT_MENU_LABEL;
   }
   return null;
 }
@@ -393,18 +391,16 @@ function NavSidebarPanel({
     setExpandedBlock((current) => (current === label ? null : label));
   }, []);
 
-  const [earlyAccess] = useEarlyAccess();
   const [emailMenuOpen, setEmailMenuOpen] = useState(false);
-  const cnpjPending = !earlyAccess.cnpj;
   const { exhausted: guestCreditsExhausted } = useGuestCreditsGate();
   const { blocked: paymentBlocked, dueSoon } = usePaymentAccess();
   const canToggleAccountMode = isDevAccountModeEmail(sessionEmail);
 
   // Navegar para outra seção recolhe o que estiver aberto (e expande a nova, se aplicável).
-  // Com trava de pagamento, mantém Acesso antecipado aberto (Meus pagamentos / CNPJ).
+  // Com trava de pagamento, mantém Minha conta aberto (Meus pagamentos).
   useEffect(() => {
     if (paymentBlocked) {
-      setExpandedBlock(EARLY_ACCESS_LABEL);
+      setExpandedBlock(ACCOUNT_MENU_LABEL);
       return;
     }
     setExpandedBlock(activeBlockLabel(pathname));
@@ -470,23 +466,17 @@ function NavSidebarPanel({
 
   const earlyAccessChildren: NavChild[] = [
     { label: "Dados Pessoais", href: "/acesso-antecipado/dados", icon: DadosPessoaisIcon },
-    { label: "Planos e Preços", href: "/acesso-antecipado/planos", icon: PlanosPrecosIcon },
+    { label: "Contratar plano", href: "/acesso-antecipado/planos", icon: PlanosPrecosIcon },
     {
       label: "Meus pagamentos",
       href: BILLING_PAYMENT_PATH,
       icon: PagamentosIcon,
       showActionDot: paymentBlocked || dueSoon,
     },
-    {
-      label: "Informar CNPJ até 16/Ago",
-      href: "/acesso-antecipado/cnpj",
-      icon: CnpjIcon,
-      showActionDot: cnpjPending,
-    },
   ];
 
   const earlyAccessActive = pathname.startsWith("/acesso-antecipado");
-  const earlyAccessExpanded = expandedBlock === EARLY_ACCESS_LABEL;
+  const earlyAccessExpanded = expandedBlock === ACCOUNT_MENU_LABEL;
 
   function handleLinkNavigate() {
     onNavigate?.();
@@ -698,7 +688,7 @@ function NavSidebarPanel({
               onClick={handleLinkNavigate}
             >
               <AcessoAntecipadoIcon className={rowIconClassName(earlyAccessActive)} />
-              <span className={rowLabelClassName(earlyAccessActive)}>{EARLY_ACCESS_LABEL}</span>
+              <span className={rowLabelClassName(earlyAccessActive)}>{ACCOUNT_MENU_LABEL}</span>
               {guestCreditsExhausted ? (
                 <span
                   className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-pulse"
@@ -708,10 +698,10 @@ function NavSidebarPanel({
             </Link>
             <button
               type="button"
-              onClick={() => toggleBlock(EARLY_ACCESS_LABEL)}
+              onClick={() => toggleBlock(ACCOUNT_MENU_LABEL)}
               aria-expanded={earlyAccessExpanded}
               aria-label={
-                earlyAccessExpanded ? "Recolher Acesso antecipado" : "Expandir Acesso antecipado"
+                earlyAccessExpanded ? "Recolher Minha conta" : "Expandir Minha conta"
               }
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-md-surface-inset text-md-text-soft transition hover:text-md-text"
             >

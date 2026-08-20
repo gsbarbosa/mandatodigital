@@ -32,9 +32,9 @@ Candidato/parlamentar logado (fase de acesso antecipado, eleição out/2026).
 | Meus criativos | `/criativo` | Lista existente (restyle leve) |
 | Gerar pauta independente | `/independente` | Criativo em modo independente |
 | Compliance TSE | `/compliance` | Página institucional |
-| Acesso antecipado → Dados Pessoais | `/acesso-antecipado/dados` | Cadastro travado |
-| Acesso antecipado → Planos e Preços | `/acesso-antecipado/planos` | Plano pré-selecionado |
-| Acesso antecipado → Informar CNPJ até 16/Ago | `/acesso-antecipado/cnpj` | Contrato de adesão (dot vermelho no menu enquanto não informado) |
+| Minha conta → Dados Pessoais | `/acesso-antecipado/dados` | Cadastro travado |
+| Minha conta → Contratar plano | `/acesso-antecipado/planos` | Plano + modal de contrato (CNPJ + clickwrap) antes da cobrança |
+| Minha conta → Meus pagamentos | `/acesso-antecipado/pagamento` | PIX/boleto e status das parcelas |
 
 Fora do menu (rotas preservadas): `/curador` (= "Personalizar", acessado pelo hub de avatares),
 `/auditor` e `/distribuidor` (mocks, sem entrada de menu), `/admin/evals/*` (role/URL direta),
@@ -77,10 +77,7 @@ O backend não tem conceito de "esfera" nem de planos/reserva. Mapeamentos adota
 6. **Independente** = `CriativoPageV2` em `mode="independente"`: sem banner Sentinela/tema/roteiro,
    texto do usuário vira transcript (semântica free-prompt existente → fact-check `skipped` no
    backend), checkbox TSE obrigatório, arquétipo/tom (máx 1 cada), seletor de produção existente.
-7. **Acesso antecipado**: não há backend. Persistência **local (localStorage)** com escopo honesto
-   declarado na UI. Dados do perfil (nome, cargo, UF, cidade) são lidos do backend; CPF, partido,
-   telefone e plano são locais até existir backend de billing. Dot vermelho do menu apaga quando o
-   CNPJ é salvo localmente.
+7. **Minha conta** (`/acesso-antecipado/*`): cadastro no backend; aceite de contrato (CNPJ + clickwrap) na **modal de checkout** em Planos, antes de `POST /api/billing/checkout`. Cache local (`localStorage`) mantém espelho da reserva/CNPJ para UX.
 
 ## Decisões de produto incorporadas (aprovadas em sessão)
 

@@ -20,7 +20,7 @@ Ajuda o candidato a monitorar pautas, criar conteúdo alinhado à persona, gerar
 - Gerar pauta independente (/independente): geração avulsa fora do fluxo Sentinela.
 - Compliance TSE (/compliance): conformidade eleitoral e materiais.
 - Auditoria (/auditoria): trilha de ações e checagens.
-- Cadastro / planos: /acesso-antecipado/dados, /acesso-antecipado/planos, /acesso-antecipado/cnpj.
+- Cadastro / planos / pagamento: /acesso-antecipado/dados, /acesso-antecipado/planos, /acesso-antecipado/pagamento. O aceite de contrato (CNPJ de campanha) ocorre na modal de checkout em Planos.
 - Meus pagamentos: /acesso-antecipado/pagamento.
 
 ## Agentes do ecossistema

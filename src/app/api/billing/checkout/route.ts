@@ -24,6 +24,12 @@ import {
   resolveCheckoutPricing,
 } from "@/lib/billing/plan-pricing";
 import { resolveAsaasBillingCustomer } from "@/lib/billing/resolve-asaas-customer";
+import {
+  ContractAcceptanceError,
+  needsContractAcceptanceForCheckout,
+  processContractAcceptance,
+} from "@/lib/legal/accept-contract";
+import { getLatestContractAcceptanceForOwner } from "@/lib/legal/contract-storage";
 import { appLog, appLogError } from "@/lib/observability/log";
 import {
   getUserRegistrationForOwner,
@@ -34,6 +40,8 @@ import {
 const bodySchema = z.object({
   planId: z.enum(["essencial", "avancado", "elite"]),
   method: z.enum(["pix", "boleto"]).default("pix"),
+  cnpj: z.string().min(14).optional(),
+  accepted: z.literal(true).optional(),
 });
 
 export async function POST(request: Request) {
@@ -57,6 +65,59 @@ export async function POST(request: Request) {
       const sessionEmail = session.email || registration.email || "";
       const pricing = resolveCheckoutPricing(body.planId, sessionEmail);
       const ownerUserId = registration.ownerUserId;
+      const existingContract = await getLatestContractAcceptanceForOwner(ownerUserId);
+      const mustAcceptContract = needsContractAcceptanceForCheckout(
+        existingContract,
+        body.planId,
+      );
+
+      if (mustAcceptContract) {
+        if (!body.cnpj || body.accepted !== true) {
+          return NextResponse.json(
+            {
+              message:
+                "Aceite o contrato e informe o CNPJ da campanha antes de gerar a cobrança.",
+            },
+            { status: 400 },
+          );
+        }
+        if (!registration.address?.trim()) {
+          return NextResponse.json(
+            {
+              message:
+                "Endereço da campanha ausente. Complete em Dados Pessoais antes do checkout.",
+            },
+            { status: 400 },
+          );
+        }
+        const email = registration.email?.trim() || sessionEmail;
+        if (!email) {
+          return NextResponse.json({ message: "E-mail do cadastro ausente." }, { status: 400 });
+        }
+
+        try {
+          await processContractAcceptance({
+            request,
+            ownerUserId,
+            body: {
+              cnpj: body.cnpj,
+              accepted: true,
+              campaignName: registration.fullName,
+              campaignAddress: registration.address,
+              financialResponsible: registration.fullName,
+              email,
+              planId: body.planId,
+              party: registration.party || undefined,
+            },
+          });
+        } catch (error) {
+          if (error instanceof ContractAcceptanceError) {
+            return NextResponse.json({ message: error.message }, { status: error.status });
+          }
+          throw error;
+        }
+      }
+
       const openPackage = hasOpenBillingPackage(registration);
 
       if (openPackage && registration.billingStatus === "active") {
