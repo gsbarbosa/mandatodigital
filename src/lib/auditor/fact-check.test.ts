@@ -7,7 +7,13 @@ import { checkRateLimit, resetRateLimitBuckets } from "@/lib/rate-limit";
 
 vi.mock("@/lib/llm", () => ({
   requestStructuredJson: vi.fn(),
-  parseJsonResponse: (text: string) => JSON.parse(text),
+  parseJsonResponse: (text: string) => {
+    try {
+      return JSON.parse(text) as unknown;
+    } catch {
+      return null;
+    }
+  },
 }));
 
 describe("rate-limit", () => {
@@ -28,6 +34,10 @@ describe("rate-limit", () => {
 });
 
 describe("auditor/fact-check", () => {
+  afterEach(() => {
+    vi.mocked(requestStructuredJson).mockReset();
+  });
+
   it("retorna skipped quando roteiro vazio", async () => {
     const result = await runFactCheck({ script: "   " });
     expect(result.verdict).toBe("skipped");
@@ -100,6 +110,59 @@ describe("auditor/fact-check", () => {
 
     const result = await runFactCheck({ script: "O Lula morreu de infarto." });
     expect(result.verdict).toBe("inconclusive");
+  });
+
+  it("aceita verdict top-level fora do enum (unsupported → inconclusive)", async () => {
+    vi.mocked(requestStructuredJson).mockResolvedValueOnce({
+      rawText: JSON.stringify({
+        verdict: "unsupported",
+        confidence: "alta",
+        summary: "Nada a checar alem de opiniao.",
+        claims: [],
+        sources: [],
+      }),
+      provider: "openai",
+      model: "gpt-4.1-mini",
+      latencyMs: 90,
+      tokenUsage: null,
+    });
+
+    const result = await runFactCheck({ script: "Chega de impunidade. Compartilhe." });
+    expect(result.verdict).toBe("inconclusive");
+    expect(result.confidence).toBe(85);
+    expect(result.provider).toBe("openai");
+  });
+
+  it("reexecuta a LLM quando o JSON da primeira resposta e invalido", async () => {
+    vi.mocked(requestStructuredJson)
+      .mockResolvedValueOnce({
+        rawText: "{",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        latencyMs: 40,
+        tokenUsage: null,
+      })
+      .mockResolvedValueOnce({
+        rawText: JSON.stringify({
+          verdict: "verified",
+          confidence: 70,
+          summary: "So opiniao e proposta do candidato.",
+          claims: [],
+          sources: [],
+        }),
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        latencyMs: 110,
+        tokenUsage: null,
+      });
+
+    const result = await runFactCheck({
+      script: "Vamos construir um superpresidio no Norte. Chega de impunidade.",
+    });
+
+    expect(requestStructuredJson).toHaveBeenCalledTimes(2);
+    expect(result.verdict).toBe("verified");
+    expect(result.provider).toBe("openai");
   });
 
   it("identifica fallback heuristico local", () => {

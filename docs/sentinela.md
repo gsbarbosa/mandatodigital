@@ -241,6 +241,7 @@ SENTINEL_TREND_PROXY=true
 Com `AUDITOR_FACTCHECK_ENABLED=true` (ligado em prod desde 2026-06-24):
 
 - **Aprovar roteiro** no Criativo dispara fact-check (LLM + URLs do sinal Sentinela)
+- O validador bloqueia fato checável sem fonte (número, evento, fala/ato de terceiro) e contradição com a matéria. Opinião, retórica e proposta do próprio candidato não são claims — o roteiro passa se não houver o que checar
 - Top 10 sinais são validados em background após cada refresh
 - Edição pós-aprovação exige checkbox de consentimento antes de produzir vídeo
 - Metadados TSE (`aiGenerated`, `sealVersion`) gravados em `creative_projects.metadata`

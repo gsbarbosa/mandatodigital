@@ -45,12 +45,34 @@ describe("evaluateFactCheckForApproval", () => {
     expect(evaluateFactCheckForApproval(result({}))).toEqual({ ok: true });
   });
 
-  it("bloqueia disputed, inconclusive e skipped", () => {
+  it("bloqueia disputed e skipped", () => {
     expect(evaluateFactCheckForApproval(result({ verdict: "disputed", summary: "mente" })).ok).toBe(
       false,
     );
-    expect(evaluateFactCheckForApproval(result({ verdict: "inconclusive" })).ok).toBe(false);
     expect(evaluateFactCheckForApproval(result({ verdict: "skipped" })).ok).toBe(false);
+  });
+
+  it("libera inconclusive sem claims unproven (opiniao/proposta, nada a checar)", () => {
+    expect(evaluateFactCheckForApproval(result({ verdict: "inconclusive" }))).toEqual({ ok: true });
+    expect(
+      evaluateFactCheckForApproval(
+        result({
+          verdict: "inconclusive",
+          claims: [{ text: "A cidade tem 200 mil habitantes.", verdict: "supported" }],
+        }),
+      ),
+    ).toEqual({ ok: true });
+  });
+
+  it("bloqueia inconclusive quando ha claim unsupported", () => {
+    expect(
+      evaluateFactCheckForApproval(
+        result({
+          verdict: "inconclusive",
+          claims: [{ text: "O Lula morreu de infarto.", verdict: "unsupported" }],
+        }),
+      ).ok,
+    ).toBe(false);
   });
 
   it("bloqueia fallback heuristico mesmo com inconclusive", () => {

@@ -6,8 +6,11 @@ import { fetchArticlesCorpus } from "@/lib/auditor/url-extract";
 import { parseJsonResponse, requestStructuredJson } from "@/lib/llm";
 import { appLog, appLogError, startTimer } from "@/lib/observability/log";
 
-const MAX_CLAIMS = 12;
+const MAX_CLAIMS = 8;
 const MAX_SOURCES = 8;
+const MAX_CLAIM_CHARS = 280;
+const FACT_CHECK_MAX_TOKENS = 2200;
+const FACT_CHECK_RETRY_MAX_TOKENS = 3600;
 
 /** O modelo as vezes responde confianca qualitativa em vez de numero. */
 const CONFIDENCE_WORDS: Record<string, number> = {
@@ -21,6 +24,44 @@ const CONFIDENCE_WORDS: Record<string, number> = {
   nenhuma: 0,
   none: 0,
 };
+
+const VERDICT_ALIASES: Record<string, "verified" | "disputed" | "inconclusive"> = {
+  verified: "verified",
+  verificado: "verified",
+  supported: "verified",
+  true: "verified",
+  ok: "verified",
+  disputed: "disputed",
+  contestado: "disputed",
+  contradicted: "disputed",
+  false: "disputed",
+  inconclusive: "inconclusive",
+  inconclusivo: "inconclusive",
+  unsupported: "inconclusive",
+  unverified: "inconclusive",
+  unproven: "inconclusive",
+  unknown: "inconclusive",
+};
+
+const CLAIM_VERDICT_ALIASES: Record<string, "supported" | "contradicted" | "unsupported"> = {
+  supported: "supported",
+  true: "supported",
+  ok: "supported",
+  contradicted: "contradicted",
+  false: "contradicted",
+  disputed: "contradicted",
+  unsupported: "unsupported",
+  unverified: "unsupported",
+  unknown: "unsupported",
+};
+
+function foldKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
 function coerceConfidence(value: unknown) {
   if (typeof value === "number") {
@@ -38,9 +79,21 @@ function coerceConfidence(value: unknown) {
     return numeric <= 1 ? numeric * 100 : numeric;
   }
 
-  const withoutAccents = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return CONFIDENCE_WORDS[foldKey(normalized)] ?? value;
+}
 
-  return CONFIDENCE_WORDS[withoutAccents] ?? value;
+function coerceVerdict(value: unknown) {
+  if (typeof value !== "string") {
+    return value;
+  }
+  return VERDICT_ALIASES[foldKey(value)] ?? value;
+}
+
+function coerceClaimVerdict(value: unknown) {
+  if (typeof value !== "string") {
+    return value;
+  }
+  return CLAIM_VERDICT_ALIASES[foldKey(value)] ?? value;
 }
 
 /** Aceita as variacoes de nome/nulo que o LLM produz sem descartar a resposta inteira. */
@@ -50,13 +103,17 @@ function normalizeClaim(value: unknown) {
   }
 
   const claim = value as Record<string, unknown>;
+  const textRaw = claim.text ?? claim.claim ?? claim.afirmacao ?? claim.trecho;
+  const detailRaw = claim.contradictionDetail;
 
   return {
     ...claim,
-    text: claim.text ?? claim.claim ?? claim.afirmacao ?? claim.trecho,
+    text: typeof textRaw === "string" ? textRaw.trim().slice(0, MAX_CLAIM_CHARS) : textRaw,
+    verdict: coerceClaimVerdict(claim.verdict),
     attributesToThirdParty: claim.attributesToThirdParty ?? false,
-    contradictionDetail: claim.contradictionDetail ?? undefined,
-    sourceUrl: claim.sourceUrl ?? undefined,
+    contradictionDetail:
+      typeof detailRaw === "string" ? detailRaw.trim().slice(0, MAX_CLAIM_CHARS) : undefined,
+    sourceUrl: typeof claim.sourceUrl === "string" ? claim.sourceUrl : undefined,
   };
 }
 
@@ -66,16 +123,32 @@ const factCheckResponseSchema = z.preprocess((value) => {
   }
 
   const payload = value as Record<string, unknown>;
+  const claims = Array.isArray(payload.claims)
+    ? payload.claims
+        .slice(0, MAX_CLAIMS)
+        .map(normalizeClaim)
+        .filter(
+          (claim) =>
+            Boolean(claim) &&
+            typeof claim === "object" &&
+            typeof (claim as { text?: unknown }).text === "string" &&
+            String((claim as { text: string }).text).length > 0,
+        )
+    : payload.claims == null
+      ? []
+      : payload.claims;
 
   return {
     ...payload,
+    verdict: coerceVerdict(payload.verdict),
     confidence: coerceConfidence(payload.confidence),
-    claims: Array.isArray(payload.claims)
-      ? payload.claims.slice(0, MAX_CLAIMS).map(normalizeClaim)
-      : payload.claims,
+    summary: typeof payload.summary === "string" ? payload.summary : payload.summary == null ? "" : payload.summary,
+    claims,
     sources: Array.isArray(payload.sources)
       ? payload.sources.filter((source) => typeof source === "string").slice(0, MAX_SOURCES)
-      : payload.sources,
+      : payload.sources == null
+        ? []
+        : payload.sources,
   };
 }, z.object({
   verdict: z.enum(["verified", "disputed", "inconclusive"]),
@@ -100,29 +173,32 @@ function buildPrompt(input: FactCheckInput, corpus: string) {
     system:
       "Voce e um validador factual para conteudo politico no Brasil. " +
       "Compare o roteiro apenas com as fontes fornecidas (nao invente URLs). " +
-      "Trate como disputed qualquer trecho que atribua falas, atos ou posicoes a terceiros " +
-      "(jornalistas, autoridades, adversarios, cidadaos) sem suporte explicito nas fontes, ou que simule " +
-      "contextos factuais nao verificados como se fossem reais. " +
-      "Afirmacoes factuais (morte, saude, crime, numeros, atos de pessoas publicas) sem respaldo " +
-      "explicito nas fontes NAO podem ser verified: o claim deve ser unsupported (ou contradicted) " +
-      "e o verdict do roteiro disputed. inconclusive so quando o roteiro nao tem afirmacao factual checavel. " +
+      "Extraia SOMENTE claims factuais checaveis. Nao liste opiniao, retorica, slogan, CTA " +
+      "nem proposta/promessa do proprio candidato. " +
+      "E claim: numero, data, estatistica, valor; evento especifico (morte, prisao, votacao); " +
+      "fala/ato/posicao atribuida a TERCEIRO nomeado; dado de saude, crime ou servico publico " +
+      "apresentado como fato ocorrido. " +
+      "NAO e claim: 'o crime tomou conta das ruas', 'ninguem aguenta mais', 'chega de impunidade', " +
+      "'vamos construir um superpresidio', 'vamos reduzir a maioridade penal', 'compartilhe essa ideia'. " +
+      "Se o roteiro so tem opiniao, proposta do candidato ou CTA, verdict=verified com claims vazio. " +
+      "verified: nao ha claim checavel OU todos os claims sao supported. " +
+      "disputed: algum claim contradiz as fontes, OU o roteiro atribui fala/ato a terceiro sem suporte. " +
+      "inconclusive: ha claim checavel unsupported (fato especifico sem respaldo nas fontes). " +
+      "Nao use verified se existir claim unsupported ou contradicted. " +
+      "Morte, saude, numero e ato de terceiro nomeado sem trecho explicito na fonte sao " +
+      "unsupported/contradicted — nunca retorica generica de campanha. " +
       "Responda SOMENTE JSON valido neste formato exato: " +
       '{"verdict":"verified|disputed|inconclusive","confidence":<inteiro 0-100>,"summary":"...",' +
-      '"claims":[{"text":"trecho do roteiro","verdict":"supported|contradicted|unsupported",' +
+      '"claims":[{"text":"trecho curto","verdict":"supported|contradicted|unsupported",' +
       '"attributesToThirdParty":true|false,"contradictionDetail":"...","sourceUrl":"..."}],' +
       '"sources":["url"]}. ' +
-      "O campo do trecho chama-se text (nunca claim). confidence e numero inteiro, nunca palavra. " +
+      "O campo do trecho chama-se text (nunca claim), no maximo ~20 palavras. " +
+      "confidence e numero inteiro, nunca palavra. " +
       "Omita contradictionDetail e sourceUrl quando nao se aplicarem, em vez de enviar null. " +
       `No maximo ${MAX_CLAIMS} itens em claims e ${MAX_SOURCES} em sources. ` +
-      "verdict=verified somente se TODAS as afirmações factuais tiverem suporte explícito nas fontes; " +
-      "disputed se houver contradição material; inconclusive se alguma afirmação factual não puder ser comprovada. " +
-      "Não use verified quando existir claim unsupported. Morte, crime, saúde, números e atos de terceiros " +
-      "sem trecho explícito na fonte são disputed (claim unsupported ou contradicted). " +
-      "Para cada item de claims[], defina verdict='contradicted' quando as fontes disserem algo diferente do " +
-      "afirmado no roteiro (preencha contradictionDetail com o que a fonte realmente diz, de forma curta e direta); " +
-      "verdict='unsupported' quando nenhuma fonte confirmar nem contradizer o trecho; verdict='supported' quando " +
-      "houver fonte explicita confirmando. Marque attributesToThirdParty=true quando o trecho atribuir fala, ato " +
-      "ou posicao a uma pessoa ou entidade terceira (mesmo que verdict seja supported).",
+      "Para cada claim: contradicted quando a fonte diz outra coisa (preencha contradictionDetail curto); " +
+      "unsupported quando nenhuma fonte confirma nem contradiz; supported quando ha fonte explicita. " +
+      "Marque attributesToThirdParty=true quando o trecho atribuir fala, ato ou posicao a terceiro.",
     user: [
       input.topic ? `Tema: ${input.topic}` : "",
       input.sentinelBriefing ? `Briefing Sentinela:\n${input.sentinelBriefing}` : "",
@@ -150,6 +226,20 @@ function heuristicFallback(input: FactCheckInput): FactCheckResult {
   };
 }
 
+function schemaIssuePaths(error: z.ZodError) {
+  return error.issues.map((issue) => issue.path.join(".")).join(", ");
+}
+
+async function requestFactCheckJson(system: string, user: string, maxTokens: number) {
+  const execution = await requestStructuredJson(system, user, {
+    temperature: 0.1,
+    maxTokens,
+  });
+  const parsed = execution.rawText ? parseJsonResponse<unknown>(execution.rawText) : null;
+  const validated = factCheckResponseSchema.safeParse(parsed);
+  return { execution, validated };
+}
+
 export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResult> {
   const elapsed = startTimer();
   const script = input.script.trim();
@@ -173,36 +263,43 @@ export async function runFactCheck(input: FactCheckInput): Promise<FactCheckResu
   const prompt = buildPrompt(input, corpus);
 
   try {
-    const execution = await requestStructuredJson(prompt.system, prompt.user, {
-      temperature: 0.1,
-      maxTokens: 900,
-    });
+    let { execution, validated } = await requestFactCheckJson(
+      prompt.system,
+      prompt.user,
+      FACT_CHECK_MAX_TOKENS,
+    );
 
-    if (!execution.rawText) {
+    if (!validated.success) {
       appLog(
         "fact-check",
-        "llm_fallback",
-        { reason: "empty_llm_response", articleCount, durationMs: elapsed() },
+        "llm_retry",
+        {
+          reason: execution.rawText ? "invalid_llm_json" : "empty_llm_response",
+          articleCount,
+          durationMs: elapsed(),
+          invalidPaths: schemaIssuePaths(validated.error),
+        },
         "warn",
       );
-      return heuristicFallback(input);
-    }
 
-    const parsed = parseJsonResponse<unknown>(execution.rawText);
-    const validated = factCheckResponseSchema.safeParse(parsed);
+      const retry = await requestFactCheckJson(
+        prompt.system,
+        prompt.user,
+        FACT_CHECK_RETRY_MAX_TOKENS,
+      );
+      execution = retry.execution;
+      validated = retry.validated;
+    }
 
     if (!validated.success) {
       appLog(
         "fact-check",
         "llm_fallback",
         {
-          reason: "invalid_llm_json",
+          reason: execution.rawText ? "invalid_llm_json" : "empty_llm_response",
           articleCount,
           durationMs: elapsed(),
-          // Caminhos do schema que falharam — sem o conteudo, que carrega o roteiro.
-          invalidPaths: validated.error.issues
-            .map((issue) => issue.path.join("."))
-            .join(", "),
+          invalidPaths: schemaIssuePaths(validated.error),
         },
         "warn",
       );
