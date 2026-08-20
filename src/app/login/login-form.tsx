@@ -17,6 +17,7 @@ import {
   validateAuthEmail,
   type AuthFieldErrors,
 } from "@/lib/auth-field-validation";
+import { getPasswordResetContinueUrl } from "@/lib/auth/redirect-url";
 import { getFirebaseAuth } from "@/lib/firebase/client";
 import {
   formatAuthClientError,
@@ -172,20 +173,13 @@ export function LoginForm() {
       setIsSubmitting(true);
       try {
         const auth = getFirebaseAuth();
-        const continueUrl =
-          typeof window !== "undefined"
-            ? `${window.location.origin}/login`
-            : undefined;
-        await sendPasswordResetEmail(
-          auth,
-          normalizedEmail,
-          continueUrl
-            ? {
-                url: continueUrl,
-                handleCodeInApp: false,
-              }
-            : undefined,
+        const continueUrl = getPasswordResetContinueUrl(
+          typeof window !== "undefined" ? window.location.origin : undefined,
         );
+        await sendPasswordResetEmail(auth, normalizedEmail, {
+          url: continueUrl,
+          handleCodeInApp: false,
+        });
         setStatusMessage(
           "Se este e-mail estiver cadastrado, enviamos um link para redefinir a senha. Confira a caixa de entrada e o spam.",
         );

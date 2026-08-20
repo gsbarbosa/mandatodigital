@@ -37,7 +37,7 @@ Itens burocráticos (CoWork, Santander, Meta BM, LinkedIn, ofício comercial, et
 | Cruzar sistema × arquivo compliance-tSE | done | sim | Marcado `x` no roadmap; selo, export-accept, fact-check e contrato cobrem parte |
 | Testar ambiente guest vs premium (limites) | inprogress | pendente | Modo conta + créditos guest (5 vitalícios / ciclo 8h BRT); falta QA formal |
 | Filtro CNPJ eleitoral + teto vagas partido/UF + lista de reserva | done | pendente | CNPJ via BrasilAPI; teto 03/partido+UF (avançado/elite) com `status: reserve` + popup/badge; e-mail de fila ainda não |
-| URL canônica → `mandatodigital.ia.br` | done | pendente | DNS `www` no App Hosting; site institucional no ar. Falta alinhar `APP_BASE_URL` / Auth authorized domains se ainda apontarem p/ `hosted.app` |
+| URL canônica → `mandatodigital.ia.br` | done | pendente | Apex no Auth authorized domains; `www` redireciona para o apex (reset de senha usa continueUrl canônico). `APP_BASE_URL` no App Hosting ainda aponta para `hosted.app`. |
 
 ---
 

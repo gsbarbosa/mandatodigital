@@ -38,6 +38,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.mandatodigital.ia.br" }],
+        destination: "https://mandatodigital.ia.br/:path*",
+        permanent: true,
+      },
+      {
         source: "/avatares/gemeo-digital",
         destination: "/avatares/foto-real",
         permanent: true,
