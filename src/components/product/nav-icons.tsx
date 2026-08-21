@@ -171,6 +171,15 @@ export function NoticiasDoDiaIcon({ className }: IconProps) {
   );
 }
 
+export function RadarBairroIcon({ className }: IconProps) {
+  return (
+    <svg className={className} {...BASE_PROPS}>
+      <path d="M12 21s6-5.3 6-10a6 6 0 0 0-12 0c0 4.7 6 10 6 10z" />
+      <circle cx="12" cy="10.8" r="2.3" />
+    </svg>
+  );
+}
+
 export function GemeoDigitalIcon({ className }: IconProps) {
   return (
     <svg className={className} {...BASE_PROPS}>

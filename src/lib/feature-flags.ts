@@ -37,6 +37,9 @@ export const featureFlags = {
   sentinelLlmQualityRank: readEnvFlag("SENTINEL_LLM_QUALITY_RANK"),
   /** IA de resgate de esfera zerada — escolhe ou rejeita, em vez de pegar cego por score. */
   sentinelLlmSphereRescue: readEnvFlag("SENTINEL_LLM_SPHERE_RESCUE"),
+  /** Radar de Bairro (mecanismo isolado do Sentinela). */
+  radarBairro: readEnvFlag("RADAR_BAIRRO_ENABLED"),
+  radarBairroLlm: readEnvFlag("RADAR_BAIRRO_LLM_ENABLED"),
   heygenVoiceProvider: getHeyGenVoiceProvider(),
 } as const;
 
@@ -83,6 +86,24 @@ export function isSentinelLlmQualityRankEnabled() {
 
 export function isSentinelLlmSphereRescueEnabled() {
   return featureFlags.sentinelLlmSphereRescue;
+}
+
+/**
+ * Radar de Bairro — coleta de grupos de bairro no Facebook. Off por default:
+ * envolve conteúdo público de terceiros e ainda depende do parecer jurídico
+ * (LGPD + período eleitoral). Ver docs/radar-de-bairro.md.
+ */
+export function isRadarBairroEnabled() {
+  return featureFlags.radarBairro;
+}
+
+/**
+ * Estágio 2 do filtro (LLM). Separado da flag principal pra dar pra ligar a
+ * coleta sem gastar LLM — mas sem ele a tela fica vazia de propósito: sem
+ * julgamento semântico o que passa é majoritariamente ruído.
+ */
+export function isRadarBairroLlmEnabled() {
+  return featureFlags.radarBairroLlm;
 }
 
 /** Selagem FFmpeg via job async (Pub/Sub / worker). */

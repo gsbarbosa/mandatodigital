@@ -19,6 +19,11 @@ export type AccountEntitlements = {
   multiNetworkPublish: boolean;
   maxPublishNetworks: number;
   expandedSocialProfileCaps: boolean;
+  /**
+   * Radar de Bairro: quantas localidades o candidato pode escolher. Trial não
+   * escolhe nenhuma (só enxerga o que a busca automática da cidade achar).
+   */
+  radarBairroLocalities: number;
 };
 
 export const ACCOUNT_TIER_LABELS: Record<AccountTier, string> = {
@@ -42,6 +47,7 @@ export const ACCOUNT_ENTITLEMENTS: Record<AccountTier, AccountEntitlements> = {
     multiNetworkPublish: false,
     maxPublishNetworks: 0,
     expandedSocialProfileCaps: false,
+    radarBairroLocalities: 0,
   },
   essencial: {
     tier: "essencial",
@@ -56,6 +62,7 @@ export const ACCOUNT_ENTITLEMENTS: Record<AccountTier, AccountEntitlements> = {
     multiNetworkPublish: true,
     maxPublishNetworks: 7,
     expandedSocialProfileCaps: true,
+    radarBairroLocalities: 10,
   },
   avancado: {
     tier: "avancado",
@@ -70,6 +77,7 @@ export const ACCOUNT_ENTITLEMENTS: Record<AccountTier, AccountEntitlements> = {
     multiNetworkPublish: true,
     maxPublishNetworks: 7,
     expandedSocialProfileCaps: true,
+    radarBairroLocalities: 20,
   },
   elite: {
     tier: "elite",
@@ -84,6 +92,7 @@ export const ACCOUNT_ENTITLEMENTS: Record<AccountTier, AccountEntitlements> = {
     multiNetworkPublish: true,
     maxPublishNetworks: 7,
     expandedSocialProfileCaps: true,
+    radarBairroLocalities: 30,
   },
 };
 

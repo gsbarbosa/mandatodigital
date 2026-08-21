@@ -4,6 +4,11 @@ import { apiRoute } from "@/lib/auth/api-route";
 import { getSentinelSuggestionById } from "@/lib/sentinel-suggestions";
 import { NOTICIAS_DO_DIA_ID_PREFIX, findNoticiaDoDiaById } from "@/lib/noticias-do-dia";
 import { noticiasDoDiaStorage } from "@/lib/noticias-do-dia-storage";
+import {
+  RADAR_BAIRRO_ID_PREFIX,
+  findRadarBairroSuggestionById,
+} from "@/lib/radar-bairro-suggestion";
+import { radarBairroStorage } from "@/lib/radar-bairro-storage";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -32,6 +37,18 @@ export async function GET(_request: Request, context: RouteContext) {
         return NextResponse.json({ message: "Notícia do dia não encontrada." }, { status: 404 });
       }
       return NextResponse.json({ suggestion });
+    }
+
+    // Mesmo caso da Notícias do Dia: cache próprio, mesma rota de lookup.
+    if (id.startsWith(RADAR_BAIRRO_ID_PREFIX)) {
+      const cached = dashboard.profile.id
+        ? await radarBairroStorage.readCache(dashboard.profile.id)
+        : null;
+      const found = cached ? findRadarBairroSuggestionById(cached, id) : null;
+      if (!found) {
+        return NextResponse.json({ message: "Sinal do Radar de Bairro não encontrado." }, { status: 404 });
+      }
+      return NextResponse.json({ suggestion: found });
     }
 
     const suggestion = await getSentinelSuggestionById(dashboard.profile, id);

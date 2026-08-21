@@ -19,6 +19,13 @@ export const COLLECTIONS = {
   sentinelFactChecks: "sentinelFactChecks",
   /** Cache diário da tela Notícias do Dia (doc id = profileId). Isolado do Sentinela. */
   noticiasDoDiaCache: "noticiasDoDiaCache",
+  /**
+   * Radar de Bairro (doc id = profileId): localidades cadastradas + grupo de
+   * Facebook verificado de cada uma. Isolado do Sentinela e da Notícias do Dia.
+   */
+  radarBairroRegistry: "radarBairroRegistry",
+  /** Última coleta do Radar de Bairro (doc id = profileId). */
+  radarBairroCache: "radarBairroCache",
   asyncJobs: "asyncJobs",
   /** MP3 TTS temporário aguardando render HeyGen (doc id = heygenVideoId). */
   ttsAudioPending: "ttsAudioPending",

@@ -151,3 +151,29 @@ export const NOTICIAS_DO_DIA_REFRESH_WINDOW_MS = 24 * 60 * 60 * 1000;
 export function noticiasDoDiaRateLimitKey(ownerUserId: string) {
   return `noticias-do-dia-refresh:${ownerUserId.trim() || "anonymous"}`;
 }
+
+/**
+ * Radar de Bairro: créditos de atualização por usuário/MÊS (não por dia).
+ *
+ * É mensal de propósito — a coleta não roda sozinha em segundo plano, só quando
+ * o candidato pede. Isso deixa o custo por conta previsível (créditos × tamanho
+ * do pacote) em vez de crescer com o número de bairros cadastrados.
+ */
+export const RADAR_BAIRRO_REFRESH_MAX_PER_MONTH = 10;
+export const RADAR_BAIRRO_REFRESH_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function radarBairroRefreshRateLimitKey(ownerUserId: string) {
+  return `radar-bairro-refresh:${ownerUserId.trim() || "anonymous"}`;
+}
+
+/**
+ * Tentativas de cadastro de bairro que NÃO acharam grupo. Não consomem cota do
+ * plano (o candidato não deve pagar por bairro que o Facebook não tem), mas
+ * também não podem ser infinitas: cada tentativa gasta busca + verificação.
+ */
+export const RADAR_BAIRRO_FAILED_LOOKUP_MAX = 10;
+export const RADAR_BAIRRO_FAILED_LOOKUP_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+export function radarBairroLookupRateLimitKey(ownerUserId: string) {
+  return `radar-bairro-lookup:${ownerUserId.trim() || "anonymous"}`;
+}

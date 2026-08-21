@@ -36,6 +36,7 @@ import {
   PagamentosIcon,
   PautaIndependenteIcon,
   PlanosPrecosIcon,
+  RadarBairroIcon,
   StateIcon,
 } from "./nav-icons";
 
@@ -159,6 +160,7 @@ const NAV_BLOCKS: NavBlock[] = [
         icon: NoticiasDoDiaIcon,
         groupBreakBefore: true,
       },
+      { label: "Radar de Bairro", href: "/monitoramento/radar-bairro", icon: RadarBairroIcon },
       { label: "Configurar", href: "/monitoramento/temas", variant: "settings", dividerBefore: true },
     ],
   },
