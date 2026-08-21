@@ -82,13 +82,27 @@ const NOISE_PHRASES = [
 ];
 
 /** true = passou na peneira barata e merece o estágio 2. */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * `\b` só no início de cada frase — pega "vendo" em "Vendo relógio", mas não
+ * em "envolvendo" (achado testando post real do X: notícia sobre acidente com
+ * "20 vítimas" foi cortada porque "vendo " batia dentro de "envolvendo um
+ * ônibus"). Fim da frase mantém o casamento livre — várias frases já terminam
+ * sem espaço de propósito (ex. "delivery" dentro de "delivery grátis").
+ */
+const NOISE_PHRASE_MATCHERS = NOISE_PHRASES.map(
+  (phrase) => new RegExp(`\\b${escapeRegExp(phrase.trim())}`, "i"),
+);
+
 export function passesCheapNoiseFilter(text: string): boolean {
   const normalized = text.trim();
   if (normalized.length < MIN_TEXT_LENGTH) {
     return false;
   }
-  const haystack = ` ${normalized.toLowerCase()} `;
-  return !NOISE_PHRASES.some((phrase) => haystack.includes(phrase));
+  return !NOISE_PHRASE_MATCHERS.some((matcher) => matcher.test(normalized));
 }
 
 const llmVerdictSchema = z.object({

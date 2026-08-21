@@ -61,6 +61,27 @@ describe("passesCheapNoiseFilter", () => {
       ),
     ).toBe(true);
   });
+
+  /**
+   * Regressão de um bug real, achado testando o filtro contra post de verdade
+   * do X (não do Facebook): a frase de ruído "vendo " (pra pegar classificado
+   * tipo "Vendo relógio") também batia dentro de "envolvendo", derrubando uma
+   * notícia real de acidente de ônibus com 20 vítimas. Corrigido com fronteira
+   * de palavra (`\b`) no início de cada frase — este teste garante que não volta.
+   */
+  it("não corta notícia real por causa de substring dentro de outra palavra (envolvendo ⊃ vendo)", () => {
+    expect(
+      passesCheapNoiseFilter(
+        "ATENÇÃO, MOTORISTAS! O trânsito no Anel Rodoviário, no bairro Betânia, em Belo Horizonte, está travado. O acidente envolvendo um ônibus de viagem, com cerca de 20 vítimas, interdita totalmente a pista do meio.",
+      ),
+    ).toBe(true);
+  });
+
+  it("ainda corta classificado real de venda (o caso que a frase deveria pegar)", () => {
+    expect(passesCheapNoiseFilter("Vendo relógio casio 200, pouco uso, aceito proposta razoável.")).toBe(
+      false,
+    );
+  });
 });
 
 function post(text: string): RadarBairroPost {
