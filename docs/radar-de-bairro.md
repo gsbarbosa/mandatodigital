@@ -189,6 +189,36 @@ Custo no teste: $2,60/1.000 posts, com 500 posts grátis — a validação saiu 
 
 ---
 
+## 7.1 Deduplicação entre fontes
+
+Diferente de plataforma-por-grupo (Facebook), uma futura fonte por busca (ex.: X)
+pode trazer o MESMO evento contado por contas diferentes, com texto diferente —
+achado real: duas contas de notícia cobrindo o mesmo acidente de ônibus.
+Deduplicação por autor+texto (`radar-bairro-facebook.ts`) não pega esse caso.
+
+`radar-bairro-dedup.ts` resolve em 2 estágios, mesmo padrão do filtro de
+relevância:
+
+1. **Peneira barata** (`findCandidateDuplicatePairs`): sobreposição de palavras
+   (Jaccard), limiar propositalmente baixo (0,15) — só acha CANDIDATO, roda
+   depois do filtro de relevância (universo menor, evita gastar em post que
+   seria descartado de qualquer jeito).
+2. **IA decide** (`confirmSameEvent`): pra cada par candidato, pergunta se é
+   de fato o mesmo evento.
+
+**Por que não dá pra confiar só na peneira barata:** calibrado contra dado
+real, o par de duplicata verdadeira (mesmo acidente, fontes diferentes) deu
+jaccard 0,200; o par mais parecido que existe SEM ser duplicata (2 crimes
+diferentes no mesmo bairro, mesmo veículo de notícia — vocabulário
+compartilhado é só o estilo do repórter) deu 0,182. Diferença de 0,018 não é
+limiar confiável.
+
+**Falha segura:** sem IA disponível, não funde nada. Post duplicado visível é
+ruim; post real perdido por fusão errada é pior — não tem estágio depois pra
+recuperar.
+
+---
+
 ## 8. Limitações conhecidas
 
 - **Grupo que funcionou pode falhar depois.** Num reteste, 2 de 3 grupos que já

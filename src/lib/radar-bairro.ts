@@ -14,6 +14,7 @@
  * Ver docs/radar-de-bairro.md.
  */
 
+import { deduplicatePosts } from "@/lib/radar-bairro-dedup";
 import { curateLocality } from "@/lib/radar-bairro-discovery";
 import { fetchFacebookGroupPosts } from "@/lib/radar-bairro-facebook";
 import { fetchOsmNeighborhoods, rankNeighborhoodCandidates, resolveCityMode } from "@/lib/radar-bairro-geo";
@@ -155,7 +156,14 @@ export async function collectRadarBairro(
 
   const allPosts: RadarBairroPost[] = perLocality.flatMap((entry) => entry.posts);
   const cityLabel = `${registry.city}${registry.uf ? `/${registry.uf}` : ""}`;
-  const { signals } = await filterRadarBairroPosts(allPosts, { cityLabel });
+  const { signals: relevant } = await filterRadarBairroPosts(allPosts, { cityLabel });
+
+  // Dedup roda DEPOIS do filtro de relevância, não antes: são só os sinais que
+  // vão pra tela, um universo bem menor — evita gastar verificação de duplicata
+  // (IA) em post que ia ser descartado como ruído de qualquer jeito. Achado
+  // real que motivou isso: 2 contas de notícia cobrindo o mesmo acidente de
+  // ônibus, texto e autor diferentes — a dedup por autor não pegava.
+  const signals = await deduplicatePosts(relevant);
 
   const withSignal = new Set(signals.map((signal) => signal.localityName));
 
